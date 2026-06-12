@@ -1,30 +1,28 @@
 import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 
 export default function CTAFinal() {
   return (
-    <section
-      className="px-6 py-24 flex flex-col items-center text-center"
-      style={{ background: "var(--bg-inverse)" }}
-    >
-      <h2
-        className="font-display text-5xl font-bold mb-4 max-w-2xl"
-        style={{ color: "#fff" }}
-      >
-        Tu cocina merece números exactos
-      </h2>
-      <p
-        className="text-lg mb-10 max-w-xl"
-        style={{ color: "#8FA0BC" }}
-      >
-        Empieza gratis hoy. Sin tarjeta de crédito. Sin letra chica.
-      </p>
-      <Link
-        href="/login"
-        className="h-14 px-10 rounded-xl text-base font-semibold flex items-center"
-        style={{ background: "var(--accent)", color: "#fff" }}
-      >
-        Empezar ahora — es gratis
-      </Link>
+    <section className="bg-[#12213A] py-24 sm:py-32 px-6 sm:px-10 text-center">
+      <div className="max-w-7xl mx-auto">
+        <h2
+          className="font-display font-extrabold text-[#F5F0E8] leading-[1.05] tracking-tight mb-4"
+          style={{ fontSize: "clamp(2.5rem, 6vw, 5rem)" }}
+        >
+          Empieza hoy.
+          <br />Tu primera receta, gratis.
+        </h2>
+        <p className="font-body text-[#8FA0BC] text-lg mb-10">
+          Sin tarjeta de crédito. Sin compromiso. 14 días para convencerte.
+        </p>
+        <Link
+          href="/login"
+          className="group bg-[#1B4FD8] text-white px-10 py-4 rounded-xl font-body font-semibold text-base hover:bg-[#1540B0] transition-colors flex items-center gap-2 mx-auto w-fit"
+        >
+          Crear mi cuenta gratis
+          <ArrowRight size={18} className="transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </div>
     </section>
   )
 }

@@ -1,76 +1,67 @@
-const modules = [
+import { Package, Scale, ChefHat, UtensilsCrossed, TrendingUp, BarChart2 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+
+const modules: { icon: LucideIcon; name: string; description: string }[] = [
   {
-    icon: "📦",
-    title: "Inventario",
-    description: "Gestiona ingredientes con precio, unidad y proveedor.",
+    icon: Package,
+    name: "Inventario",
+    description: "Base de 297 ingredientes con costo por gramo calculado automáticamente.",
   },
   {
-    icon: "⚖️",
-    title: "Factor de Rendimiento",
-    description: "Registra mermas y obtén el costo real post-procesamiento.",
+    icon: Scale,
+    name: "Factor de Rendimiento",
+    description: "Costo real después de mermas en proteínas y vegetales.",
   },
   {
-    icon: "👨‍🍳",
-    title: "Recetas",
-    description: "Fichas técnicas con costo automático por porción.",
+    icon: ChefHat,
+    name: "Recetas",
+    description: "Subrecetas anidadas con costo en cascada calculado en tiempo real.",
   },
   {
-    icon: "🍽️",
-    title: "Menú",
-    description: "Carta con análisis de rentabilidad por plato.",
+    icon: UtensilsCrossed,
+    name: "Menú",
+    description: "Agrupa recetas y ve el costo por persona antes de fijar precios.",
   },
   {
-    icon: "📈",
-    title: "Valoración A&B",
-    description: "Análisis de ingresos, costos y utilidad por período.",
+    icon: TrendingUp,
+    name: "Valoración A&B",
+    description: "Motor de pricing: costo de producción al precio sugerido de venta.",
   },
   {
-    icon: "📉",
-    title: "Punto de Equilibrio",
-    description: "Cuánto necesitas vender para no perder dinero.",
+    icon: BarChart2,
+    name: "Punto de Equilibrio",
+    description: "Cuántos platos tienes que vender para no perder dinero.",
   },
 ]
 
 export default function Modulos() {
   return (
-    <section
-      id="módulos"
-      className="px-6 py-20"
-      style={{ background: "var(--bg-secondary)" }}
-    >
-      <div className="max-w-5xl mx-auto">
-        <h2
-          className="font-display text-4xl font-bold text-center mb-4"
-          style={{ color: "var(--text-primary)" }}
-        >
-          Todo lo que necesita tu cocina
-        </h2>
-        <p
-          className="text-center text-base mb-14 max-w-xl mx-auto"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Seis módulos integrados. Un solo software. Sin hojas de cálculo.
-        </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {modules.map(({ icon, title, description }) => (
+    <section id="modulos" className="bg-[#EDE7DB] py-20 sm:py-28 px-6 sm:px-10 lg:px-16">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-12">
+          <h2
+            className="font-display font-bold text-[#12213A] mb-4"
+            style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}
+          >
+            Todo lo que necesita tu cocina para ser rentable
+          </h2>
+          <p className="font-body text-[#7A6E60]">Seis módulos integrados. Un solo sistema.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {modules.map(({ icon: Icon, name, description }) => (
             <div
-              key={title}
-              className="flex flex-col gap-3 rounded-xl p-5"
-              style={{
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-light)",
-              }}
+              key={name}
+              className="bg-[#FDFAF6] border border-[#DDD6C8] rounded-2xl p-6 hover:border-[#1B4FD8] transition-colors duration-200"
             >
-              <span className="text-2xl">{icon}</span>
-              <h3
-                className="font-display text-lg font-bold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {title}
-              </h3>
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                {description}
-              </p>
+              <div className="w-10 h-10 bg-[#DEEAFF] rounded-xl flex items-center justify-center mb-4">
+                <Icon size={20} className="text-[#1B4FD8]" />
+              </div>
+              <h3 className="font-body font-bold text-sm text-[#12213A] mb-1">{name}</h3>
+              <p className="font-body text-xs text-[#4A4438] leading-relaxed">{description}</p>
+              <span className="inline-block bg-[#DEEAFF] text-[#1434A4] text-[10px] font-semibold px-2 py-0.5 rounded mt-3">
+                Incluido en Pro
+              </span>
             </div>
           ))}
         </div>
