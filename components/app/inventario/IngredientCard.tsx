@@ -1,0 +1,149 @@
+"use client"
+
+import { Pencil, Trash2, Scale, DollarSign } from "lucide-react"
+import Badge from "@/components/ui/Badge"
+import Button from "@/components/ui/Button"
+import type { Ingredient } from "@/types/ingredient"
+
+export interface IngredientCardProps {
+  ingredient: Ingredient
+  onEdit: (ingredient: Ingredient) => void
+  onDelete: (ingredient: Ingredient) => void
+}
+
+export default function IngredientCard({
+  ingredient,
+  onEdit,
+  onDelete,
+}: IngredientCardProps) {
+  const isOwn = ingredient.userId !== null
+  const costPerUnit = parseFloat(ingredient.costPerUnit)
+  const weightGrams = parseFloat(ingredient.weightGrams)
+  const costPerGram = parseFloat(ingredient.costPerGram)
+
+  return (
+    <article
+      className="group relative flex flex-col gap-4 rounded-2xl p-5 transition-all duration-200"
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border-light)",
+        boxShadow: "0 1px 3px rgba(18,33,58,0.04)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(18,33,58,0.10)"
+        e.currentTarget.style.borderColor = "var(--border-medium)"
+        e.currentTarget.style.transform = "translateY(-1px)"
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 1px 3px rgba(18,33,58,0.04)"
+        e.currentTarget.style.borderColor = "var(--border-light)"
+        e.currentTarget.style.transform = "translateY(0)"
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1 min-w-0">
+          <h3
+            className="font-semibold text-sm leading-snug truncate"
+            style={{ color: "var(--text-primary)" }}
+            title={ingredient.name}
+          >
+            {ingredient.name}
+          </h3>
+          <Badge variant={isOwn ? "accent" : "muted"}>
+            {isOwn ? "Propio" : "Banco base"}
+          </Badge>
+        </div>
+
+        {/* Actions — only for own ingredients */}
+        {isOwn && (
+          <div
+            className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+            aria-label="Acciones"
+          >
+            <button
+              onClick={() => onEdit(ingredient)}
+              aria-label={`Editar ${ingredient.name}`}
+              className="rounded-lg p-1.5 transition-colors hover:bg-[var(--bg-secondary)]"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              onClick={() => onDelete(ingredient)}
+              aria-label={`Eliminar ${ingredient.name}`}
+              className="rounded-lg p-1.5 transition-colors hover:bg-red-50"
+              style={{ color: "var(--text-muted)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#B42020"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-muted)"
+              }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Stats */}
+      <dl className="grid grid-cols-2 gap-3">
+        <div
+          className="flex flex-col gap-0.5 rounded-xl px-3 py-2.5"
+          style={{ background: "var(--bg-primary)" }}
+        >
+          <dt
+            className="flex items-center gap-1.5 text-xs"
+            style={{ color: "var(--text-muted)" }}
+          >
+            <DollarSign size={11} aria-hidden="true" />
+            Costo unitario
+          </dt>
+          <dd
+            className="text-sm font-semibold font-mono"
+            style={{ color: "var(--text-primary)" }}
+          >
+            ${costPerUnit.toLocaleString("es-CO")}
+          </dd>
+        </div>
+
+        <div
+          className="flex flex-col gap-0.5 rounded-xl px-3 py-2.5"
+          style={{ background: "var(--bg-primary)" }}
+        >
+          <dt
+            className="flex items-center gap-1.5 text-xs"
+            style={{ color: "var(--text-muted)" }}
+          >
+            <Scale size={11} aria-hidden="true" />
+            Peso
+          </dt>
+          <dd
+            className="text-sm font-semibold font-mono"
+            style={{ color: "var(--text-primary)" }}
+          >
+            {weightGrams.toLocaleString("es-CO")} g
+          </dd>
+        </div>
+
+        <div
+          className="col-span-2 flex items-center justify-between rounded-xl px-3 py-2"
+          style={{
+            background: "var(--accent-light)",
+          }}
+        >
+          <span className="text-xs" style={{ color: "var(--accent-text)" }}>
+            Costo por gramo
+          </span>
+          <span
+            className="text-xs font-bold font-mono"
+            style={{ color: "var(--accent-text)" }}
+          >
+            ${costPerGram.toFixed(4)}/g
+          </span>
+        </div>
+      </dl>
+    </article>
+  )
+}
