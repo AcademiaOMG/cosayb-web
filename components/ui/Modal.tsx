@@ -1,18 +1,23 @@
 "use client"
 
 import { useEffect } from "react"
+import type React from "react"
 import { X } from "lucide-react"
 
 export interface ModalProps {
-  isOpen: boolean
+  isOpen?: boolean
+  open?: boolean
   onClose: () => void
   title?: string
   children: React.ReactNode
+  footer?: React.ReactNode
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, open, onClose, title, children, footer }: ModalProps) {
+  const visible = typeof open === "boolean" ? open : !!isOpen
+
   useEffect(() => {
-    if (!isOpen) return
+    if (!visible) return
     const handleKey = (e: KeyboardEvent) => e.key === "Escape" && onClose()
     document.addEventListener("keydown", handleKey)
     document.body.style.overflow = "hidden"
@@ -20,9 +25,9 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       document.removeEventListener("keydown", handleKey)
       document.body.style.overflow = ""
     }
-  }, [isOpen, onClose])
+  }, [visible, onClose])
 
-  if (!isOpen) return null
+  if (!visible) return null
 
   return (
     <div
@@ -67,7 +72,12 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
             <X size={18} />
           </button>
         </div>
-        {children}
+        <div className="flex-1">{children}</div>
+        {footer && (
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border-light)" }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )

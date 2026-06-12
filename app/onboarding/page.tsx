@@ -14,6 +14,7 @@ export default function OnboardingPage() {
   const [orgName, setOrgName] = useState("")
   const [selectedPlan, setSelectedPlan] = useState<Plan>("free")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   function handleStep1() {
     if (!orgName.trim()) return
@@ -22,10 +23,34 @@ export default function OnboardingPage() {
 
   async function handleFinish() {
     setIsLoading(true)
-    // TODO: POST /api/organizations { name: orgName, plan: selectedPlan }
-    // TODO: Set cosayb.org_id cookie
-    await new Promise((r) => setTimeout(r, 600))
-    router.push("/inventario")
+    setError(null)
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+
+      const res = await fetch(`${apiUrl}/api/v1/organizations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: orgName, plan: selectedPlan }),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? "Error al crear la organización")
+      }
+
+      const { data: org } = await res.json()
+
+      // Setear cookie cosayb.org_id que el middleware de Next.js espera
+      document.cookie = `cosayb.org_id=${org.id}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
+
+      router.push("/inventario")
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Ocurrió un error inesperado")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -54,10 +79,7 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-1">
-              <h1
-                className="text-2xl font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
+              <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
                 ¿Cómo se llama tu negocio?
               </h1>
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
@@ -71,12 +93,7 @@ export default function OnboardingPage() {
               onChange={(e) => setOrgName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleStep1()}
             />
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleStep1}
-              disabled={!orgName.trim()}
-            >
+            <Button variant="primary" size="lg" onClick={handleStep1} disabled={!orgName.trim()}>
               Continuar
             </Button>
           </div>
@@ -85,10 +102,7 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-1">
-              <h1
-                className="text-2xl font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
+              <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
                 Elige tu plan
               </h1>
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
@@ -122,6 +136,10 @@ export default function OnboardingPage() {
               />
             </div>
 
+            {error && (
+              <p className="text-sm text-red-400 text-center">{error}</p>
+            )}
+
             <div className="flex gap-3">
               <Button variant="ghost" onClick={() => setStep(1)}>
                 Atrás
@@ -143,15 +161,9 @@ export default function OnboardingPage() {
   )
 }
 
-function StepDot({
-  active,
-  done,
-  label,
-}: {
-  active: boolean
-  done: boolean
-  label: string
-}) {
+// ─── Sub-componentes (sin cambios) ────────────────────────────────────
+
+function StepDot({ active, done, label }: { active: boolean; done: boolean; label: string }) {
   return (
     <div
       className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0"
@@ -166,21 +178,10 @@ function StepDot({
 }
 
 function PlanCard({
-  plan,
-  selected,
-  onSelect,
-  title,
-  price,
-  features,
-  highlighted = false,
+  plan, selected, onSelect, title, price, features, highlighted = false,
 }: {
-  plan: Plan
-  selected: boolean
-  onSelect: () => void
-  title: string
-  price: string
-  features: string[]
-  highlighted?: boolean
+  plan: Plan; selected: boolean; onSelect: () => void
+  title: string; price: string; features: string[]; highlighted?: boolean
 }) {
   return (
     <button
@@ -188,41 +189,24 @@ function PlanCard({
       className="w-full text-left rounded-xl p-5 flex flex-col gap-3 transition-all"
       style={{
         background: selected ? "var(--accent-light)" : "var(--bg-surface)",
-        border: selected
-          ? "2px solid var(--accent)"
-          : "2px solid var(--border-light)",
+        border: selected ? "2px solid var(--accent)" : "2px solid var(--border-light)",
         cursor: "pointer",
       }}
     >
       <div className="flex items-center justify-between">
-        <span
-          className="font-display text-xl font-bold"
-          style={{ color: selected ? "var(--accent)" : "var(--text-primary)" }}
-        >
+        <span className="font-display text-xl font-bold" style={{ color: selected ? "var(--accent)" : "var(--text-primary)" }}>
           {title}
           {highlighted && (
-            <span
-              className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ background: "var(--accent)", color: "#fff" }}
-            >
+            <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--accent)", color: "#fff" }}>
               RECOMENDADO
             </span>
           )}
         </span>
-        <span
-          className="text-sm font-semibold"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {price}
-        </span>
+        <span className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>{price}</span>
       </div>
       <ul className="flex flex-col gap-1">
         {features.map((f) => (
-          <li
-            key={f}
-            className="text-sm flex items-center gap-2"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <li key={f} className="text-sm flex items-center gap-2" style={{ color: "var(--text-secondary)" }}>
             <span style={{ color: "var(--accent)" }}>✓</span> {f}
           </li>
         ))}

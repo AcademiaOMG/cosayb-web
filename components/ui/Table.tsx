@@ -1,6 +1,9 @@
+import type React from "react"
+
 export interface Column {
   key: string
-  header: string
+  header?: string
+  label?: string
   render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode
 }
 
@@ -8,9 +11,10 @@ export interface TableProps {
   columns: Column[]
   data: Record<string, unknown>[]
   emptyState?: React.ReactNode
+  rowKey?: string
 }
 
-export default function Table({ columns, data, emptyState }: TableProps) {
+export default function Table({ columns, data, emptyState, rowKey }: TableProps) {
   return (
     <div
       className="w-full overflow-hidden rounded-xl"
@@ -25,7 +29,7 @@ export default function Table({ columns, data, emptyState }: TableProps) {
                 className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
                 style={{ color: "var(--text-muted)" }}
               >
-                {col.header}
+                {col.header ?? col.label ?? col.key}
               </th>
             ))}
           </tr>
@@ -42,9 +46,11 @@ export default function Table({ columns, data, emptyState }: TableProps) {
               </td>
             </tr>
           ) : (
-            data.map((row, rowIndex) => (
+            data.map((row, rowIndex) => {
+              const rowId = rowKey ? String(row[rowKey] ?? rowIndex) : String(rowIndex)
+              return (
               <tr
-                key={rowIndex}
+                key={rowId}
                 style={{
                   borderTop: "1px solid var(--border-light)",
                   background:
@@ -63,7 +69,8 @@ export default function Table({ columns, data, emptyState }: TableProps) {
                   </td>
                 ))}
               </tr>
-            ))
+            )
+            })
           )}
         </tbody>
       </table>
