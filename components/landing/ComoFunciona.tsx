@@ -1,60 +1,52 @@
 const steps = [
   {
     number: "01",
-    title: "Ingresa tus ingredientes",
+    title: "Carga tus ingredientes",
     description:
-      "Registra ingredientes con su precio de compra o importa el banco base de CO$AYB con más de 200 insumos comunes.",
+      "Importa los 297 ingredientes base o agrega los tuyos con precios reales del mercado colombiano.",
   },
   {
     number: "02",
-    title: "Crea tus recetas",
+    title: "Construye tus recetas",
     description:
-      "Construye fichas técnicas con cantidades, mermas y rendimientos reales. El costo por porción se calcula automáticamente.",
+      "Combina ingredientes, define porciones y el costo se calcula automáticamente, incluyendo subrecetas y mermas.",
   },
   {
     number: "03",
-    title: "Arma tu carta",
+    title: "Conoce tu precio real",
     description:
-      "Organiza las recetas en tu menú con precio de venta y visualiza al instante el porcentaje de costo de cada plato.",
-  },
-  {
-    number: "04",
-    title: "Toma decisiones con datos",
-    description:
-      "Conoce tu punto de equilibrio, analiza la valoración A&B de tu negocio y ajusta precios con seguridad.",
+      "El sistema te dice cuánto cuesta producir cada plato y a qué precio exacto deberías venderlo para ser rentable.",
   },
 ]
 
 export default function ComoFunciona() {
   return (
-    <section id="como-funciona" className="px-6 py-20">
-      <div className="max-w-5xl mx-auto">
-        <h2
-          className="font-display text-4xl font-bold text-center mb-16"
-          style={{ color: "var(--text-primary)" }}
-        >
-          Cómo funciona CO$AYB
-        </h2>
-        <div className="grid md:grid-cols-2 gap-8">
+    <section id="como-funciona" className="bg-[#F5F0E8] py-20 sm:py-28 px-6 sm:px-10 lg:px-16">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-12">
+          <span className="inline-block bg-[#DEEAFF] text-[#1434A4] text-xs font-body font-semibold tracking-[0.15em] uppercase px-4 py-2 rounded-full mb-4">
+            Sin fórmulas complicadas
+          </span>
+          <h2
+            className="font-display font-bold text-[#12213A] mb-4"
+            style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}
+          >
+            Tres pasos para saber lo que vale tu cocina
+          </h2>
+          <p className="font-body text-[#7A6E60]">Sin Excel lleno de errores. Sin adivinar.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {steps.map(({ number, title, description }) => (
-            <div key={number} className="flex gap-5">
-              <span
-                className="font-display text-4xl font-bold shrink-0 leading-none"
-                style={{ color: "var(--border-medium)" }}
-              >
+            <div
+              key={number}
+              className="bg-[#FDFAF6] border border-[#DDD6C8] rounded-2xl p-8"
+            >
+              <div className="font-mono text-5xl font-bold text-[#1B4FD8] leading-none mb-4">
                 {number}
-              </span>
-              <div className="flex flex-col gap-2">
-                <h3
-                  className="text-lg font-semibold"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {title}
-                </h3>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  {description}
-                </p>
               </div>
+              <h3 className="font-body font-bold text-lg text-[#12213A] mb-2">{title}</h3>
+              <p className="font-body text-sm text-[#4A4438] leading-relaxed">{description}</p>
             </div>
           ))}
         </div>
