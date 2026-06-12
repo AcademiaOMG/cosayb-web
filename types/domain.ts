@@ -1,12 +1,15 @@
 export type Plan = "free" | "pro" | "academia"
 
+// Refleja exactamente el schema `ingredients` del backend (Drizzle ORM).
+// Drizzle devuelve columnas `numeric` como string → costPerUnit, weightGrams, costPerGram son strings.
 export interface Ingrediente {
   id: string
-  nombre: string
-  unidad: string
-  costoUnitario: number
-  proveedor?: string
-  organizationId: string
+  name: string
+  costPerUnit: string
+  weightGrams: string
+  costPerGram: string
+  isPublic: boolean
+  userId: string | null   // null = ingrediente del banco base público
   createdAt: string
   updatedAt: string
 }
