@@ -96,10 +96,16 @@ export interface PuntoEquilibrio {
 
 export interface Organization {
   id: string
-  nombre: string
-  slug: string
+  name: string
+  businessType: string | null
   plan: Plan
+  effectivePlan: Plan
   ownerId: string
+  trialEndsAt: string | null
+  isTrialing: boolean
+  trialExpired: boolean
+  daysLeft: number
+  onboardingCompleted: boolean
   createdAt: string
   updatedAt: string
 }

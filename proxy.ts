@@ -1,61 +1,66 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
 
-const APP_ROUTES = [
-  "/inventario",
-  "/recetas",
-  "/menu",
-  "/valoracion",
-  "/factor-rendimiento",
-  "/punto-equilibrio",
-]
+const PUBLIC_ROUTES = [
+  "/",
+  "/login",
+  "/register",
+];
 
-export function proxy(request: NextRequest): NextResponse {
-  const { pathname } = request.nextUrl
-  const hostname = request.headers.get("host") ?? ""
+export async function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-  const isAppSubdomain =
-    hostname.startsWith("app.") || hostname.startsWith("app-")
-
-  const isAppRoute = APP_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  )
-
-  // Root "/" on app subdomain → redirect to /inventario
-  if (pathname === "/" && isAppSubdomain) {
-    return NextResponse.redirect(new URL("/inventario", request.url))
+  // Permitir recursos internos de Next.js
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon.ico") ||
+    pathname.startsWith("/api/auth")
+  ) {
+    return NextResponse.next();
   }
 
-  if (!isAppRoute) return NextResponse.next()
-
-  // Check session cookie set by better-auth
-  const sessionCookie =
-    request.cookies.get("better-auth.session_token") ??
-    request.cookies.get("__session")
-
-  if (!sessionCookie) {
-    const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("redirect", pathname)
-    return NextResponse.redirect(loginUrl)
+  // Permitir rutas públicas
+  if (PUBLIC_ROUTES.includes(pathname)) {
+    return NextResponse.next();
   }
 
-  // Check if the user completed onboarding
-  const orgCookie = request.cookies.get("cosayb.org_id")
+  try {
+    // Verificar sesión mediante tu proxy de Better Auth
+    const sessionResponse = await fetch(
+      `${req.nextUrl.origin}/api/auth/get-session`,
+      {
+        headers: {
+          cookie: req.headers.get("cookie") ?? "",
+        },
+      }
+    );
 
-  if (!orgCookie) {
-    return NextResponse.redirect(new URL("/onboarding", request.url))
+    // Si no hay sesión, redirigir al login
+    if (!sessionResponse.ok) {
+      return NextResponse.redirect(
+        new URL("/login", req.url)
+      );
+    }
+
+    const session = await sessionResponse.json();
+
+    if (!session?.user) {
+      return NextResponse.redirect(
+        new URL("/login", req.url)
+      );
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error("[Middleware] Error verificando sesión:", error);
+
+    return NextResponse.redirect(
+      new URL("/login", req.url)
+    );
   }
-
-  return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    "/",
-    "/inventario/:path*",
-    "/recetas/:path*",
-    "/menu/:path*",
-    "/valoracion/:path*",
-    "/factor-rendimiento/:path*",
-    "/punto-equilibrio/:path*",
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
-}
+};
