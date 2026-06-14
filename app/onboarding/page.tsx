@@ -1,24 +1,75 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
-import type { Plan } from "@/types/domain"
+import { authClient } from "@/lib/auth"
 
-type Step = 1 | 2
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3005"
+
+type Step = 1 | 2 | 3
+
+const BUSINESS_TYPES = [
+  { id: "restaurante", label: "Restaurante", icon: "🍽️", description: "Comida completa para sentarse a comer" },
+  { id: "cafeteria", label: "Cafetería", icon: "☕", description: "Bebidas y snacks rápidos" },
+  { id: "panaderia", label: "Panadería", icon: "🥐", description: "Pan, pasteles y repostería" },
+  { id: "foodtruck", label: "Food Truck", icon: "🚚", description: "Comida móvil o callejera" },
+  { id: "cloudkitchen", label: "Cloud Kitchen", icon: "☁️", description: "Solo delivery, sin local físico" },
+  { id: "catering", label: "Catering", icon: "🎉", description: "Eventos y banquetes" },
+  { id: "otro", label: "Otro", icon: "📦", description: "Otro tipo de negocio" },
+]
+
+function setOnboardingCookie() {
+  document.cookie = "cosayb.onboarding=true; path=/; max-age=31536000; SameSite=Lax"
+}
 
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [orgName, setOrgName] = useState("")
-  const [selectedPlan, setSelectedPlan] = useState<Plan>("free")
+  const [businessType, setBusinessType] = useState("")
+  const [selectedPlan, setSelectedPlan] = useState<"free" | "pro">("free")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    async function check() {
+      try {
+        const { data } = await authClient.getSession()
+        if (!data?.session) {
+          router.replace("/login")
+          return
+        }
+
+        // Verificar si ya completó onboarding
+        const res = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
+        if (res.ok) {
+          const body = await res.json()
+          if (body.data?.onboardingCompleted) {
+            setOnboardingCookie()
+            router.replace("/inventario")
+            return
+          }
+        }
+
+        setChecking(false)
+      } catch {
+        setChecking(false)
+      }
+    }
+    check()
+  }, [router])
 
   function handleStep1() {
     if (!orgName.trim()) return
     setStep(2)
+  }
+
+  function handleStep2() {
+    if (!businessType) return
+    setStep(3)
   }
 
   async function handleFinish() {
@@ -26,25 +77,45 @@ export default function OnboardingPage() {
     setError(null)
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+      // 1. Obtener organización existente (creada por el hook en el backend)
+      const orgRes = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
+      let orgId: string | null = null
 
-      const res = await fetch(`${apiUrl}/api/v1/organizations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ name: orgName, plan: selectedPlan }),
-      })
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? "Error al crear la organización")
+      if (orgRes.ok) {
+        const orgBody = await orgRes.json()
+        orgId = orgBody.data?.id
       }
 
-      const { data: org } = await res.json()
+      // 2. Si no existe organización, crearla
+      if (!orgId) {
+        const createRes = await fetch(`${API}/api/v1/organizations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ name: orgName, plan: selectedPlan }),
+        })
 
-      // Setear cookie cosayb.org_id que el middleware de Next.js espera
-      document.cookie = `cosayb.org_id=${org.id}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
+        if (!createRes.ok) throw new Error("Error al crear la organización")
+        const createBody = await createRes.json()
+        orgId = createBody.data?.id
+      }
 
+      // 3. Actualizar organización con datos del onboarding
+      if (orgId) {
+        await fetch(`${API}/api/v1/organizations/${orgId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name: orgName,
+            onboardingCompleted: true,
+            plan: selectedPlan,
+          }),
+        })
+      }
+
+      // 4. Setear cookie y redirigir
+      setOnboardingCookie()
       router.push("/inventario")
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Ocurrió un error inesperado")
@@ -53,35 +124,50 @@ export default function OnboardingPage() {
     }
   }
 
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
+        <div className="animate-pulse text-lg" style={{ color: "var(--text-muted)" }}>Cargando...</div>
+      </div>
+    )
+  }
+
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: "var(--bg-primary)" }}
-    >
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ background: "var(--bg-primary)" }}>
       <div
-        className="w-full max-w-lg flex flex-col gap-8 rounded-2xl p-10"
+        className="w-full max-w-xl flex flex-col gap-8 rounded-2xl p-10"
         style={{
           background: "var(--bg-surface)",
           border: "1px solid var(--border-light)",
           boxShadow: "0 4px 24px rgba(18, 33, 58, 0.08)",
         }}
       >
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            Configura tu cuenta
+          </h1>
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+            Solo necesitamos unos datos para personalizar tu experiencia
+          </p>
+        </div>
+
         {/* Progress */}
         <div className="flex items-center gap-3">
           <StepDot active={step >= 1} done={step > 1} label="1" />
-          <div
-            className="flex-1 h-px"
-            style={{ background: step > 1 ? "var(--accent)" : "var(--border-light)" }}
-          />
-          <StepDot active={step >= 2} done={false} label="2" />
+          <div className="flex-1 h-px" style={{ background: step > 1 ? "var(--accent)" : "var(--border-light)" }} />
+          <StepDot active={step >= 2} done={step > 2} label="2" />
+          <div className="flex-1 h-px" style={{ background: step > 2 ? "var(--accent)" : "var(--border-light)" }} />
+          <StepDot active={step >= 3} done={false} label="3" />
         </div>
 
+        {/* Step 1: Nombre del negocio */}
         {step === 1 && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
                 ¿Cómo se llama tu negocio?
-              </h1>
+              </h2>
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 Puede ser el nombre de tu restaurante, cocina o empresa.
               </p>
@@ -99,59 +185,89 @@ export default function OnboardingPage() {
           </div>
         )}
 
+        {/* Step 2: Tipo de negocio */}
         {step === 2 && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                Elige tu plan
-              </h1>
+              <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                ¿Qué tipo de negocio manejas?
+              </h2>
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                Puedes cambiar en cualquier momento.
+                Esto nos ayudará a personalizar las funciones para ti.
               </p>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              {BUSINESS_TYPES.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => setBusinessType(type.id)}
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl transition-all text-center"
+                  style={{
+                    background: businessType === type.id ? "var(--accent-light)" : "var(--bg-secondary)",
+                    border: businessType === type.id ? "2px solid var(--accent)" : "2px solid var(--border-light)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span className="text-2xl">{type.icon}</span>
+                  <span className="font-medium text-sm" style={{ color: businessType === type.id ? "var(--accent)" : "var(--text-primary)" }}>
+                    {type.label}
+                  </span>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    {type.description}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" onClick={() => setStep(1)}>Atrás</Button>
+              <Button variant="primary" size="lg" onClick={handleStep2} disabled={!businessType} className="flex-1">
+                Continuar
+              </Button>
+            </div>
+          </div>
+        )}
 
+        {/* Step 3: Selección de plan */}
+        {step === 3 && (
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                Elige tu plan
+              </h2>
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                Comienza gratis o activa Pro para funciones completas.
+              </p>
+            </div>
             <div className="flex flex-col gap-3">
               <PlanCard
-                plan="free"
                 selected={selectedPlan === "free"}
                 onSelect={() => setSelectedPlan("free")}
                 title="Free"
                 price="Gratis"
-                features={["Hasta 30 ingredientes", "5 recetas", "1 menú"]}
+                features={["Hasta 30 ingredientes", "5 recetas", "1 menú", "Soporte básico"]}
               />
               <PlanCard
-                plan="pro"
                 selected={selectedPlan === "pro"}
                 onSelect={() => setSelectedPlan("pro")}
                 title="Pro"
-                price="$ 49.900 / mes"
+                price="$49.900 / mes"
                 features={[
-                  "Ingredientes ilimitados",
-                  "Recetas ilimitadas",
-                  "Menús ilimitados",
-                  "Valoración A&B",
-                  "Punto de equilibrio",
+                  "Ingredientes ilimitados", "Recetas ilimitadas", "Menús ilimitados",
+                  "Valoración A&B", "Punto de equilibrio", "Exportar PDFs", "Soporte prioritario",
                 ]}
                 highlighted
               />
             </div>
-
-            {error && (
-              <p className="text-sm text-red-400 text-center">{error}</p>
+            {selectedPlan === "pro" && (
+              <div className="p-3 rounded-lg text-sm" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
+                <strong>14 días gratis</strong> de Pro al registrarte. Sin compromiso.
+              </div>
             )}
-
+            {error && <p className="text-sm text-center" style={{ color: "#E24B4A" }}>{error}</p>}
             <div className="flex gap-3">
-              <Button variant="ghost" onClick={() => setStep(1)}>
-                Atrás
-              </Button>
-              <Button
-                variant="primary"
-                size="lg"
-                loading={isLoading}
-                onClick={handleFinish}
-                className="flex-1"
-              >
-                Empezar
+              <Button variant="ghost" onClick={() => setStep(2)}>Atrás</Button>
+              <Button variant="primary" size="lg" loading={isLoading} onClick={handleFinish} className="flex-1">
+                {selectedPlan === "pro" ? "Comenzar prueba gratis" : "Empezar gratis"}
               </Button>
             </div>
           </div>
@@ -161,12 +277,10 @@ export default function OnboardingPage() {
   )
 }
 
-// ─── Sub-componentes (sin cambios) ────────────────────────────────────
-
 function StepDot({ active, done, label }: { active: boolean; done: boolean; label: string }) {
   return (
     <div
-      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0"
+      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 transition-all"
       style={{
         background: active ? "var(--accent)" : "var(--bg-secondary)",
         color: active ? "#fff" : "var(--text-muted)",
@@ -178,9 +292,9 @@ function StepDot({ active, done, label }: { active: boolean; done: boolean; labe
 }
 
 function PlanCard({
-  plan, selected, onSelect, title, price, features, highlighted = false,
+  selected, onSelect, title, price, features, highlighted = false,
 }: {
-  plan: Plan; selected: boolean; onSelect: () => void
+  selected: boolean; onSelect: () => void
   title: string; price: string; features: string[]; highlighted?: boolean
 }) {
   return (
