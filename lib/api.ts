@@ -1,4 +1,4 @@
-import type { Ingrediente, FactorRendimiento, Receta, Menu, Valoracion, PuntoEquilibrio } from "@/types/domain"
+import type { Ingrediente, FactorRendimiento, Receta, Menu, Valoracion, Valuation, ValuationRefType, PuntoEquilibrio } from "@/types/domain"
 import type { ApiResponse } from "@/types/api"
 
 // ─── URL base ─────────────────────────────────────────────────────────────────
@@ -141,15 +141,36 @@ export async function createMenu(
 }
 
 // ─── Valoraciones ─────────────────────────────────────────────────────────────
-// TODO: GET /api/v1/valoraciones (endpoint pendiente en backend)
-export async function getValoraciones(): Promise<ListResponse<Valoracion>> {
-  return fetchAPI("/api/v1/valoraciones")
+export async function getValuations(): Promise<ListResponse<Valuation>> {
+  return fetchAPI("/api/v1/valuations")
 }
 
-export async function createValoracion(
-  data: Omit<Valoracion, "id" | "organizationId" | "createdAt" | "updatedAt" | "utilidadBruta" | "porcentajeUtilidad">
-): Promise<ApiResponse<Valoracion>> {
-  return fetchAPI("/api/v1/valoraciones", { method: "POST", body: JSON.stringify(data) })
+export interface CreateValuationPayload {
+  name: string
+  refType: ValuationRefType
+  refId?: string
+  costMateriaprima: number
+  pctMateriaprima: number
+  safetyMargin?: number
+  actualPrice?: number
+  notes?: string
+}
+
+export interface ValuationCreateResult extends Omit<Valuation, "suggestedPrice" | "costMateriaprima" | "actualPrice"> {
+  suggestedPrice: number
+  costMateriaprima: number
+  actualPrice: number | null
+  breakdown: {
+    pctMateriaprima: number
+    pctFixedCosts: number
+    pctProfit: number
+  }
+}
+
+export async function createValuation(
+  data: CreateValuationPayload
+): Promise<{ data: ValuationCreateResult }> {
+  return fetchAPI("/api/v1/valuations", { method: "POST", body: JSON.stringify(data) })
 }
 
 // ─── Punto de Equilibrio ──────────────────────────────────────────────────────
