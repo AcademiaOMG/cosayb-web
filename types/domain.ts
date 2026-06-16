@@ -14,14 +14,29 @@ export interface Ingrediente {
   updatedAt: string
 }
 
+export interface YieldFactorWasteItem {
+  id: string
+  yieldFactorId: string
+  name: string
+  weightGrams: string
+  allocatedCost: string
+  sortOrder: number
+}
+
 export interface FactorRendimiento {
   id: string
-  ingredienteId: string
-  ingrediente?: Ingrediente
-  porcentajeRendimiento: number
-  pesoNeto: number
-  pesoBruto: number
+  variant: "bfactor" | "bfactorveg"
+  ingredientName: string
+  totalCost: string
+  totalWeightGrams: string
+  costPerGram: string
+  totalWasteGrams: string
+  totalWasteCost: string
+  netWeightGrams: string
+  yieldFactor: string
+  realCostPerGram: string
   organizationId: string
+  wasteItems: YieldFactorWasteItem[]
   createdAt: string
   updatedAt: string
 }

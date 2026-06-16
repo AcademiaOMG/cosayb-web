@@ -46,14 +46,15 @@ export default function Modal({ isOpen, open, onClose, title, children, footer }
 
       {/* Panel */}
       <div
-        className="relative z-10 w-full max-w-md rounded-2xl p-6 flex flex-col gap-4"
+        className="relative z-10 w-full max-w-lg rounded-2xl flex flex-col max-h-[85vh] overflow-hidden"
         style={{
           background: "var(--bg-surface)",
           border: "1px solid var(--border-light)",
           boxShadow: "0 16px 48px rgba(18, 33, 58, 0.16)",
         }}
       >
-        <div className="flex items-center justify-between">
+        {/* Header — fixed */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-0 shrink-0">
           {title && (
             <h2
               id="modal-title"
@@ -72,9 +73,15 @@ export default function Modal({ isOpen, open, onClose, title, children, footer }
             <X size={18} />
           </button>
         </div>
-        <div className="flex-1">{children}</div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+          {children}
+        </div>
+
+        {/* Footer — fixed */}
         {footer && (
-          <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border-light)" }}>
+          <div className="px-6 pb-6 pt-4 shrink-0">
             {footer}
           </div>
         )}
