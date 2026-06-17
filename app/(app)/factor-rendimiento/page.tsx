@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
@@ -12,35 +12,27 @@ import YieldFactorDeleteModal from "@/components/app/factor-rendimiento/YieldFac
 import YieldFactorTable from "@/components/app/factor-rendimiento/YieldFactorTable"
 import { getFactoresRendimiento, createFactorRendimiento, updateFactorRendimiento, deleteFactorRendimiento } from "@/lib/api"
 import type { FactorRendimiento } from "@/types/domain"
-import { Scale, Plus, Search, X } from "lucide-react"
+import { Scale, Plus, Search, X, ArrowUpDown } from "lucide-react"
+
+type SortKey = "name" | "updatedAt" | "createdAt" | "yieldFactor"
+type SortDir = "asc" | "desc"
 
 export default function FactorRendimientoPage() {
-  // Data
   const [factors, setFactors] = useState<FactorRendimiento[]>([])
-  const [filteredFactors, setFilteredFactors] = useState<FactorRendimiento[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
-  // Search
   const [search, setSearch] = useState("")
-
-  // Filter
   const [filter, setFilter] = useState<"all" | "bfactor" | "bfactorveg">("all")
-
-  // Modals
+  const [sortKey, setSortKey] = useState<SortKey>("updatedAt")
+  const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [selectedFactor, setSelectedFactor] = useState<FactorRendimiento | null>(null)
-
-  // Loading states
   const [isCreating, setIsCreating] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-
-  // Toast
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
-  // Fetch data
   const fetchFactors = useCallback(async () => {
     try {
       setIsLoading(true)
@@ -48,29 +40,64 @@ export default function FactorRendimientoPage() {
       const res = await getFactoresRendimiento(variant)
       setFactors(res.data)
     } catch (err) {
-      setToast({ type: "error", message: err instanceof Error ? err.message : "Error al cargar factores" })
+      setToast({ type: "error", message: err instanceof Error ? err.message : "Error al cargar los factores de rendimiento" })
     } finally {
       setIsLoading(false)
     }
   }, [filter])
 
-  useEffect(() => {
-    fetchFactors()
-  }, [fetchFactors])
+  useEffect(() => { fetchFactors() }, [fetchFactors])
 
-  // Filter by search
-  useEffect(() => {
-    if (!search.trim()) {
-      setFilteredFactors(factors)
-    } else {
+  const filteredAndSorted = useMemo(() => {
+    let result = factors
+
+    if (search.trim()) {
       const term = search.toLowerCase()
-      setFilteredFactors(
-        factors.filter((f) => f.ingredientName.toLowerCase().includes(term))
-      )
+      result = result.filter((f) => f.ingredientName.toLowerCase().includes(term))
     }
-  }, [factors, search])
 
-  // Create
+    result = [...result].sort((a, b) => {
+      let cmp = 0
+      switch (sortKey) {
+        case "name":
+          cmp = a.ingredientName.localeCompare(b.ingredientName, "es")
+          break
+        case "updatedAt":
+          cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+          break
+        case "createdAt":
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          break
+        case "yieldFactor":
+          cmp = parseFloat(a.yieldFactor) - parseFloat(b.yieldFactor)
+          break
+      }
+      return sortDir === "asc" ? cmp : -cmp
+    })
+
+    return result
+  }, [factors, search, sortKey, sortDir])
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortKey(key)
+      setSortDir(key === "name" ? "asc" : "desc")
+    }
+  }
+
+  const sortLabel = (key: SortKey) => {
+    const active = sortKey === key
+    const arrow = active ? (sortDir === "asc" ? " ↑" : " ↓") : ""
+    switch (key) {
+      case "name": return `Nombre${arrow}`
+      case "updatedAt": return `Ultima modificacion${arrow}`
+      case "createdAt": return `Fecha creacion${arrow}`
+      case "yieldFactor": return `Rendimiento${arrow}`
+    }
+  }
+
   const handleCreate = async (data: {
     variant: "bfactor" | "bfactorveg"
     ingredientName: string
@@ -91,9 +118,9 @@ export default function FactorRendimientoPage() {
         })),
       })
       await fetchFactors()
-      setToast({ type: "success", message: `"${data.ingredientName}" creado exitosamente` })
+      setToast({ type: "success", message: `"${data.ingredientName}" registrado correctamente` })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error al crear factor"
+      const msg = err instanceof Error ? err.message : "No se pudo guardar el factor"
       setToast({ type: "error", message: msg })
       throw err
     } finally {
@@ -101,7 +128,6 @@ export default function FactorRendimientoPage() {
     }
   }
 
-  // Edit
   const handleEdit = async (data: {
     variant: "bfactor" | "bfactorveg"
     ingredientName: string
@@ -123,9 +149,9 @@ export default function FactorRendimientoPage() {
         })),
       })
       await fetchFactors()
-      setToast({ type: "success", message: `"${data.ingredientName}" actualizado exitosamente` })
+      setToast({ type: "success", message: `"${data.ingredientName}" actualizado correctamente` })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error al actualizar factor"
+      const msg = err instanceof Error ? err.message : "No se pudo actualizar el factor"
       setToast({ type: "error", message: msg })
       throw err
     } finally {
@@ -133,7 +159,6 @@ export default function FactorRendimientoPage() {
     }
   }
 
-  // Delete
   const handleDelete = async () => {
     if (!selectedFactor) return
     try {
@@ -141,97 +166,102 @@ export default function FactorRendimientoPage() {
       await deleteFactorRendimiento(selectedFactor.id)
       await fetchFactors()
       setIsDeleteOpen(false)
-      setToast({ type: "success", message: `"${selectedFactor.ingredientName}" eliminado exitosamente` })
+      setToast({ type: "success", message: `"${selectedFactor.ingredientName}" eliminado correctamente` })
       setSelectedFactor(null)
     } catch (err) {
-      setToast({ type: "error", message: err instanceof Error ? err.message : "Error al eliminar factor" })
+      setToast({ type: "error", message: err instanceof Error ? err.message : "No se pudo eliminar el factor" })
     } finally {
       setIsDeleting(false)
     }
   }
 
-  // Open modals
-  const openCreateModal = () => {
-    setSelectedFactor(null)
-    setIsFormOpen(true)
-  }
-
-  const openEditModal = (factor: FactorRendimiento) => {
-    setSelectedFactor(factor)
-    setIsFormOpen(true)
-  }
-
-  const openDetailModal = (factor: FactorRendimiento) => {
-    setSelectedFactor(factor)
-    setIsDetailOpen(true)
-  }
-
-  const openDeleteModal = (factor: FactorRendimiento) => {
-    setSelectedFactor(factor)
-    setIsDeleteOpen(true)
-  }
+  const openCreateModal = () => { setSelectedFactor(null); setIsFormOpen(true) }
+  const openEditModal = (f: FactorRendimiento) => { setSelectedFactor(f); setIsFormOpen(true) }
+  const openDetailModal = (f: FactorRendimiento) => { setSelectedFactor(f); setIsDetailOpen(true) }
+  const openDeleteModal = (f: FactorRendimiento) => { setSelectedFactor(f); setIsDeleteOpen(true) }
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Factor de Rendimiento"
-        subtitle="Merma y rendimiento real de ingredientes"
+        subtitle="Cuanto producto util obtienes despues de pelar, deshuesar o limpiar"
         action={
           <Button variant="primary" onClick={openCreateModal}>
-            <Plus size={16} className="mr-1" /> Nuevo factor
+            <Plus size={16} className="mr-1" /> Nuevo ingrediente
           </Button>
         }
       />
 
-      {/* Barra de búsqueda + filtros */}
+      {/* Barra de busqueda + filtros + orden */}
       <div
-        className="flex flex-col sm:flex-row gap-3 p-4 rounded-xl"
+        className="flex flex-col gap-3 p-4 rounded-xl"
         style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
       >
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-          <input
-            type="text"
-            placeholder="Buscar ingrediente..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-9 pr-8 rounded-xl text-sm outline-none transition-colors"
-            style={{
-              background: "var(--bg-primary)",
-              border: "1px solid var(--border-light)",
-              color: "var(--text-primary)",
-            }}
-            aria-label="Buscar factor de rendimiento"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors hover:opacity-70"
-              style={{ color: "var(--text-muted)" }}
-              aria-label="Limpiar búsqueda"
-            >
-              <X size={14} />
-            </button>
-          )}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+            <input
+              type="text"
+              placeholder="Buscar por nombre del ingrediente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-10 pl-9 pr-8 rounded-xl text-sm outline-none transition-colors"
+              style={{
+                background: "var(--bg-primary)",
+                border: "1px solid var(--border-light)",
+                color: "var(--text-primary)",
+              }}
+              aria-label="Buscar ingrediente"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors hover:opacity-70"
+                style={{ color: "var(--text-muted)" }}
+                aria-label="Limpiar busqueda"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            {[
+              { key: "all" as const, label: "Todos" },
+              { key: "bfactor" as const, label: "Carnes y pescados" },
+              { key: "bfactorveg" as const, label: "Vegetales" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className="px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
+                style={{
+                  background: filter === f.key ? "var(--accent)" : "var(--bg-primary)",
+                  color: filter === f.key ? "white" : "var(--text-secondary)",
+                  border: `1px solid ${filter === f.key ? "var(--accent)" : "var(--border-light)"}`,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex gap-2">
-          {[
-            { key: "all" as const, label: "Todos" },
-            { key: "bfactor" as const, label: "Proteínas" },
-            { key: "bfactorveg" as const, label: "Vegetales" },
-          ].map((f) => (
+        {/* Ordenar por */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <ArrowUpDown size={14} style={{ color: "var(--text-muted)" }} />
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>Ordenar:</span>
+          {(["name", "updatedAt", "createdAt", "yieldFactor"] as SortKey[]).map((key) => (
             <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className="px-3 py-2 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
+              key={key}
+              onClick={() => toggleSort(key)}
+              className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
               style={{
-                background: filter === f.key ? "var(--accent)" : "var(--bg-primary)",
-                color: filter === f.key ? "white" : "var(--text-secondary)",
-                border: `1px solid ${filter === f.key ? "var(--accent)" : "var(--border-light)"}`,
+                background: sortKey === key ? "var(--accent-light)" : "transparent",
+                color: sortKey === key ? "var(--accent-text)" : "var(--text-muted)",
               }}
             >
-              {f.label}
+              {sortLabel(key)}
             </button>
           ))}
         </div>
@@ -242,19 +272,19 @@ export default function FactorRendimientoPage() {
         <div className="flex justify-center py-16">
           <LoadingSpinner />
         </div>
-      ) : filteredFactors.length === 0 ? (
+      ) : filteredAndSorted.length === 0 ? (
         <EmptyState
           icon={<Scale size={48} />}
-          title={search ? "Sin resultados" : "Sin factores de rendimiento"}
+          title={search ? "No encontramos nada" : "Aun no tienes factores de rendimiento"}
           description={
             search
-              ? `No se encontraron factores para "${search}"`
-              : "Crea el primer factor usando el botón de arriba."
+              ? `No hay ingredientes que coincidan con "${search}". Prueba con otro nombre.`
+              : "Registra tu primer ingrediente para calcular cuanto producto util obtienes despues de la limpieza."
           }
           action={
             !search ? (
               <Button variant="primary" onClick={openCreateModal}>
-                <Plus size={16} className="mr-1" /> Crear primer factor
+                <Plus size={16} className="mr-1" /> Registrar primer ingrediente
               </Button>
             ) : undefined
           }
@@ -262,11 +292,11 @@ export default function FactorRendimientoPage() {
       ) : (
         <>
           <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-            {filteredFactors.length} factor{filteredFactors.length !== 1 ? "es" : ""}
-            {search && ` para "${search}"`}
+            {filteredAndSorted.length} ingrediente{filteredAndSorted.length !== 1 ? "s" : ""}
+            {search && ` encontrado${filteredAndSorted.length !== 1 ? "s" : ""} para "${search}"`}
           </div>
           <YieldFactorTable
-            data={filteredFactors}
+            data={filteredAndSorted}
             onView={openDetailModal}
             onEdit={openEditModal}
             onDelete={openDeleteModal}
@@ -274,7 +304,6 @@ export default function FactorRendimientoPage() {
         </>
       )}
 
-      {/* Modales */}
       <YieldFactorFormModal
         isOpen={isFormOpen}
         onClose={() => { setIsFormOpen(false); setSelectedFactor(null) }}
@@ -296,7 +325,6 @@ export default function FactorRendimientoPage() {
         isDeleting={isDeleting}
       />
 
-      {/* Toast */}
       {toast && (
         <Toast
           type={toast.type}
