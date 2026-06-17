@@ -98,6 +98,28 @@ export interface Valoracion {
   updatedAt: string
 }
 
+// Tipo que refleja el schema real del backend (Drizzle numeric → string)
+export type ValuationIndicator = "MUY BUENO" | "REGULAR" | "MALO"
+export type ValuationRefType = "recipe" | "menu" | "standalone"
+
+export interface Valuation {
+  id: string
+  userId: string
+  name: string
+  refId: string | null
+  refType: ValuationRefType
+  costMateriaprima: string
+  safetyMargin: string
+  pctMateriaprima: string
+  pctFixedCosts: string
+  pctProfit: string
+  suggestedPrice: string
+  actualPrice: string | null
+  indicator: ValuationIndicator
+  notes: string | null
+  createdAt: string
+}
+
 export interface PuntoEquilibrio {
   id: string
   costosFijos: number
