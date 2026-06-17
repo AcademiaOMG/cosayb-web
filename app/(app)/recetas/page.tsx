@@ -6,7 +6,6 @@ import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import EmptyState from "@/components/ui/EmptyState"
 import Modal from "@/components/ui/Modal"
-import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import RecipeCard from "@/components/app/recipes/RecipeCard"
 import RecipeCostModal from "@/components/app/recipes/RecipeCostModal"
 import type { Recipe, RecipeCostResult } from "@/types/domain"
@@ -21,6 +20,7 @@ export default function RecetasPage() {
   // ── Remote state ───────────────────────────────────────────────────────────
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
+  const [firstLoad, setFirstLoad] = useState(true)
   const [error, setError] = useState(false)
 
   // ── Filtros ────────────────────────────────────────────────────────────────
@@ -49,6 +49,7 @@ export default function RecetasPage() {
       setRecipes([])
     } finally {
       setLoading(false)
+      setFirstLoad(false)
     }
   }, [])
 
@@ -189,21 +190,34 @@ export default function RecetasPage() {
         </div>
       )}
 
-      {/* ── Loading ─────────────────────────────────────────────── */}
-      {loading && (
+      {/* ── Skeleton (primera carga) ─────────────────────────────── */}
+      {firstLoad && (
         <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "60px 0",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "16px",
           }}
         >
-          <LoadingSpinner size={32} />
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl p-4 flex flex-col gap-3"
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
+            >
+              <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "70%" }} />
+              <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "40%" }} />
+              <div className="flex gap-2 mt-2">
+                <div className="h-5 w-16 rounded-full" style={{ background: "var(--bg-secondary)" }} />
+                <div className="h-5 w-20 rounded-full" style={{ background: "var(--bg-secondary)" }} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* ── Error ───────────────────────────────────────────────── */}
-      {!loading && error && (
+      {!firstLoad && !loading && error && (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
           <p className="text-sm" style={{ color: "var(--text-muted)", marginBottom: "12px" }}>
             No se pudieron cargar las recetas.
@@ -215,7 +229,7 @@ export default function RecetasPage() {
       )}
 
       {/* ── Empty state ─────────────────────────────────────────── */}
-      {!loading && !error && filtered.length === 0 && (
+      {!firstLoad && !loading && !error && filtered.length === 0 && (
         <EmptyState
           icon={<ChefHat size={40} style={{ color: "var(--text-muted)" }} />}
           title={
@@ -243,7 +257,7 @@ export default function RecetasPage() {
       )}
 
       {/* ── Grid de cards ────────────────────────────────────────── */}
-      {!loading && !error && filtered.length > 0 && (
+      {!firstLoad && !loading && !error && filtered.length > 0 && (
         <div
           style={{
             display: "grid",
