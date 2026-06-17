@@ -23,7 +23,15 @@ async function fetchAPI<T>(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "")
-    throw new Error(`API ${response.status}: ${text || response.statusText}`)
+    let message = response.statusText
+    try {
+      const body = JSON.parse(text)
+      if (body.error) message = body.error
+      else if (body.message) message = body.message
+    } catch {
+      if (text) message = text
+    }
+    throw new Error(message)
   }
 
   return response.json() as Promise<T>
@@ -91,18 +99,53 @@ export async function importIngredientes(
 }
 
 // ─── Factores de Rendimiento ──────────────────────────────────────────────────
-// TODO: GET /api/v1/factor-rendimiento (endpoint pendiente en backend)
-export async function getFactoresRendimiento(): Promise<ListResponse<FactorRendimiento>> {
-  return fetchAPI("/api/v1/factor-rendimiento")
+
+export async function getFactoresRendimiento(variant?: string): Promise<ListResponse<FactorRendimiento>> {
+  const params = variant ? `?variant=${variant}` : ""
+  return fetchAPI(`/api/v1/yield-factors${params}`)
+}
+
+export async function getFactorRendimientoById(id: string): Promise<ApiResponse<FactorRendimiento>> {
+  return fetchAPI(`/api/v1/yield-factors/${id}`)
 }
 
 export async function createFactorRendimiento(
-  data: Omit<FactorRendimiento, "id" | "organizationId" | "createdAt" | "updatedAt">
+  data: {
+    variant: "bfactor" | "bfactorveg"
+    ingredientName: string
+    totalCost: number
+    totalWeightGrams: number
+    wasteItems: { name: string; weightGrams: number }[]
+  }
 ): Promise<ApiResponse<FactorRendimiento>> {
-  return fetchAPI("/api/v1/factor-rendimiento", {
+  return fetchAPI("/api/v1/yield-factors", {
     method: "POST",
     body: JSON.stringify(data),
   })
+}
+
+export async function updateFactorRendimiento(
+  id: string,
+  data: Partial<{
+    variant: "bfactor" | "bfactorveg"
+    ingredientName: string
+    totalCost: number
+    totalWeightGrams: number
+    wasteItems: { name: string; weightGrams: number }[]
+  }>
+): Promise<ApiResponse<FactorRendimiento>> {
+  return fetchAPI(`/api/v1/yield-factors/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteFactorRendimiento(id: string): Promise<void> {
+  return fetchAPI(`/api/v1/yield-factors/${id}`, { method: "DELETE" })
+}
+
+export async function saveFactorRendimientoAsIngrediente(id: string): Promise<ApiResponse<Ingrediente>> {
+  return fetchAPI(`/api/v1/yield-factors/${id}/guardar-como-ingrediente`, { method: "POST" })
 }
 
 // ─── Recetas ──────────────────────────────────────────────────────────────────
