@@ -65,6 +65,31 @@ export default function NuevaRecetaPage() {
   // Items
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()])
 
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.effectAllowed = "move"
+    setDraggedIndex(index)
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === index) return
+
+    const updatedItems = [...items]
+    const [draggedItem] = updatedItems.splice(draggedIndex, 1)
+    updatedItems.splice(index, 0, draggedItem)
+    setDraggedIndex(index)
+    setItems(updatedItems)
+  }
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    const row = e.currentTarget as HTMLElement
+    row.setAttribute("draggable", "false")
+    setDraggedIndex(null)
+  }
+
   // Catálogos
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [baseRecipes, setBaseRecipes] = useState<Recipe[]>([])
@@ -341,6 +366,10 @@ export default function NuevaRecetaPage() {
               onUpdate={(patch) => updateItem(item._key, patch)}
               onRemove={() => removeItem(item._key)}
               canRemove={items.length > 1}
+              onDragStart={(e) => handleDragStart(e, idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDragEnd={handleDragEnd}
+              isDragging={draggedIndex === idx}
             />
           ))}
         </div>
@@ -422,10 +451,40 @@ interface ItemRowProps {
   onUpdate: (patch: Partial<ItemDraft>) => void
   onRemove: () => void
   canRemove: boolean
+  onDragStart: (e: React.DragEvent) => void
+  onDragOver: (e: React.DragEvent) => void
+  onDragEnd: (e: React.DragEvent) => void
+  isDragging: boolean
 }
 
-function ItemRow({ item, index, ingredients, baseRecipes, onUpdate, onRemove, canRemove }: ItemRowProps) {
+function ItemRow({
+  item,
+  index,
+  ingredients,
+  baseRecipes,
+  onUpdate,
+  onRemove,
+  canRemove,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  isDragging,
+}: ItemRowProps) {
   const isIngredient = item.componentType === "ingredient"
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const row = e.currentTarget.closest(".draggable-row") as HTMLElement
+    if (row) {
+      row.setAttribute("draggable", "true")
+    }
+  }
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    const row = e.currentTarget.closest(".draggable-row") as HTMLElement
+    if (row) {
+      row.setAttribute("draggable", "false")
+    }
+  }
 
   const ingredientOptions = useMemo(() => {
     return ingredients.map((ing) => ({
@@ -443,6 +502,11 @@ function ItemRow({ item, index, ingredients, baseRecipes, onUpdate, onRemove, ca
 
   return (
     <div
+      className="draggable-row"
+      draggable={isDragging}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
       style={{
         display: "grid",
         gridTemplateColumns: "24px 120px 1fr 90px 32px",
@@ -451,11 +515,20 @@ function ItemRow({ item, index, ingredients, baseRecipes, onUpdate, onRemove, ca
         padding: "10px 12px",
         borderRadius: "12px",
         background: "var(--bg-primary)",
-        border: "1px solid var(--border-light)",
+        border: isDragging ? "1px dashed var(--accent)" : "1px solid var(--border-light)",
+        opacity: isDragging ? 0.5 : 1,
+        transition: "all 0.15s ease",
       }}
     >
-      {/* Drag handle visual (decorativo por ahora) */}
-      <GripVertical size={16} style={{ color: "var(--border-medium)", cursor: "grab" }} />
+      {/* Drag handle visual */}
+      <div
+        className="drag-handle"
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        style={{ display: "flex", alignItems: "center", cursor: "grab" }}
+      >
+        <GripVertical size={16} style={{ color: "var(--border-medium)" }} />
+      </div>
 
       {/* Selector de tipo */}
       <select
