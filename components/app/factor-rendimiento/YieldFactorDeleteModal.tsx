@@ -20,12 +20,12 @@ export default function YieldFactorDeleteModal({ isOpen, onClose, onConfirm, fac
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Eliminar factor de rendimiento"
+      title="Eliminar ingrediente"
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={isDeleting}>Cancelar</Button>
           <Button variant="danger" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? "Eliminando..." : "Eliminar"}
+            {isDeleting ? "Eliminando..." : "Sí, eliminar"}
           </Button>
         </div>
       }
@@ -36,11 +36,11 @@ export default function YieldFactorDeleteModal({ isOpen, onClose, onConfirm, fac
         </div>
         <div>
           <p className="text-sm" style={{ color: "var(--text-primary)" }}>
-            ¿Estás seguro de eliminar el factor de rendimiento de{" "}
-            <strong>{factor.ingredientName}</strong>?
+            Vas a eliminar el rendimiento de{" "}
+            <strong>{factor.ingredientName}</strong>
           </p>
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-            Esta acción no se puede deshacer. Se eliminarán también todos los datos de merma asociados.
+            Se borrarán todos los datos de desecho asociados. Esta acción no se puede deshacer.
           </p>
         </div>
       </div>

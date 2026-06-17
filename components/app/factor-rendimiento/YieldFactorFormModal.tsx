@@ -1,297 +1,303 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
-import Input from "@/components/ui/Input"
-import { Plus, Trash2 } from "lucide-react"
 import type { FactorRendimiento } from "@/types/domain"
+
+interface YieldFactorFormModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (data: {
+    variant: "bfactor" | "bfactorveg"
+    ingredientName: string
+    totalCost: string
+    totalWeightGrams: string
+    wasteItems: { name: string; weightGrams: string }[]
+  }) => Promise<void>
+  editingFactor?: FactorRendimiento | null
+}
 
 interface WasteItem {
   name: string
   weightGrams: string
 }
 
-interface FormData {
-  variant: "bfactor" | "bfactorveg"
-  ingredientName: string
-  totalCost: string
-  totalWeightGrams: string
-  wasteItems: WasteItem[]
+const WASTE_SUGGESTIONS: Record<"bfactor" | "bfactorveg", string[]> = {
+  bfactor: ["Huesos", "Grasa visible", "Piel", "Cabeza", "Cola", "Patas"],
+  bfactorveg: ["Cascara", "Tallo", "Hojas externas", "Raiz", "Semillas"],
 }
 
-interface Calculado {
-  costPerGram: number
-  wasteItems: { name: string; weightGrams: number; allocatedCost: number }[]
-  totalWasteGrams: number
-  totalWasteCost: number
-  netWeightGrams: number
-  yieldFactor: number
-  realCostPerGram: number
-}
-
-const INITIAL_FORM: FormData = {
-  variant: "bfactor",
-  ingredientName: "",
-  totalCost: "",
-  totalWeightGrams: "",
-  wasteItems: [{ name: "", weightGrams: "" }],
-}
-
-function calcular(data: {
-  costoTotal: number
-  pesoTotalGramos: number
-  wasteItems: { name: string; weightGrams: number }[]
-}): Calculado | null {
-  if (!data.costoTotal || !data.pesoTotalGramos) return null
-  if (data.costoTotal <= 0 || data.pesoTotalGramos <= 0) return null
-
-  const costPerGram = data.costoTotal / data.pesoTotalGramos
-  const validWaste = data.wasteItems.filter((i) => i.weightGrams > 0)
-
-  const wasteItems = validWaste.map((item) => ({
-    name: item.name,
-    weightGrams: item.weightGrams,
-    allocatedCost: Number(((item.weightGrams / data.pesoTotalGramos) * data.costoTotal).toFixed(2)),
-  }))
-
-  const totalWasteGrams = wasteItems.reduce((sum, item) => sum + item.weightGrams, 0)
-  const totalWasteCost = wasteItems.reduce((sum, item) => sum + item.allocatedCost, 0)
-  const netWeightGrams = data.pesoTotalGramos - totalWasteGrams
-  const yieldFactor = totalWasteGrams === 0 ? 1 : netWeightGrams / data.pesoTotalGramos
-  const realCostPerGram = totalWasteGrams === 0 ? costPerGram : data.costoTotal / netWeightGrams
-
-  return {
-    costPerGram: Number(costPerGram.toFixed(4)),
-    wasteItems,
-    totalWasteGrams: Number(totalWasteGrams.toFixed(2)),
-    totalWasteCost: Number(totalWasteCost.toFixed(2)),
-    netWeightGrams: Number(netWeightGrams.toFixed(2)),
-    yieldFactor: Number(yieldFactor.toFixed(4)),
-    realCostPerGram: Number(realCostPerGram.toFixed(4)),
-  }
+function calcPreview(totalCost: string, totalWeight: string, wasteItems: WasteItem[]) {
+  const tc = parseFloat(totalCost)
+  const tw = parseFloat(totalWeight)
+  const wasteSum = wasteItems.reduce((s, i) => s + (parseFloat(i.weightGrams) || 0), 0)
+  if (!tc || !tw) return null
+  const netWeight = tw - wasteSum
+  if (netWeight <= 0) return null
+  const yieldFactor = netWeight / tw
+  const realCostPerGram = tc / netWeight
+  return { netWeight, yieldFactor, realCostPerGram, wasteGrams: wasteSum, wastePercent: (wasteSum / tw) * 100 }
 }
 
 function formatCOP(amount: number): string {
   return `$ ${amount.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
-interface YieldFactorFormModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSubmit: (data: FormData) => Promise<void>
-  editingFactor?: FactorRendimiento | null
-}
-
 export default function YieldFactorFormModal({ isOpen, onClose, onSubmit, editingFactor }: YieldFactorFormModalProps) {
-  const [form, setForm] = useState<FormData>(INITIAL_FORM)
-  const [calculado, setCalculado] = useState<Calculado | null>(null)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   const isEditing = !!editingFactor
 
-  useEffect(() => {
-    if (editingFactor && isOpen) {
-      setForm({
-        variant: editingFactor.variant,
-        ingredientName: editingFactor.ingredientName,
-        totalCost: editingFactor.totalCost,
-        totalWeightGrams: editingFactor.totalWeightGrams,
-        wasteItems: editingFactor.wasteItems.length > 0
-          ? editingFactor.wasteItems.map((w) => ({ name: w.name, weightGrams: w.weightGrams }))
-          : [{ name: "", weightGrams: "" }],
-      })
-    } else if (!isOpen) {
-      setForm(INITIAL_FORM)
-      setCalculado(null)
-      setErrors({})
-    }
-  }, [editingFactor, isOpen])
+  const [variant, setVariant] = useState<"bfactor" | "bfactorveg">("bfactor")
+  const [ingredientName, setIngredientName] = useState("")
+  const [totalCost, setTotalCost] = useState("")
+  const [totalWeightGrams, setTotalWeightGrams] = useState("")
+  const [wasteItems, setWasteItems] = useState<WasteItem[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const costoTotal = parseFloat(form.totalCost) || 0
-    const pesoTotalGramos = parseFloat(form.totalWeightGrams) || 0
-    const wasteItems = form.wasteItems
-      .filter((i) => i.name.trim())
-      .map((i) => ({ name: i.name, weightGrams: parseFloat(i.weightGrams) || 0 }))
-    setCalculado(calcular({ costoTotal, pesoTotalGramos, wasteItems }))
-  }, [form])
-
-  const handleChange = useCallback((field: keyof FormData, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
-    setErrors((prev) => ({ ...prev, [field]: "" }))
-  }, [])
-
-  const handleWasteChange = useCallback((index: number, field: keyof WasteItem, value: string) => {
-    setForm((prev) => {
-      const items = [...prev.wasteItems]
-      items[index] = { ...items[index], [field]: value }
-      return { ...prev, wasteItems: items }
-    })
-  }, [])
-
-  const addWasteRow = useCallback(() => {
-    setForm((prev) => ({ ...prev, wasteItems: [...prev.wasteItems, { name: "", weightGrams: "" }] }))
-  }, [])
-
-  const removeWasteRow = useCallback((index: number) => {
-    setForm((prev) => {
-      const items = prev.wasteItems.filter((_, i) => i !== index)
-      return { ...prev, wasteItems: items.length > 0 ? items : [{ name: "", weightGrams: "" }] }
-    })
-  }, [])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const newErrors: Record<string, string> = {}
-    if (!form.ingredientName.trim()) newErrors.ingredientName = "El nombre es requerido"
-    if (!form.totalCost || parseFloat(form.totalCost) <= 0) newErrors.totalCost = "Ingresa un costo válido"
-    if (!form.totalWeightGrams || parseFloat(form.totalWeightGrams) <= 0) newErrors.totalWeightGrams = "Ingresa un peso válido"
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
+    if (isOpen) {
+      if (editingFactor) {
+        setVariant(editingFactor.variant as "bfactor" | "bfactorveg")
+        setIngredientName(editingFactor.ingredientName)
+        setTotalCost(String(editingFactor.totalCost))
+        setTotalWeightGrams(String(editingFactor.totalWeightGrams))
+        setWasteItems(
+          editingFactor.wasteItems.length > 0
+            ? editingFactor.wasteItems.map((w) => ({ name: w.name, weightGrams: String(w.weightGrams) }))
+            : []
+        )
+      } else {
+        setVariant("bfactor")
+        setIngredientName("")
+        setTotalCost("")
+        setTotalWeightGrams("")
+        setWasteItems([])
+      }
+      setError(null)
     }
+  }, [isOpen, editingFactor])
 
-    const validWaste = form.wasteItems.filter((i) => i.name.trim() && parseFloat(i.weightGrams) > 0)
+  const preview = calcPreview(totalCost, totalWeightGrams, wasteItems)
+
+  const addWasteItem = () => {
+    setWasteItems((prev) => [...prev, { name: "", weightGrams: "" }])
+  }
+
+  const updateWasteItem = (idx: number, field: keyof WasteItem, val: string) => {
+    setWasteItems((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item)))
+  }
+
+  const removeWasteItem = (idx: number) => {
+    setWasteItems((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleSubmit = async () => {
+    if (!ingredientName.trim()) { setError("Ingresa el nombre del ingrediente"); return }
+    if (!totalCost || parseFloat(totalCost) <= 0) { setError("Ingresa el costo total"); return }
+    if (!totalWeightGrams || parseFloat(totalWeightGrams) <= 0) { setError("Ingresa el peso completo"); return }
 
     try {
       setIsSubmitting(true)
+      setError(null)
       await onSubmit({
-        ...form,
-        wasteItems: validWaste.map((i) => ({ name: i.name, weightGrams: i.weightGrams })),
+        variant,
+        ingredientName: ingredientName.trim(),
+        totalCost,
+        totalWeightGrams,
+        wasteItems: wasteItems.filter((w) => w.name.trim() && parseFloat(w.weightGrams) > 0),
       })
       onClose()
-    } catch {
-      // El error se maneja en el padre
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar")
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const suggestions = WASTE_SUGGESTIONS[variant]
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? "Editar Factor de Rendimiento" : "Nuevo Factor de Rendimiento"}
+      title={isEditing ? `Editar: ${editingFactor.ingredientName}` : "Nuevo ingrediente"}
       footer={
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear factor"}
+          <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
+          <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting || !preview}>
+            {isEditing ? "Guardar cambios" : "Registrar ingrediente"}
           </Button>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="contents">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Variante</label>
+      <div className="flex flex-col gap-4">
+        {/* Tipo de ingrediente */}
+        <div>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+            Tipo de ingrediente
+          </label>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => handleChange("variant", "bfactor")}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              style={{
-                background: form.variant === "bfactor" ? "var(--accent)" : "var(--bg-secondary)",
-                color: form.variant === "bfactor" ? "white" : "var(--text-secondary)",
-              }}
-            >
-              BFACTOR (Proteínas)
-            </button>
-            <button
-              type="button"
-              onClick={() => handleChange("variant", "bfactorveg")}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              style={{
-                background: form.variant === "bfactorveg" ? "var(--accent)" : "var(--bg-secondary)",
-                color: form.variant === "bfactorveg" ? "white" : "var(--text-secondary)",
-              }}
-            >
-              BFACTORVEG (Vegetales)
-            </button>
+            {[
+              { key: "bfactor" as const, label: "Carnes, pescados, mariscos" },
+              { key: "bfactorveg" as const, label: "Verduras, frutas, hortalizas" },
+            ].map((v) => (
+              <button
+                key={v.key}
+                onClick={() => setVariant(v.key)}
+                className="flex-1 px-3 py-3 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  background: variant === v.key ? "var(--accent)" : "var(--bg-primary)",
+                  color: variant === v.key ? "white" : "var(--text-secondary)",
+                  border: `1px solid ${variant === v.key ? "var(--accent)" : "var(--border-light)"}`,
+                }}
+              >
+                {v.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <Input
-          label="Nombre del ingrediente"
-          placeholder="Ej: POLLO"
-          value={form.ingredientName}
-          onChange={(e) => handleChange("ingredientName", e.target.value)}
-          error={errors.ingredientName}
-        />
+        {/* Nombre */}
+        <div>
+          <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+            Nombre del ingrediente
+          </label>
+          <input
+            type="text"
+            value={ingredientName}
+            onChange={(e) => setIngredientName(e.target.value)}
+            placeholder="Pechuga de pollo, Lomo de res..."
+            className="w-full h-10 px-3 rounded-xl text-sm outline-none transition-colors"
+            style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
+          />
+        </div>
 
+        {/* Costo total + Peso completo */}
         <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Costo Total ($)"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="Ej: 56000"
-            value={form.totalCost}
-            onChange={(e) => handleChange("totalCost", e.target.value)}
-            error={errors.totalCost}
-          />
-          <Input
-            label="Peso Total (gramos)"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="Ej: 5420"
-            value={form.totalWeightGrams}
-            onChange={(e) => handleChange("totalWeightGrams", e.target.value)}
-            error={errors.totalWeightGrams}
-          />
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+              Costo total ($)
+            </label>
+            <input
+              type="number"
+              value={totalCost}
+              onChange={(e) => setTotalCost(e.target.value)}
+              placeholder="25000"
+              className="w-full h-10 px-3 rounded-xl text-sm outline-none transition-colors"
+              style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
+              Peso completo (g)
+            </label>
+            <input
+              type="number"
+              value={totalWeightGrams}
+              onChange={(e) => setTotalWeightGrams(e.target.value)}
+              placeholder="5420"
+              className="w-full h-10 px-3 rounded-xl text-sm outline-none transition-colors"
+              style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
+            />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Merma / Desperdicio</label>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>Opcional</span>
-            </div>
-            <button type="button" onClick={addWasteRow} className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded" style={{ color: "var(--accent)" }}>
-              <Plus size={14} /> Agregar
-            </button>
+        {/* Desechos */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+              Desperdicio (opcional)
+            </label>
+            <Button variant="ghost" onClick={addWasteItem} className="text-xs h-7 px-2">
+              + Agregar
+            </Button>
           </div>
 
-          {form.wasteItems.map((item, index) => (
-            <div key={index} className="flex gap-2 items-end">
-              <div className="flex-1">
-                <Input placeholder="Nombre (ej: Huesos)" value={item.name} onChange={(e) => handleWasteChange(index, "name", e.target.value)} />
-              </div>
-              <div className="w-28">
-                <Input placeholder="Gramos" type="number" step="0.01" min="0" value={item.weightGrams} onChange={(e) => handleWasteChange(index, "weightGrams", e.target.value)} />
-              </div>
-              {form.wasteItems.length > 1 && (
-                <button type="button" onClick={() => removeWasteRow(index)} className="p-2 rounded" style={{ color: "var(--text-muted)" }}>
-                  <Trash2 size={16} />
-                </button>
-              )}
+          <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>
+            Agrega lo que se tira. Ejemplo: huesos, grasa, cascara, tallo.
+          </p>
+
+          {wasteItems.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {wasteItems.map((item, idx) => (
+                <div key={idx} className="flex gap-2 items-start">
+                  <input
+                    type="text"
+                    value={item.name}
+                    onChange={(e) => updateWasteItem(idx, "name", e.target.value)}
+                    placeholder="Nombre"
+                    list={`waste-names-${variant}`}
+                    className="flex-1 h-9 px-3 rounded-lg text-sm outline-none transition-colors"
+                    style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
+                  />
+                  <input
+                    type="number"
+                    value={item.weightGrams}
+                    onChange={(e) => updateWasteItem(idx, "weightGrams", e.target.value)}
+                    placeholder="gramos"
+                    className="w-24 h-9 px-3 rounded-lg text-sm outline-none transition-colors"
+                    style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
+                  />
+                  <button
+                    onClick={() => removeWasteItem(idx)}
+                    className="h-9 w-9 rounded-lg flex items-center justify-center transition-colors hover:opacity-80"
+                    style={{ color: "#EF4444", background: "rgba(239,68,68,0.08)" }}
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <div className="rounded-xl p-3" style={{ background: "var(--bg-primary)", border: "1px dashed var(--border-light)" }}>
+              <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
+                Sin desperdicio registrado &mdash; el rendimiento sera del 100%
+              </p>
+            </div>
+          )}
+
+          <datalist id={`waste-names-${variant}`}>
+            {suggestions.map((s) => <option key={s} value={s} />)}
+          </datalist>
         </div>
 
-        {calculado && (
-          <div className="p-3 rounded-lg grid grid-cols-3 gap-3 text-center" style={{ background: "var(--bg-secondary)" }}>
-            <div>
-              <div className="text-xs" style={{ color: "var(--text-muted)" }}>Rendimiento</div>
-              <div className="text-sm font-bold" style={{ color: "var(--accent-text)" }}>{(calculado.yieldFactor * 100).toFixed(1)}%</div>
-            </div>
-            <div>
-              <div className="text-xs" style={{ color: "var(--text-muted)" }}>Merma</div>
-              <div className="text-sm font-bold" style={{ color: calculado.totalWasteGrams > 0 ? "#EF4444" : "var(--text-primary)" }}>
-                {calculado.totalWasteGrams.toFixed(0)}g
+        {/* Resultado */}
+        {preview && (
+          <div className="rounded-xl p-3" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
+            <p className="text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Resultado</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso util</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {preview.netWeight.toFixed(0)}g
+                </p>
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Rendimiento</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--accent-text)" }}>
+                  {(preview.yieldFactor * 100).toFixed(1)}%
+                </p>
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Costo/g</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {formatCOP(preview.realCostPerGram)}/g
+                </p>
               </div>
             </div>
-            <div>
-              <div className="text-xs" style={{ color: "var(--text-muted)" }}>Costo Real/g</div>
-              <div className="text-sm font-bold" style={{ color: "var(--accent-text)" }}>{formatCOP(calculado.realCostPerGram)}</div>
-            </div>
+            {preview.wasteGrams > 0 && (
+              <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+                Se tiran {preview.wasteGrams.toFixed(0)}g ({preview.wastePercent.toFixed(1)}% del total)
+              </p>
+            )}
           </div>
         )}
-      </form>
+
+        {error && (
+          <p className="text-xs" style={{ color: "#EF4444" }}>{error}</p>
+        )}
+      </div>
     </Modal>
   )
 }
