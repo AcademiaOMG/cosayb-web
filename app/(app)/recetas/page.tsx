@@ -12,15 +12,18 @@ import type { Recipe, RecipeCostResult } from "@/types/domain"
 import { getRecipes, deleteRecipe, getRecipeCost } from "@/lib/api"
 import { ChefHat, Plus, Search, BookMarked, List } from "lucide-react"
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+// ── Module-level cache ────────────────────────────────────────────────────────
+let _cache: Recipe[] | null = null
+let _cacheAt = 0
+const CACHE_TTL = 30_000
 
 export default function RecetasPage() {
   const router = useRouter()
 
   // ── Remote state ───────────────────────────────────────────────────────────
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [loading, setLoading] = useState(true)
-  const [firstLoad, setFirstLoad] = useState(true)
+  const [recipes, setRecipes] = useState<Recipe[]>(() => _cache ?? [])
+  const [loading, setLoading] = useState(false)
+  const [firstLoad, setFirstLoad] = useState(() => !_cache || Date.now() - _cacheAt >= CACHE_TTL)
   const [error, setError] = useState(false)
 
   // ── Filtros ────────────────────────────────────────────────────────────────
@@ -38,15 +41,21 @@ export default function RecetasPage() {
   const [costError, setCostError] = useState<string | null>(null)
 
   // ── Load ───────────────────────────────────────────────────────────────────
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
+    if (!force && _cache && Date.now() - _cacheAt < CACHE_TTL) {
+      setRecipes(_cache)
+      setFirstLoad(false)
+      return
+    }
     setLoading(true)
     setError(false)
     try {
       const res = await getRecipes()
-      setRecipes(res.data ?? [])
+      _cache = res.data ?? []
+      _cacheAt = Date.now()
+      setRecipes(_cache)
     } catch {
       setError(true)
-      setRecipes([])
     } finally {
       setLoading(false)
       setFirstLoad(false)
@@ -73,8 +82,9 @@ export default function RecetasPage() {
     setDeleting(true)
     try {
       await deleteRecipe(deleteTarget.id)
+      _cache = null
       setDeleteTarget(null)
-      await load()
+      await load(true)
     } catch {
       setDeleteTarget(null)
     } finally {
@@ -222,7 +232,7 @@ export default function RecetasPage() {
           <p className="text-sm" style={{ color: "var(--text-muted)", marginBottom: "12px" }}>
             No se pudieron cargar las recetas.
           </p>
-          <Button variant="ghost" onClick={load}>
+          <Button variant="ghost" onClick={() => void load(true)}>
             Reintentar
           </Button>
         </div>

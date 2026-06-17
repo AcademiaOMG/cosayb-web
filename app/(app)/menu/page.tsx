@@ -1,12 +1,15 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import useSWR from "swr"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import SearchableSelect from "@/components/ui/SearchableSelect"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
 import Input from "@/components/ui/Input"
+import Table from "@/components/ui/Table"
 import {
-  ArrowLeft, Plus, Trash2, UtensilsCrossed, ChefHat, Users, TrendingUp, Loader2,
+  ArrowLeft, CheckCircle2, Plus, Trash2, UtensilsCrossed, ChefHat, Users, TrendingUp, Loader2, CalendarDays, Pencil,
 } from "lucide-react"
 import type { Menu, Recipe, CostoMenuResult, MenuIndicator } from "@/types/domain"
 import {
@@ -111,6 +114,15 @@ const fmt = (v: number) =>
 
 const fmtDate = (d: string) =>
   new Date(d + "T12:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+
+// ─── % Materia Prima: persistencia local ──────────────────────────────────────
+function getStoredPctMP(fallback: string): string {
+  if (typeof window === "undefined") return fallback
+  return localStorage.getItem("cosayb_pct_mp") ?? fallback
+}
+function savePctMP(value: string) {
+  if (typeof window !== "undefined") localStorage.setItem("cosayb_pct_mp", value)
+}
 
 function MetricRow({ label, color, pct }: { label: string; color: string; pct: number }) {
   return (
@@ -240,7 +252,7 @@ function DetailView({
     menu ? String(parseFloat(menu.margenSeguridad)) : "5"
   )
   const [pctMateriaPrima, setPctMateriaPrima] = useState(
-    menu ? String(parseFloat(menu.pctMateriaPrima)) : "31"
+    menu ? String(parseFloat(menu.pctMateriaPrima)) : getStoredPctMP("31")
   )
   const [notas, setNotas] = useState(menu?.notas ?? "")
   const [lineItems, setLineItems] = useState<RecipeLineItem[]>(() => {
@@ -261,6 +273,12 @@ function DetailView({
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const recipeOptions = useMemo(
+    () => availableRecipes.map((r) => ({ value: r.id, label: r.name })),
+    [availableRecipes],
+  )
 
   const pctMP   = parseFloat(pctMateriaPrima) || 0
   const nPers   = parseInt(numPersonas) || 0
@@ -367,7 +385,9 @@ function DetailView({
       } else {
         await updateMenu(menu!.id, payload)
       }
-      onSaved()
+      savePctMP(pctMateriaPrima)
+      setSuccess(true)
+      setTimeout(() => onSaved(), 1000)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error al guardar")
     } finally {
@@ -400,10 +420,16 @@ function DetailView({
 
         <div className="flex items-center gap-3">
           {error && <span className="text-sm" style={{ color: "#EF4444" }}>{error}</span>}
+          {success && (
+            <span className="text-sm flex items-center gap-1.5" style={{ color: "#166534" }}>
+              <CheckCircle2 size={14} />
+              Guardado
+            </span>
+          )}
           <Button
             variant="primary"
             loading={saving}
-            disabled={!nombre.trim() || validItems.length === 0}
+            disabled={!nombre.trim() || validItems.length === 0 || success}
             onClick={handleSave}
           >
             {isNew ? "Crear menú" : "Guardar cambios"}
@@ -521,17 +547,14 @@ function DetailView({
                       {/* Selector de receta */}
                       <div className="flex-1 min-w-0">
                         {availableRecipes.length > 0 ? (
-                          <select
+                          <SearchableSelect
+                            options={recipeOptions}
                             value={item.recipeId}
-                            onChange={(e) => selectRecipe(item.uid, e.target.value)}
-                            className="w-full text-sm outline-none bg-transparent truncate"
-                            style={{ color: item.recipeId ? "var(--text-primary)" : "var(--text-muted)" }}
-                          >
-                            <option value="">— Seleccionar receta —</option>
-                            {availableRecipes.map((r) => (
-                              <option key={r.id} value={r.id}>{r.name}</option>
-                            ))}
-                          </select>
+                            onChange={(val) => selectRecipe(item.uid, val)}
+                            placeholder="— Seleccionar receta —"
+                            emptyMessage="No se encontraron recetas"
+                            ariaLabel="Receta"
+                          />
                         ) : (
                           <span className="text-xs" style={{ color: "var(--text-muted)" }}>
                             No hay recetas. Crea una en la sección Recetas.
@@ -557,8 +580,8 @@ function DetailView({
                           <Loader2 size={12} style={{ color: "var(--text-muted)", display: "inline" }}
                             className="animate-spin" />
                         ) : item.costoGramo === null && item.recipeId ? (
-                          <span className="text-xs" style={{ color: "#F59E0B" }} title="Receta sin peso por porción">
-                            sin peso
+                          <span className="text-xs" style={{ color: "#F59E0B" }} title="Esta receta no tiene peso por porción definido. Edítala en Recetas para poder incluirla en el cálculo.">
+                            Sin peso ⚠
                           </span>
                         ) : costoPorcion !== null && costoPorcion > 0 ? (
                           <span className="text-xs tabular-nums font-medium" style={{ color: "var(--text-muted)" }}>
@@ -700,24 +723,146 @@ function MenuCard({ menu, onClick, onDelete }: {
   )
 }
 
-// ─── Skeleton de lista ────────────────────────────────────────────────────────
+// ─── Tabla de menús ───────────────────────────────────────────────────────────
+function MenuTable({
+  menus,
+  onEdit,
+  onDelete,
+}: {
+  menus: Menu[]
+  onEdit: (m: Menu) => void
+  onDelete: (id: string) => void
+}) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+
+  return (
+    <Table
+      rowKey="id"
+      data={menus as unknown as Record<string, unknown>[]}
+      columns={[
+        {
+          key: "nombre",
+          label: "Nombre",
+          render: (v) => (
+            <span className="font-medium" style={{ color: "var(--text-primary)" }}>{v as string}</span>
+          ),
+        },
+        {
+          key: "fecha",
+          label: "Fecha evento",
+          render: (v) => (
+            <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+              <CalendarDays size={13} style={{ color: "var(--text-muted)" }} />
+              {fmtDate(v as string)}
+            </div>
+          ),
+        },
+        {
+          key: "numPersonas",
+          label: "Personas",
+          render: (v) => (
+            <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+              <Users size={13} style={{ color: "var(--text-muted)" }} />
+              {String(v)}
+            </div>
+          ),
+        },
+        {
+          key: "recetas",
+          label: "Recetas",
+          render: (v) => {
+            const arr = v as Menu["recetas"]
+            return (
+              <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                <ChefHat size={13} style={{ color: "var(--text-muted)" }} />
+                {arr.length}
+              </div>
+            )
+          },
+        },
+        {
+          key: "pctMateriaPrima",
+          label: "% MP",
+          render: (v) => (
+            <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>
+              {parseFloat(v as string).toFixed(0)}%
+            </span>
+          ),
+        },
+        {
+          key: "pctMateriaPrima",
+          label: "Indicador",
+          render: (v) => {
+            const pct = parseFloat(v as string)
+            const ind: MenuIndicator = pct < 32 ? "MUY_BUENO" : pct > 37 ? "MALO" : "REGULAR"
+            const cfg = IND[ind]
+            return (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+                style={{ background: cfg.bg, color: cfg.text }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.color }} />
+                {cfg.label}
+              </span>
+            )
+          },
+        },
+        {
+          key: "id",
+          label: "",
+          render: (v, row) => {
+            const menu = row as unknown as Menu
+            const id = v as string
+            return (
+              <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                {confirmId === id ? (
+                  <>
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>¿Eliminar?</span>
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmId(null)}>Cancelar</Button>
+                    <Button variant="ghost" size="sm" onClick={() => { onDelete(id); setConfirmId(null) }}
+                      style={{ color: "#EF4444" }}>Confirmar</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => onEdit(menu)}>
+                      <Pencil size={13} />
+                      Editar
+                    </Button>
+                    <button
+                      onClick={() => setConfirmId(id)}
+                      className="transition-opacity hover:opacity-70"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </>
+                )}
+              </div>
+            )
+          },
+        },
+      ]}
+    />
+  )
+}
+
+// ─── Skeleton de tabla ────────────────────────────────────────────────────────
 function MenuListSkeleton() {
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+    <div className="w-full overflow-hidden rounded-xl animate-pulse" style={{ border: "1px solid var(--border-light)" }}>
+      <div className="px-4 py-3 flex gap-4" style={{ background: "var(--bg-secondary)" }}>
+        {[20, 12, 10, 8, 14, 12, 10].map((w, i) => (
+          <div key={i} className="h-3 rounded" style={{ background: "var(--border-light)", width: `${w}%` }} />
+        ))}
+      </div>
       {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-2xl p-4 flex flex-col gap-3 animate-pulse"
-          style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}>
-          <div className="flex justify-between">
-            <div className="flex flex-col gap-2 flex-1">
-              <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "60%" }} />
-              <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "40%" }} />
-            </div>
-            <div className="h-6 w-16 rounded-full" style={{ background: "var(--bg-secondary)" }} />
-          </div>
-          <div className="flex gap-4">
-            <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "30%" }} />
-            <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "25%" }} />
-          </div>
+        <div key={i} className="px-4 py-4 flex gap-4 items-center"
+          style={{ borderTop: "1px solid var(--border-light)", background: i % 2 === 0 ? "var(--bg-surface)" : "var(--bg-primary)" }}>
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "20%" }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "12%" }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "10%" }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "8%" }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "14%" }} />
+          <div className="h-6 rounded-full" style={{ background: "var(--bg-secondary)", width: "12%" }} />
+          <div className="h-7 rounded-lg ml-auto" style={{ background: "var(--bg-secondary)", width: 80 }} />
         </div>
       ))}
     </div>
@@ -730,33 +875,20 @@ function MenuListSkeleton() {
 type PageView = "list" | "detail"
 
 export default function MenuPage() {
+  const { data: menus = [], isLoading: menusLoading, mutate: mutateMenus } = useSWR(
+    "menus",
+    () => getMenus().then((r) => r.data ?? []),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
+
+  const { data: availableRecipes = [] } = useSWR(
+    "recipes",
+    () => getRecipes().then((r) => r.data ?? []),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
+
   const [view, setView] = useState<PageView>("list")
-  const [menus, setMenus] = useState<Menu[]>([])
-  const [firstLoad, setFirstLoad] = useState(true)
-  const [availableRecipes, setAvailableRecipes] = useState<Recipe[]>([])
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null)
-
-  const loadMenus = useCallback(async () => {
-    try {
-      const res = await getMenus()
-      setMenus(res.data ?? [])
-    } catch {
-      setMenus([])
-    } finally {
-      setFirstLoad(false)
-    }
-  }, [])
-
-  const loadRecipes = useCallback(async () => {
-    try {
-      const res = await getRecipes()
-      setAvailableRecipes(res.data ?? [])
-    } catch {
-      setAvailableRecipes([])
-    }
-  }, [])
-
-  useEffect(() => { void loadMenus(); void loadRecipes() }, [loadMenus, loadRecipes])
 
   async function openEdit(menu: Menu) {
     try {
@@ -776,15 +908,15 @@ export default function MenuPage() {
   async function handleDelete(id: string) {
     try {
       await deleteMenu(id)
-      void loadMenus()
+      await mutateMenus()
     } catch {
       // silencioso
     }
   }
 
-  function handleSaved() {
+  async function handleSaved() {
+    await mutateMenus()
     setView("list")
-    void loadMenus()
   }
 
   // ── Vista detalle ──
@@ -804,7 +936,7 @@ export default function MenuPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Menús"
-        subtitle="Diseña menús por evento, calcula costos y precio de venta"
+        subtitle="Para eventos y servicios: agrupa platos, define gramos por porción y calcula el precio por persona"
         action={
           <Button variant="primary" onClick={openCreate}>
             <Plus size={15} />
@@ -813,7 +945,7 @@ export default function MenuPage() {
         }
       />
 
-      {firstLoad ? (
+      {menusLoading ? (
         <MenuListSkeleton />
       ) : menus.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
@@ -826,7 +958,7 @@ export default function MenuPage() {
               No hay menús creados
             </p>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              Crea tu primer menú para calcular costos y precio de venta por persona.
+              Úsalo para planear eventos o servicios: agrupa platos, define porciones y obtén el precio ideal por persona.
             </p>
           </div>
           <Button variant="ghost" onClick={openCreate}>
@@ -835,16 +967,11 @@ export default function MenuPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
-          {menus.map((m) => (
-            <MenuCard
-              key={m.id}
-              menu={m}
-              onClick={() => openEdit(m)}
-              onDelete={() => handleDelete(m.id)}
-            />
-          ))}
-        </div>
+        <MenuTable
+          menus={menus}
+          onEdit={(m) => openEdit(m)}
+          onDelete={(id) => handleDelete(id)}
+        />
       )}
     </div>
   )

@@ -122,19 +122,31 @@ export default function NuevaRecetaPage() {
     )
   }
 
+  // ── Peso por porción auto-calculado desde ingredientes ──────────────────
+  const autoServingWeightG = useMemo(() => {
+    const n = parseFloat(form.servings)
+    if (!n || n <= 0) return null
+    const total = items.reduce((s, i) => s + (parseFloat(i.quantityG) || 0), 0)
+    if (total <= 0) return null
+    return (total / n).toFixed(1)
+  }, [items, form.servings])
+
   // ── Validación y guardado ────────────────────────────────────────────────
   async function handleSave() {
     setFormError(null)
 
     // Validar header
     if (!form.name.trim()) return setFormError("El nombre de la receta es requerido.")
-    if (!form.recipeNumber.trim()) return setFormError("El número de receta es requerido.")
     const servings = parseFloat(form.servings)
     if (!form.servings || isNaN(servings) || servings <= 0)
       return setFormError("Las porciones deben ser un número positivo.")
     const safetyMargin = parseFloat(form.safetyMargin)
-    if (isNaN(safetyMargin) || safetyMargin < 0 || safetyMargin > 5)
-      return setFormError("El margen de seguridad debe estar entre 0 y 5.")
+    if (isNaN(safetyMargin) || safetyMargin < 0 || safetyMargin > 50)
+      return setFormError("El margen de seguridad debe estar entre 0 y 50.")
+
+    // Auto-generar código si el usuario no lo llenó
+    const recipeNumber = form.recipeNumber.trim() ||
+      `R-${Date.now().toString(36).toUpperCase().slice(-5)}`
 
     // Validar items
     if (items.length === 0) return setFormError("La receta debe tener al menos un componente.")
@@ -150,11 +162,17 @@ export default function NuevaRecetaPage() {
 
     setSaving(true)
     try {
-      const payload = {
+      const servingWeightG = form.servingWeightG
+        ? parseFloat(form.servingWeightG)
+        : autoServingWeightG
+          ? parseFloat(autoServingWeightG)
+          : undefined
+
+      await createRecipe({
         name: form.name.trim(),
-        recipeNumber: form.recipeNumber.trim(),
+        recipeNumber,
         servings,
-        servingWeightG: form.servingWeightG ? parseFloat(form.servingWeightG) : undefined,
+        servingWeightG,
         safetyMargin,
         isBase: form.isBase,
         items: items.map(
@@ -166,9 +184,7 @@ export default function NuevaRecetaPage() {
             sortOrder: idx,
           })
         ),
-      }
-
-      await createRecipe(payload)
+      })
       setSuccess(true)
       setTimeout(() => router.push("/recetas"), 1200)
     } catch (err) {
@@ -222,8 +238,8 @@ export default function NuevaRecetaPage() {
           </div>
           <Input
             id="recipe-number"
-            label="Número de receta"
-            placeholder="Ej. R-001"
+            label="Código de receta (opcional)"
+            placeholder="Ej. R-001 — se genera si se deja vacío"
             value={form.recipeNumber}
             onChange={(e) => setForm((f) => ({ ...f, recipeNumber: e.target.value }))}
           />
@@ -239,25 +255,28 @@ export default function NuevaRecetaPage() {
           />
           <Input
             id="recipe-weight"
-            label="Peso por porción (g) — opcional"
+            label="Peso por porción (g)"
             type="number"
             min="0"
-            placeholder="Ej. 250"
+            placeholder={autoServingWeightG ?? "Ej. 250"}
             value={form.servingWeightG}
             onChange={(e) => setForm((f) => ({ ...f, servingWeightG: e.target.value }))}
-            hint="Requerido para calcular costo/g"
+            hint={
+              autoServingWeightG
+                ? `Calculado desde ingredientes: ${autoServingWeightG}g — puedes ajustarlo`
+                : "Peso de la porción lista para servir"
+            }
           />
           <Input
             id="recipe-margin"
             label="Margen de seguridad (%)"
             type="number"
             min="0"
-            max="5"
+            max="50"
             step="0.5"
             placeholder="3"
             value={form.safetyMargin}
             onChange={(e) => setForm((f) => ({ ...f, safetyMargin: e.target.value }))}
-            hint="Máximo 5 %"
           />
         </div>
 
@@ -455,7 +474,7 @@ function ItemRow({ item, index, ingredients, baseRecipes, onUpdate, onRemove, ca
       }}
     >
       {/* Drag handle visual (decorativo por ahora) */}
-      <GripVertical size={16} style={{ color: "var(--border-medium)", cursor: "grab" }} />
+      <GripVertical size={16} title="Reordenar (próximamente)" style={{ color: "var(--border-light)", cursor: "default", opacity: 0.4 }} />
 
       {/* Selector de tipo */}
       <select

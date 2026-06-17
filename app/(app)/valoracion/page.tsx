@@ -1,19 +1,19 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import useSWR from "swr"
+import { useState, useEffect, useCallback } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
 import Input from "@/components/ui/Input"
 import Table from "@/components/ui/Table"
-import LoadingSpinner from "@/components/ui/LoadingSpinner"
-import { ArrowLeft, Plus, TrendingUp, RotateCcw } from "lucide-react"
-import type { Valuation, ValuationIndicator, ValuationRefType } from "@/types/domain"
-import type { ValuationCreateResult } from "@/lib/api"
+import SearchableSelect from "@/components/ui/SearchableSelect"
+import { ArrowLeft, CheckCircle2, Plus, Calculator, RotateCcw } from "lucide-react"
+import type { Valuation, ValuationIndicator, ValuationRefType, Recipe } from "@/types/domain"
+import { getValuations, createValuation, getRecipes, getRecipeCost } from "@/lib/api"
+import type { ValuationCreateResult, CreateValuationPayload } from "@/lib/api"
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
-
-// ─── Fórmulas (réplica exacta del backend) ────────────────────────────────────
+// ─── Fórmulas ─────────────────────────────────────────────────────────────────
 function calcPricing(cost: number, pctMP: number, margin: number) {
   if (cost <= 0 || pctMP <= 0 || pctMP >= 100) return null
   const pct = pctMP / 100
@@ -53,22 +53,17 @@ function DonutChart({ mp, fixed, profit, indicator }: {
   return (
     <div className="relative" style={{ width: 200, height: 200 }}>
       <svg viewBox="0 0 36 36" width={200} height={200}>
-        {/* Track */}
         <circle cx="18" cy="18" r={r} fill="none"
           stroke="var(--border-light)" strokeWidth={sw} />
-        {/* Materia prima */}
         <circle cx="18" cy="18" r={r} fill="none" stroke="#3B82F6" strokeWidth={sw}
           strokeDasharray={`${arc(mp)} ${circ}`} strokeDashoffset={offMP}
           style={{ transition: "stroke-dasharray .45s ease, stroke-dashoffset .45s ease" }} />
-        {/* Costos fijos */}
         <circle cx="18" cy="18" r={r} fill="none" stroke="#FB923C" strokeWidth={sw}
           strokeDasharray={`${arc(fixed)} ${circ}`} strokeDashoffset={offFixed}
           style={{ transition: "stroke-dasharray .45s ease, stroke-dashoffset .45s ease" }} />
-        {/* Ganancia */}
         <circle cx="18" cy="18" r={r} fill="none" stroke="#10B981" strokeWidth={sw}
           strokeDasharray={`${arc(profit)} ${circ}`} strokeDashoffset={offProfit}
           style={{ transition: "stroke-dasharray .45s ease, stroke-dashoffset .45s ease" }} />
-        {/* Centro — ganancia como métrica principal */}
         <text x="18" y="15" textAnchor="middle" fontFamily="system-ui,sans-serif"
           fill="var(--text-muted)" fontSize="2.6" fontWeight="500">
           GANANCIA
@@ -111,7 +106,34 @@ const fmt = (v: number | string) =>
 const fmtPct = (v: number | string) => `${parseFloat(String(v)).toFixed(1)}%`
 
 const refLabel = (r: ValuationRefType) =>
-  r === "recipe" ? "Receta" : r === "menu" ? "Menú" : "Standalone"
+  r === "recipe" ? "Receta" : r === "menu" ? "Menú" : "Independiente"
+
+// ─── Skeleton de historial ────────────────────────────────────────────────────
+function HistorySkeleton() {
+  return (
+    <div className="w-full overflow-hidden rounded-xl animate-pulse" style={{ border: "1px solid var(--border-light)" }}>
+      <div className="px-4 py-3 flex gap-4" style={{ background: "var(--bg-secondary)" }}>
+        {[24, 16, 8, 12, 16, 12, 10, 12].map((pct, i) => (
+          <div key={i} className="h-3 rounded"
+            style={{ background: "var(--border-light)", width: `${pct}%`, flexShrink: 0 }} />
+        ))}
+      </div>
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="px-4 py-4 flex gap-4 items-center"
+          style={{ borderTop: "1px solid var(--border-light)", background: i % 2 === 0 ? "var(--bg-surface)" : "var(--bg-primary)" }}>
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "24%", flexShrink: 0 }} />
+          <div className="h-5 rounded-full" style={{ background: "var(--bg-secondary)", width: "16%", flexShrink: 0 }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "8%", flexShrink: 0 }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "12%", flexShrink: 0 }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "16%", flexShrink: 0 }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "12%", flexShrink: 0 }} />
+          <div className="h-5 rounded-full" style={{ background: "var(--bg-secondary)", width: "10%", flexShrink: 0 }} />
+          <div className="h-7 rounded-lg ml-auto" style={{ background: "var(--bg-secondary)", width: 160, flexShrink: 0 }} />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 // ─── Tipos locales ────────────────────────────────────────────────────────────
 interface FormState {
@@ -134,6 +156,18 @@ const EMPTY: FormState = {
   notes: "",
 }
 
+// ─── % Materia Prima: persistencia local ──────────────────────────────────────
+function getStoredPctMP(fallback: string): string {
+  if (typeof window === "undefined") return fallback
+  return localStorage.getItem("cosayb_pct_mp") ?? fallback
+}
+function savePctMP(value: string) {
+  if (typeof window !== "undefined") localStorage.setItem("cosayb_pct_mp", value)
+}
+function emptyForm(): FormState {
+  return { ...EMPTY, pctMateriaprima: getStoredPctMP("35") }
+}
+
 function fromValuation(v: Valuation): FormState {
   return {
     name: v.name,
@@ -152,19 +186,46 @@ function fromValuation(v: Valuation): FormState {
 function DetailView({
   initialForm,
   isNew,
+  sourceValuationName,
+  availableRecipes,
   onBack,
   onSaved,
 }: {
   initialForm: FormState
   isNew: boolean
+  sourceValuationName?: string
+  availableRecipes: Recipe[]
   onBack: () => void
   onSaved: () => void
 }) {
   const [form, setForm] = useState<FormState>(initialForm)
-  // originalForm se fija al montar — nunca cambia, permite restaurar
   const [originalForm] = useState<FormState>(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  // ── Selector de receta ────────────────────────────────────────────────────
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string>("")
+  const [recipeLoading, setRecipeLoading] = useState(false)
+
+  const recipeOptions = availableRecipes.map((r) => ({ value: r.id, label: r.name }))
+
+  const handleRecipeSelect = useCallback(async (recipeId: string) => {
+    setSelectedRecipeId(recipeId)
+    if (!recipeId) return
+    setRecipeLoading(true)
+    try {
+      const res = await getRecipeCost(recipeId)
+      if (res.data?.costWithMarginPerServing != null) {
+        setForm((prev) => ({ ...prev, costMateriaprima: String(Math.round(res.data.costWithMarginPerServing)) }))
+        setError(null)
+      }
+    } catch {
+      // el usuario puede seguir ingresando el costo manualmente
+    } finally {
+      setRecipeLoading(false)
+    }
+  }, [])
 
   const cost   = parseFloat(form.costMateriaprima) || 0
   const pctMP  = parseFloat(form.pctMateriaprima) || 0
@@ -172,7 +233,6 @@ function DetailView({
   const preview = calcPricing(cost, pctMP, margin)
   const cfg = preview ? IND[preview.indicator] : null
 
-  // ¿El usuario modificó algo respecto al original?
   const isDirty = JSON.stringify(form) !== JSON.stringify(originalForm)
 
   function f<K extends keyof FormState>(k: K, v: string) {
@@ -187,25 +247,20 @@ function DetailView({
     }
     setSaving(true)
     setError(null)
-    const body: Record<string, unknown> = {
-      name: form.name.trim(), refType: form.refType,
-      costMateriaprima: cost, pctMateriaprima: pctMP, safetyMargin: margin,
+    const payload: CreateValuationPayload = {
+      name: form.name.trim(),
+      refType: form.refType,
+      costMateriaprima: cost,
+      pctMateriaprima: pctMP,
+      safetyMargin: margin,
     }
-    if (form.actualPrice) body.actualPrice = parseFloat(form.actualPrice)
-    if (form.notes.trim()) body.notes = form.notes.trim()
+    if (form.actualPrice) payload.actualPrice = parseFloat(form.actualPrice)
+    if (form.notes.trim()) payload.notes = form.notes.trim()
     try {
-      const res = await fetch(`${API}/api/v1/valuations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) {
-        const e = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(e.error ?? "Error al guardar")
-      }
-      await res.json() as { data: ValuationCreateResult }
-      onSaved()
+      await createValuation(payload)
+      savePctMP(form.pctMateriaprima)
+      setSuccess(true)
+      setTimeout(() => onSaved(), 1000)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -227,20 +282,31 @@ function DetailView({
           Historial
         </button>
 
-        {/* Nombre inline */}
-        <input
-          type="text"
-          placeholder="Nombre del plato o producto..."
-          value={form.name}
-          onChange={(e) => f("name", e.target.value)}
-          className="flex-1 bg-transparent text-lg font-semibold outline-none border-none"
-          style={{ color: "var(--text-primary)" }}
-        />
+        <div className="flex flex-col flex-1 min-w-0">
+          <input
+            type="text"
+            placeholder="Nombre del plato o producto..."
+            value={form.name}
+            onChange={(e) => f("name", e.target.value)}
+            className="bg-transparent text-lg font-semibold outline-none border-none"
+            style={{ color: "var(--text-primary)" }}
+          />
+          {!isNew && sourceValuationName && (
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Copia de «{sourceValuationName}» — se guardará como nueva valoración
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-3">
           {error && <span className="text-sm" style={{ color: "#EF4444" }}>{error}</span>}
-          {/* Restaurar: solo cuando viene del historial y hay cambios */}
-          {!isNew && isDirty && (
+          {success && (
+            <span className="text-sm flex items-center gap-1.5" style={{ color: "#166534" }}>
+              <CheckCircle2 size={14} />
+              Guardado
+            </span>
+          )}
+          {isNew && isDirty && !success && (
             <Button variant="ghost" onClick={() => { setForm(originalForm); setError(null) }}>
               <RotateCcw size={14} />
               Restaurar
@@ -249,10 +315,10 @@ function DetailView({
           <Button
             variant="primary"
             loading={saving}
-            disabled={!preview || !form.name.trim()}
+            disabled={!preview || !form.name.trim() || success}
             onClick={handleSave}
           >
-            Guardar valoración
+            {isNew ? "Guardar valoración" : "Guardar como nueva valoración"}
           </Button>
         </div>
       </div>
@@ -268,19 +334,43 @@ function DetailView({
             </p>
             <div className="flex flex-col gap-5">
 
-              {/* Tipo */}
+              {/* Selector de receta (opcional) */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Tipo</label>
+                <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  Receta (opcional)
+                </label>
+                <SearchableSelect
+                  options={recipeOptions}
+                  value={selectedRecipeId}
+                  onChange={handleRecipeSelect}
+                  placeholder="— Seleccionar receta —"
+                  emptyMessage="No se encontraron recetas"
+                  ariaLabel="Receta para autocompleto de costo"
+                />
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  {recipeLoading
+                    ? "Cargando costo de la receta…"
+                    : "Autocompleta el costo a partir de una receta existente"}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  Categoría
+                </label>
                 <select
                   value={form.refType}
                   onChange={(e) => f("refType", e.target.value)}
                   className="h-10 w-full rounded-xl px-3 text-sm outline-none"
                   style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
                 >
-                  <option value="standalone">Standalone</option>
-                  <option value="recipe">Receta</option>
-                  <option value="menu">Menú</option>
+                  <option value="standalone">Independiente</option>
+                  <option value="recipe">Para una receta</option>
+                  <option value="menu">Para un menú / evento</option>
                 </select>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  Solo clasifica el análisis en el historial.
+                </p>
               </div>
 
               <Input
@@ -292,7 +382,6 @@ function DetailView({
                 hint="Costo total de ingredientes por porción"
               />
 
-              {/* Slider % MP — rediseñado */}
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
@@ -321,7 +410,6 @@ function DetailView({
                   </div>
                 </div>
 
-                {/* Slider con track de colores via CSS */}
                 <input
                   type="range"
                   min="1"
@@ -334,7 +422,8 @@ function DetailView({
                 />
 
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Verde &lt;32% · Amarillo 32–37% · Rojo &gt;37%
+                  ¿Cuánto del precio de venta representa la materia prima?
+                  Ideal &lt;32% · Aceptable 32–37% · Alto &gt;37%
                 </p>
               </div>
 
@@ -344,12 +433,11 @@ function DetailView({
                 placeholder="3"
                 value={form.safetyMargin}
                 onChange={(e) => f("safetyMargin", e.target.value)}
-                hint="Colchón para absorber variaciones de costo"
+                hint="Ajuste para absorber variaciones imprevistas en el costo"
               />
             </div>
           </Card>
 
-          {/* Sección opcional */}
           <Card>
             <p className="text-xs font-semibold tracking-widest mb-5" style={{ color: "var(--text-muted)" }}>
               OPCIONAL
@@ -380,7 +468,6 @@ function DetailView({
         {preview && cfg ? (
           <div className="flex flex-col gap-4">
 
-            {/* Banner indicador */}
             <div
               className="rounded-xl px-4 py-3"
               style={{
@@ -391,10 +478,7 @@ function DetailView({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: cfg.color, transition: "background .4s ease" }}
-                  />
+                  <div className="w-2 h-2 rounded-full" style={{ background: cfg.color, transition: "background .4s ease" }} />
                   <span className="text-sm font-bold" style={{ color: cfg.text }}>
                     {preview.indicator}
                   </span>
@@ -405,12 +489,10 @@ function DetailView({
               </div>
             </div>
 
-            {/* Precio + Gráfica + Desglose — todo en un card */}
             <Card>
-              {/* Precio sugerido */}
               <div className="mb-6">
                 <p className="text-xs font-semibold tracking-widest mb-1" style={{ color: "var(--text-muted)" }}>
-                  PRECIO SUGERIDO
+                  PRECIO SUGERIDO DE VENTA
                 </p>
                 <p
                   className="text-5xl font-bold tabular-nums"
@@ -443,7 +525,6 @@ function DetailView({
                 })()}
               </div>
 
-              {/* Gráfica donut centrada */}
               <div className="flex justify-center mb-6">
                 <DonutChart
                   mp={preview.pctMateriaprima}
@@ -453,14 +534,12 @@ function DetailView({
                 />
               </div>
 
-              {/* Desglose */}
               <div className="flex flex-col gap-3">
                 <MetricRow label="Materia prima" color="#3B82F6" pct={preview.pctMateriaprima} />
                 <MetricRow label="Costos fijos"  color="#FB923C" pct={preview.pctFixedCosts} />
                 <MetricRow label="Ganancia"       color="#10B981" pct={preview.pctProfit} />
               </div>
 
-              {/* Costo con margen */}
               <div
                 className="mt-5 pt-4 flex justify-between text-sm"
                 style={{ borderTop: "1px solid var(--border-light)", color: "var(--text-muted)" }}
@@ -473,14 +552,13 @@ function DetailView({
             </Card>
           </div>
         ) : (
-          /* Estado vacío del panel de resultados */
           <Card>
             <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
               <div
                 className="w-14 h-14 rounded-2xl flex items-center justify-center"
                 style={{ background: "var(--bg-secondary)" }}
               >
-                <TrendingUp size={24} style={{ color: "var(--text-muted)" }} />
+                <Calculator size={24} style={{ color: "var(--text-muted)" }} />
               </div>
               <div>
                 <p className="font-medium" style={{ color: "var(--text-secondary)" }}>
@@ -504,43 +582,40 @@ function DetailView({
 type PageView = "list" | "detail"
 
 export default function ValoracionPage() {
-  const [view, setView]   = useState<PageView>("list")
-  const [initForm, setInitForm] = useState<FormState>(EMPTY)
-  const [history, setHistory]   = useState<Valuation[]>([])
-  const [loading, setLoading]   = useState(true)
+  const { data: history = [], isLoading, mutate } = useSWR(
+    "valuations",
+    () => getValuations().then((r) => r.data ?? []),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
 
-  const loadHistory = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch(`${API}/api/v1/valuations`, { credentials: "include" })
-      const body = (await res.json()) as { data?: Valuation[] }
-      setHistory(body.data ?? [])
-    } catch {
-      setHistory([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const { data: availableRecipes = [] } = useSWR(
+    "recipes",
+    () => getRecipes().then((r) => r.data ?? []),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
 
-  useEffect(() => { void loadHistory() }, [loadHistory])
-
-  const [isNew, setIsNew] = useState(true)
+  const [view, setView]               = useState<PageView>("list")
+  const [initForm, setInitForm]       = useState<FormState>(EMPTY)
+  const [isNew, setIsNew]             = useState(true)
+  const [sourceName, setSourceName]   = useState<string | undefined>(undefined)
 
   function openCreate() {
-    setInitForm(EMPTY)
+    setInitForm(emptyForm())
     setIsNew(true)
+    setSourceName(undefined)
     setView("detail")
   }
 
   function openFromHistory(item: Valuation) {
     setInitForm(fromValuation(item))
     setIsNew(false)
+    setSourceName(item.name)
     setView("detail")
   }
 
-  function handleSaved() {
+  async function handleSaved() {
+    await mutate()
     setView("list")
-    void loadHistory()
   }
 
   // ── Vista detalle ──
@@ -549,6 +624,8 @@ export default function ValoracionPage() {
       <DetailView
         initialForm={initForm}
         isNew={isNew}
+        sourceValuationName={sourceName}
+        availableRecipes={availableRecipes}
         onBack={() => setView("list")}
         onSaved={handleSaved}
       />
@@ -560,7 +637,7 @@ export default function ValoracionPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Valoración de Costos"
-        subtitle="Calcula el precio sugerido basado en el costo de materia prima"
+        subtitle="Fija el precio de venta de un plato a partir de su costo de ingredientes por porción"
         action={
           <Button variant="primary" onClick={openCreate}>
             <Plus size={15} />
@@ -569,25 +646,22 @@ export default function ValoracionPage() {
         }
       />
 
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <LoadingSpinner />
-        </div>
-      ) : history.length === 0 ? (
-        /* Empty state */
+      {isLoading && <HistorySkeleton />}
+
+      {!isLoading && history.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center"
             style={{ background: "var(--bg-secondary)" }}
           >
-            <TrendingUp size={28} style={{ color: "var(--text-muted)" }} />
+            <Calculator size={28} style={{ color: "var(--text-muted)" }} />
           </div>
           <div>
             <p className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
               No hay valoraciones registradas
             </p>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              Crea tu primera valoración para calcular el precio sugerido de un plato.
+              Úsalo para fijar el precio de venta de cualquier plato a partir de su costo de materia prima.
             </p>
           </div>
           <Button variant="ghost" onClick={openCreate}>
@@ -595,8 +669,9 @@ export default function ValoracionPage() {
             Crear primera valoración
           </Button>
         </div>
-      ) : (
-        /* Tabla historial */
+      )}
+
+      {!isLoading && history.length > 0 && (
         <Table
           columns={[
             {
@@ -631,6 +706,15 @@ export default function ValoracionPage() {
               render: (v) => (
                 <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>
                   {fmtPct(v as string)}
+                </span>
+              ),
+            },
+            {
+              key: "costMateriaprima",
+              label: "Costo MP",
+              render: (v) => (
+                <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {fmt(v as string)}
                 </span>
               ),
             },
@@ -687,7 +771,7 @@ export default function ValoracionPage() {
                   size="sm"
                   onClick={() => openFromHistory(row as unknown as Valuation)}
                 >
-                  Recalcular
+                  Nuevo análisis desde este
                 </Button>
               ),
             },

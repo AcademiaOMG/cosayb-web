@@ -148,18 +148,26 @@ export default function EditarRecetaPage({
     )
   }
 
+  // ── Peso auto-calculado desde ingredientes ───────────────────────────────
+  const autoServingWeightG = useMemo(() => {
+    const n = parseFloat(form.servings)
+    if (!n || n <= 0) return null
+    const total = items.reduce((s, i) => s + (parseFloat(i.quantityG) || 0), 0)
+    if (total <= 0) return null
+    return (total / n).toFixed(1)
+  }, [items, form.servings])
+
   // ── Guardar ──────────────────────────────────────────────────────────────
   async function handleSave() {
     setFormError(null)
 
     if (!form.name.trim()) return setFormError("El nombre de la receta es requerido.")
-    if (!form.recipeNumber.trim()) return setFormError("El número de receta es requerido.")
     const servings = parseFloat(form.servings)
     if (!form.servings || isNaN(servings) || servings <= 0)
       return setFormError("Las porciones deben ser un número positivo.")
     const safetyMargin = parseFloat(form.safetyMargin)
-    if (isNaN(safetyMargin) || safetyMargin < 0 || safetyMargin > 5)
-      return setFormError("El margen de seguridad debe estar entre 0 y 5.")
+    if (isNaN(safetyMargin) || safetyMargin < 0 || safetyMargin > 50)
+      return setFormError("El margen de seguridad debe estar entre 0 y 50.")
     if (items.length === 0) return setFormError("La receta debe tener al menos un componente.")
     for (const item of items) {
       if (item.componentType === "ingredient" && !item.ingredientId)
@@ -173,11 +181,17 @@ export default function EditarRecetaPage({
 
     setSaving(true)
     try {
+      const servingWeightG = form.servingWeightG
+        ? parseFloat(form.servingWeightG)
+        : autoServingWeightG
+          ? parseFloat(autoServingWeightG)
+          : undefined
+
       await updateRecipe(id, {
         name: form.name.trim(),
-        recipeNumber: form.recipeNumber.trim(),
+        recipeNumber: form.recipeNumber.trim() || `R-${Date.now().toString(36).toUpperCase().slice(-5)}`,
         servings,
-        servingWeightG: form.servingWeightG ? parseFloat(form.servingWeightG) : undefined,
+        servingWeightG,
         safetyMargin,
         isBase: form.isBase,
         items: items.map(
@@ -262,7 +276,7 @@ export default function EditarRecetaPage({
           </div>
           <Input
             id="edit-recipe-number"
-            label="Número de receta"
+            label="Código de receta (opcional)"
             value={form.recipeNumber}
             onChange={(e) => setForm((f) => ({ ...f, recipeNumber: e.target.value }))}
           />
@@ -280,20 +294,24 @@ export default function EditarRecetaPage({
             label="Peso por porción (g)"
             type="number"
             min="0"
-            placeholder="Opcional"
+            placeholder={autoServingWeightG ?? "Ej. 250"}
             value={form.servingWeightG}
             onChange={(e) => setForm((f) => ({ ...f, servingWeightG: e.target.value }))}
+            hint={
+              autoServingWeightG
+                ? `Calculado desde ingredientes: ${autoServingWeightG}g — puedes ajustarlo`
+                : "Peso de la porción lista para servir"
+            }
           />
           <Input
             id="edit-recipe-margin"
             label="Margen de seguridad (%)"
             type="number"
             min="0"
-            max="5"
+            max="50"
             step="0.5"
             value={form.safetyMargin}
             onChange={(e) => setForm((f) => ({ ...f, safetyMargin: e.target.value }))}
-            hint="Máximo 5 %"
           />
         </div>
 
@@ -422,7 +440,7 @@ function EditItemRow({ item, ingredients, baseRecipes, onUpdate, onRemove, canRe
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "24px 120px 1fr 90px 32px", gap: "8px", alignItems: "center", padding: "10px 12px", borderRadius: "12px", background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
-      <GripVertical size={16} style={{ color: "var(--border-medium)", cursor: "grab" }} />
+      <GripVertical size={16} title="Reordenar (próximamente)" style={{ color: "var(--border-light)", cursor: "default", opacity: 0.4 }} />
       <select
         value={item.componentType}
         onChange={(e) => onUpdate({ componentType: e.target.value as "ingredient" | "recipe" })}
