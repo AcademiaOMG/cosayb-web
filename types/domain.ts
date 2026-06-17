@@ -41,27 +41,62 @@ export interface FactorRendimiento {
   updatedAt: string
 }
 
-export interface RecetaComponente {
+// ─── Recetas (nuevo schema backend Sprint 2) ────────────────────────────────
+
+/** Componente de receta — ingrediente directo O sub-receta (patrón polimórfico) */
+export interface RecipeItem {
   id: string
-  recetaId: string
-  ingredienteId: string
-  ingrediente?: Ingrediente
-  cantidad: number
-  unidad: string
+  recipeId: string
+  componentType: 'ingredient' | 'recipe'
+  ingredientId: string | null
+  subRecipeId: string | null
+  quantityG: string      // numeric → string (Drizzle)
+  sortOrder: number
 }
 
-export interface Receta {
+/** Cabecera de receta + sus items */
+export interface Recipe {
   id: string
-  nombre: string
-  descripcion?: string
-  porciones: number
-  costoTotal?: number
-  costoPorcion?: number
-  componentes: RecetaComponente[]
   organizationId: string
+  name: string
+  recipeNumber: string
+  servings: string         // numeric → string (Drizzle)
+  servingWeightG: string | null
+  safetyMargin: string     // numeric → string (Drizzle), default "3.00"
+  isBase: boolean          // disponible como sub-receta en otras recetas
+  items: RecipeItem[]
   createdAt: string
   updatedAt: string
 }
+
+/** Una línea del desglose de costo (retornado por GET /recipes/:id/cost) */
+export interface RecipeCostBreakdownItem {
+  depth: number
+  ingredientId: string
+  ingredientName: string
+  effectiveQuantityG: number
+  costPerGram: number
+  lineCost: number
+}
+
+/** Resultado completo del cálculo de costo */
+export interface RecipeCostResult {
+  recipeId: string
+  name: string
+  servings: number
+  servingWeightG: number | null
+  safetyMarginPct: number
+  rawCostTotal: number
+  rawCostPerServing: number
+  costWithMarginTotal: number
+  costWithMarginPerServing: number
+  costPerGram: number | null
+  circularRefs: boolean
+  breakdown: RecipeCostBreakdownItem[]
+}
+
+// Alias de compatibilidad — el código legacy usa "Receta" (mayúscula)
+export type Receta = Recipe
 
 export interface MenuReceta {
   id: string
