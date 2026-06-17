@@ -41,43 +41,64 @@ export interface FactorRendimiento {
   updatedAt: string
 }
 
-export interface RecetaComponente {
-  id: string
-  recetaId: string
-  ingredienteId: string
-  ingrediente?: Ingrediente
-  cantidad: number
-  unidad: string
-}
-
+// Refleja el schema real del backend recetas (Drizzle numeric → string)
 export interface Receta {
   id: string
-  nombre: string
-  descripcion?: string
-  porciones: number
-  costoTotal?: number
-  costoPorcion?: number
-  componentes: RecetaComponente[]
   organizationId: string
+  nombre: string
+  descripcion: string | null
+  costoPorPorcion: string   // numeric string, ej: "617.4170"
+  pesoTotalGramos: string   // numeric string, ej: "200.00"
   createdAt: string
   updatedAt: string
 }
 
+// Línea de receta dentro de un menú (tabla menu_recetas)
 export interface MenuReceta {
   id: string
   menuId: string
   recetaId: string
-  receta?: Receta
-  precioVenta: number
-  porcentajeCosto?: number
+  cantidadGramos: string  // numeric string
+  orden: number
 }
 
+// Resultado del cálculo de costo por receta (GET /:id/costo)
+export interface RecetaLineaCosto {
+  recetaId: string
+  nombre: string
+  cantidadGramos: number
+  costoGramo: number
+  costoPorcionEnMenu: number
+  costoTotalEnMenu: number
+}
+
+export type MenuIndicator = "MUY_BUENO" | "REGULAR" | "MALO"
+
+export interface CostoMenuResult {
+  recetas: RecetaLineaCosto[]
+  costoTotalPorcion: number
+  costoTotalPersonas: number
+  margenAplicadoPorcion: number
+  costoConMargenPorcion: number
+  costoConMargenPersonas: number
+  precioPotencialVentaPorcion: number
+  precioPotencialVentaTotal: number
+  pctCostosFijos: number
+  pctGanancia: number
+  indicator: MenuIndicator
+}
+
+// Refleja el schema real del backend menus (Drizzle numeric → string)
 export interface Menu {
   id: string
-  nombre: string
-  descripcion?: string
-  recetas: MenuReceta[]
   organizationId: string
+  nombre: string
+  fecha: string            // YYYY-MM-DD
+  numPersonas: number
+  margenSeguridad: string  // numeric string
+  pctMateriaPrima: string  // numeric string
+  notas: string | null
+  recetas: MenuReceta[]
   createdAt: string
   updatedAt: string
 }
