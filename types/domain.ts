@@ -41,6 +41,7 @@ export interface FactorRendimiento {
   updatedAt: string
 }
 
+
 // ─── Recetas (nuevo schema backend Sprint 2) ────────────────────────────────
 
 /** Componente de receta — ingrediente directo O sub-receta (patrón polimórfico) */
@@ -65,9 +66,19 @@ export interface Recipe {
   safetyMargin: string     // numeric → string (Drizzle), default "3.00"
   isBase: boolean          // disponible como sub-receta en otras recetas
   items: RecipeItem[]
+
+// Refleja el schema real del backend recetas (Drizzle numeric → string)
+export interface Receta {
+  id: string
+  organizationId: string
+  nombre: string
+  descripcion: string | null
+  costoPorPorcion: string   // numeric string, ej: "617.4170"
+  pesoTotalGramos: string   // numeric string, ej: "200.00"
   createdAt: string
   updatedAt: string
 }
+
 
 /** Una línea del desglose de costo (retornado por GET /recipes/:id/cost) */
 export interface RecipeCostBreakdownItem {
@@ -102,17 +113,47 @@ export interface MenuReceta {
   id: string
   menuId: string
   recetaId: string
-  receta?: Receta
-  precioVenta: number
-  porcentajeCosto?: number
+  cantidadGramos: string  // numeric string
+  orden: number
 }
 
+// Resultado del cálculo de costo por receta (GET /:id/costo)
+export interface RecetaLineaCosto {
+  recetaId: string
+  nombre: string
+  cantidadGramos: number
+  costoGramo: number
+  costoPorcionEnMenu: number
+  costoTotalEnMenu: number
+}
+
+export type MenuIndicator = "MUY_BUENO" | "REGULAR" | "MALO"
+
+export interface CostoMenuResult {
+  recetas: RecetaLineaCosto[]
+  costoTotalPorcion: number
+  costoTotalPersonas: number
+  margenAplicadoPorcion: number
+  costoConMargenPorcion: number
+  costoConMargenPersonas: number
+  precioPotencialVentaPorcion: number
+  precioPotencialVentaTotal: number
+  pctCostosFijos: number
+  pctGanancia: number
+  indicator: MenuIndicator
+}
+
+// Refleja el schema real del backend menus (Drizzle numeric → string)
 export interface Menu {
   id: string
-  nombre: string
-  descripcion?: string
-  recetas: MenuReceta[]
   organizationId: string
+  nombre: string
+  fecha: string            // YYYY-MM-DD
+  numPersonas: number
+  margenSeguridad: string  // numeric string
+  pctMateriaPrima: string  // numeric string
+  notas: string | null
+  recetas: MenuReceta[]
   createdAt: string
   updatedAt: string
 }
