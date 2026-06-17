@@ -149,6 +149,72 @@ export async function saveFactorRendimientoAsIngrediente(id: string): Promise<Ap
 }
 
 // ─── Recetas ──────────────────────────────────────────────────────────────────
+
+import type { Recipe, RecipeCostResult } from "@/types/domain"
+
+export interface RecipeItemPayload {
+  componentType: 'ingredient' | 'recipe'
+  ingredientId?: string
+  subRecipeId?: string
+  quantityG: number
+  sortOrder?: number
+}
+
+export interface CreateRecipePayload {
+  name: string
+  recipeNumber: string
+  servings: number
+  servingWeightG?: number
+  safetyMargin?: number
+  isBase?: boolean
+  items: RecipeItemPayload[]
+}
+
+/** GET /api/v1/recipes */
+export async function getRecipes(search?: string): Promise<{ data: Recipe[] }> {
+  const q = search ? `?search=${encodeURIComponent(search)}` : ''
+  return fetchAPI(`/api/v1/recipes${q}`)
+}
+
+/** GET /api/v1/recipes?base=true — solo recetas base del tenant */
+export async function getBaseRecipes(): Promise<{ data: Recipe[] }> {
+  return fetchAPI('/api/v1/recipes?base=true')
+}
+
+/** GET /api/v1/recipes/:id */
+export async function getRecipeById(id: string): Promise<{ data: Recipe }> {
+  return fetchAPI(`/api/v1/recipes/${id}`)
+}
+
+/** POST /api/v1/recipes */
+export async function createRecipe(
+  data: CreateRecipePayload
+): Promise<{ data: Recipe }> {
+  return fetchAPI('/api/v1/recipes', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/** PUT /api/v1/recipes/:id */
+export async function updateRecipe(
+  id: string,
+  data: Partial<CreateRecipePayload>
+): Promise<{ data: Recipe }> {
+  return fetchAPI(`/api/v1/recipes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
+}
+
+/** DELETE /api/v1/recipes/:id */
+export async function deleteRecipe(id: string): Promise<void> {
+  return fetchAPI(`/api/v1/recipes/${id}`, { method: 'DELETE' })
+}
+
+/** GET /api/v1/recipes/:id/cost — CTE recursiva */
+export async function getRecipeCost(id: string): Promise<{ data: RecipeCostResult }> {
+  return fetchAPI(`/api/v1/recipes/${id}/cost`)
 export async function getRecetas(): Promise<ListResponse<Receta>> {
   return fetchAPI("/api/v1/recetas")
 }
