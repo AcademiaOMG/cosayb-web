@@ -215,6 +215,8 @@ export async function deleteRecipe(id: string): Promise<void> {
 /** GET /api/v1/recipes/:id/cost — CTE recursiva */
 export async function getRecipeCost(id: string): Promise<{ data: RecipeCostResult }> {
   return fetchAPI(`/api/v1/recipes/${id}/cost`)
+}
+
 export async function getRecetas(): Promise<ListResponse<Receta>> {
   return fetchAPI("/api/v1/recetas")
 }

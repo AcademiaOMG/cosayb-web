@@ -66,6 +66,7 @@ export interface Recipe {
   safetyMargin: string     // numeric → string (Drizzle), default "3.00"
   isBase: boolean          // disponible como sub-receta en otras recetas
   items: RecipeItem[]
+}
 
 // Refleja el schema real del backend recetas (Drizzle numeric → string)
 export interface Receta {
@@ -105,9 +106,6 @@ export interface RecipeCostResult {
   circularRefs: boolean
   breakdown: RecipeCostBreakdownItem[]
 }
-
-// Alias de compatibilidad — el código legacy usa "Receta" (mayúscula)
-export type Receta = Recipe
 
 export interface MenuReceta {
   id: string
