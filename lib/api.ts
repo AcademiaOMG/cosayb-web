@@ -1,4 +1,4 @@
-import type { Ingrediente, FactorRendimiento, Receta, Menu, Valoracion, Valuation, ValuationRefType, PuntoEquilibrio } from "@/types/domain"
+import type { Ingrediente, FactorRendimiento, Receta, Menu, CostoMenuResult, Valoracion, Valuation, ValuationRefType, PuntoEquilibrio } from "@/types/domain"
 import type { ApiResponse } from "@/types/api"
 
 // ─── URL base ─────────────────────────────────────────────────────────────────
@@ -149,22 +149,14 @@ export async function saveFactorRendimientoAsIngrediente(id: string): Promise<Ap
 }
 
 // ─── Recetas ──────────────────────────────────────────────────────────────────
-// TODO: GET /api/v1/recetas (endpoint pendiente en backend)
 export async function getRecetas(): Promise<ListResponse<Receta>> {
   return fetchAPI("/api/v1/recetas")
 }
 
 export async function createReceta(
-  data: Omit<Receta, "id" | "organizationId" | "createdAt" | "updatedAt" | "costoTotal" | "costoPorcion">
+  data: { nombre: string; descripcion?: string; costoPorPorcion: number; pesoTotalGramos: number }
 ): Promise<ApiResponse<Receta>> {
   return fetchAPI("/api/v1/recetas", { method: "POST", body: JSON.stringify(data) })
-}
-
-export async function updateReceta(
-  id: string,
-  data: Partial<Omit<Receta, "id" | "organizationId" | "createdAt" | "updatedAt">>
-): Promise<ApiResponse<Receta>> {
-  return fetchAPI(`/api/v1/recetas/${id}`, { method: "PUT", body: JSON.stringify(data) })
 }
 
 export async function deleteReceta(id: string): Promise<void> {
@@ -172,15 +164,38 @@ export async function deleteReceta(id: string): Promise<void> {
 }
 
 // ─── Menús ────────────────────────────────────────────────────────────────────
-// TODO: GET /api/v1/menus (endpoint pendiente en backend)
 export async function getMenus(): Promise<ListResponse<Menu>> {
   return fetchAPI("/api/v1/menus")
 }
 
-export async function createMenu(
-  data: Omit<Menu, "id" | "organizationId" | "createdAt" | "updatedAt">
-): Promise<ApiResponse<Menu>> {
+export async function getMenuById(id: string): Promise<ApiResponse<Menu>> {
+  return fetchAPI(`/api/v1/menus/${id}`)
+}
+
+export async function getMenuCosto(id: string): Promise<ApiResponse<Menu & { costo: CostoMenuResult | null }>> {
+  return fetchAPI(`/api/v1/menus/${id}/costo`)
+}
+
+export interface CreateMenuPayload {
+  nombre: string
+  fecha: string
+  numPersonas: number
+  margenSeguridad?: number
+  pctMateriaPrima?: number
+  notas?: string
+  recetas: { recetaId: string; cantidadGramos: number; orden?: number }[]
+}
+
+export async function createMenu(data: CreateMenuPayload): Promise<ApiResponse<Menu>> {
   return fetchAPI("/api/v1/menus", { method: "POST", body: JSON.stringify(data) })
+}
+
+export async function updateMenu(id: string, data: Partial<CreateMenuPayload>): Promise<ApiResponse<Menu>> {
+  return fetchAPI(`/api/v1/menus/${id}`, { method: "PUT", body: JSON.stringify(data) })
+}
+
+export async function deleteMenu(id: string): Promise<void> {
+  return fetchAPI(`/api/v1/menus/${id}`, { method: "DELETE" })
 }
 
 // ─── Valoraciones ─────────────────────────────────────────────────────────────
