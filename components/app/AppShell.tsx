@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { mutate } from "swr"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 import { authClient } from "@/lib/auth"
@@ -28,6 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   async function handleSignOut() {
     await authClient.signOut()
+    void mutate(() => true, undefined, { revalidate: false })
     window.location.href = "/login"
   }
 
