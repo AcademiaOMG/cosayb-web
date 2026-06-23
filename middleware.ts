@@ -4,9 +4,10 @@ const PUBLIC_ROUTES = [
   "/",
   "/login",
   "/register",
+  "/onboarding",
 ];
 
-export async function proxy(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Permitir recursos internos de Next.js
@@ -24,7 +25,7 @@ export async function proxy(req: NextRequest) {
   }
 
   try {
-    // Verificar sesión mediante tu proxy de Better Auth
+    // Verificar sesión mediante Better Auth
     const sessionResponse = await fetch(
       `${req.nextUrl.origin}/api/auth/get-session`,
       {
@@ -34,28 +35,20 @@ export async function proxy(req: NextRequest) {
       }
     );
 
-    // Si no hay sesión, redirigir al login
     if (!sessionResponse.ok) {
-      return NextResponse.redirect(
-        new URL("/login", req.url)
-      );
+      return NextResponse.redirect(new URL("/login", req.url));
     }
 
     const session = await sessionResponse.json();
 
     if (!session?.user) {
-      return NextResponse.redirect(
-        new URL("/login", req.url)
-      );
+      return NextResponse.redirect(new URL("/login", req.url));
     }
 
     return NextResponse.next();
   } catch (error) {
     console.error("[Middleware] Error verificando sesión:", error);
-
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 }
 
