@@ -1,62 +1,36 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import useSWR from "swr"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import EmptyState from "@/components/ui/EmptyState"
 import Modal from "@/components/ui/Modal"
-import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import RecipeCard from "@/components/app/recipes/RecipeCard"
 import RecipeCostModal from "@/components/app/recipes/RecipeCostModal"
 import type { Recipe, RecipeCostResult } from "@/types/domain"
 import { getRecipes, deleteRecipe, getRecipeCost } from "@/lib/api"
-import { ChefHat, Plus, Search, BookMarked, List } from "lucide-react"
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+import { ChefHat, Plus, Search, BookMarked } from "lucide-react"
 
 export default function RecetasPage() {
   const router = useRouter()
 
-  // ── Remote state ───────────────────────────────────────────────────────────
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const { data: recipes = [], isLoading, error, mutate } = useSWR(
+    "recipes",
+    () => getRecipes().then((r) => r.data ?? []),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
 
-  // ── Filtros ────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState("")
   const [filterBase, setFilterBase] = useState(false)
-
-  // ── Delete modal ───────────────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  // ── Cost modal ─────────────────────────────────────────────────────────────
   const [costTarget, setCostTarget] = useState<Recipe | null>(null)
   const [costResult, setCostResult] = useState<RecipeCostResult | null>(null)
   const [costLoading, setCostLoading] = useState(false)
   const [costError, setCostError] = useState<string | null>(null)
 
-  // ── Load ───────────────────────────────────────────────────────────────────
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(false)
-    try {
-      const res = await getRecipes()
-      setRecipes(res.data ?? [])
-    } catch {
-      setError(true)
-      setRecipes([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  // ── Derived: filtro local ──────────────────────────────────────────────────
   const filtered = recipes.filter((r) => {
     const matchBase = !filterBase || r.isBase
     const matchSearch =
@@ -66,14 +40,13 @@ export default function RecetasPage() {
     return matchBase && matchSearch
   })
 
-  // ── Actions ────────────────────────────────────────────────────────────────
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
       await deleteRecipe(deleteTarget.id)
       setDeleteTarget(null)
-      await load()
+      await mutate()
     } catch {
       setDeleteTarget(null)
     } finally {
@@ -96,7 +69,6 @@ export default function RecetasPage() {
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-6">
 
@@ -104,7 +76,7 @@ export default function RecetasPage() {
       <PageHeader
         title="Recetas"
         subtitle={
-          loading
+          isLoading
             ? "Cargando…"
             : `${recipes.length} receta${recipes.length !== 1 ? "s" : ""} · ${recipes.filter((r) => r.isBase).length} base${recipes.filter((r) => r.isBase).length !== 1 ? "s" : ""}`
         }
@@ -123,7 +95,6 @@ export default function RecetasPage() {
       {/* ── Barra de búsqueda + filtros ─────────────────────────── */}
       {!error && (
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          {/* Search */}
           <div
             style={{
               flex: 1,
@@ -163,7 +134,6 @@ export default function RecetasPage() {
             />
           </div>
 
-          {/* Filtro base */}
           <button
             id="filter-base"
             onClick={() => setFilterBase((v) => !v)}
@@ -189,33 +159,46 @@ export default function RecetasPage() {
         </div>
       )}
 
-      {/* ── Loading ─────────────────────────────────────────────── */}
-      {loading && (
+      {/* ── Skeleton (primera carga) ─────────────────────────────── */}
+      {isLoading && (
         <div
           style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "60px 0",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "16px",
           }}
         >
-          <LoadingSpinner size={32} />
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl p-4 flex flex-col gap-3"
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
+            >
+              <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "70%" }} />
+              <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "40%" }} />
+              <div className="flex gap-2 mt-2">
+                <div className="h-5 w-16 rounded-full" style={{ background: "var(--bg-secondary)" }} />
+                <div className="h-5 w-20 rounded-full" style={{ background: "var(--bg-secondary)" }} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* ── Error ───────────────────────────────────────────────── */}
-      {!loading && error && (
+      {!isLoading && error && (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
           <p className="text-sm" style={{ color: "var(--text-muted)", marginBottom: "12px" }}>
             No se pudieron cargar las recetas.
           </p>
-          <Button variant="ghost" onClick={load}>
+          <Button variant="ghost" onClick={() => void mutate()}>
             Reintentar
           </Button>
         </div>
       )}
 
       {/* ── Empty state ─────────────────────────────────────────── */}
-      {!loading && !error && filtered.length === 0 && (
+      {!isLoading && !error && filtered.length === 0 && (
         <EmptyState
           icon={<ChefHat size={40} style={{ color: "var(--text-muted)" }} />}
           title={
@@ -243,7 +226,7 @@ export default function RecetasPage() {
       )}
 
       {/* ── Grid de cards ────────────────────────────────────────── */}
-      {!loading && !error && filtered.length > 0 && (
+      {!isLoading && !error && filtered.length > 0 && (
         <div
           style={{
             display: "grid",
