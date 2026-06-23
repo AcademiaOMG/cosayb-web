@@ -175,31 +175,33 @@ export default function YieldFactorFormModal({ isOpen, onClose, onSubmit, editin
 
         {/* Costo total + Peso completo */}
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
-              Costo total ($)
+          <div className="flex flex-col gap-1">
+            <label className="block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+              Lo que pagaste (COP)
             </label>
             <input
               type="number"
               value={totalCost}
               onChange={(e) => setTotalCost(e.target.value)}
-              placeholder="25000"
+              placeholder="25.000"
               className="w-full h-10 px-3 rounded-xl text-sm outline-none transition-colors"
               style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
             />
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Precio del lote que compraste</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
-              Peso completo (g)
+          <div className="flex flex-col gap-1">
+            <label className="block text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+              Peso bruto del lote (g)
             </label>
             <input
               type="number"
               value={totalWeightGrams}
               onChange={(e) => setTotalWeightGrams(e.target.value)}
-              placeholder="5420"
+              placeholder="5.000"
               className="w-full h-10 px-3 rounded-xl text-sm outline-none transition-colors"
               style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
             />
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Antes de limpiar o deshuesar</p>
           </div>
         </div>
 

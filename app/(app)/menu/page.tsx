@@ -1,17 +1,20 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import useSWR from "swr"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import SearchableSelect from "@/components/ui/SearchableSelect"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
 import Input from "@/components/ui/Input"
-import LoadingSpinner from "@/components/ui/LoadingSpinner"
+import Table from "@/components/ui/Table"
 import {
-  ArrowLeft, Plus, Trash2, UtensilsCrossed, ChefHat, Users, TrendingUp,
+  ArrowLeft, CheckCircle2, Plus, Trash2, UtensilsCrossed, ChefHat, Users, TrendingUp, Loader2, CalendarDays, Pencil,
 } from "lucide-react"
-import type { Menu, Receta, CostoMenuResult, MenuIndicator } from "@/types/domain"
+import type { Menu, Recipe, CostoMenuResult, MenuIndicator } from "@/types/domain"
 import {
-  getMenus, getMenuById, createMenu, updateMenu, deleteMenu, getRecetas,
+  getMenus, getMenuById, createMenu, updateMenu, deleteMenu,
+  getRecipes, getRecipeCost,
 } from "@/lib/api"
 import type { CreateMenuPayload } from "@/lib/api"
 
@@ -47,7 +50,7 @@ function calcularCosto(
 
   return {
     recetas: recetas.map((r) => ({
-      recetaId: "", nombre: "", ...r,
+      recipeId: "", nombre: "", ...r,
       costoPorcionEnMenu: r.cantidadGramos * r.costoGramo,
       costoTotalEnMenu: r.cantidadGramos * r.costoGramo * numPersonas,
     })),
@@ -112,6 +115,15 @@ const fmt = (v: number) =>
 const fmtDate = (d: string) =>
   new Date(d + "T12:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
 
+// ─── % Materia Prima: persistencia local ──────────────────────────────────────
+function getStoredPctMP(fallback: string): string {
+  if (typeof window === "undefined") return fallback
+  return localStorage.getItem("cosayb_pct_mp") ?? fallback
+}
+function savePctMP(value: string) {
+  if (typeof window !== "undefined") localStorage.setItem("cosayb_pct_mp", value)
+}
+
 function MetricRow({ label, color, pct }: { label: string; color: string; pct: number }) {
   return (
     <div className="flex items-center gap-3">
@@ -131,17 +143,18 @@ function MetricRow({ label, color, pct }: { label: string; color: string; pct: n
 }
 
 // ─── Estado local de ítems de receta en el formulario ─────────────────────────
-interface RecetaItem {
+interface RecipeLineItem {
   uid: string
-  recetaId: string
+  recipeId: string
   nombre: string
   cantidadGramos: string
-  costoGramo: number    // costoPorPorcion / pesoTotalGramos
+  costoGramo: number | null  // null = sin peso por porción definido o cargando
+  costoLoading: boolean
   orden: number
 }
 
-function newItem(uid: string, orden: number): RecetaItem {
-  return { uid, recetaId: "", nombre: "", cantidadGramos: "200", costoGramo: 0, orden }
+function newLineItem(uid: string, orden: number): RecipeLineItem {
+  return { uid, recipeId: "", nombre: "", cantidadGramos: "200", costoGramo: null, costoLoading: false, orden }
 }
 
 // ─── Vista de panel de costos ─────────────────────────────────────────────────
@@ -184,14 +197,8 @@ function CostoPanel({
           </p>
         )}
 
-        {/* Gráfica */}
         <div className="flex justify-center my-5">
-          <DonutChart
-            mp={pctMP}
-            fixed={costo.pctCostosFijos}
-            profit={costo.pctGanancia}
-            indicator={costo.indicator}
-          />
+          <DonutChart mp={pctMP} fixed={costo.pctCostosFijos} profit={costo.pctGanancia} indicator={costo.indicator} />
         </div>
 
         <div className="flex flex-col gap-3">
@@ -200,7 +207,6 @@ function CostoPanel({
           <MetricRow label="Ganancia"       color="#10B981" pct={costo.pctGanancia} />
         </div>
 
-        {/* Desglose de costos */}
         <div className="mt-5 pt-4 flex flex-col gap-2"
           style={{ borderTop: "1px solid var(--border-light)" }}>
           <div className="flex justify-between text-sm">
@@ -208,7 +214,7 @@ function CostoPanel({
             <strong style={{ color: "var(--text-secondary)" }}>{fmt(costo.costoTotalPorcion)}</strong>
           </div>
           <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--text-muted)" }}>Con margen ({parseFloat(String(costo.margenAplicadoPorcion / costo.costoTotalPorcion * 100 || 0)).toFixed(0)}%)</span>
+            <span style={{ color: "var(--text-muted)" }}>Con margen</span>
             <strong style={{ color: "var(--text-secondary)" }}>{fmt(costo.costoConMargenPorcion)}</strong>
           </div>
           {numPersonas > 1 && (
@@ -228,12 +234,12 @@ function CostoPanel({
 // ═══════════════════════════════════════════════════════════════════════════════
 function DetailView({
   menu,
-  availableRecetas,
+  availableRecipes,
   onBack,
   onSaved,
 }: {
   menu: Menu | null
-  availableRecetas: Receta[]
+  availableRecipes: Recipe[]
   onBack: () => void
   onSaved: () => void
 }) {
@@ -246,22 +252,20 @@ function DetailView({
     menu ? String(parseFloat(menu.margenSeguridad)) : "5"
   )
   const [pctMateriaPrima, setPctMateriaPrima] = useState(
-    menu ? String(parseFloat(menu.pctMateriaPrima)) : "31"
+    menu ? String(parseFloat(menu.pctMateriaPrima)) : getStoredPctMP("31")
   )
   const [notas, setNotas] = useState(menu?.notas ?? "")
-  const [recetaItems, setRecetaItems] = useState<RecetaItem[]>(() => {
+  const [lineItems, setLineItems] = useState<RecipeLineItem[]>(() => {
     if (!menu) return []
     return menu.recetas.map((mr, i) => {
-      const r = availableRecetas.find((ar) => ar.id === mr.recetaId)
-      const cg = r
-        ? parseFloat(r.costoPorPorcion) / Math.max(parseFloat(r.pesoTotalGramos), 1)
-        : 0
+      const recipe = availableRecipes.find((r) => r.id === mr.recipeId)
       return {
         uid: mr.id,
-        recetaId: mr.recetaId,
-        nombre: r?.nombre ?? mr.recetaId,
+        recipeId: mr.recipeId,
+        nombre: recipe?.name ?? mr.recipeId,
         cantidadGramos: String(parseFloat(mr.cantidadGramos)),
-        costoGramo: cg,
+        costoGramo: null,
+        costoLoading: true,
         orden: i,
       }
     })
@@ -269,50 +273,97 @@ function DetailView({
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const recipeOptions = useMemo(
+    () => availableRecipes.map((r) => ({ value: r.id, label: r.name })),
+    [availableRecipes],
+  )
 
   const pctMP   = parseFloat(pctMateriaPrima) || 0
   const nPers   = parseInt(numPersonas) || 0
   const margin  = parseFloat(margenSeguridad) || 0
 
-  const validItems = recetaItems.filter((r) => r.recetaId && parseFloat(r.cantidadGramos) > 0)
+  // Fetch cost for a recipe when selected
+  const fetchRecipeCost = useCallback(async (uid: string, recipeId: string) => {
+    setLineItems((prev) =>
+      prev.map((item) =>
+        item.uid === uid ? { ...item, costoLoading: true } : item
+      )
+    )
+    try {
+      const res = await getRecipeCost(recipeId)
+      const costoGramo = res.data.costPerGram  // null if no servingWeightG defined
+      setLineItems((prev) =>
+        prev.map((item) =>
+          item.uid === uid ? { ...item, costoGramo, costoLoading: false } : item
+        )
+      )
+    } catch {
+      setLineItems((prev) =>
+        prev.map((item) =>
+          item.uid === uid ? { ...item, costoGramo: null, costoLoading: false } : item
+        )
+      )
+    }
+  }, [])
+
+  // On mount: fetch costs for existing menu items
+  useEffect(() => {
+    lineItems.forEach((item) => {
+      if (item.recipeId && item.costoLoading) {
+        void fetchRecipeCost(item.uid, item.recipeId)
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const validItems = lineItems.filter(
+    (r) => r.recipeId && r.costoGramo !== null && parseFloat(r.cantidadGramos) > 0
+  )
   const costo = calcularCosto(
-    validItems.map((r) => ({ cantidadGramos: parseFloat(r.cantidadGramos), costoGramo: r.costoGramo })),
+    validItems.map((r) => ({ cantidadGramos: parseFloat(r.cantidadGramos), costoGramo: r.costoGramo! })),
     nPers, margin, pctMP
   )
 
   const cfg = costo ? IND[costo.indicator] : null
-
-  // ── Slider track color ──
   const sliderThumbColor = cfg?.color ?? "#1B4FD8"
 
-  function addRecetaItem() {
+  function addLineItem() {
     const uid = `new-${Date.now()}`
-    setRecetaItems((prev) => [...prev, newItem(uid, prev.length)])
+    setLineItems((prev) => [...prev, newLineItem(uid, prev.length)])
   }
 
-  function removeRecetaItem(uid: string) {
-    setRecetaItems((prev) => prev.filter((r) => r.uid !== uid))
+  function removeLineItem(uid: string) {
+    setLineItems((prev) => prev.filter((r) => r.uid !== uid))
   }
 
-  function updateRecetaItem(uid: string, field: keyof RecetaItem, value: string | number) {
-    setRecetaItems((prev) =>
-      prev.map((r) => {
-        if (r.uid !== uid) return r
-        if (field === "recetaId") {
-          const receta = availableRecetas.find((ar) => ar.id === value)
-          const costoGramo = receta
-            ? parseFloat(receta.costoPorPorcion) / Math.max(parseFloat(receta.pesoTotalGramos), 1)
-            : 0
-          return { ...r, recetaId: String(value), nombre: receta?.nombre ?? "", costoGramo }
+  function selectRecipe(uid: string, recipeId: string) {
+    const recipe = availableRecipes.find((r) => r.id === recipeId)
+    setLineItems((prev) =>
+      prev.map((item) => {
+        if (item.uid !== uid) return item
+        return {
+          ...item,
+          recipeId,
+          nombre: recipe?.name ?? "",
+          costoGramo: null,
+          costoLoading: !!recipeId,
         }
-        return { ...r, [field]: value }
       })
+    )
+    if (recipeId) void fetchRecipeCost(uid, recipeId)
+  }
+
+  function updateGrams(uid: string, value: string) {
+    setLineItems((prev) =>
+      prev.map((item) => item.uid === uid ? { ...item, cantidadGramos: value } : item)
     )
   }
 
   async function handleSave() {
     if (!nombre.trim()) { setError("El nombre del menú es obligatorio"); return }
-    if (validItems.length === 0) { setError("Agrega al menos una receta"); return }
+    if (validItems.length === 0) { setError("Agrega al menos una receta con peso por porción definido"); return }
     setSaving(true)
     setError(null)
     const payload: CreateMenuPayload = {
@@ -323,7 +374,7 @@ function DetailView({
       pctMateriaPrima: parseFloat(pctMateriaPrima),
       notas: notas.trim() || undefined,
       recetas: validItems.map((r, i) => ({
-        recetaId: r.recetaId,
+        recipeId: r.recipeId,
         cantidadGramos: parseFloat(r.cantidadGramos),
         orden: i,
       })),
@@ -334,7 +385,9 @@ function DetailView({
       } else {
         await updateMenu(menu!.id, payload)
       }
-      onSaved()
+      savePctMP(pctMateriaPrima)
+      setSuccess(true)
+      setTimeout(() => onSaved(), 1000)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error al guardar")
     } finally {
@@ -367,10 +420,16 @@ function DetailView({
 
         <div className="flex items-center gap-3">
           {error && <span className="text-sm" style={{ color: "#EF4444" }}>{error}</span>}
+          {success && (
+            <span className="text-sm flex items-center gap-1.5" style={{ color: "#166534" }}>
+              <CheckCircle2 size={14} />
+              Guardado
+            </span>
+          )}
           <Button
             variant="primary"
             loading={saving}
-            disabled={!nombre.trim() || validItems.length === 0}
+            disabled={!nombre.trim() || validItems.length === 0 || success}
             onClick={handleSave}
           >
             {isNew ? "Crear menú" : "Guardar cambios"}
@@ -396,6 +455,7 @@ function DetailView({
                   type="date"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
+                  hint="¿Cuándo se sirve este menú?"
                 />
                 <Input
                   label="N° de personas"
@@ -403,6 +463,7 @@ function DetailView({
                   min="1"
                   value={numPersonas}
                   onChange={(e) => setNumPersonas(e.target.value)}
+                  hint="¿Cuántos comensales?"
                 />
               </div>
 
@@ -410,7 +471,7 @@ function DetailView({
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                    % Materia prima
+                    % del precio que son ingredientes
                   </label>
                   <div className="flex items-center gap-2">
                     {cfg && (
@@ -433,7 +494,7 @@ function DetailView({
                   style={{ "--slider-thumb-color": sliderThumbColor } as React.CSSProperties}
                 />
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Verde &lt;32% · Amarillo 32–37% · Rojo &gt;37%
+                  Menor % = más rentabilidad — Ideal &lt;32% · Aceptable 32–37% · Revisar &gt;37%
                 </p>
               </div>
 
@@ -443,7 +504,7 @@ function DetailView({
                 placeholder="5"
                 value={margenSeguridad}
                 onChange={(e) => setMargenSeguridad(e.target.value)}
-                hint="Colchón para absorber variaciones de costo"
+                hint="Colchón ante subidas de precio en ingredientes. Recomendado: 3–5%"
               />
             </div>
           </Card>
@@ -455,7 +516,7 @@ function DetailView({
                 RECETAS DEL MENÚ
               </p>
               <button
-                onClick={addRecetaItem}
+                onClick={addLineItem}
                 className="flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-70"
                 style={{ color: "var(--text-accent, #1B4FD8)" }}
               >
@@ -464,48 +525,49 @@ function DetailView({
               </button>
             </div>
 
-            {recetaItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
+            {lineItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
                 <ChefHat size={28} style={{ color: "var(--text-muted)" }} />
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  Sin recetas aún. Haz clic en "Agregar" para sumar la primera.
-                </p>
-                {availableRecetas.length === 0 && (
-                  <p className="text-xs px-4" style={{ color: "var(--text-muted)" }}>
-                    Tip: crea tus recetas en la sección Recetas primero.
+                {availableRecipes.length === 0 ? (
+                  <p className="text-sm px-4" style={{ color: "var(--text-muted)" }}>
+                    Primero crea tus recetas en la sección <strong>Recetas</strong>, luego vuelve aquí para armar el menú.
                   </p>
+                ) : (
+                  <>
+                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                      Agrega los platos que incluye este menú
+                    </p>
+                    <Button variant="primary" onClick={addLineItem}>
+                      <Plus size={14} />
+                      Agregar primer plato
+                    </Button>
+                  </>
                 )}
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                {recetaItems.map((item) => {
-                  const costoPorcion = parseFloat(item.cantidadGramos) * item.costoGramo
+                {lineItems.map((item) => {
+                  const costoPorcion = item.costoGramo !== null
+                    ? parseFloat(item.cantidadGramos) * item.costoGramo
+                    : null
                   return (
                     <div key={item.uid} className="flex items-center gap-2 p-2 rounded-lg"
                       style={{ background: "var(--bg-secondary)" }}>
                       {/* Selector de receta */}
                       <div className="flex-1 min-w-0">
-                        {availableRecetas.length > 0 ? (
-                          <select
-                            value={item.recetaId}
-                            onChange={(e) => updateRecetaItem(item.uid, "recetaId", e.target.value)}
-                            className="w-full text-sm outline-none bg-transparent truncate"
-                            style={{ color: item.recetaId ? "var(--text-primary)" : "var(--text-muted)" }}
-                          >
-                            <option value="">— Seleccionar receta —</option>
-                            {availableRecetas.map((r) => (
-                              <option key={r.id} value={r.id}>{r.nombre}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            placeholder="Nombre receta..."
-                            value={item.nombre}
-                            onChange={(e) => updateRecetaItem(item.uid, "nombre", e.target.value)}
-                            className="w-full text-sm outline-none bg-transparent"
-                            style={{ color: "var(--text-primary)" }}
+                        {availableRecipes.length > 0 ? (
+                          <SearchableSelect
+                            options={recipeOptions}
+                            value={item.recipeId}
+                            onChange={(val) => selectRecipe(item.uid, val)}
+                            placeholder="— Seleccionar receta —"
+                            emptyMessage="No se encontraron recetas"
+                            ariaLabel="Receta"
                           />
+                        ) : (
+                          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            No hay recetas. Crea una en la sección Recetas.
+                          </span>
                         )}
                       </div>
 
@@ -514,23 +576,32 @@ function DetailView({
                         <input
                           type="number" min="1" step="10"
                           value={item.cantidadGramos}
-                          onChange={(e) => updateRecetaItem(item.uid, "cantidadGramos", e.target.value)}
+                          onChange={(e) => updateGrams(item.uid, e.target.value)}
                           className="text-sm tabular-nums outline-none text-right bg-transparent"
                           style={{ width: 56, color: "var(--text-primary)" }}
                         />
                         <span className="text-xs" style={{ color: "var(--text-muted)" }}>g</span>
                       </div>
 
-                      {/* Costo calculado */}
-                      {item.costoGramo > 0 && parseFloat(item.cantidadGramos) > 0 && (
-                        <span className="text-xs tabular-nums font-medium" style={{ color: "var(--text-muted)", minWidth: 54, textAlign: "right" }}>
-                          {fmt(costoPorcion)}
-                        </span>
-                      )}
+                      {/* Costo calculado o spinner */}
+                      <div style={{ minWidth: 60, textAlign: "right", flexShrink: 0 }}>
+                        {item.costoLoading ? (
+                          <Loader2 size={12} style={{ color: "var(--text-muted)", display: "inline" }}
+                            className="animate-spin" />
+                        ) : item.costoGramo === null && item.recipeId ? (
+                          <span className="text-xs" style={{ color: "#F59E0B" }} title="Esta receta no tiene peso por porción definido. Edítala en Recetas para poder incluirla en el cálculo.">
+                            Sin peso ⚠
+                          </span>
+                        ) : costoPorcion !== null && costoPorcion > 0 ? (
+                          <span className="text-xs tabular-nums font-medium" style={{ color: "var(--text-muted)" }}>
+                            {fmt(costoPorcion)}
+                          </span>
+                        ) : null}
+                      </div>
 
                       {/* Borrar */}
                       <button
-                        onClick={() => removeRecetaItem(item.uid)}
+                        onClick={() => removeLineItem(item.uid)}
                         className="transition-opacity hover:opacity-70"
                         style={{ color: "var(--text-muted)", flexShrink: 0 }}
                       >
@@ -661,44 +732,174 @@ function MenuCard({ menu, onClick, onDelete }: {
   )
 }
 
+// ─── Tabla de menús ───────────────────────────────────────────────────────────
+function MenuTable({
+  menus,
+  onEdit,
+  onDelete,
+}: {
+  menus: Menu[]
+  onEdit: (m: Menu) => void
+  onDelete: (id: string) => void
+}) {
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+
+  return (
+    <Table
+      rowKey="id"
+      data={menus as unknown as Record<string, unknown>[]}
+      columns={[
+        {
+          key: "nombre",
+          label: "Nombre",
+          render: (v) => (
+            <span className="font-medium" style={{ color: "var(--text-primary)" }}>{v as string}</span>
+          ),
+        },
+        {
+          key: "fecha",
+          label: "Fecha evento",
+          render: (v) => (
+            <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+              <CalendarDays size={13} style={{ color: "var(--text-muted)" }} />
+              {fmtDate(v as string)}
+            </div>
+          ),
+        },
+        {
+          key: "numPersonas",
+          label: "Personas",
+          render: (v) => (
+            <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+              <Users size={13} style={{ color: "var(--text-muted)" }} />
+              {String(v)}
+            </div>
+          ),
+        },
+        {
+          key: "recetas",
+          label: "Recetas",
+          render: (v) => {
+            const arr = v as Menu["recetas"]
+            return (
+              <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
+                <ChefHat size={13} style={{ color: "var(--text-muted)" }} />
+                {arr.length}
+              </div>
+            )
+          },
+        },
+        {
+          key: "pctMateriaPrima",
+          label: "% MP",
+          render: (v) => (
+            <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>
+              {parseFloat(v as string).toFixed(0)}%
+            </span>
+          ),
+        },
+        {
+          key: "pctMateriaPrima",
+          label: "Indicador",
+          render: (v) => {
+            const pct = parseFloat(v as string)
+            const ind: MenuIndicator = pct < 32 ? "MUY_BUENO" : pct > 37 ? "MALO" : "REGULAR"
+            const cfg = IND[ind]
+            return (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+                style={{ background: cfg.bg, color: cfg.text }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.color }} />
+                {cfg.label}
+              </span>
+            )
+          },
+        },
+        {
+          key: "id",
+          label: "",
+          render: (v, row) => {
+            const menu = row as unknown as Menu
+            const id = v as string
+            return (
+              <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                {confirmId === id ? (
+                  <>
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>¿Eliminar?</span>
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmId(null)}>Cancelar</Button>
+                    <Button variant="ghost" size="sm" onClick={() => { onDelete(id); setConfirmId(null) }}
+                      style={{ color: "#EF4444" }}>Confirmar</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => onEdit(menu)}>
+                      <Pencil size={13} />
+                      Editar
+                    </Button>
+                    <button
+                      onClick={() => setConfirmId(id)}
+                      className="transition-opacity hover:opacity-70"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </>
+                )}
+              </div>
+            )
+          },
+        },
+      ]}
+    />
+  )
+}
+
+// ─── Skeleton de tabla ────────────────────────────────────────────────────────
+function MenuListSkeleton() {
+  return (
+    <div className="w-full overflow-hidden rounded-xl animate-pulse" style={{ border: "1px solid var(--border-light)" }}>
+      <div className="px-4 py-3 flex gap-4" style={{ background: "var(--bg-secondary)" }}>
+        {[20, 12, 10, 8, 14, 12, 10].map((w, i) => (
+          <div key={i} className="h-3 rounded" style={{ background: "var(--border-light)", width: `${w}%` }} />
+        ))}
+      </div>
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="px-4 py-4 flex gap-4 items-center"
+          style={{ borderTop: "1px solid var(--border-light)", background: i % 2 === 0 ? "var(--bg-surface)" : "var(--bg-primary)" }}>
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "20%" }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "12%" }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "10%" }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "8%" }} />
+          <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "14%" }} />
+          <div className="h-6 rounded-full" style={{ background: "var(--bg-secondary)", width: "12%" }} />
+          <div className="h-7 rounded-lg ml-auto" style={{ background: "var(--bg-secondary)", width: 80 }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PÁGINA PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════════
 type PageView = "list" | "detail"
 
 export default function MenuPage() {
+  const { data: menus = [], isLoading: menusLoading, mutate: mutateMenus } = useSWR(
+    "menus",
+    () => getMenus().then((r) => r.data ?? []),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
+
+  const { data: availableRecipes = [] } = useSWR(
+    "recipes",
+    () => getRecipes().then((r) => r.data ?? []),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
+
   const [view, setView] = useState<PageView>("list")
-  const [menus, setMenus] = useState<Menu[]>([])
-  const [loading, setLoading] = useState(true)
-  const [availableRecetas, setAvailableRecetas] = useState<Receta[]>([])
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null)
 
-  const loadMenus = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await getMenus()
-      setMenus(res.data ?? [])
-    } catch {
-      setMenus([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Carga recetas disponibles para el selector
-  const loadRecetas = useCallback(async () => {
-    try {
-      const res = await getRecetas()
-      setAvailableRecetas(res.data ?? [])
-    } catch {
-      setAvailableRecetas([]) // recetas endpoint aún no está implementado — manejo silencioso
-    }
-  }, [])
-
-  useEffect(() => { void loadMenus(); void loadRecetas() }, [loadMenus, loadRecetas])
-
   async function openEdit(menu: Menu) {
-    // Carga el menú completo con sus recetas antes de abrir la vista detalle
     try {
       const res = await getMenuById(menu.id)
       setEditingMenu(res.data)
@@ -716,15 +917,15 @@ export default function MenuPage() {
   async function handleDelete(id: string) {
     try {
       await deleteMenu(id)
-      await loadMenus()
+      await mutateMenus()
     } catch {
       // silencioso
     }
   }
 
-  function handleSaved() {
+  async function handleSaved() {
+    await mutateMenus()
     setView("list")
-    void loadMenus()
   }
 
   // ── Vista detalle ──
@@ -732,7 +933,7 @@ export default function MenuPage() {
     return (
       <DetailView
         menu={editingMenu}
-        availableRecetas={availableRecetas}
+        availableRecipes={availableRecipes}
         onBack={() => setView("list")}
         onSaved={handleSaved}
       />
@@ -744,7 +945,7 @@ export default function MenuPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Menús"
-        subtitle="Diseña menús por evento, calcula costos y precio de venta"
+        subtitle="Para eventos y servicios: agrupa platos, define gramos por porción y calcula el precio por persona"
         action={
           <Button variant="primary" onClick={openCreate}>
             <Plus size={15} />
@@ -753,10 +954,8 @@ export default function MenuPage() {
         }
       />
 
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <LoadingSpinner />
-        </div>
+      {menusLoading ? (
+        <MenuListSkeleton />
       ) : menus.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -768,7 +967,7 @@ export default function MenuPage() {
               No hay menús creados
             </p>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              Crea tu primer menú para calcular costos y precio de venta por persona.
+              Úsalo para planear eventos o servicios: agrupa platos, define porciones y obtén el precio ideal por persona.
             </p>
           </div>
           <Button variant="ghost" onClick={openCreate}>
@@ -777,16 +976,11 @@ export default function MenuPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
-          {menus.map((m) => (
-            <MenuCard
-              key={m.id}
-              menu={m}
-              onClick={() => openEdit(m)}
-              onDelete={() => handleDelete(m.id)}
-            />
-          ))}
-        </div>
+        <MenuTable
+          menus={menus}
+          onEdit={(m) => openEdit(m)}
+          onDelete={(id) => handleDelete(id)}
+        />
       )}
     </div>
   )
