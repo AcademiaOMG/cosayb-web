@@ -33,6 +33,7 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
   headers.set("accept-encoding", "identity")
 
   console.log(`[proxy] ${request.method} ${API_URL}/auth${fullPath}`)
+  console.log(`[proxy] cookies del browser:`, request.headers.get("cookie")?.slice(0, 300) ?? "(ninguna)")
   console.log(`[proxy] accept-encoding enviado:`, headers.get("accept-encoding"))
 
   try {
