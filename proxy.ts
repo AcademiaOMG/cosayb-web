@@ -2,18 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_ROUTES = ["/", "/login", "/register", "/onboarding"];
 
-// Cookie names used by better-auth:
-//   HTTPS / production (Vercel) → "__Secure-better-auth.session_token"
-//   HTTP  / development         → "better-auth.session_token"
+// Nombres de cookie de sesión que usa better-auth según el entorno:
+//   HTTPS producción (Vercel) → "__Secure-better-auth.session_token"
+//   HTTP  desarrollo local    → "better-auth.session_token"
 const SESSION_COOKIE_NAMES = [
   "__Secure-better-auth.session_token",
   "better-auth.session_token",
 ];
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow Next.js internals and auth API routes
+  // Recursos internos de Next.js y rutas de auth siempre pasan
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
@@ -22,12 +22,12 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow public routes
+  // Rutas públicas siempre pasan
   if (PUBLIC_ROUTES.includes(pathname)) {
     return NextResponse.next();
   }
 
-  // Check for session cookie — synchronous, no fetch, no external calls
+  // Verificación de sesión: lectura de cookie — sincrónica, sin fetch, sin llamadas externas
   const hasSession = SESSION_COOKIE_NAMES.some((name) =>
     req.cookies.has(name)
   );
