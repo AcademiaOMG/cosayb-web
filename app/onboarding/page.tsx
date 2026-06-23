@@ -35,31 +35,55 @@ export default function OnboardingPage() {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
+    // Redirigir a login si la verificación tarda más de 8s
+    const fallbackTimer = setTimeout(() => {
+      router.replace("/login")
+    }, 8000)
+
     async function check() {
       try {
         const { data } = await authClient.getSession()
+
         if (!data?.session) {
+          clearTimeout(fallbackTimer)
           router.replace("/login")
           return
         }
 
-        // Verificar si ya completó onboarding
-        const res = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
-        if (res.ok) {
-          const body = await res.json()
-          if (body.data?.onboardingCompleted) {
-            setOnboardingCookie()
-            router.replace("/inventario")
-            return
-          }
+        // Fast path: cookie local indica que el onboarding ya fue completado
+        if (document.cookie.includes("cosayb.onboarding=true")) {
+          clearTimeout(fallbackTimer)
+          router.replace("/inventario")
+          return
         }
 
+        // Verificar en backend si ya completó onboarding
+        try {
+          const res = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
+          if (res.ok) {
+            const body = await res.json()
+            if (body.data?.onboardingCompleted) {
+              clearTimeout(fallbackTimer)
+              setOnboardingCookie()
+              router.replace("/inventario")
+              return
+            }
+          }
+        } catch {
+          // API no disponible — mostrar form (usuario sí está autenticado)
+        }
+
+        clearTimeout(fallbackTimer)
         setChecking(false)
       } catch {
-        setChecking(false)
+        // Error en verificación de sesión → redirigir a login
+        clearTimeout(fallbackTimer)
+        router.replace("/login")
       }
     }
+
     check()
+    return () => clearTimeout(fallbackTimer)
   }, [router])
 
   function handleStep1() {
