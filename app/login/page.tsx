@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3002"}/onboarding`,
+        callbackURL: `${window.location.origin}/onboarding`,
       })
     } catch {
       setError("No se pudo iniciar sesión con Google. Intenta de nuevo.")
@@ -44,7 +44,7 @@ export default function LoginPage() {
     const { error: signInError } = await authClient.signIn.email({
       email,
       password,
-      callbackURL: `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3002"}/onboarding`,
+      callbackURL: `${window.location.origin}/onboarding`,
     })
 
     if (signInError) {
