@@ -25,7 +25,8 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
 
   const headers = new Headers()
   request.headers.forEach((value, key) => {
-    if (key.toLowerCase() !== "host") {
+    const lower = key.toLowerCase()
+    if (lower !== "host" && lower !== "accept-encoding") {
       headers.set(key, value)
     }
   })
@@ -42,7 +43,8 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
 
     const responseHeaders = new Headers()
     response.headers.forEach((value, key) => {
-      if (key.toLowerCase() !== "transfer-encoding") {
+      const lower = key.toLowerCase()
+      if (lower !== "transfer-encoding" && lower !== "content-encoding") {
         responseHeaders.set(key, value)
       }
     })
