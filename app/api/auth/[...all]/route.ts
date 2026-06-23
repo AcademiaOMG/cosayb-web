@@ -32,6 +32,9 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
   })
   headers.set("accept-encoding", "identity")
 
+  console.log(`[proxy] ${request.method} ${API_URL}/auth${fullPath}`)
+  console.log(`[proxy] accept-encoding enviado:`, headers.get("accept-encoding"))
+
   try {
     const response = await fetch(`${API_URL}/auth${fullPath}`, {
       method: request.method,
@@ -41,6 +44,10 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
         : undefined,
       redirect: "manual",
     })
+
+    console.log(`[proxy] respuesta: ${response.status}`)
+    console.log(`[proxy] content-encoding:`, response.headers.get("content-encoding"))
+    console.log(`[proxy] transfer-encoding:`, response.headers.get("transfer-encoding"))
 
     const responseHeaders = new Headers()
     response.headers.forEach((value, key) => {
@@ -58,6 +65,7 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
     })
 
     const body = await response.text()
+    console.log(`[proxy] body (primeros 200 chars):`, body.slice(0, 200))
 
     return new NextResponse(body, {
       status: response.status,
