@@ -49,7 +49,9 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
 
     const setCookies = response.headers.getSetCookie?.() || []
     setCookies.forEach((cookie) => {
-      responseHeaders.append("set-cookie", cookie)
+      // Quitar Domain=api.academiaomg.com para que la cookie se aplique al dominio del proxy (app.academiaomg.com)
+      const cleaned = cookie.replace(/;\s*domain=[^;]*/i, "")
+      responseHeaders.append("set-cookie", cleaned)
     })
 
     const body = await response.text()
