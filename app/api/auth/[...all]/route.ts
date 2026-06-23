@@ -52,15 +52,16 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
     const responseHeaders = new Headers()
     response.headers.forEach((value, key) => {
       const lower = key.toLowerCase()
-      if (lower !== "transfer-encoding" && lower !== "content-encoding") {
-        responseHeaders.set(key, value)
-      }
+      // set-cookie se maneja por separado vía getSetCookie() para evitar duplicados
+      if (lower === "set-cookie" || lower === "transfer-encoding" || lower === "content-encoding") return
+      responseHeaders.set(key, value)
     })
 
-    const setCookies = response.headers.getSetCookie?.() || []
-    setCookies.forEach((cookie) => {
+    const setCookies = response.headers.getSetCookie?.() ?? []
+    console.log(`[proxy] set-cookie headers:`, setCookies.map(c => c.slice(0, 100)))
+    for (const cookie of setCookies) {
       responseHeaders.append("set-cookie", cookie)
-    })
+    }
 
     const body = await response.text()
     console.log(`[proxy] body (primeros 200 chars):`, body.slice(0, 200))

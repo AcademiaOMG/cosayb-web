@@ -26,10 +26,21 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     try {
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: `${window.location.origin}/onboarding`,
+      // OAuth va directo al backend — evita que la cookie de estado pase por el proxy
+      const apiURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3005"
+      const callbackURL = `${window.location.origin}/onboarding`
+      const res = await fetch(`${apiURL}/auth/sign-in/social`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ provider: "google", callbackURL }),
       })
+      const data = await res.json()
+      if (data?.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error("No se recibió URL de redirección")
+      }
     } catch {
       setError("No se pudo iniciar sesión con Google. Intenta de nuevo.")
       setLoading(false)
