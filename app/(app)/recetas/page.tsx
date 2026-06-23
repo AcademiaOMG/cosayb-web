@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import useSWR from "swr"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
@@ -10,63 +11,26 @@ import RecipeCard from "@/components/app/recipes/RecipeCard"
 import RecipeCostModal from "@/components/app/recipes/RecipeCostModal"
 import type { Recipe, RecipeCostResult } from "@/types/domain"
 import { getRecipes, deleteRecipe, getRecipeCost } from "@/lib/api"
-import { ChefHat, Plus, Search, BookMarked, List } from "lucide-react"
-
-// ── Module-level cache ────────────────────────────────────────────────────────
-let _cache: Recipe[] | null = null
-let _cacheAt = 0
-const CACHE_TTL = 30_000
+import { ChefHat, Plus, Search, BookMarked } from "lucide-react"
 
 export default function RecetasPage() {
   const router = useRouter()
 
-  // ── Remote state ───────────────────────────────────────────────────────────
-  const [recipes, setRecipes] = useState<Recipe[]>(() => _cache ?? [])
-  const [loading, setLoading] = useState(false)
-  const [firstLoad, setFirstLoad] = useState(() => !_cache || Date.now() - _cacheAt >= CACHE_TTL)
-  const [error, setError] = useState(false)
+  const { data: recipes = [], isLoading, error, mutate } = useSWR(
+    "recipes",
+    () => getRecipes().then((r) => r.data ?? []),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  )
 
-  // ── Filtros ────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState("")
   const [filterBase, setFilterBase] = useState(false)
-
-  // ── Delete modal ───────────────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  // ── Cost modal ─────────────────────────────────────────────────────────────
   const [costTarget, setCostTarget] = useState<Recipe | null>(null)
   const [costResult, setCostResult] = useState<RecipeCostResult | null>(null)
   const [costLoading, setCostLoading] = useState(false)
   const [costError, setCostError] = useState<string | null>(null)
 
-  // ── Load ───────────────────────────────────────────────────────────────────
-  const load = useCallback(async (force = false) => {
-    if (!force && _cache && Date.now() - _cacheAt < CACHE_TTL) {
-      setRecipes(_cache)
-      setFirstLoad(false)
-      return
-    }
-    setLoading(true)
-    setError(false)
-    try {
-      const res = await getRecipes()
-      _cache = res.data ?? []
-      _cacheAt = Date.now()
-      setRecipes(_cache)
-    } catch {
-      setError(true)
-    } finally {
-      setLoading(false)
-      setFirstLoad(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  // ── Derived: filtro local ──────────────────────────────────────────────────
   const filtered = recipes.filter((r) => {
     const matchBase = !filterBase || r.isBase
     const matchSearch =
@@ -76,15 +40,13 @@ export default function RecetasPage() {
     return matchBase && matchSearch
   })
 
-  // ── Actions ────────────────────────────────────────────────────────────────
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
       await deleteRecipe(deleteTarget.id)
-      _cache = null
       setDeleteTarget(null)
-      await load(true)
+      await mutate()
     } catch {
       setDeleteTarget(null)
     } finally {
@@ -107,7 +69,6 @@ export default function RecetasPage() {
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-6">
 
@@ -115,7 +76,7 @@ export default function RecetasPage() {
       <PageHeader
         title="Recetas"
         subtitle={
-          loading
+          isLoading
             ? "Cargando…"
             : `${recipes.length} receta${recipes.length !== 1 ? "s" : ""} · ${recipes.filter((r) => r.isBase).length} base${recipes.filter((r) => r.isBase).length !== 1 ? "s" : ""}`
         }
@@ -134,7 +95,6 @@ export default function RecetasPage() {
       {/* ── Barra de búsqueda + filtros ─────────────────────────── */}
       {!error && (
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          {/* Search */}
           <div
             style={{
               flex: 1,
@@ -174,7 +134,6 @@ export default function RecetasPage() {
             />
           </div>
 
-          {/* Filtro base */}
           <button
             id="filter-base"
             onClick={() => setFilterBase((v) => !v)}
@@ -201,7 +160,7 @@ export default function RecetasPage() {
       )}
 
       {/* ── Skeleton (primera carga) ─────────────────────────────── */}
-      {firstLoad && (
+      {isLoading && (
         <div
           style={{
             display: "grid",
@@ -227,19 +186,19 @@ export default function RecetasPage() {
       )}
 
       {/* ── Error ───────────────────────────────────────────────── */}
-      {!firstLoad && !loading && error && (
+      {!isLoading && error && (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
           <p className="text-sm" style={{ color: "var(--text-muted)", marginBottom: "12px" }}>
             No se pudieron cargar las recetas.
           </p>
-          <Button variant="ghost" onClick={() => void load(true)}>
+          <Button variant="ghost" onClick={() => void mutate()}>
             Reintentar
           </Button>
         </div>
       )}
 
       {/* ── Empty state ─────────────────────────────────────────── */}
-      {!firstLoad && !loading && !error && filtered.length === 0 && (
+      {!isLoading && !error && filtered.length === 0 && (
         <EmptyState
           icon={<ChefHat size={40} style={{ color: "var(--text-muted)" }} />}
           title={
@@ -267,7 +226,7 @@ export default function RecetasPage() {
       )}
 
       {/* ── Grid de cards ────────────────────────────────────────── */}
-      {!firstLoad && !loading && !error && filtered.length > 0 && (
+      {!isLoading && !error && filtered.length > 0 && (
         <div
           style={{
             display: "grid",

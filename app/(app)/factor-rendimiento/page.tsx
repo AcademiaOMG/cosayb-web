@@ -125,7 +125,7 @@ export default function FactorRendimientoPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Factor de Rendimiento"
-        subtitle="Calcula el costo real de tus ingredientes descontando desperdicios"
+        subtitle="¿Cuánto aprovechas de lo que compras? Descuenta huesos, cáscaras y grasa para saber el costo real por gramo"
         action={
           <Button variant="primary" onClick={openCreate}>
             <Plus size={16} />
@@ -151,12 +151,12 @@ export default function FactorRendimientoPage() {
       {!isLoading && !error && factors.length === 0 && (
         <EmptyState
           icon={<Scale size={40} style={{ color: "var(--text-muted)" }} />}
-          title="Sin factores de rendimiento"
-          description="Registra el rendimiento de tus ingredientes para calcular su costo real después de descartar desperdicios."
+          title="Sin factores registrados"
+          description="¿Cuánto aprovechas de una pechuga o de un kilo de zanahoria? Registra el rendimiento real de tus ingredientes (descontando huesos, cáscaras y grasa) para que el costo por gramo sea exacto en tus recetas."
           action={
-            <Button variant="ghost" onClick={openCreate}>
+            <Button variant="primary" onClick={openCreate}>
               <Plus size={14} />
-              Registrar primer ingrediente
+              Calcular primer rendimiento
             </Button>
           }
         />

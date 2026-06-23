@@ -14,16 +14,19 @@ import { getValuations, createValuation, getRecipes, getRecipeCost } from "@/lib
 import type { ValuationCreateResult, CreateValuationPayload } from "@/lib/api"
 
 // ─── Fórmulas ─────────────────────────────────────────────────────────────────
+const PCT_IMPUESTOS = 5  // impuestos de ley — fijo igual que Excel COSTOALAMINUTA
+const PCT_OTROS     = 5  // otros costos — fijo igual que Excel COSTOALAMINUTA
+
 function calcPricing(cost: number, pctMP: number, margin: number) {
   if (cost <= 0 || pctMP <= 0 || pctMP >= 100) return null
   const pct = pctMP / 100
   const withMargin = cost * (1 + margin / 100)
   const suggested = withMargin / pct
   const pctFixedCosts = ((1 - pct) / 1.8) * 100
-  const pctProfit = (1 - (1 - pct) / 1.8 - pct) * 100
+  const pctProfit = Math.max(0, (1 - (1 - pct) / 1.8 - pct) * 100 - PCT_IMPUESTOS - PCT_OTROS)
   const indicator: ValuationIndicator =
     pct < 0.32 ? "MUY BUENO" : pct > 0.37 ? "MALO" : "REGULAR"
-  return { suggested, pctMateriaprima: pctMP, pctFixedCosts, pctProfit, indicator }
+  return { suggested, pctMateriaprima: pctMP, pctFixedCosts, pctProfit, pctImpuestos: PCT_IMPUESTOS, pctOtros: PCT_OTROS, indicator }
 }
 
 // ─── Indicador ────────────────────────────────────────────────────────────────
@@ -34,8 +37,8 @@ const IND: Record<ValuationIndicator, { color: string; bg: string; text: string;
 }
 
 // ─── Donut chart ──────────────────────────────────────────────────────────────
-function DonutChart({ mp, fixed, profit, indicator }: {
-  mp: number; fixed: number; profit: number; indicator: ValuationIndicator
+function DonutChart({ mp, fixed, taxes, others, profit, indicator }: {
+  mp: number; fixed: number; taxes: number; others: number; profit: number; indicator: ValuationIndicator
 }) {
   const r = 14
   const circ = 2 * Math.PI * r
@@ -45,29 +48,34 @@ function DonutChart({ mp, fixed, profit, indicator }: {
   const arc = (pct: number) => Math.max(0, (pct / 100) * circ - gap)
   const base = -(circ / 4)
   const offMP     = base
-  const offFixed  = base - (mp    / 100) * circ
-  const offProfit = base - (mp    / 100) * circ - (fixed / 100) * circ
+  const offFixed  = base - (mp     / 100) * circ
+  const offTaxes  = base - (mp     / 100) * circ - (fixed  / 100) * circ
+  const offOthers = base - (mp     / 100) * circ - (fixed  / 100) * circ - (taxes  / 100) * circ
+  const offProfit = base - (mp     / 100) * circ - (fixed  / 100) * circ - (taxes  / 100) * circ - (others / 100) * circ
 
   const cfg = IND[indicator]
 
   return (
     <div className="relative" style={{ width: 200, height: 200 }}>
       <svg viewBox="0 0 36 36" width={200} height={200}>
-        <circle cx="18" cy="18" r={r} fill="none"
-          stroke="var(--border-light)" strokeWidth={sw} />
+        <circle cx="18" cy="18" r={r} fill="none" stroke="var(--border-light)" strokeWidth={sw} />
         <circle cx="18" cy="18" r={r} fill="none" stroke="#3B82F6" strokeWidth={sw}
           strokeDasharray={`${arc(mp)} ${circ}`} strokeDashoffset={offMP}
           style={{ transition: "stroke-dasharray .45s ease, stroke-dashoffset .45s ease" }} />
         <circle cx="18" cy="18" r={r} fill="none" stroke="#FB923C" strokeWidth={sw}
           strokeDasharray={`${arc(fixed)} ${circ}`} strokeDashoffset={offFixed}
           style={{ transition: "stroke-dasharray .45s ease, stroke-dashoffset .45s ease" }} />
+        <circle cx="18" cy="18" r={r} fill="none" stroke="#A78BFA" strokeWidth={sw}
+          strokeDasharray={`${arc(taxes)} ${circ}`} strokeDashoffset={offTaxes}
+          style={{ transition: "stroke-dasharray .45s ease, stroke-dashoffset .45s ease" }} />
+        <circle cx="18" cy="18" r={r} fill="none" stroke="#94A3B8" strokeWidth={sw}
+          strokeDasharray={`${arc(others)} ${circ}`} strokeDashoffset={offOthers}
+          style={{ transition: "stroke-dasharray .45s ease, stroke-dashoffset .45s ease" }} />
         <circle cx="18" cy="18" r={r} fill="none" stroke="#10B981" strokeWidth={sw}
           strokeDasharray={`${arc(profit)} ${circ}`} strokeDashoffset={offProfit}
           style={{ transition: "stroke-dasharray .45s ease, stroke-dashoffset .45s ease" }} />
         <text x="18" y="15" textAnchor="middle" fontFamily="system-ui,sans-serif"
-          fill="var(--text-muted)" fontSize="2.6" fontWeight="500">
-          GANANCIA
-        </text>
+          fill="var(--text-muted)" fontSize="2.6" fontWeight="500">GANANCIA</text>
         <text x="18" y="21.5" textAnchor="middle" fontFamily="system-ui,sans-serif"
           fill={cfg.color} fontSize="6.5" fontWeight="700"
           style={{ transition: "fill .35s ease" }}>
@@ -334,10 +342,10 @@ function DetailView({
             </p>
             <div className="flex flex-col gap-5">
 
-              {/* Selector de receta (opcional) */}
+              {/* Selector de receta */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                  Receta (opcional)
+                  Cargar desde una receta <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(opcional)</span>
                 </label>
                 <SearchableSelect
                   options={recipeOptions}
@@ -349,43 +357,24 @@ function DetailView({
                 />
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                   {recipeLoading
-                    ? "Cargando costo de la receta…"
-                    : "Autocompleta el costo a partir de una receta existente"}
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                  Categoría
-                </label>
-                <select
-                  value={form.refType}
-                  onChange={(e) => f("refType", e.target.value)}
-                  className="h-10 w-full rounded-xl px-3 text-sm outline-none"
-                  style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
-                >
-                  <option value="standalone">Independiente</option>
-                  <option value="recipe">Para una receta</option>
-                  <option value="menu">Para un menú / evento</option>
-                </select>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Solo clasifica el análisis en el historial.
+                    ? "Calculando costo de la receta…"
+                    : "Selecciona una receta y el costo se llena solo"}
                 </p>
               </div>
 
               <Input
-                label="Costo materia prima (COP)"
+                label="Costo de ingredientes por porción (COP)"
                 type="number" min="0"
-                placeholder="Ej. 8500"
+                placeholder="Ej. 8.500"
                 value={form.costMateriaprima}
                 onChange={(e) => f("costMateriaprima", e.target.value)}
-                hint="Costo total de ingredientes por porción"
+                hint="¿Cuánto te cuestan los ingredientes de una sola porción?"
               />
 
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                    % Materia prima
+                    % del precio que son ingredientes
                   </label>
                   <div className="flex items-center gap-2">
                     {preview && cfg && (
@@ -422,8 +411,7 @@ function DetailView({
                 />
 
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  ¿Cuánto del precio de venta representa la materia prima?
-                  Ideal &lt;32% · Aceptable 32–37% · Alto &gt;37%
+                  Ej. si el plato cuesta $8.000 en ingredientes y lo vendes a $25.000, el % es 32% — Ideal &lt;32%
                 </p>
               </div>
 
@@ -433,7 +421,7 @@ function DetailView({
                 placeholder="3"
                 value={form.safetyMargin}
                 onChange={(e) => f("safetyMargin", e.target.value)}
-                hint="Ajuste para absorber variaciones imprevistas en el costo"
+                hint="Colchón ante subidas de precio en ingredientes. Recomendado: 3–5%"
               />
             </div>
           </Card>
@@ -529,15 +517,19 @@ function DetailView({
                 <DonutChart
                   mp={preview.pctMateriaprima}
                   fixed={preview.pctFixedCosts}
+                  taxes={preview.pctImpuestos}
+                  others={preview.pctOtros}
                   profit={preview.pctProfit}
                   indicator={preview.indicator}
                 />
               </div>
 
               <div className="flex flex-col gap-3">
-                <MetricRow label="Materia prima" color="#3B82F6" pct={preview.pctMateriaprima} />
-                <MetricRow label="Costos fijos"  color="#FB923C" pct={preview.pctFixedCosts} />
-                <MetricRow label="Ganancia"       color="#10B981" pct={preview.pctProfit} />
+                <MetricRow label="Materia prima"    color="#3B82F6" pct={preview.pctMateriaprima} />
+                <MetricRow label="Costos fijos"     color="#FB923C" pct={preview.pctFixedCosts} />
+                <MetricRow label="Impuestos de ley" color="#A78BFA" pct={preview.pctImpuestos} />
+                <MetricRow label="Otros"            color="#94A3B8" pct={preview.pctOtros} />
+                <MetricRow label="Ganancia neta"    color="#10B981" pct={preview.pctProfit} />
               </div>
 
               <div

@@ -455,6 +455,7 @@ function DetailView({
                   type="date"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
+                  hint="¿Cuándo se sirve este menú?"
                 />
                 <Input
                   label="N° de personas"
@@ -462,6 +463,7 @@ function DetailView({
                   min="1"
                   value={numPersonas}
                   onChange={(e) => setNumPersonas(e.target.value)}
+                  hint="¿Cuántos comensales?"
                 />
               </div>
 
@@ -469,7 +471,7 @@ function DetailView({
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                    % Materia prima
+                    % del precio que son ingredientes
                   </label>
                   <div className="flex items-center gap-2">
                     {cfg && (
@@ -492,7 +494,7 @@ function DetailView({
                   style={{ "--slider-thumb-color": sliderThumbColor } as React.CSSProperties}
                 />
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Verde &lt;32% · Amarillo 32–37% · Rojo &gt;37%
+                  Menor % = más rentabilidad — Ideal &lt;32% · Aceptable 32–37% · Revisar &gt;37%
                 </p>
               </div>
 
@@ -502,7 +504,7 @@ function DetailView({
                 placeholder="5"
                 value={margenSeguridad}
                 onChange={(e) => setMargenSeguridad(e.target.value)}
-                hint="Colchón para absorber variaciones de costo"
+                hint="Colchón ante subidas de precio en ingredientes. Recomendado: 3–5%"
               />
             </div>
           </Card>
@@ -524,15 +526,22 @@ function DetailView({
             </div>
 
             {lineItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
+              <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
                 <ChefHat size={28} style={{ color: "var(--text-muted)" }} />
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  Sin recetas aún. Haz clic en "Agregar" para sumar la primera.
-                </p>
-                {availableRecipes.length === 0 && (
-                  <p className="text-xs px-4" style={{ color: "var(--text-muted)" }}>
-                    Tip: crea tus recetas en la sección Recetas primero.
+                {availableRecipes.length === 0 ? (
+                  <p className="text-sm px-4" style={{ color: "var(--text-muted)" }}>
+                    Primero crea tus recetas en la sección <strong>Recetas</strong>, luego vuelve aquí para armar el menú.
                   </p>
+                ) : (
+                  <>
+                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                      Agrega los platos que incluye este menú
+                    </p>
+                    <Button variant="primary" onClick={addLineItem}>
+                      <Plus size={14} />
+                      Agregar primer plato
+                    </Button>
+                  </>
                 )}
               </div>
             ) : (

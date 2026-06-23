@@ -252,6 +252,7 @@ export default function NuevaRecetaPage() {
             placeholder="Ej. 4"
             value={form.servings}
             onChange={(e) => setForm((f) => ({ ...f, servings: e.target.value }))}
+            hint="¿Cuántas porciones rinde esta receta en total?"
           />
           <Input
             id="recipe-weight"
@@ -277,6 +278,7 @@ export default function NuevaRecetaPage() {
             placeholder="3"
             value={form.safetyMargin}
             onChange={(e) => setForm((f) => ({ ...f, safetyMargin: e.target.value }))}
+            hint="Colchón para variaciones en el peso de los ingredientes. Recomendado: 3%"
           />
         </div>
 
@@ -372,7 +374,7 @@ export default function NuevaRecetaPage() {
           style={{ alignSelf: "flex-start" }}
         >
           <Plus size={14} />
-          Agregar componente
+          Agregar ingrediente o sub-receta
         </Button>
       </section>
 
@@ -474,7 +476,9 @@ function ItemRow({ item, index, ingredients, baseRecipes, onUpdate, onRemove, ca
       }}
     >
       {/* Drag handle visual (decorativo por ahora) */}
-      <GripVertical size={16} title="Reordenar (próximamente)" style={{ color: "var(--border-light)", cursor: "default", opacity: 0.4 }} />
+      <span title="Reordenar (próximamente)" style={{ display: "flex" }}>
+        <GripVertical size={16} style={{ color: "var(--border-light)", cursor: "default", opacity: 0.4 }} />
+      </span>
 
       {/* Selector de tipo */}
       <select

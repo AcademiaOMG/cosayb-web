@@ -193,8 +193,8 @@ export default function InventarioPage() {
         title="Inventario"
         subtitle={
           plan === "free"
-            ? `${quotaUsed} / ${FREE_LIMIT} ingredientes`
-            : "Ingredientes de tu organización"
+            ? `${quotaUsed} de ${FREE_LIMIT} ingredientes registrados`
+            : "Precios de compra de tus ingredientes — base de tus recetas"
         }
         action={
           <Button
@@ -266,24 +266,26 @@ export default function InventarioPage() {
       >
         <div className="flex flex-col gap-4">
           <Input
-            label="Nombre"
+            label="Nombre del ingrediente"
             placeholder="Ej. Harina de trigo"
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
           <Input
-            label="Costo unitario (COP)"
-            placeholder="Ej. 3500"
+            label="Precio de compra (COP)"
+            placeholder="Ej. 3.500"
             type="number"
             value={form.costPerUnit}
             onChange={(e) => setForm((f) => ({ ...f, costPerUnit: e.target.value }))}
+            hint="Lo que pagaste por esta presentación o empaque"
           />
           <Input
-            label="Peso (gramos)"
+            label="Peso del empaque (g)"
             placeholder="Ej. 1000"
             type="number"
             value={form.weightGrams}
             onChange={(e) => setForm((f) => ({ ...f, weightGrams: e.target.value }))}
+            hint="¿Cuántos gramos trae la presentación que compraste?"
           />
           {form.costPerUnit && form.weightGrams && parseFloat(form.weightGrams) > 0 && (
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>

@@ -31,8 +31,15 @@ function saveToStorage(data: object) {
 
 const DEFAULT_COSTOS: CostoFijo[] = [
   { id: "1", nombre: "Arriendo", monto: "" },
-  { id: "2", nombre: "Servicios públicos", monto: "" },
-  { id: "3", nombre: "Nómina", monto: "" },
+  { id: "2", nombre: "Nómina / Sueldos", monto: "" },
+  { id: "3", nombre: "Servicios públicos", monto: "" },
+  { id: "4", nombre: "Agua", monto: "" },
+  { id: "5", nombre: "Energía eléctrica", monto: "" },
+  { id: "6", nombre: "Gas", monto: "" },
+  { id: "7", nombre: "Teléfono / Internet", monto: "" },
+  { id: "8", nombre: "Marketing digital", monto: "" },
+  { id: "9", nombre: "Impuestos", monto: "" },
+  { id: "10", nombre: "Otros", monto: "" },
 ]
 
 const fmt = (v: number) =>
@@ -68,6 +75,7 @@ export default function PuntoEquilibrioPage() {
     ? Math.ceil(totalCostosFijos / margenContribucion)
     : null
   const ingresoNecesario = puntoEquilibrio != null ? puntoEquilibrio * precio : null
+  const unidadesDia = puntoEquilibrio != null ? Math.ceil(puntoEquilibrio / 22) : null
   const pctMargen = precio > 0 ? (margenContribucion / precio) * 100 : 0
 
   function addCostoFijo() {
@@ -197,12 +205,21 @@ export default function PuntoEquilibrioPage() {
               </p>
 
               <div className="flex flex-col gap-5">
-                <div>
-                  <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Debes vender al menos</p>
-                  <p className="text-5xl font-bold tabular-nums" style={{ color: "var(--text-primary)", lineHeight: 1.1 }}>
-                    {puntoEquilibrio.toLocaleString("es-CO")}
-                  </p>
-                  <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>unidades / mes</p>
+                <div className="flex items-end gap-8">
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Debes vender al mes</p>
+                    <p className="text-5xl font-bold tabular-nums" style={{ color: "var(--text-primary)", lineHeight: 1.1 }}>
+                      {puntoEquilibrio.toLocaleString("es-CO")}
+                    </p>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>unidades / mes</p>
+                  </div>
+                  <div className="pb-1">
+                    <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Por día (22 días)</p>
+                    <p className="text-3xl font-bold tabular-nums" style={{ color: "var(--text-secondary)", lineHeight: 1.1 }}>
+                      {unidadesDia!.toLocaleString("es-CO")}
+                    </p>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>unidades / día</p>
+                  </div>
                 </div>
 
                 <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: 16 }}>

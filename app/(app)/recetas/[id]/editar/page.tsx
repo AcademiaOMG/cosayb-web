@@ -381,7 +381,7 @@ export default function EditarRecetaPage({
 
         <Button id="btn-add-item-edit" variant="ghost" size="sm" onClick={addItem} style={{ alignSelf: "flex-start" }}>
           <Plus size={14} />
-          Agregar componente
+          Agregar ingrediente o sub-receta
         </Button>
       </section>
 
@@ -440,7 +440,9 @@ function EditItemRow({ item, ingredients, baseRecipes, onUpdate, onRemove, canRe
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "24px 120px 1fr 90px 32px", gap: "8px", alignItems: "center", padding: "10px 12px", borderRadius: "12px", background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
-      <GripVertical size={16} title="Reordenar (próximamente)" style={{ color: "var(--border-light)", cursor: "default", opacity: 0.4 }} />
+      <span title="Reordenar (próximamente)" style={{ display: "flex" }}>
+        <GripVertical size={16} style={{ color: "var(--border-light)", cursor: "default", opacity: 0.4 }} />
+      </span>
       <select
         value={item.componentType}
         onChange={(e) => onUpdate({ componentType: e.target.value as "ingredient" | "recipe" })}
