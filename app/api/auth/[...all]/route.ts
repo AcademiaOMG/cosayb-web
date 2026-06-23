@@ -30,6 +30,7 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
       headers.set(key, value)
     }
   })
+  headers.set("accept-encoding", "identity")
 
   try {
     const response = await fetch(`${API_URL}/auth${fullPath}`, {
