@@ -9,17 +9,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-  const [checking, setChecking] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     authClient.getSession().then(({ data }) => {
-      if (data?.session) {
-        router.replace("/onboarding")
-      } else {
-        setChecking(false)
-      }
-    }).catch(() => setChecking(false))
+      if (data?.session) router.replace("/onboarding")
+    })
   }, [router])
 
   const handleGoogleLogin = async () => {
@@ -63,20 +58,6 @@ export default function LoginPage() {
       setLoading(false)
     }
     // Si no hay error, Better Auth redirige al callbackURL
-  }
-
-  if (checking) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: "var(--bg-primary)" }}
-      >
-        <div
-          className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-          style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
-        />
-      </div>
-    )
   }
 
   return (
