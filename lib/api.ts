@@ -1,4 +1,4 @@
-import type { Ingrediente, FactorRendimiento, Receta, Menu, CostoMenuResult, Valoracion, Valuation, ValuationRefType, PuntoEquilibrio } from "@/types/domain"
+import type { Ingrediente, FactorRendimiento, Recipe, RecipeCostResult, Menu, CostoMenuResult, Valoracion, Valuation, ValuationRefType, PuntoEquilibrio } from "@/types/domain"
 import type { ApiResponse } from "@/types/api"
 
 // ─── URL base ─────────────────────────────────────────────────────────────────
@@ -150,8 +150,6 @@ export async function saveFactorRendimientoAsIngrediente(id: string): Promise<Ap
 
 // ─── Recetas ──────────────────────────────────────────────────────────────────
 
-import type { Recipe, RecipeCostResult } from "@/types/domain"
-
 export interface RecipeItemPayload {
   componentType: 'ingredient' | 'recipe'
   ingredientId?: string
@@ -217,20 +215,6 @@ export async function getRecipeCost(id: string): Promise<{ data: RecipeCostResul
   return fetchAPI(`/api/v1/recipes/${id}/cost`)
 }
 
-export async function getRecetas(): Promise<ListResponse<Receta>> {
-  return fetchAPI("/api/v1/recetas")
-}
-
-export async function createReceta(
-  data: { nombre: string; descripcion?: string; costoPorPorcion: number; pesoTotalGramos: number }
-): Promise<ApiResponse<Receta>> {
-  return fetchAPI("/api/v1/recetas", { method: "POST", body: JSON.stringify(data) })
-}
-
-export async function deleteReceta(id: string): Promise<void> {
-  return fetchAPI(`/api/v1/recetas/${id}`, { method: "DELETE" })
-}
-
 // ─── Menús ────────────────────────────────────────────────────────────────────
 export async function getMenus(): Promise<ListResponse<Menu>> {
   return fetchAPI("/api/v1/menus")
@@ -251,7 +235,7 @@ export interface CreateMenuPayload {
   margenSeguridad?: number
   pctMateriaPrima?: number
   notas?: string
-  recetas: { recetaId: string; cantidadGramos: number; orden?: number }[]
+  recetas: { recipeId: string; cantidadGramos: number; orden?: number }[]
 }
 
 export async function createMenu(data: CreateMenuPayload): Promise<ApiResponse<Menu>> {

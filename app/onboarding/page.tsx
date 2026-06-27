@@ -38,20 +38,31 @@ export default function OnboardingPage() {
     async function check() {
       try {
         const { data } = await authClient.getSession()
+
         if (!data?.session) {
           router.replace("/login")
           return
         }
 
-        // Verificar si ya completó onboarding
-        const res = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
-        if (res.ok) {
-          const body = await res.json()
-          if (body.data?.onboardingCompleted) {
-            setOnboardingCookie()
-            router.replace("/inventario")
-            return
+        // Fast path: cookie local indica que el onboarding ya fue completado
+        if (document.cookie.includes("cosayb.onboarding=true")) {
+          router.replace("/inventario")
+          return
+        }
+
+        // Verificar en backend si ya completó onboarding
+        try {
+          const res = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
+          if (res.ok) {
+            const body = await res.json()
+            if (body.data?.onboardingCompleted) {
+              setOnboardingCookie()
+              router.replace("/inventario")
+              return
+            }
           }
+        } catch {
+          // API no disponible — mostrar form (usuario sí está autenticado)
         }
 
         setChecking(false)
@@ -59,6 +70,7 @@ export default function OnboardingPage() {
         setChecking(false)
       }
     }
+
     check()
   }, [router])
 

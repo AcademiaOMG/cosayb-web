@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_ROUTES = [
-  "/",
-  "/login",
-  "/register",
+const PUBLIC_ROUTES = ["/", "/login", "/register", "/onboarding"];
+
+// Nombres de cookie de sesión que usa better-auth según el entorno:
+//   HTTPS producción (Vercel) → "__Secure-better-auth.session_token"
+//   HTTP  desarrollo local    → "better-auth.session_token"
+const SESSION_COOKIE_NAMES = [
+  "__Secure-better-auth.session_token",
+  "better-auth.session_token",
 ];
 
-export async function proxy(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Permitir recursos internos de Next.js
+  // Recursos internos de Next.js y rutas de auth siempre pasan
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
@@ -18,49 +22,23 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Permitir rutas públicas
+  // Rutas públicas siempre pasan
   if (PUBLIC_ROUTES.includes(pathname)) {
     return NextResponse.next();
   }
 
-  try {
-    // Verificar sesión mediante tu proxy de Better Auth
-    const sessionResponse = await fetch(
-      `${req.nextUrl.origin}/api/auth/get-session`,
-      {
-        headers: {
-          cookie: req.headers.get("cookie") ?? "",
-        },
-      }
-    );
+  // Verificación de sesión: lectura de cookie — sincrónica, sin fetch, sin llamadas externas
+  const hasSession = SESSION_COOKIE_NAMES.some((name) =>
+    req.cookies.has(name)
+  );
 
-    // Si no hay sesión, redirigir al login
-    if (!sessionResponse.ok) {
-      return NextResponse.redirect(
-        new URL("/login", req.url)
-      );
-    }
-
-    const session = await sessionResponse.json();
-
-    if (!session?.user) {
-      return NextResponse.redirect(
-        new URL("/login", req.url)
-      );
-    }
-
-    return NextResponse.next();
-  } catch (error) {
-    console.error("[Middleware] Error verificando sesión:", error);
-
-    return NextResponse.redirect(
-      new URL("/login", req.url)
-    );
+  if (!hasSession) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
