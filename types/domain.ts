@@ -196,6 +196,27 @@ export interface Valuation {
   createdAt: string
 }
 
+// Ítem de costo fijo (refleja el campo JSONB del backend)
+export interface FixedCostItem {
+  name: string
+  amount: number
+}
+
+// Registro persistido de Punto de Equilibrio (Drizzle numeric → string)
+export interface BreakEvenRecord {
+  id: string
+  organizationId: string
+  fixedCosts: FixedCostItem[]
+  totalFixedCosts: number
+  salePrice: number
+  variableCost: number
+  contributionMargin: number
+  breakEvenUnits: number
+  breakEvenRevenue: number
+  createdAt: string
+}
+
+// Alias de compatibilidad (usado en lib/api.ts legacy)
 export interface PuntoEquilibrio {
   id: string
   costosFijos: number

@@ -284,12 +284,39 @@ export async function createValuation(
 }
 
 // ─── Punto de Equilibrio ──────────────────────────────────────────────────────
-// TODO: POST /api/v1/punto-equilibrio/calcular (endpoint pendiente en backend)
-export async function calcularPuntoEquilibrio(
-  data: Pick<PuntoEquilibrio, "costosFijos" | "costosVariables" | "precioVentaPromedio">
-): Promise<ApiResponse<PuntoEquilibrio>> {
-  return fetchAPI("/api/v1/punto-equilibrio/calcular", {
+import type { BreakEvenRecord, FixedCostItem } from "@/types/domain"
+
+export interface CreateBreakEvenPayload {
+  fixedCosts: FixedCostItem[]
+  salePrice: number
+  variableCost: number
+}
+
+/** POST /api/v1/break-even — guarda y devuelve el cálculo */
+export async function createBreakEven(
+  data: CreateBreakEvenPayload
+): Promise<{ data: BreakEvenRecord }> {
+  return fetchAPI("/api/v1/break-even", {
     method: "POST",
     body: JSON.stringify(data),
   })
+}
+
+/** GET /api/v1/break-even — historial ordenado por fecha descendente */
+export async function getBreakEvenHistory(): Promise<{
+  data: BreakEvenRecord[]
+  total: number
+}> {
+  return fetchAPI("/api/v1/break-even")
+}
+
+/** GET /api/v1/break-even/export — descarga el Excel directamente */
+export async function exportBreakEvenExcel(): Promise<Blob> {
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+  const response = await fetch(`${API_BASE_URL}/api/v1/break-even/export`, {
+    credentials: "include",
+  })
+  if (!response.ok) throw new Error("Error al exportar el historial")
+  return response.blob()
 }
