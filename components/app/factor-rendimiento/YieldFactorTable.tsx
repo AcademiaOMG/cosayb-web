@@ -5,7 +5,7 @@ import Badge from "@/components/ui/Badge"
 import { Eye, Pencil, Trash2 } from "lucide-react"
 
 function formatCOP(amount: number): string {
-  return `$ ${amount.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  return `$ ${amount.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function formatDate(dateStr: string): string {
@@ -61,12 +61,12 @@ export default function YieldFactorTable({ data, onView, onEdit, onDelete }: Yie
                 <td className="px-4 py-3">
                   <div className="font-medium" style={{ color: "var(--text-primary)" }}>{item.ingredientName}</div>
                   <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {totalWeight.toFixed(0)}g &rarr; {netWeight.toFixed(0)}g utiles
-                    {totalWasteGrams > 0 && <span style={{ color: "#EF4444" }}> &middot; se tiran {totalWasteGrams.toFixed(0)}g</span>}
+                    {totalWeight.toFixed(2)}g &rarr; {netWeight.toFixed(2)}g utiles
+                    {totalWasteGrams > 0 && <span style={{ color: "#EF4444" }}> &middot; se tiran {totalWasteGrams.toFixed(2)}g</span>}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right hidden sm:table-cell">
-                  <span className="text-lg font-bold" style={{ color: "var(--accent-text)" }}>{(yieldFactor * 100).toFixed(1)}%</span>
+                  <span className="text-lg font-bold" style={{ color: "var(--accent-text)" }}>{(yieldFactor * 100).toFixed(2)}%</span>
                 </td>
                 <td className="px-4 py-3 text-right hidden md:table-cell">
                   <span className="font-mono text-sm" style={{ color: "var(--text-secondary)" }}>{formatCOP(realCostPerGram)}/g</span>

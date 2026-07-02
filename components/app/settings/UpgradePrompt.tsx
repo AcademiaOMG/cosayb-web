@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { X, Zap } from "lucide-react"
 import Button from "@/components/ui/Button"
+import { useUpgradeModal } from "./UpgradeModalProvider"
 
 export interface UpgradePromptProps {
   feature?: string
@@ -10,6 +11,7 @@ export interface UpgradePromptProps {
 
 export default function UpgradePrompt({ feature }: UpgradePromptProps) {
   const [dismissed, setDismissed] = useState(false)
+  const { open: openUpgradeModal } = useUpgradeModal()
 
   if (dismissed) return null
 
@@ -33,7 +35,7 @@ export default function UpgradePrompt({ feature }: UpgradePromptProps) {
           Actualiza a Pro para desbloquear ingredientes, recetas y menús ilimitados.
         </p>
         <div className="flex items-center gap-2 mt-1">
-          <Button size="sm" variant="primary">
+          <Button size="sm" variant="primary" onClick={() => openUpgradeModal(feature)}>
             Actualizar a Pro
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setDismissed(true)}>

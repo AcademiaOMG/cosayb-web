@@ -1,44 +1,69 @@
 "use client"
 
 import useSWR from "swr"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useMemo } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import EmptyState from "@/components/ui/EmptyState"
 import Modal from "@/components/ui/Modal"
+import Pagination from "@/components/app/inventario/Pagination"
 import RecipeCard from "@/components/app/recipes/RecipeCard"
-import RecipeCostModal from "@/components/app/recipes/RecipeCostModal"
-import type { Recipe, RecipeCostResult } from "@/types/domain"
-import { getRecipes, deleteRecipe, getRecipeCost } from "@/lib/api"
-import { ChefHat, Plus, Search, BookMarked } from "lucide-react"
+import RecipeFormModal from "@/components/app/recipes/RecipeFormModal"
+import RecipeDetailModal from "@/components/app/recipes/RecipeDetailModal"
+import type { Recipe } from "@/types/domain"
+import type { RecipeFilter } from "@/lib/api"
+import { getRecipes, deleteRecipe } from "@/lib/api"
+import { ChefHat, Plus, Search, Globe, User } from "lucide-react"
+
+const PAGE_SIZE = 12
+
+const FILTER_OPTIONS: { value: RecipeFilter; label: string; icon: typeof ChefHat }[] = [
+  { value: "all", label: "Todos", icon: ChefHat },
+  { value: "own", label: "Propios", icon: User },
+  { value: "banco", label: "Banco base", icon: Globe },
+]
 
 export default function RecetasPage() {
-  const router = useRouter()
+  const [filter, setFilter] = useState<RecipeFilter>("all")
+  const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
 
-  const { data: recipes = [], isLoading, error, mutate } = useSWR(
-    "recipes",
-    () => getRecipes().then((r) => r.data ?? []),
-    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  const { data, isLoading, error, mutate } = useSWR(
+    ["recipes", filter, search, page],
+    () => getRecipes(search || undefined, filter, page, PAGE_SIZE),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60_000,
+      keepPreviousData: true,
+    },
   )
 
-  const [search, setSearch] = useState("")
-  const [filterBase, setFilterBase] = useState(false)
+  const recipes = data?.data ?? []
+  const total = data?.total ?? 0
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [costTarget, setCostTarget] = useState<Recipe | null>(null)
-  const [costResult, setCostResult] = useState<RecipeCostResult | null>(null)
-  const [costLoading, setCostLoading] = useState(false)
-  const [costError, setCostError] = useState<string | null>(null)
 
-  const filtered = recipes.filter((r) => {
-    const matchBase = !filterBase || r.isBase
-    const matchSearch =
-      !search.trim() ||
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.recipeNumber.toLowerCase().includes(search.toLowerCase())
-    return matchBase && matchSearch
-  })
+  const [formOpen, setFormOpen] = useState(false)
+  const [editRecipeId, setEditRecipeId] = useState<string | null>(null)
+
+  const [detailId, setDetailId] = useState<string | null>(null)
+
+  const stats = useMemo(() => {
+    if (isLoading) return "Cargando…"
+    return `${total} receta${total !== 1 ? "s" : ""}`
+  }, [total, isLoading])
+
+  function handleFilterChange(value: RecipeFilter) {
+    setFilter(value)
+    setPage(1)
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value)
+    setPage(1)
+  }
 
   async function handleDelete() {
     if (!deleteTarget) return
@@ -46,7 +71,7 @@ export default function RecetasPage() {
     try {
       await deleteRecipe(deleteTarget.id)
       setDeleteTarget(null)
-      await mutate()
+      void mutate()
     } catch {
       setDeleteTarget(null)
     } finally {
@@ -54,37 +79,35 @@ export default function RecetasPage() {
     }
   }
 
-  async function handleOpenCost(recipe: Recipe) {
-    setCostTarget(recipe)
-    setCostResult(null)
-    setCostError(null)
-    setCostLoading(true)
-    try {
-      const res = await getRecipeCost(recipe.id)
-      setCostResult(res.data)
-    } catch (err) {
-      setCostError(err instanceof Error ? err.message : "Error al calcular costo")
-    } finally {
-      setCostLoading(false)
-    }
+  function handleOpenCreate() {
+    setEditRecipeId(null)
+    setFormOpen(true)
+  }
+
+  function handleOpenEdit(id: string) {
+    setEditRecipeId(id)
+    setFormOpen(true)
+  }
+
+  function handleFormSaved() {
+    void mutate()
+  }
+
+  function handleOpenDetail(id: string) {
+    setDetailId(id)
   }
 
   return (
     <div className="flex flex-col gap-6">
 
-      {/* ── Header ──────────────────────────────────────────────── */}
       <PageHeader
         title="Recetas"
-        subtitle={
-          isLoading
-            ? "Cargando…"
-            : `${recipes.length} receta${recipes.length !== 1 ? "s" : ""} · ${recipes.filter((r) => r.isBase).length} base${recipes.filter((r) => r.isBase).length !== 1 ? "s" : ""}`
-        }
+        subtitle={stats}
         action={
           <Button
             id="btn-nueva-receta"
             variant="primary"
-            onClick={() => router.push("/recetas/nueva")}
+            onClick={handleOpenCreate}
           >
             <Plus size={16} />
             Nueva receta
@@ -92,9 +115,49 @@ export default function RecetasPage() {
         }
       />
 
-      {/* ── Barra de búsqueda + filtros ─────────────────────────── */}
+      {/* Filtros + Búsqueda */}
       {!error && (
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          {/* Filtros de origen */}
+          <div
+            style={{
+              display: "inline-flex",
+              borderRadius: "12px",
+              border: "1px solid var(--border-light)",
+              background: "var(--bg-surface)",
+              overflow: "hidden",
+            }}
+          >
+            {FILTER_OPTIONS.map((opt) => {
+              const Icon = opt.icon
+              const active = filter === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => handleFilterChange(opt.value)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    padding: "8px 14px",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    border: "none",
+                    background: active ? "var(--accent)" : "transparent",
+                    color: active ? "#fff" : "var(--text-secondary)",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <Icon size={14} />
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Búsqueda */}
           <div
             style={{
               flex: 1,
@@ -118,7 +181,7 @@ export default function RecetasPage() {
               type="search"
               placeholder="Buscar por nombre o número…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               style={{
                 width: "100%",
                 height: "40px",
@@ -133,33 +196,9 @@ export default function RecetasPage() {
               }}
             />
           </div>
-
-          <button
-            id="filter-base"
-            onClick={() => setFilterBase((v) => !v)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              height: "40px",
-              padding: "0 14px",
-              borderRadius: "12px",
-              border: `1px solid ${filterBase ? "var(--accent)" : "var(--border-light)"}`,
-              background: filterBase ? "var(--accent-light)" : "var(--bg-surface)",
-              color: filterBase ? "var(--accent)" : "var(--text-secondary)",
-              fontSize: "13px",
-              fontWeight: 500,
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <BookMarked size={14} />
-            Solo bases
-          </button>
         </div>
       )}
 
-      {/* ── Skeleton (primera carga) ─────────────────────────────── */}
       {isLoading && (
         <div
           style={{
@@ -185,7 +224,6 @@ export default function RecetasPage() {
         </div>
       )}
 
-      {/* ── Error ───────────────────────────────────────────────── */}
       {!isLoading && error && (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
           <p className="text-sm" style={{ color: "var(--text-muted)", marginBottom: "12px" }}>
@@ -197,26 +235,22 @@ export default function RecetasPage() {
         </div>
       )}
 
-      {/* ── Empty state ─────────────────────────────────────────── */}
-      {!isLoading && !error && filtered.length === 0 && (
+      {!isLoading && !error && recipes.length === 0 && (
         <EmptyState
           icon={<ChefHat size={40} style={{ color: "var(--text-muted)" }} />}
           title={
-            search || filterBase
+            search || filter !== "all"
               ? "Sin resultados"
               : "No tienes recetas registradas"
           }
           description={
-            search || filterBase
+            search || filter !== "all"
               ? "Intenta con otros filtros o términos de búsqueda."
               : "Crea tu primera ficha técnica con ingredientes y porciones para calcular el costo exacto."
           }
           action={
-            !search && !filterBase ? (
-              <Button
-                variant="primary"
-                onClick={() => router.push("/recetas/nueva")}
-              >
+            !search && filter === "all" ? (
+              <Button variant="primary" onClick={handleOpenCreate}>
                 <Plus size={16} />
                 Crear primera receta
               </Button>
@@ -225,28 +259,34 @@ export default function RecetasPage() {
         />
       )}
 
-      {/* ── Grid de cards ────────────────────────────────────────── */}
-      {!isLoading && !error && filtered.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: "16px",
-          }}
-        >
-          {filtered.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-              onEdit={(r) => router.push(`/recetas/${r.id}/editar`)}
-              onDelete={setDeleteTarget}
-              onCost={handleOpenCost}
-            />
-          ))}
-        </div>
+      {!isLoading && !error && recipes.length > 0 && (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {recipes.map((recipe) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onEdit={(r) => handleOpenEdit(r.id)}
+                onDelete={setDeleteTarget}
+                onCost={(r) => handleOpenDetail(r.id)}
+              />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </>
       )}
 
-      {/* ── Modal: eliminar ──────────────────────────────────────── */}
       <Modal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
@@ -271,18 +311,21 @@ export default function RecetasPage() {
         </p>
       </Modal>
 
-      {/* ── Modal: costo ─────────────────────────────────────────── */}
-      <RecipeCostModal
-        open={!!costTarget}
-        onClose={() => {
-          setCostTarget(null)
-          setCostResult(null)
-          setCostError(null)
+      <RecipeFormModal
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSaved={handleFormSaved}
+        editRecipeId={editRecipeId}
+      />
+
+      <RecipeDetailModal
+        open={detailId !== null}
+        onClose={() => setDetailId(null)}
+        recipeId={detailId}
+        onEdit={(id) => {
+          setDetailId(null)
+          handleOpenEdit(id)
         }}
-        loading={costLoading}
-        result={costResult}
-        error={costError}
-        recipeName={costTarget?.name ?? ""}
       />
     </div>
   )

@@ -1,29 +1,35 @@
 "use client"
 
 import { authClient } from "@/lib/auth"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useMemo, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = useMemo(() => searchParams.get("redirect"), [searchParams])
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [callbackURL, setCallbackURL] = useState("")
+
+  useEffect(() => {
+    const base = window.location.origin
+    setCallbackURL(redirectTo ? `${base}${redirectTo}` : `${base}/onboarding`)
+  }, [redirectTo])
 
   useEffect(() => {
     authClient.getSession().then(({ data }) => {
-      if (data?.session) router.replace("/onboarding")
+      if (data?.session) router.replace(redirectTo || "/onboarding")
     })
-  }, [router])
+  }, [router, redirectTo])
 
   const handleGoogleLogin = async () => {
     setLoading(true)
     setError(null)
     try {
-      // OAuth va directo al backend — evita que la cookie de estado pase por el proxy
       const apiURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3005"
-      const callbackURL = `${window.location.origin}/onboarding`
       const res = await fetch(`${apiURL}/auth/sign-in/social`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,14 +56,13 @@ export default function LoginPage() {
     const { error: signInError } = await authClient.signIn.email({
       email,
       password,
-      callbackURL: `${window.location.origin}/onboarding`,
+      callbackURL,
     })
 
     if (signInError) {
       setError("Correo o contraseña incorrectos.")
       setLoading(false)
     }
-    // Si no hay error, Better Auth redirige al callbackURL
   }
 
   return (
@@ -72,7 +77,6 @@ export default function LoginPage() {
           boxShadow: "0 8px 32px rgba(18, 33, 58, 0.10)",
         }}
       >
-        {/* ── Cabecera de marca ── */}
         <div
           className="px-8 py-8 flex flex-col items-center gap-1"
           style={{ background: "var(--bg-inverse)" }}
@@ -84,14 +88,11 @@ export default function LoginPage() {
             CO$AYB
           </span>
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
-            Software de Costos A&B
+            Software de Costos A&amp;B
           </p>
         </div>
 
-        {/* ── Formulario ── */}
         <div className="px-8 py-8 flex flex-col gap-5" style={{ background: "var(--bg-surface)" }}>
-
-          {/* Google */}
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
@@ -110,10 +111,9 @@ export default function LoginPage() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            {loading ? "Redirigiendo…" : "Continuar con Google"}
+            {loading ? "Redirigiendo\u2026" : "Continuar con Google"}
           </button>
 
-          {/* Separador */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px" style={{ background: "var(--border-light)" }} />
             <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
@@ -122,7 +122,6 @@ export default function LoginPage() {
             <div className="flex-1 h-px" style={{ background: "var(--border-light)" }} />
           </div>
 
-          {/* Error */}
           {error && (
             <div
               className="px-4 py-3 rounded-xl text-sm"
@@ -136,11 +135,10 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Formulario email */}
           <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                Correo electrónico
+                Correo Electrónico
               </label>
               <input
                 type="email"
@@ -167,7 +165,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
                 required
                 className="h-10 w-full rounded-xl px-3 text-sm outline-none transition-colors"
                 style={{
@@ -191,11 +189,23 @@ export default function LoginPage() {
               onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "var(--accent-hover)" }}
               onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "var(--accent)" }}
             >
-              {loading ? "Iniciando…" : "Iniciar sesión"}
+              {loading ? "Iniciando\u2026" : "Iniciar sesi\u00f3n"}
             </button>
           </form>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
+        <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }

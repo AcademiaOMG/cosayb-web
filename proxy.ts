@@ -23,7 +23,10 @@ export function proxy(req: NextRequest) {
   }
 
   // Rutas públicas siempre pasan
-  if (PUBLIC_ROUTES.includes(pathname)) {
+  if (
+    PUBLIC_ROUTES.includes(pathname) ||
+    pathname.startsWith("/accept-invitation")
+  ) {
     return NextResponse.next();
   }
 

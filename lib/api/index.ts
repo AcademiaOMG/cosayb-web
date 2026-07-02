@@ -1,6 +1,15 @@
 import type { Ingrediente, FactorRendimiento, Recipe, RecipeCostResult, Menu, CostoMenuResult, Valoracion, Valuation, ValuationRefType, PuntoEquilibrio } from "@/types/domain"
 import type { ApiResponse } from "@/types/api"
 
+export {
+  getCurrentOrganization, updateOrganization, getPlans, getCurrentPlan,
+  getMyProfile, updateMyProfile,
+  getMembers, updateMemberRole, removeMember,
+  getInvitations, sendInvitation, revokeInvitation, acceptInvitation,
+  getInvitationById,
+} from "./settings"
+export type { UserProfile, OrgMember, Invitation, InvitationDetail } from "./settings"
+
 // ─── URL base ─────────────────────────────────────────────────────────────────
 // NEXT_PUBLIC_API_URL debe apuntar al backend Express (puerto 3000 en local).
 // En producción, setear la variable de entorno en el proveedor de hosting.
@@ -28,6 +37,12 @@ async function fetchAPI<T>(
       const body = JSON.parse(text)
       if (body.error) message = body.error
       else if (body.message) message = body.message
+      if (body.details?.fieldErrors) {
+        const fields = Object.entries(body.details.fieldErrors)
+          .map(([k, v]) => `${k}: ${(v as string[]).join(", ")}`)
+          .join("; ")
+        if (fields) message += ` — ${fields}`
+      }
     } catch {
       if (text) message = text
     }
@@ -169,9 +184,28 @@ export interface CreateRecipePayload {
 }
 
 /** GET /api/v1/recipes */
-export async function getRecipes(search?: string): Promise<{ data: Recipe[] }> {
-  const q = search ? `?search=${encodeURIComponent(search)}` : ''
-  return fetchAPI(`/api/v1/recipes${q}`)
+export type RecipeFilter = "all" | "own" | "banco"
+
+export interface PaginatedRecipes {
+  data: Recipe[]
+  total: number
+  page: number
+  limit: number
+}
+
+export async function getRecipes(
+  search?: string,
+  filter: RecipeFilter = "all",
+  page = 1,
+  limit = 12
+): Promise<PaginatedRecipes> {
+  const params = new URLSearchParams()
+  if (search) params.set("search", search)
+  if (filter !== "all") params.set("filter", filter)
+  if (page > 1) params.set("page", String(page))
+  if (limit !== 12) params.set("limit", String(limit))
+  const q = params.toString()
+  return fetchAPI(`/api/v1/recipes${q ? `?${q}` : ""}`)
 }
 
 /** GET /api/v1/recipes?base=true — solo recetas base del tenant */
@@ -210,9 +244,15 @@ export async function deleteRecipe(id: string): Promise<void> {
   return fetchAPI(`/api/v1/recipes/${id}`, { method: 'DELETE' })
 }
 
-/** GET /api/v1/recipes/:id/cost — CTE recursiva */
-export async function getRecipeCost(id: string): Promise<{ data: RecipeCostResult }> {
-  return fetchAPI(`/api/v1/recipes/${id}/cost`)
+/** POST /api/v1/recipes/importar-banco — importar recetas base públicas */
+export async function importPublicRecipes(): Promise<{ data: { imported: number; total: number } }> {
+  return fetchAPI('/api/v1/recipes/importar-banco', { method: 'POST' })
+}
+
+/** GET /api/v1/recipes/:id/cost — CTE recursiva + análisis de rentabilidad */
+export async function getRecipeCost(id: string, materialCostPct?: number): Promise<{ data: RecipeCostResult }> {
+  const params = materialCostPct != null ? `?materialCostPct=${materialCostPct}` : ""
+  return fetchAPI(`/api/v1/recipes/${id}/cost${params}`)
 }
 
 // ─── Menús ────────────────────────────────────────────────────────────────────
@@ -319,4 +359,24 @@ export async function exportBreakEvenExcel(): Promise<Blob> {
   })
   if (!response.ok) throw new Error("Error al exportar el historial")
   return response.blob()
+}
+
+// ─── Permisos / RBAC ─────────────────────────────────────────────────────────
+
+export type Resource =
+  | "recipes" | "ingredients" | "menus"
+  | "yieldFactors" | "valuations" | "puntoEquilibrio"
+  | "organizations" | "plans" | "publicRecipes";
+
+export type Action = "list" | "read" | "create" | "update" | "delete";
+
+export type Permission = `${Action}:${Resource}` | "*:*";
+
+export interface PermissionsResponse {
+  roles: string[]
+  permissions: Permission[]
+}
+
+export async function getMyPermissions(): Promise<{ data: PermissionsResponse }> {
+  return fetchAPI("/api/v1/me/permissions")
 }
