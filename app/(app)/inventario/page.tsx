@@ -293,7 +293,7 @@ export default function InventarioPage() {
               <strong>
                 ${(parseFloat(form.costPerUnit) / parseFloat(form.weightGrams)).toFixed(2)}
               </strong>{" "}
-              — Calculado automáticamente
+              
             </p>
           )}
           {formError && (

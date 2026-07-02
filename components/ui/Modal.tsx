@@ -11,9 +11,11 @@ export interface ModalProps {
   title?: string
   children: React.ReactNode
   footer?: React.ReactNode
+  /** Modal más ancho (max-w-3xl) para formularios complejos */
+  wide?: boolean
 }
 
-export default function Modal({ isOpen, open, onClose, title, children, footer }: ModalProps) {
+export default function Modal({ isOpen, open, onClose, title, children, footer, wide }: ModalProps) {
   const visible = typeof open === "boolean" ? open : !!isOpen
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function Modal({ isOpen, open, onClose, title, children, footer }
 
       {/* Panel */}
       <div
-        className="relative z-10 w-full max-w-lg rounded-2xl flex flex-col max-h-[85vh] overflow-hidden"
+        className={`relative z-10 w-full rounded-2xl flex flex-col max-h-[85vh] overflow-hidden ${wide ? "max-w-3xl" : "max-w-lg"}`}
         style={{
           background: "var(--bg-surface)",
           border: "1px solid var(--border-light)",

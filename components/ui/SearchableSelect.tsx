@@ -37,18 +37,12 @@ export default function SearchableSelect({
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false)
+        setSearch("")
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
-
-  // Clear search query when opening/closing
-  useEffect(() => {
-    if (!isOpen) {
-      setSearch("")
-    }
-  }, [isOpen])
 
   const filteredOptions = options.filter((opt) =>
     opt.label.toLowerCase().includes(search.toLowerCase())
@@ -63,7 +57,7 @@ export default function SearchableSelect({
       }}
     >
       <div
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => { setIsOpen((prev) => !prev); setSearch("") }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -174,6 +168,7 @@ export default function SearchableSelect({
                     onClick={() => {
                       onChange(opt.value)
                       setIsOpen(false)
+                      setSearch("")
                     }}
                     style={{
                       padding: "6px 8px",

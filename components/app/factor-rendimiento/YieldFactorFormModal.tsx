@@ -41,7 +41,7 @@ function calcPreview(totalCost: string, totalWeight: string, wasteItems: WasteIt
 }
 
 function formatCOP(amount: number): string {
-  return `$ ${amount.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  return `$ ${amount.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export default function YieldFactorFormModal({ isOpen, onClose, onSubmit, editingFactor }: YieldFactorFormModalProps) {
@@ -181,6 +181,8 @@ export default function YieldFactorFormModal({ isOpen, onClose, onSubmit, editin
             </label>
             <input
               type="number"
+              step="0.01"
+              min="0"
               value={totalCost}
               onChange={(e) => setTotalCost(e.target.value)}
               placeholder="25.000"
@@ -195,6 +197,8 @@ export default function YieldFactorFormModal({ isOpen, onClose, onSubmit, editin
             </label>
             <input
               type="number"
+              step="0.01"
+              min="0"
               value={totalWeightGrams}
               onChange={(e) => setTotalWeightGrams(e.target.value)}
               placeholder="5.000"
@@ -235,6 +239,8 @@ export default function YieldFactorFormModal({ isOpen, onClose, onSubmit, editin
                   />
                   <input
                     type="number"
+                    step="0.01"
+                    min="0"
                     value={item.weightGrams}
                     onChange={(e) => updateWasteItem(idx, "weightGrams", e.target.value)}
                     placeholder="gramos"
@@ -272,13 +278,13 @@ export default function YieldFactorFormModal({ isOpen, onClose, onSubmit, editin
               <div>
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso util</p>
                 <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                  {preview.netWeight.toFixed(0)}g
+                  {preview.netWeight.toFixed(2)}g
                 </p>
               </div>
               <div>
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>Rendimiento</p>
                 <p className="text-sm font-semibold" style={{ color: "var(--accent-text)" }}>
-                  {(preview.yieldFactor * 100).toFixed(1)}%
+                  {(preview.yieldFactor * 100).toFixed(2)}%
                 </p>
               </div>
               <div>
@@ -290,7 +296,7 @@ export default function YieldFactorFormModal({ isOpen, onClose, onSubmit, editin
             </div>
             {preview.wasteGrams > 0 && (
               <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
-                Se tiran {preview.wasteGrams.toFixed(0)}g ({preview.wastePercent.toFixed(1)}% del total)
+                Se tiran {preview.wasteGrams.toFixed(2)}g ({preview.wastePercent.toFixed(2)}% del total)
               </p>
             )}
           </div>

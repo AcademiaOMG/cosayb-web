@@ -1,31 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import useSWR from "swr"
 import { mutate } from "swr"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 import { authClient } from "@/lib/auth"
+import { getCurrentOrganization } from "@/lib/api"
 import type { Plan } from "@/types/domain"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: session } = authClient.useSession()
 
-  const [orgName, setOrgName] = useState("Mi organización")
-  const [plan, setPlan] = useState<Plan>("free")
+  const { data: orgData } = useSWR(
+    "organization-me",
+    () => getCurrentOrganization().then((r) => r.data),
+    { revalidateOnFocus: false }
+  )
 
-  useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
-    fetch(`${apiUrl}/api/v1/organizations/me`, { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
-      .then((body) => {
-        if (body?.data) {
-          setOrgName(body.data.name)
-          setPlan(body.data.plan as Plan)
-        }
-      })
-      .catch(() => {})
-  }, [])
+  const orgName = orgData?.name ?? "Mi organización"
+  const plan = (orgData?.plan as Plan) ?? "free"
 
   async function handleSignOut() {
     await authClient.signOut()

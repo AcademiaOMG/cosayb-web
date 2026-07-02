@@ -1,10 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import type { RecipeCostResult } from "@/types/domain"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
-import { AlertTriangle, TrendingUp } from "lucide-react"
+import { AlertTriangle, TrendingUp, TrendingDown, Minus } from "lucide-react"
 
 interface RecipeCostModalProps {
   open: boolean
@@ -13,6 +14,7 @@ interface RecipeCostModalProps {
   result: RecipeCostResult | null
   error: string | null
   recipeName: string
+  onRecalculate?: (materialCostPct: number) => void
 }
 
 const COP = new Intl.NumberFormat("es-CO", {
@@ -33,7 +35,9 @@ export default function RecipeCostModal({
   result,
   error,
   recipeName,
+  onRecalculate,
 }: RecipeCostModalProps) {
+  const [materialCostPct, setMaterialCostPct] = useState("30")
   return (
     <Modal
       open={open}
@@ -142,6 +146,134 @@ export default function RecipeCostModal({
                 value={fmt(result.costPerGram)}
                 colSpan
               />
+            )}
+          </div>
+
+          {/* ── Análisis de rentabilidad ──────────────────────────── */}
+          <div
+            style={{
+              padding: "16px",
+              borderRadius: "12px",
+              background: "var(--bg-primary)",
+              border: "1px solid var(--border-light)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+              <p
+                className="text-xs font-semibold uppercase"
+                style={{ color: "var(--text-muted)", letterSpacing: "0.8px" }}
+              >
+                Análisis de rentabilidad
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <label className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  % Materia Prima:
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={materialCostPct}
+                  onChange={(e) => setMaterialCostPct(e.target.value)}
+                  style={{
+                    width: "50px",
+                    padding: "4px 6px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--border-light)",
+                    background: "var(--bg-surface)",
+                    fontSize: "12px",
+                    textAlign: "right",
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    const pct = parseFloat(materialCostPct)
+                    if (!isNaN(pct) && pct > 0 && pct < 100 && onRecalculate) {
+                      onRecalculate(pct / 100)
+                    }
+                  }}
+                >
+                  Calcular
+                </Button>
+              </div>
+            </div>
+
+            {result.profitability ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "8px",
+                }}
+              >
+                {/* % Materia Prima */}
+                <div style={{ padding: "10px", borderRadius: "8px", background: "var(--bg-surface)" }}>
+                  <p className="text-xs" style={{ color: "var(--text-muted)", marginBottom: "4px" }}>
+                    % Materia Prima
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                      {(result.profitability.materialCostPct * 100).toFixed(1)}%
+                    </p>
+                    <RatingBadge rating={result.profitability.materialCostRating} />
+                  </div>
+                </div>
+
+                {/* Costos Fijos */}
+                <div style={{ padding: "10px", borderRadius: "8px", background: "var(--bg-surface)" }}>
+                  <p className="text-xs" style={{ color: "var(--text-muted)", marginBottom: "4px" }}>
+                    Costos Fijos
+                  </p>
+                  <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                    {(result.profitability.fixedCostPct * 100).toFixed(1)}%
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    {fmt(result.profitability.fixedCostAmount)}
+                  </p>
+                </div>
+
+                {/* Ganancia */}
+                <div style={{ padding: "10px", borderRadius: "8px", background: "var(--bg-surface)" }}>
+                  <p className="text-xs" style={{ color: "var(--text-muted)", marginBottom: "4px" }}>
+                    Ganancia
+                  </p>
+                  <p className="text-sm font-bold" style={{
+                    color: result.profitability.profitPct > 0 ? "#16A34A" : "#B42020"
+                  }}>
+                    {(result.profitability.profitPct * 100).toFixed(1)}%
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    {fmt(result.profitability.profitAmount)}
+                  </p>
+                </div>
+
+                {/* Precio Potencial de Venta */}
+                <div
+                  style={{
+                    gridColumn: "span 3",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    background: "var(--accent-light)",
+                    border: "1px solid var(--accent)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <p className="text-xs font-semibold" style={{ color: "var(--accent-text)" }}>
+                    Precio potencial de venta
+                  </p>
+                  <p className="text-base font-bold" style={{ color: "var(--accent)" }}>
+                    {fmt(result.profitability.potentialSalePrice)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-center" style={{ color: "var(--text-muted)", padding: "12px 0" }}>
+                Ingresa el porcentaje de materia prima y haz clic en &quot;Calcular&quot; para ver el análisis de rentabilidad.
+              </p>
             )}
           </div>
 
@@ -294,5 +426,34 @@ function SummaryCard({
         {value}
       </p>
     </div>
+  )
+}
+
+function RatingBadge({ rating }: { rating: "MUY_BUENO" | "REGULAR" | "MALO" }) {
+  const config = {
+    MUY_BUENO: { bg: "#DCFCE7", color: "#166534", label: "MUY BUENO", icon: TrendingUp },
+    REGULAR: { bg: "#FEF9C3", color: "#854D0E", label: "REGULAR", icon: Minus },
+    MALO: { bg: "#FEE2E2", color: "#991B1B", label: "MALO", icon: TrendingDown },
+  }
+  const { bg, color, label, icon: Icon } = config[rating]
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "3px",
+        fontSize: "9px",
+        fontWeight: 600,
+        letterSpacing: "0.5px",
+        textTransform: "uppercase",
+        color,
+        background: bg,
+        borderRadius: "100px",
+        padding: "2px 6px",
+      }}
+    >
+      <Icon size={9} />
+      {label}
+    </span>
   )
 }
