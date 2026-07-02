@@ -1,7 +1,7 @@
 "use client"
 
 import { Menu } from "lucide-react"
-import PlanBadge from "./PlanBadge"
+import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
 
 export interface TopbarProps {

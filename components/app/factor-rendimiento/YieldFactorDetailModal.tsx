@@ -8,7 +8,7 @@ import { useState } from "react"
 import type { FactorRendimiento } from "@/types/domain"
 
 function formatCOP(amount: number): string {
-  return `$ ${amount.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  return `$ ${amount.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function formatDate(dateStr: string): string {
@@ -70,7 +70,7 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso completo</p>
-              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{totalWeight.toFixed(0)}g</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{totalWeight.toFixed(2)}g</p>
             </div>
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Costo total</p>
@@ -87,12 +87,12 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
               {factor.wasteItems.map((w) => (
                 <div key={w.id} className="flex justify-between text-sm">
                   <span style={{ color: "var(--text-secondary)" }}>{w.name}</span>
-                  <span className="font-mono font-semibold" style={{ color: "#B42020" }}>-{parseFloat(w.weightGrams).toFixed(0)}g</span>
+                  <span className="font-mono font-semibold" style={{ color: "#B42020" }}>-{parseFloat(w.weightGrams).toFixed(2)}g</span>
                 </div>
               ))}
               <div className="flex justify-between text-sm font-semibold pt-1" style={{ borderTop: "1px solid rgba(239,68,68,0.12)" }}>
                 <span style={{ color: "var(--text-secondary)" }}>Total desecho</span>
-                <span className="font-mono" style={{ color: "#B42020" }}>-{wasteSum.toFixed(0)}g ({((wasteSum / totalWeight) * 100).toFixed(1)}%)</span>
+                <span className="font-mono" style={{ color: "#B42020" }}>-{wasteSum.toFixed(2)}g ({((wasteSum / totalWeight) * 100).toFixed(2)}%)</span>
               </div>
             </div>
           </div>
@@ -104,11 +104,11 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
           <div className="grid grid-cols-3 gap-3">
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso util</p>
-              <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{netWeight.toFixed(0)}g</p>
+              <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{netWeight.toFixed(2)}g</p>
             </div>
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Rendimiento</p>
-              <p className="text-base font-bold" style={{ color: "var(--accent-text)" }}>{(yieldFactor * 100).toFixed(1)}%</p>
+              <p className="text-base font-bold" style={{ color: "var(--accent-text)" }}>{(yieldFactor * 100).toFixed(2)}%</p>
             </div>
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Costo por gramo</p>

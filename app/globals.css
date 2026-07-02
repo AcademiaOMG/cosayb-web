@@ -163,3 +163,7 @@
     #EF4444 36.7%,#EF4444 100%
   );
 }
+
+/* ─── Tooltip hover ─────────────────────────────────────────────── */
+.group > div:first-of-type { display: none; }
+.group:hover > div:first-of-type { display: block; }

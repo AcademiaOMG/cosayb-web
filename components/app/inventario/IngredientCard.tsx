@@ -11,6 +11,12 @@ export interface IngredientCardProps {
   onDelete: (ingredient: Ingredient) => void
 }
 
+function getPriceBadge(priceConfirmedAt: string | null): { label: string; variant: "warning" | "muted" } | null {
+  if (!priceConfirmedAt) return { label: "Precio pendiente", variant: "muted" }
+  const stale = Date.now() - new Date(priceConfirmedAt).getTime() > 30 * 24 * 60 * 60 * 1000
+  return stale ? { label: "Precio desactualizado", variant: "warning" } : null
+}
+
 export default function IngredientCard({
   ingredient,
   onEdit,
@@ -20,6 +26,7 @@ export default function IngredientCard({
   const costPerUnit = parseFloat(ingredient.costPerUnit)
   const weightGrams = parseFloat(ingredient.weightGrams)
   const costPerGram = parseFloat(ingredient.costPerGram)
+  const priceBadge = getPriceBadge(ingredient.priceConfirmedAt)
 
   return (
     <article
@@ -50,9 +57,14 @@ export default function IngredientCard({
           >
             {ingredient.name}
           </h3>
-          <Badge variant={isOwn ? "accent" : "muted"}>
-            {isOwn ? "Propio" : "Banco base"}
-          </Badge>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant={isOwn ? "accent" : "muted"}>
+              {isOwn ? "Propio" : "Banco base"}
+            </Badge>
+            {priceBadge && (
+              <Badge variant={priceBadge.variant}>{priceBadge.label}</Badge>
+            )}
+          </div>
         </div>
 
         {/* Actions — only for own ingredients */}

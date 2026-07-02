@@ -3,7 +3,7 @@ const steps = [
     number: "01",
     title: "Carga tus ingredientes",
     description:
-      "Importa los 297 ingredientes base o agrega los tuyos con precios reales del mercado colombiano.",
+      "Accede a más de 1.000 ingredientes base o agrega los tuyos con precios reales del mercado colombiano.",
   },
   {
     number: "02",

@@ -5,7 +5,7 @@ const modules: { icon: LucideIcon; name: string; description: string }[] = [
   {
     icon: Package,
     name: "Inventario",
-    description: "Base de 297 ingredientes con costo por gramo calculado automáticamente.",
+    description: "Más de 1.000 ingredientes con costo por gramo calculado automáticamente.",
   },
   {
     icon: Scale,

@@ -9,19 +9,33 @@ import {
   UtensilsCrossed,
   TrendingUp,
   BarChart2,
+  Settings,
+  ShoppingCart,
   LogOut,
   X,
 } from "lucide-react"
-import PlanBadge from "./PlanBadge"
+import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
+import { usePermissions } from "@/hooks/usePermissions"
+import type { Resource, Action } from "@/lib/api"
 
-const navItems = [
-  { href: "/inventario", label: "Inventario", icon: Package },
-  { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale },
-  { href: "/recetas", label: "Recetas", icon: ChefHat },
-  { href: "/menu", label: "Menú", icon: UtensilsCrossed },
-  { href: "/valoracion", label: "Valoración A&B", icon: TrendingUp },
-  { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2 },
+interface NavItem {
+  href: string
+  label: string
+  icon: typeof Package
+  resource: Resource
+  action: Action
+}
+
+const navItems: NavItem[] = [
+  { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list" },
+  { href: "/precios-mercado", label: "Precios de Mercado", icon: ShoppingCart, resource: "ingredients", action: "list" },
+  { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale, resource: "yieldFactors", action: "list" },
+  { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list" },
+  { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list" },
+  { href: "/valoracion", label: "Valoración A&B", icon: TrendingUp, resource: "valuations", action: "list" },
+  { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2, resource: "puntoEquilibrio", action: "list" },
+  { href: "/ajustes", label: "Ajustes", icon: Settings, resource: "organizations", action: "read" },
 ]
 
 export interface SidebarProps {
@@ -40,6 +54,11 @@ export default function Sidebar({
   onSignOut,
 }: SidebarProps) {
   const pathname = usePathname()
+  const { can, isLoading } = usePermissions()
+
+  const visibleItems = isLoading
+    ? navItems
+    : navItems.filter((item) => can(item.resource, item.action))
 
   return (
     <>
@@ -89,7 +108,7 @@ export default function Sidebar({
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="flex flex-col gap-1" role="list">
-            {navItems.map(({ href, label, icon: Icon }) => {
+            {visibleItems.map(({ href, label, icon: Icon }) => {
               const isActive =
                 pathname === href || pathname.startsWith(`${href}/`)
               return (

@@ -1,43 +1,42 @@
 "use client"
 
+import { memo } from "react"
 import type { Recipe } from "@/types/domain"
-import { ChefHat, Pencil, Trash2, Calculator, BookMarked } from "lucide-react"
-import Button from "@/components/ui/Button"
+import { ChefHat, BookMarked, Globe, Trash2 } from "lucide-react"
 
 interface RecipeCardProps {
   recipe: Recipe
-  onEdit: (recipe: Recipe) => void
+  onClick: (recipe: Recipe) => void
   onDelete: (recipe: Recipe) => void
-  onCost: (recipe: Recipe) => void
 }
 
-const COP = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-})
-
-export default function RecipeCard({ recipe, onEdit, onDelete, onCost }: RecipeCardProps) {
-  const servings = parseFloat(recipe.servings)
+const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: RecipeCardProps) {
+  const servings = parseInt(recipe.servings, 10) || 0
   const servingWeight = recipe.servingWeightG ? parseFloat(recipe.servingWeightG) : null
-  const itemCount = recipe.items?.length ?? 0
+  const itemCount = recipe.itemCount ?? recipe.items?.length ?? 0
+  const safetyMargin = parseFloat(recipe.safetyMargin) || 0
+  const isPublic = recipe.isPublic ?? false
 
   return (
     <article
+      role="button"
+      tabIndex={0}
+      onClick={() => onClick(recipe)}
+      onKeyDown={(e) => e.key === "Enter" && onClick(recipe)}
       style={{
         background: "var(--bg-surface)",
         border: "1px solid var(--border-light)",
         borderRadius: "16px",
-        padding: "20px",
+        padding: "18px",
         display: "flex",
         flexDirection: "column",
-        gap: "14px",
+        gap: "12px",
         transition: "box-shadow 0.18s ease, border-color 0.18s ease",
+        cursor: "pointer",
+        position: "relative",
       }}
       onMouseEnter={(e) => {
-        ;(e.currentTarget as HTMLElement).style.boxShadow =
-          "0 4px 20px rgba(18,33,58,0.10)"
+        ;(e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(18,33,58,0.10)"
         ;(e.currentTarget as HTMLElement).style.borderColor = "var(--border-medium)"
       }}
       onMouseLeave={(e) => {
@@ -45,141 +44,141 @@ export default function RecipeCard({ recipe, onEdit, onDelete, onCost }: RecipeC
         ;(e.currentTarget as HTMLElement).style.borderColor = "var(--border-light)"
       }}
     >
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-        {/* Icon */}
+      {/* Botón eliminar — esquina superior derecha, solo recetas propias */}
+      {!isPublic && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(recipe) }}
+          title="Eliminar receta"
+          style={{
+            position: "absolute",
+            top: "12px",
+            right: "12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "28px",
+            height: "28px",
+            borderRadius: "8px",
+            border: "none",
+            background: "transparent",
+            color: "var(--text-muted)",
+            cursor: "pointer",
+            transition: "color 0.15s, background 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.color = "#B42020"
+            ;(e.currentTarget as HTMLButtonElement).style.background = "#FEF2F2"
+          }}
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)"
+            ;(e.currentTarget as HTMLButtonElement).style.background = "transparent"
+          }}
+        >
+          <Trash2 size={13} />
+        </button>
+      )}
+
+      {/* Header: icono + nombre + badges */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", paddingRight: isPublic ? "0" : "28px" }}>
         <div
           style={{
             flexShrink: 0,
-            width: 40,
-            height: 40,
+            width: 38,
+            height: 38,
             borderRadius: "10px",
-            background: "var(--accent-light)",
+            background: isPublic ? "#F0FDF4" : "var(--accent-light)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <ChefHat size={20} style={{ color: "var(--accent)" }} />
+          <ChefHat size={18} style={{ color: isPublic ? "#16A34A" : "var(--accent)" }} />
         </div>
 
-        {/* Name + number */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-            <h3
-              className="font-semibold text-sm"
-              style={{
-                color: "var(--text-primary)",
-                lineHeight: "1.3",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                maxWidth: "100%",
-              }}
-            >
-              {recipe.name}
-            </h3>
+          <h3
+            className="font-semibold text-sm"
+            style={{
+              color: "var(--text-primary)",
+              lineHeight: "1.3",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {recipe.name}
+          </h3>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
             {recipe.isBase && (
               <span
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "3px",
-                  fontSize: "10px",
-                  fontWeight: 600,
-                  letterSpacing: "0.5px",
-                  textTransform: "uppercase",
-                  color: "#6D28D9",
-                  background: "#EDE9FE",
-                  borderRadius: "100px",
-                  padding: "2px 8px",
-                  whiteSpace: "nowrap",
+                  display: "inline-flex", alignItems: "center", gap: "3px",
+                  fontSize: "9px", fontWeight: 600, letterSpacing: "0.5px",
+                  textTransform: "uppercase", color: "#6D28D9", background: "#EDE9FE",
+                  borderRadius: "100px", padding: "2px 7px",
                 }}
               >
-                <BookMarked size={10} />
-                Base
+                <BookMarked size={9} /> Base
               </span>
             )}
+            {isPublic && (
+              <span
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "3px",
+                  fontSize: "9px", fontWeight: 600, letterSpacing: "0.5px",
+                  textTransform: "uppercase", color: "#0369A1", background: "#E0F2FE",
+                  borderRadius: "100px", padding: "2px 7px",
+                }}
+              >
+                <Globe size={9} /> Banco
+              </span>
+            )}
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              {itemCount} ingrediente{itemCount !== 1 ? "s" : ""}
+            </span>
           </div>
-          <p
-            className="text-xs"
-            style={{ color: "var(--text-muted)", marginTop: "2px" }}
-          >
-            N.° {recipe.recipeNumber}
-          </p>
         </div>
       </div>
 
-      {/* ── Stats ───────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "8px",
-        }}
-      >
-        <Stat label="Porciones" value={servings % 1 === 0 ? String(servings) : servings.toFixed(1)} />
+      {/* Descripción breve */}
+      {recipe.description && (
+        <p
+          className="text-xs"
+          style={{
+            color: "var(--text-secondary)",
+            lineHeight: "1.5",
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {recipe.description}
+        </p>
+      )}
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+        <Stat label="Porciones" value={String(servings)} />
         <Stat
           label="Peso / porción"
-          value={servingWeight != null ? `${servingWeight} g` : "—"}
+          value={servingWeight != null ? `${servingWeight.toFixed(0)} g` : "—"}
         />
-        <Stat label="Componentes" value={`${itemCount}`} />
-        <Stat label="Margen seg." value={`${parseFloat(recipe.safetyMargin)} %`} />
-      </div>
-
-      {/* ── Actions ─────────────────────────────────────────────── */}
-      <div style={{ display: "flex", gap: "6px", marginTop: "2px" }}>
-        <Button
-          id={`recipe-cost-${recipe.id}`}
-          size="sm"
-          variant="ghost"
-          onClick={() => onCost(recipe)}
-          style={{ flex: 1, justifyContent: "center" }}
-          title="Calcular costo"
-        >
-          <Calculator size={14} />
-          Costo
-        </Button>
-        <Button
-          id={`recipe-edit-${recipe.id}`}
-          size="sm"
-          variant="ghost"
-          onClick={() => onEdit(recipe)}
-          title="Editar receta"
-          style={{ padding: "0 10px" }}
-        >
-          <Pencil size={14} />
-        </Button>
-        <Button
-          id={`recipe-delete-${recipe.id}`}
-          size="sm"
-          variant="ghost"
-          onClick={() => onDelete(recipe)}
-          title="Eliminar receta"
-          style={{ padding: "0 10px", color: "#B42020" }}
-        >
-          <Trash2 size={14} />
-        </Button>
+        <Stat label="Margen seg." value={`${safetyMargin.toFixed(1)}%`} />
+        <Stat label="N.°" value={recipe.recipeNumber} />
       </div>
     </article>
   )
-}
+})
+
+export default RecipeCard
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      style={{
-        background: "var(--bg-primary)",
-        borderRadius: "10px",
-        padding: "8px 10px",
-      }}
-    >
-      <p className="text-xs" style={{ color: "var(--text-muted)", marginBottom: "2px" }}>
-        {label}
-      </p>
-      <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-        {value}
-      </p>
+    <div style={{ background: "var(--bg-primary)", borderRadius: "8px", padding: "6px 10px" }}>
+      <p className="text-xs" style={{ color: "var(--text-muted)", marginBottom: "1px" }}>{label}</p>
+      <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{value}</p>
     </div>
   )
 }

@@ -53,19 +53,25 @@ export interface RecipeItem {
   subRecipeId: string | null
   quantityG: string      // numeric → string (Drizzle)
   sortOrder: number
+  ingredientName: string | null
+  subRecipeName: string | null
 }
 
 /** Cabecera de receta + sus items */
 export interface Recipe {
   id: string
-  organizationId: string
+  organizationId: string | null   // null = receta del banco global (isPublic = true)
   name: string
   recipeNumber: string
   servings: string         // numeric → string (Drizzle)
   servingWeightG: string | null
   safetyMargin: string     // numeric → string (Drizzle), default "3.00"
   isBase: boolean          // disponible como sub-receta en otras recetas
-  items: RecipeItem[]
+  isPublic: boolean
+  description?: string | null
+  items?: RecipeItem[]     // solo presente en respuestas de detalle (getRecipeById)
+  totalWeightG?: number    // computed en detalle
+  itemCount?: number       // computed en detalle
   createdAt: string
   updatedAt: string
 }
@@ -107,6 +113,25 @@ export interface RecipeCostResult {
   costPerGram: number | null
   circularRefs: boolean
   breakdown: RecipeCostBreakdownItem[]
+  profitability: ProfitabilityAnalysis | null
+}
+
+/** Análisis de rentabilidad — fórmulas del Excel CO$AYB */
+export interface ProfitabilityAnalysis {
+  /** % de materia prima en el precio de venta (input, ej: 0.30 = 30%) */
+  materialCostPct: number
+  /** MUY_BUENO si <0.32, REGULAR si 0.32-0.37, MALO si >0.37 */
+  materialCostRating: "MUY_BUENO" | "REGULAR" | "MALO"
+  /** Costos fijos = (1 - %MP) / 1.8 */
+  fixedCostPct: number
+  /** Costo fijo en pesos = fixedCostPct × precioVentaPotencial */
+  fixedCostAmount: number
+  /** Precio potencial de venta = costWithMarginTotal / %MP */
+  potentialSalePrice: number
+  /** Ganancia = 1 - (%MP + %CostosFijos) */
+  profitPct: number
+  /** Ganancia en pesos = profitPct × precioVentaPotencial */
+  profitAmount: number
 }
 
 export interface MenuReceta {
@@ -263,4 +288,37 @@ export interface Subscription {
   currentPeriodEnd: string
   createdAt: string
   updatedAt: string
+}
+
+// ─── Planes y Feature Flags ──────────────────────────────────────────────────
+
+export interface PlanFeature {
+  key: string
+  label: string
+}
+
+export interface PlanInfo {
+  id: Plan
+  name: string
+  price: number
+  priceLabel: string
+  description: string
+  features: PlanFeature[]
+}
+
+export interface CurrentPlanData {
+  plan: Plan
+  effectivePlan: Plan
+  isTrialing: boolean
+  trialExpired: boolean
+  daysLeft: number
+  trialEndsAt: string | null
+  features: PlanFeature[]
+  disabledFeatures: (PlanFeature & { requiredPlan: string })[]
+  planInfo: {
+    name: string
+    price: number
+    priceLabel: string
+    description: string
+  }
 }

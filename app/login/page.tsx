@@ -1,29 +1,33 @@
 "use client"
 
 import { authClient } from "@/lib/auth"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useMemo, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const searchParams = useSearchParams()
+  const redirectTo = useMemo(() => searchParams.get("redirect"), [searchParams])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [callbackURL, setCallbackURL] = useState("")
+
+  useEffect(() => {
+    const base = window.location.origin
+    setCallbackURL(redirectTo ? `${base}${redirectTo}` : `${base}/onboarding`)
+  }, [redirectTo])
 
   useEffect(() => {
     authClient.getSession().then(({ data }) => {
-      if (data?.session) router.replace("/onboarding")
+      if (data?.session) router.replace(redirectTo || "/onboarding")
     })
-  }, [router])
+  }, [router, redirectTo])
 
   const handleGoogleLogin = async () => {
     setLoading(true)
     setError(null)
     try {
-      // OAuth va directo al backend — evita que la cookie de estado pase por el proxy
       const apiURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3005"
-      const callbackURL = `${window.location.origin}/onboarding`
       const res = await fetch(`${apiURL}/auth/sign-in/social`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,24 +46,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    const { error: signInError } = await authClient.signIn.email({
-      email,
-      password,
-      callbackURL: `${window.location.origin}/onboarding`,
-    })
-
-    if (signInError) {
-      setError("Correo o contraseña incorrectos.")
-      setLoading(false)
-    }
-    // Si no hay error, Better Auth redirige al callbackURL
-  }
-
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
@@ -72,7 +58,6 @@ export default function LoginPage() {
           boxShadow: "0 8px 32px rgba(18, 33, 58, 0.10)",
         }}
       >
-        {/* ── Cabecera de marca ── */}
         <div
           className="px-8 py-8 flex flex-col items-center gap-1"
           style={{ background: "var(--bg-inverse)" }}
@@ -84,14 +69,24 @@ export default function LoginPage() {
             CO$AYB
           </span>
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
-            Software de Costos A&B
+            Software de Costos A&amp;B
           </p>
         </div>
 
-        {/* ── Formulario ── */}
-        <div className="px-8 py-8 flex flex-col gap-5" style={{ background: "var(--bg-surface)" }}>
+        <div className="px-8 py-8 flex flex-col gap-4" style={{ background: "var(--bg-surface)" }}>
+          {error && (
+            <div
+              className="px-4 py-3 rounded-xl text-sm"
+              style={{
+                background: "#FEF2F2",
+                border: "1px solid #FCA5A5",
+                color: "#7F1D1D",
+              }}
+            >
+              {error}
+            </div>
+          )}
 
-          {/* Google */}
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
@@ -112,90 +107,20 @@ export default function LoginPage() {
             </svg>
             {loading ? "Redirigiendo…" : "Continuar con Google"}
           </button>
-
-          {/* Separador */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: "var(--border-light)" }} />
-            <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-              o con tu correo
-            </span>
-            <div className="flex-1 h-px" style={{ background: "var(--border-light)" }} />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div
-              className="px-4 py-3 rounded-xl text-sm"
-              style={{
-                background: "#FEF2F2",
-                border: "1px solid #FCA5A5",
-                color: "#7F1D1D",
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          {/* Formulario email */}
-          <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                Correo electrónico
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nombre@ejemplo.com"
-                required
-                className="h-10 w-full rounded-xl px-3 text-sm outline-none transition-colors"
-                style={{
-                  background: "var(--bg-primary)",
-                  border: "1px solid var(--border-light)",
-                  color: "var(--text-primary)",
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border-light)")}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="h-10 w-full rounded-xl px-3 text-sm outline-none transition-colors"
-                style={{
-                  background: "var(--bg-primary)",
-                  border: "1px solid var(--border-light)",
-                  color: "var(--text-primary)",
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border-light)")}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-10 w-full rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 mt-1"
-              style={{
-                background: loading ? "var(--accent-hover)" : "var(--accent)",
-                color: "#FFFFFF",
-              }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "var(--accent-hover)" }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "var(--accent)" }}
-            >
-              {loading ? "Iniciando…" : "Iniciar sesión"}
-            </button>
-          </form>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
+        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }

@@ -149,12 +149,13 @@ interface RecipeLineItem {
   nombre: string
   cantidadGramos: string
   costoGramo: number | null  // null = sin peso por porción definido o cargando
+  rawCostPerServing: number | null  // fallback when costoGramo is null
   costoLoading: boolean
   orden: number
 }
 
 function newLineItem(uid: string, orden: number): RecipeLineItem {
-  return { uid, recipeId: "", nombre: "", cantidadGramos: "200", costoGramo: null, costoLoading: false, orden }
+  return { uid, recipeId: "", nombre: "", cantidadGramos: "200", costoGramo: null, rawCostPerServing: null, costoLoading: false, orden }
 }
 
 // ─── Vista de panel de costos ─────────────────────────────────────────────────
@@ -265,6 +266,7 @@ function DetailView({
         nombre: recipe?.name ?? mr.recipeId,
         cantidadGramos: String(parseFloat(mr.cantidadGramos)),
         costoGramo: null,
+        rawCostPerServing: null,
         costoLoading: true,
         orden: i,
       }
@@ -294,15 +296,16 @@ function DetailView({
     try {
       const res = await getRecipeCost(recipeId)
       const costoGramo = res.data.costPerGram  // null if no servingWeightG defined
+      const rawCostPerServing = res.data.rawCostPerServing
       setLineItems((prev) =>
         prev.map((item) =>
-          item.uid === uid ? { ...item, costoGramo, costoLoading: false } : item
+          item.uid === uid ? { ...item, costoGramo, rawCostPerServing, costoLoading: false } : item
         )
       )
     } catch {
       setLineItems((prev) =>
         prev.map((item) =>
-          item.uid === uid ? { ...item, costoGramo: null, costoLoading: false } : item
+          item.uid === uid ? { ...item, costoGramo: null, rawCostPerServing: null, costoLoading: false } : item
         )
       )
     }
@@ -319,10 +322,13 @@ function DetailView({
   }, [])
 
   const validItems = lineItems.filter(
-    (r) => r.recipeId && r.costoGramo !== null && parseFloat(r.cantidadGramos) > 0
+    (r) => r.recipeId && (r.costoGramo !== null || r.rawCostPerServing !== null) && parseFloat(r.cantidadGramos) > 0
   )
   const costo = calcularCosto(
-    validItems.map((r) => ({ cantidadGramos: parseFloat(r.cantidadGramos), costoGramo: r.costoGramo! })),
+    validItems.map((r) => ({
+      cantidadGramos: parseFloat(r.cantidadGramos),
+      costoGramo: r.costoGramo ?? (r.rawCostPerServing ?? 0) / parseFloat(r.cantidadGramos),
+    })),
     nPers, margin, pctMP
   )
 
@@ -363,7 +369,7 @@ function DetailView({
 
   async function handleSave() {
     if (!nombre.trim()) { setError("El nombre del menú es obligatorio"); return }
-    if (validItems.length === 0) { setError("Agrega al menos una receta con peso por porción definido"); return }
+    if (validItems.length === 0) { setError("Agrega al menos una receta con costo calculado"); return }
     setSaving(true)
     setError(null)
     const payload: CreateMenuPayload = {
@@ -549,7 +555,7 @@ function DetailView({
                 {lineItems.map((item) => {
                   const costoPorcion = item.costoGramo !== null
                     ? parseFloat(item.cantidadGramos) * item.costoGramo
-                    : null
+                    : item.rawCostPerServing
                   return (
                     <div key={item.uid} className="flex items-center gap-2 p-2 rounded-lg"
                       style={{ background: "var(--bg-secondary)" }}>
@@ -588,9 +594,9 @@ function DetailView({
                         {item.costoLoading ? (
                           <Loader2 size={12} style={{ color: "var(--text-muted)", display: "inline" }}
                             className="animate-spin" />
-                        ) : item.costoGramo === null && item.recipeId ? (
-                          <span className="text-xs" style={{ color: "#F59E0B" }} title="Esta receta no tiene peso por porción definido. Edítala en Recetas para poder incluirla en el cálculo.">
-                            Sin peso ⚠
+                        ) : item.costoGramo === null && item.rawCostPerServing === null && item.recipeId ? (
+                          <span className="text-xs" style={{ color: "#F59E0B" }} title="Esta receta no tiene costo calculado. Asegúrate de que tenga ingredientes con precio definido.">
+                            Sin costo ⚠
                           </span>
                         ) : costoPorcion !== null && costoPorcion > 0 ? (
                           <span className="text-xs tabular-nums font-medium" style={{ color: "var(--text-muted)" }}>
