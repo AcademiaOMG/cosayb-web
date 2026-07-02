@@ -1,15 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import useSWR from "swr"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
-import type { RecipeCostResult } from "@/types/domain"
-import { getRecipeById, getRecipeCost } from "@/lib/api"
+import type { Recipe, RecipeCostResult } from "@/types/domain"
+import { getRecipeById, getRecipeCost, importarBancoRecipe } from "@/lib/api"
 import {
   ChefHat, Calculator, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, Info, Scale
+  AlertTriangle, Info, Scale, Download,
 } from "lucide-react"
 
 interface RecipeDetailModalProps {
@@ -17,6 +17,8 @@ interface RecipeDetailModalProps {
   onClose: () => void
   recipeId: string | null
   onEdit?: (id: string) => void
+  onDelete?: (recipe: Recipe) => void
+  onImported?: () => void
 }
 
 const COP = new Intl.NumberFormat("es-CO", {
@@ -31,8 +33,11 @@ export default function RecipeDetailModal({
   onClose,
   recipeId,
   onEdit,
+  onDelete,
+  onImported,
 }: RecipeDetailModalProps) {
   const [materialCostPct, setMaterialCostPct] = useState("30")
+  const [importing, setImporting] = useState(false)
 
   const { data: recipe, error: recipeError, isLoading: loading } = useSWR(
     open && recipeId ? ["recipe-detail", recipeId] : null,
@@ -49,16 +54,41 @@ export default function RecipeDetailModal({
     },
   )
 
+  // Profitability computado en el cliente (el backend no lo devuelve)
+  const profitability = useMemo(() => {
+    if (!cost) return null
+    const pct = parseFloat(materialCostPct) / 100
+    if (isNaN(pct) || pct <= 0 || pct >= 1) return null
+    const potentialSalePrice = cost.costWithMarginPerServing / pct
+    const fixedCostPct = (1 - pct) / 1.8
+    const fixedCostAmount = potentialSalePrice * fixedCostPct
+    const profitPct = 1 - pct - fixedCostPct
+    const profitAmount = potentialSalePrice * profitPct
+    const materialCostRating: "MUY_BUENO" | "REGULAR" | "MALO" =
+      pct <= 0.30 ? "MUY_BUENO" : pct <= 0.35 ? "REGULAR" : "MALO"
+    return { materialCostPct: pct, fixedCostPct, fixedCostAmount, potentialSalePrice, profitPct, profitAmount, materialCostRating }
+  }, [cost, materialCostPct])
+
   const error = recipeError ? "Error al cargar la receta." : null
 
-  function handlePctChange(value: string) {
-    setMaterialCostPct(value)
+  const totalWeightG = recipe?.totalWeightG
+    ?? recipe?.items?.reduce((sum, item) => sum + (parseFloat(item.quantityG) || 0), 0)
+    ?? 0
+
+  async function handleImport() {
+    if (!recipe) return
+    setImporting(true)
+    try {
+      await importarBancoRecipe(recipe.id)
+      onImported?.()
+    } finally {
+      setImporting(false)
+    }
   }
 
-  const totalWeightG = recipe?.totalWeightG
-    ?? recipe?.items?.reduce(
-      (sum, item) => sum + (parseFloat(item.quantityG) || 0), 0
-    ) ?? 0
+  const isPublic = recipe?.isPublic ?? false
+  const canEdit = !isPublic && !recipe?.isBase && !!onEdit
+  const canDelete = !isPublic && !!onDelete
 
   return (
     <Modal
@@ -67,15 +97,37 @@ export default function RecipeDetailModal({
       title={recipe ? recipe.name : "Detalle de receta"}
       wide
       footer={
-        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-          {recipe && onEdit && !recipe.isBase && (
-            <Button variant="ghost" onClick={() => onEdit(recipe.id)}>
-              Editar
+        <div style={{ display: "flex", gap: "10px", justifyContent: "space-between", alignItems: "center" }}>
+          {/* Acciones destructivas a la izquierda */}
+          <div>
+            {canDelete && recipe && (
+              <Button variant="danger" onClick={() => onDelete!(recipe)}>
+                Eliminar
+              </Button>
+            )}
+          </div>
+
+          {/* Acciones positivas a la derecha */}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <Button variant="ghost" onClick={onClose}>
+              Cerrar
             </Button>
-          )}
-          <Button variant="ghost" onClick={onClose}>
-            Cerrar
-          </Button>
+            {isPublic && (
+              <Button
+                variant="primary"
+                loading={importing}
+                onClick={handleImport}
+              >
+                <Download size={14} />
+                Importar a mis recetas
+              </Button>
+            )}
+            {canEdit && recipe && (
+              <Button variant="ghost" onClick={() => { onEdit!(recipe.id); }}>
+                Editar
+              </Button>
+            )}
+          </div>
         </div>
       }
     >
@@ -105,6 +157,13 @@ export default function RecipeDetailModal({
           {/* ═══════════════════ IZQUIERDA ═══════════════════ */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
+            {/* Descripción */}
+            {recipe.description && (
+              <p className="text-sm" style={{ color: "var(--text-secondary)", lineHeight: "1.6" }}>
+                {recipe.description}
+              </p>
+            )}
+
             {/* Ficha técnica */}
             <section
               style={{
@@ -127,7 +186,7 @@ export default function RecipeDetailModal({
                 <DetailField
                   label="Margen seguridad"
                   value={`${parseFloat(recipe.safetyMargin).toFixed(1)}%`}
-                  tooltip="Porcentaje de safety buffer sobre el costo de materia prima para cubrir variaciones de precio."
+                  tooltip="Porcentaje extra sobre el costo de materia prima para cubrir variaciones de precio."
                 />
                 <DetailField label="Peso total" value={`${totalWeightG.toFixed(0)} g`} />
                 <DetailField
@@ -183,8 +242,8 @@ export default function RecipeDetailModal({
                       </span>
                       <p className="text-xs" style={{ color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {item.componentType === "recipe"
-                          ? item.subRecipeName ?? "Sub-receta"
-                          : item.ingredientName ?? "Ingrediente"}
+                          ? (item.subRecipeName ?? "Sub-receta")
+                          : (item.ingredientName ?? "Ingrediente")}
                       </p>
                     </div>
                     <p className="text-xs text-right" style={{ color: "var(--text-secondary)" }}>
@@ -192,6 +251,11 @@ export default function RecipeDetailModal({
                     </p>
                   </div>
                 ))}
+                {(recipe.items?.length ?? 0) === 0 && (
+                  <p className="text-xs text-center" style={{ color: "var(--text-muted)", padding: "12px 0" }}>
+                    Sin componentes registrados.
+                  </p>
+                )}
               </div>
             </section>
           </div>
@@ -265,7 +329,7 @@ export default function RecipeDetailModal({
                     min="1"
                     max="99"
                     value={materialCostPct}
-                    onChange={(e) => handlePctChange(e.target.value)}
+                    onChange={(e) => setMaterialCostPct(e.target.value)}
                     style={{
                       width: "44px",
                       padding: "3px 4px",
@@ -279,7 +343,7 @@ export default function RecipeDetailModal({
                 </div>
               </div>
 
-              {cost?.profitability ? (
+              {profitability ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   <div
                     style={{
@@ -294,22 +358,22 @@ export default function RecipeDetailModal({
                   >
                     <Info size={12} style={{ color: "#0369A1", marginTop: "2px", flexShrink: 0 }} />
                     <p className="text-xs" style={{ color: "#0369A1", lineHeight: "1.4" }}>
-                      El <strong>% de materia prima</strong> es el porcentaje del precio de venta que se destina a ingredientes.
-                      A menor %, mayor ganancia. El rango ideal es entre 30% y 32%.
+                      El <strong>% de materia prima</strong> es el porcentaje del precio de venta destinado a ingredientes.
+                      El rango ideal es entre 30% y 32%.
                     </p>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                     <MetricCard
                       label="% Materia Prima"
-                      value={`${(cost.profitability.materialCostPct * 100).toFixed(1)}%`}
-                      rating={cost.profitability.materialCostRating}
+                      value={`${(profitability.materialCostPct * 100).toFixed(1)}%`}
+                      rating={profitability.materialCostRating}
                       description="Cuanto menor, mejor"
                     />
                     <MetricCard
                       label="Costos Fijos"
-                      value={`${(cost.profitability.fixedCostPct * 100).toFixed(1)}%`}
-                      amount={COP.format(cost.profitability.fixedCostAmount)}
+                      value={`${(profitability.fixedCostPct * 100).toFixed(1)}%`}
+                      amount={COP.format(profitability.fixedCostAmount)}
                       description="(100% - %MP) / 1.8"
                     />
                   </div>
@@ -334,7 +398,7 @@ export default function RecipeDetailModal({
                       </p>
                     </div>
                     <p className="text-lg font-bold" style={{ color: "var(--accent)" }}>
-                      {COP.format(cost.profitability.potentialSalePrice)}
+                      {COP.format(profitability.potentialSalePrice)}
                     </p>
                   </div>
 
@@ -342,8 +406,8 @@ export default function RecipeDetailModal({
                     style={{
                       padding: "12px",
                       borderRadius: "10px",
-                      background: cost.profitability.profitPct > 0 ? "#F0FDF4" : "#FEF2F2",
-                      border: `1px solid ${cost.profitability.profitPct > 0 ? "#BBF7D0" : "#FECACA"}`,
+                      background: profitability.profitPct > 0 ? "#F0FDF4" : "#FEF2F2",
+                      border: `1px solid ${profitability.profitPct > 0 ? "#BBF7D0" : "#FECACA"}`,
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
@@ -352,7 +416,7 @@ export default function RecipeDetailModal({
                     <div>
                       <p
                         className="text-xs font-semibold"
-                        style={{ color: cost.profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
+                        style={{ color: profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
                       >
                         Ganancia neta
                       </p>
@@ -363,15 +427,15 @@ export default function RecipeDetailModal({
                     <div style={{ textAlign: "right" }}>
                       <p
                         className="text-lg font-bold"
-                        style={{ color: cost.profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
+                        style={{ color: profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
                       >
-                        {(cost.profitability.profitPct * 100).toFixed(1)}%
+                        {(profitability.profitPct * 100).toFixed(1)}%
                       </p>
                       <p
                         className="text-xs"
-                        style={{ color: cost.profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
+                        style={{ color: profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
                       >
-                        {COP.format(cost.profitability.profitAmount)}
+                        {COP.format(profitability.profitAmount)}
                       </p>
                     </div>
                   </div>
@@ -379,7 +443,7 @@ export default function RecipeDetailModal({
               ) : (
                 <div style={{ textAlign: "center", padding: "16px 0" }}>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    Ajusta el %MP para ver el análisis de rentabilidad.
+                    {costLoading ? "Calculando el costo…" : "Ajusta el %MP para ver el análisis de rentabilidad."}
                   </p>
                 </div>
               )}
@@ -412,10 +476,7 @@ function DetailField({
         </p>
         {tooltip && (
           <div style={{ position: "relative" }} className="group">
-            <Info
-              size={11}
-              style={{ color: "var(--text-muted)", cursor: "help" }}
-            />
+            <Info size={11} style={{ color: "var(--text-muted)", cursor: "help" }} />
             <div
               style={{
                 display: "none",
