@@ -8,8 +8,6 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = useMemo(() => searchParams.get("redirect"), [searchParams])
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [callbackURL, setCallbackURL] = useState("")
@@ -48,23 +46,6 @@ function LoginForm() {
     }
   }
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    const { error: signInError } = await authClient.signIn.email({
-      email,
-      password,
-      callbackURL,
-    })
-
-    if (signInError) {
-      setError("Correo o contraseña incorrectos.")
-      setLoading(false)
-    }
-  }
-
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
@@ -92,7 +73,20 @@ function LoginForm() {
           </p>
         </div>
 
-        <div className="px-8 py-8 flex flex-col gap-5" style={{ background: "var(--bg-surface)" }}>
+        <div className="px-8 py-8 flex flex-col gap-4" style={{ background: "var(--bg-surface)" }}>
+          {error && (
+            <div
+              className="px-4 py-3 rounded-xl text-sm"
+              style={{
+                background: "#FEF2F2",
+                border: "1px solid #FCA5A5",
+                color: "#7F1D1D",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
@@ -111,87 +105,8 @@ function LoginForm() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            {loading ? "Redirigiendo\u2026" : "Continuar con Google"}
+            {loading ? "Redirigiendo…" : "Continuar con Google"}
           </button>
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: "var(--border-light)" }} />
-            <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
-              o con tu correo
-            </span>
-            <div className="flex-1 h-px" style={{ background: "var(--border-light)" }} />
-          </div>
-
-          {error && (
-            <div
-              className="px-4 py-3 rounded-xl text-sm"
-              style={{
-                background: "#FEF2F2",
-                border: "1px solid #FCA5A5",
-                color: "#7F1D1D",
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                Correo Electrónico
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nombre@ejemplo.com"
-                required
-                className="h-10 w-full rounded-xl px-3 text-sm outline-none transition-colors"
-                style={{
-                  background: "var(--bg-primary)",
-                  border: "1px solid var(--border-light)",
-                  color: "var(--text-primary)",
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border-light)")}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
-                Contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
-                required
-                className="h-10 w-full rounded-xl px-3 text-sm outline-none transition-colors"
-                style={{
-                  background: "var(--bg-primary)",
-                  border: "1px solid var(--border-light)",
-                  color: "var(--text-primary)",
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border-light)")}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-10 w-full rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 mt-1"
-              style={{
-                background: loading ? "var(--accent-hover)" : "var(--accent)",
-                color: "#FFFFFF",
-              }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "var(--accent-hover)" }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "var(--accent)" }}
-            >
-              {loading ? "Iniciando\u2026" : "Iniciar sesi\u00f3n"}
-            </button>
-          </form>
         </div>
       </div>
     </div>
@@ -202,7 +117,7 @@ export default function LoginPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
-        <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />
+        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />
       </div>
     }>
       <LoginForm />
