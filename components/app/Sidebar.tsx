@@ -10,6 +10,7 @@ import {
   TrendingUp,
   BarChart2,
   Settings,
+  ShoppingCart,
   LogOut,
   X,
 } from "lucide-react"
@@ -28,6 +29,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list" },
+  { href: "/precios-mercado", label: "Precios de Mercado", icon: ShoppingCart, resource: "ingredients", action: "list" },
   { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale, resource: "yieldFactors", action: "list" },
   { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list" },
   { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list" },

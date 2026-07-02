@@ -7,6 +7,10 @@ export interface Ingredient {
   costPerGram: string
   isPublic: boolean
   userId: string | null
+  priceConfirmedAt: string | null
+  priceSource: string | null
+  sipsaMatchName: string | null
+  category: string | null
 }
 
 export interface IngredientForm {

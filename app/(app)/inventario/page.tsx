@@ -10,6 +10,7 @@ import QuotaBanner from "@/components/app/inventario/QuotaBanner"
 import IngredientSearchBar from "@/components/app/inventario/IngredientSearchBar"
 import IngredientFilters from "@/components/app/inventario/IngredientFilters"
 import IngredientGrid from "@/components/app/inventario/IngredientGrid"
+import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
 import type { Ingredient, IngredientForm, IngredientOriginFilter } from "@/types/ingredient"
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ export default function InventarioPage() {
   })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [priceSource, setPriceSource] = useState<string | null>(null)
 
   // ── Modal: delete ─────────────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Ingredient | null>(null)
@@ -109,6 +111,7 @@ export default function InventarioPage() {
     setEditing(null)
     setForm({ name: "", costPerUnit: "", weightGrams: "" })
     setFormError(null)
+    setPriceSource(null)
     setModalOpen(true)
   }
 
@@ -120,6 +123,7 @@ export default function InventarioPage() {
       weightGrams: ingredient.weightGrams,
     })
     setFormError(null)
+    setPriceSource(null)
     setModalOpen(true)
   }
 
@@ -131,10 +135,11 @@ export default function InventarioPage() {
     setSaving(true)
     setFormError(null)
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: form.name.trim(),
       costPerUnit: parseFloat(form.costPerUnit),
       weightGrams: parseFloat(form.weightGrams),
+      ...(priceSource && { priceConfirmation: { priceSource } }),
     }
 
     try {
@@ -269,12 +274,28 @@ export default function InventarioPage() {
             label="Nombre del ingrediente"
             placeholder="Ej. Harina de trigo"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, name: e.target.value }))
+              setPriceSource(null)
+            }}
+          />
+          <PriceSuggestion
+            ingredientName={form.name}
+            onAccept={(pricePerUnit, weightGrams, source) => {
+              setForm((f) => ({
+                ...f,
+                costPerUnit: String(pricePerUnit),
+                weightGrams: String(weightGrams),
+              }))
+              setPriceSource(source)
+            }}
           />
           <Input
             label="Precio de compra (COP)"
             placeholder="Ej. 3.500"
             type="number"
+            step="any"
+            min="0"
             value={form.costPerUnit}
             onChange={(e) => setForm((f) => ({ ...f, costPerUnit: e.target.value }))}
             hint="Lo que pagaste por esta presentación o empaque"
@@ -283,6 +304,8 @@ export default function InventarioPage() {
             label="Peso del empaque (g)"
             placeholder="Ej. 1000"
             type="number"
+            step="any"
+            min="0"
             value={form.weightGrams}
             onChange={(e) => setForm((f) => ({ ...f, weightGrams: e.target.value }))}
             hint="¿Cuántos gramos trae la presentación que compraste?"
@@ -291,7 +314,7 @@ export default function InventarioPage() {
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
               Costo por gramo calculado:{" "}
               <strong>
-                ${(parseFloat(form.costPerUnit) / parseFloat(form.weightGrams)).toFixed(2)}
+                ${(parseFloat(form.costPerUnit) / parseFloat(form.weightGrams)).toFixed(4)}
               </strong>{" "}
               
             </p>

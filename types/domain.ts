@@ -60,17 +60,18 @@ export interface RecipeItem {
 /** Cabecera de receta + sus items */
 export interface Recipe {
   id: string
-  organizationId: string
+  organizationId: string | null   // null = receta del banco global (isPublic = true)
   name: string
   recipeNumber: string
   servings: string         // numeric → string (Drizzle)
   servingWeightG: string | null
   safetyMargin: string     // numeric → string (Drizzle), default "3.00"
   isBase: boolean          // disponible como sub-receta en otras recetas
-  isPublic: boolean        // receta del banco base público
-  items: RecipeItem[]
-  totalWeightG: number     // computed: suma de cantidades de items
-  itemCount: number        // computed: cantidad de items
+  isPublic: boolean
+  description?: string | null
+  items?: RecipeItem[]     // solo presente en respuestas de detalle (getRecipeById)
+  totalWeightG?: number    // computed en detalle
+  itemCount?: number       // computed en detalle
   createdAt: string
   updatedAt: string
 }

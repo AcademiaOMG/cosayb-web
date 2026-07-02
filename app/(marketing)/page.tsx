@@ -66,7 +66,7 @@ const jsonLd = {
         },
       ],
       featureList: [
-        "Inventario de ingredientes con 297 insumos base",
+        "Inventario de ingredientes con más de 1.000 insumos base",
         "Factor de rendimiento y mermas",
         "Recetas con subrecetas anidadas",
         "Menú con análisis de rentabilidad",
@@ -120,7 +120,7 @@ const jsonLd = {
           name: "¿Incluye ingredientes colombianos?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Sí. CO$AYB incluye una base de 297 ingredientes con precios del mercado colombiano que puedes importar directamente o personalizar.",
+            text: "Sí. CO$AYB incluye una base de más de 1.000 ingredientes con precios del mercado colombiano que puedes importar directamente o personalizar.",
           },
         },
       ],

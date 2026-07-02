@@ -193,17 +193,29 @@ export interface PaginatedRecipes {
   limit: number
 }
 
+export interface RecipeExtraFilters {
+  type?: "base" | "principal"
+  weight?: "yes" | "no"
+  portions?: "small" | "medium" | "large"
+  empty?: boolean
+}
+
 export async function getRecipes(
   search?: string,
   filter: RecipeFilter = "all",
   page = 1,
-  limit = 12
+  limit = 12,
+  extra: RecipeExtraFilters = {}
 ): Promise<PaginatedRecipes> {
   const params = new URLSearchParams()
   if (search) params.set("search", search)
   if (filter !== "all") params.set("filter", filter)
   if (page > 1) params.set("page", String(page))
   if (limit !== 12) params.set("limit", String(limit))
+  if (extra.type) params.set("type", extra.type)
+  if (extra.weight) params.set("weight", extra.weight)
+  if (extra.portions) params.set("portions", extra.portions)
+  if (extra.empty) params.set("empty", "true")
   const q = params.toString()
   return fetchAPI(`/api/v1/recipes${q ? `?${q}` : ""}`)
 }
@@ -253,6 +265,17 @@ export async function importPublicRecipes(): Promise<{ data: { imported: number;
 export async function getRecipeCost(id: string, materialCostPct?: number): Promise<{ data: RecipeCostResult }> {
   const params = materialCostPct != null ? `?materialCostPct=${materialCostPct}` : ""
   return fetchAPI(`/api/v1/recipes/${id}/cost${params}`)
+}
+
+/** GET /api/v1/recipes/banco — recetas del banco global (isPublic = true) */
+export async function getBancoRecipes(search?: string): Promise<{ data: Recipe[] }> {
+  const q = search ? `?search=${encodeURIComponent(search)}` : ''
+  return fetchAPI(`/api/v1/recipes/banco${q}`)
+}
+
+/** POST /api/v1/recipes/importar-banco/:id — clona una receta del banco en el tenant */
+export async function importarBancoRecipe(id: string): Promise<{ data: Recipe }> {
+  return fetchAPI(`/api/v1/recipes/importar-banco/${id}`, { method: 'POST' })
 }
 
 // ─── Menús ────────────────────────────────────────────────────────────────────

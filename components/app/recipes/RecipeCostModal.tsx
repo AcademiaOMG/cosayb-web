@@ -64,7 +64,7 @@ export default function RecipeCostModal({
         >
           <LoadingSpinner size={32} />
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            Calculando con CTE recursiva…
+            Calculando el costo…
           </p>
         </div>
       )}

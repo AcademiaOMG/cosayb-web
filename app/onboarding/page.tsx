@@ -28,6 +28,7 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [orgName, setOrgName] = useState("")
+  const [city, setCity] = useState("")
   const [businessType, setBusinessType] = useState("")
   const [selectedPlan, setSelectedPlan] = useState<"free" | "pro">("free")
   const [isLoading, setIsLoading] = useState(false)
@@ -79,6 +80,15 @@ export default function OnboardingPage() {
     setStep(2)
   }
 
+  const CITIES = [
+    { value: "bogota", label: "Bogotá" },
+    { value: "medellin", label: "Medellín" },
+    { value: "cali", label: "Cali" },
+    { value: "barranquilla", label: "Barranquilla" },
+    { value: "cartagena", label: "Cartagena" },
+    { value: "otra", label: "Otra ciudad" },
+  ]
+
   function handleStep2() {
     if (!businessType) return
     setStep(3)
@@ -122,6 +132,7 @@ export default function OnboardingPage() {
             name: orgName,
             onboardingCompleted: true,
             plan: selectedPlan,
+            ...(city && city !== "otra" && { city }),
           }),
         })
       }
@@ -191,6 +202,26 @@ export default function OnboardingPage() {
               onChange={(e) => setOrgName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleStep1()}
             />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                Ciudad principal
+              </label>
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-all"
+                style={{
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-light)",
+                  color: city ? "var(--text-primary)" : "var(--text-muted)",
+                }}
+              >
+                <option value="">Selecciona tu ciudad</option>
+                {CITIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
             <Button variant="primary" size="lg" onClick={handleStep1} disabled={!orgName.trim()}>
               Continuar
             </Button>

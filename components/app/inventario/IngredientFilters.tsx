@@ -83,7 +83,7 @@ export default function IngredientFilters({
                       }
                 }
               >
-                {opt.count}
+                {opt.value === "base" ? "+1.000" : opt.count}
               </span>
             )}
           </button>
