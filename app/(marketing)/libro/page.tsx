@@ -71,7 +71,7 @@ export default function LibroPage() {
         {/* Background image */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/libro-hero.png"
+          src="/images/libro-hero.webp"
           alt="Libro de Costos de Alimentos y Bebidas"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
@@ -134,7 +134,7 @@ export default function LibroPage() {
                 />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/images/libro-costos.jpg"
+                  src="/images/libro-costos.webp"
                   alt="Portada del libro Costos de Alimentos y Bebidas"
                   className="relative rounded-xl shadow-2xl max-w-xs w-full"
                   style={{ boxShadow: "0 32px 80px rgba(18,33,58,0.30)" }}
