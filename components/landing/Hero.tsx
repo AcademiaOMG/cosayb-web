@@ -14,7 +14,7 @@ export default function Hero() {
       <div className="absolute inset-0 z-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/fondo-principal.png"
+          src="/images/fondo-principal.webp"
           alt=""
           className="w-full h-full object-cover object-center"
         />
