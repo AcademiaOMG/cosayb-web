@@ -1,101 +1,156 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { X } from "lucide-react"
+import { X, Menu, ArrowRight } from "lucide-react"
 
 const navLinks = [
-  { label: "Producto", href: "#modulos" },
-  { label: "Cursos", href: "#academia" },
-  { label: "Libro", href: "#libro" },
-  { label: "Blog", href: "#blog" },
+  { label: "Inicio", href: "/" },
+  { label: "Características", href: "/#modulos" },
+  { label: "Precios", href: "/#precios" },
+  { label: "Libro", href: "/libro" },
+  { label: "Sobre nosotros", href: "/nosotros" },
+  { label: "Contacto", href: "/contacto" },
 ]
 
 export default function Nav() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 20)
+    window.addEventListener("scroll", handler, { passive: true })
+    return () => window.removeEventListener("scroll", handler)
+  }, [])
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#F5F0E8] border-b border-[#DDD6C8] px-6 sm:px-10 lg:px-16 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-10">
+      <header
+        className="fixed top-0 left-0 right-0 z-40 px-6 sm:px-10 lg:px-16 transition-all duration-300 ease-in-out"
+        style={
+          scrolled
+            ? {
+                background: "rgba(245, 240, 232, 0.95)",
+                backdropFilter: "blur(14px)",
+                borderBottom: "1px solid rgba(221, 214, 200, 0.7)",
+              }
+            : {
+                background: "transparent",
+                backdropFilter: "none",
+                borderBottom: "1px solid transparent",
+              }
+        }
+      >
+        <div className="max-w-7xl mx-auto lg:grid lg:grid-cols-[1fr_auto_1fr] items-center h-16">
+
+          {/* Col 1: LOGO */}
+          <div className="flex justify-start">
             <Link
               href="/"
-              className="font-display text-2xl sm:text-3xl font-bold text-[#12213A] tracking-tight"
+              className={`font-display text-2xl sm:text-3xl font-bold tracking-tight transition-colors duration-300 ease-in-out ${
+                scrolled
+                  ? "text-[#12213A] hover:text-[#1B4FD8]"
+                  : "text-[#F5F0E8] hover:text-[#7AAEFF]"
+              }`}
             >
               CO$AYB
             </Link>
-            <nav className="hidden md:flex items-center gap-8">
-              {navLinks.map(({ label, href }) => (
-                <Link
-                  key={label}
-                  href={href}
-                  className="font-body text-sm text-[#4A4438] tracking-wide hover:text-[#12213A] transition-colors"
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
+          {/* Col 2: MENÚ CENTRADO */}
+          <nav className="hidden lg:flex justify-center items-center gap-1.5">
+            {navLinks.map(({ label, href }) => (
+              <Link
+  key={label}
+  href={href}
+  className={`whitespace-nowrap font-body text-sm px-3 py-2 rounded transition-all duration-300 ease-in-out ${
+    scrolled
+      ? "text-[#4A4438] hover:text-[#12213A] hover:bg-[#EDE7DB]"
+      : "text-[#C8D5E8] hover:text-[#F5F0E8] hover:bg-white/10"
+  }`}
+>
+  {label}
+</Link>
+            ))}
+          </nav>
+
+          {/* Col 3: BOTÓN + HAMBURGUESA */}
+          <div className="flex justify-end items-center gap-3">
             <Link
               href="/login"
-              className="border border-[#DDD6C8] text-[#12213A] px-4 py-2 text-sm rounded-lg hover:bg-[#EDE7DB] transition-colors"
+              className={`hidden md:inline-flex items-center justify-center rounded-full font-body text-sm font-semibold tracking-wide px-7 py-2.5 border-2 transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-md ${
+                scrolled
+                  ? "border-[#12213A] text-[#12213A] hover:bg-[#12213A] hover:text-[#F5F0E8]"
+                  : "border-white/80 text-white hover:bg-white hover:text-[#1B4FD8]"
+              }`}
             >
               Iniciar sesión
             </Link>
-            <Link
-              href="/login"
-              className="bg-[#1B4FD8] text-white px-4 py-2 text-sm font-semibold rounded-lg hover:bg-[#1540B0] transition-colors"
+
+            {/* Hamburguesa responsive */}
+            <button
+              className={`lg:hidden p-2 rounded transition-colors duration-300 ${
+                scrolled
+                  ? "text-[#12213A] hover:bg-[#EDE7DB]"
+                  : "text-[#F5F0E8] hover:bg-white/10"
+              }`}
+              onClick={() => setMenuOpen(true)}
+              aria-label="Abrir menú"
             >
-              Empezar gratis
-            </Link>
+              <Menu size={22} />
+            </button>
           </div>
 
-          <button
-            className="md:hidden flex flex-col gap-1.5 p-2"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Abrir menú"
-          >
-            <div className="w-6 h-0.5 bg-[#12213A] rounded" />
-            <div className="w-6 h-0.5 bg-[#12213A] rounded" />
-            <div className="w-6 h-0.5 bg-[#12213A] rounded" />
-          </button>
         </div>
       </header>
 
+      {/* Mobile overlay */}
       {menuOpen && (
-        <div className="fixed inset-0 bg-[#F5F0E8] z-50 flex flex-col px-6 py-4">
-          <div className="flex items-center justify-between">
-            <span className="font-display text-2xl font-bold text-[#12213A]">CO$AYB</span>
+        <div className="fixed inset-0 bg-[#F5F0E8] z-50 flex flex-col px-6 py-4 overflow-y-auto">
+          <div className="flex items-center justify-between h-16 shrink-0">
+            <Link
+              href="/"
+              onClick={() => setMenuOpen(false)}
+              className="font-display text-2xl font-bold text-[#12213A]"
+            >
+              CO$AYB
+            </Link>
             <button
               onClick={() => setMenuOpen(false)}
               aria-label="Cerrar menú"
-              className="p-2"
+              className="p-2 rounded hover:bg-[#EDE7DB] transition-colors"
             >
-              <X size={24} className="text-[#12213A]" />
+              <X size={22} className="text-[#12213A]" />
             </button>
           </div>
-          <nav className="flex flex-col items-center justify-center flex-1 gap-8">
-            {navLinks.map(({ label, href }, i) => (
+
+          <nav className="flex flex-col flex-1 gap-1 pt-4">
+            {navLinks.map(({ label, href }) => (
               <Link
                 key={label}
                 href={href}
                 onClick={() => setMenuOpen(false)}
-                className="font-display text-4xl text-[#12213A] uppercase tracking-tight"
-                style={{ animationDelay: `${i * 0.1}s` }}
+                className="font-display text-3xl font-bold text-[#12213A] uppercase tracking-tight px-2 py-3 border-b border-[#DDD6C8] w-full hover:text-[#1B4FD8] transition-colors"
               >
                 {label}
               </Link>
             ))}
           </nav>
-          <div className="pb-8">
+
+          <div className="pb-8 pt-6 flex flex-col gap-3 shrink-0">
             <Link
               href="/login"
               onClick={() => setMenuOpen(false)}
-              className="w-full bg-[#1B4FD8] text-white py-3 rounded-lg font-body font-semibold text-sm flex items-center justify-center"
+              className="inline-flex items-center justify-center rounded-full font-body text-base font-semibold tracking-wide py-4 border-2 border-[#12213A] text-[#12213A] hover:bg-[#12213A] hover:text-[#F5F0E8] transition-all duration-300 ease-in-out text-center w-full"
             >
-              Empezar gratis
+              Iniciar sesión
+            </Link>
+            <Link
+              href="/login"
+              onClick={() => setMenuOpen(false)}
+              className="btn-spx btn-spx-accent btn-spx-noborder w-full py-4"
+            >
+              Empezar 14 días gratis
+              <ArrowRight size={14} className="btn-arrow" />
             </Link>
           </div>
         </div>
