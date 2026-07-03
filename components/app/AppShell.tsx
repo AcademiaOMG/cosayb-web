@@ -5,6 +5,7 @@ import useSWR from "swr"
 import { mutate } from "swr"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
+import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
 import { getCurrentOrganization } from "@/lib/api"
 import { setLastSurface, setActiveOrgId } from "@/lib/surface"
@@ -35,17 +36,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const plan = (orgData?.effectiveMembership as Plan) ?? "free"
 
   async function handleSignOut() {
-    await authClient.signOut()
-    setActiveOrgId(null)
+    // Orden importa: apagar/limpiar caché ANTES de invalidar y navegar
     clearSWRCache()
+    setActiveOrgId(null)
     void mutate(() => true, undefined, { revalidate: false })
-    window.location.href = "/login"
+    await authClient.signOut()
+    // replace: la página autenticada no queda como entrada "adelante" del historial
+    window.location.replace("/login")
   }
 
   const userName = session?.user?.name ?? "Usuario"
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
+      <SessionGuard />
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

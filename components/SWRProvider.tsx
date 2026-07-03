@@ -1,7 +1,7 @@
 "use client"
 
 import { SWRConfig } from "swr"
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useSyncExternalStore } from "react"
 import { getActiveOrgId } from "@/lib/surface"
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -21,6 +21,10 @@ import { getActiveOrgId } from "@/lib/surface"
 
 const CACHE_VERSION = "v1"
 
+// Al cerrar sesión se apaga la persistencia: evita la race en la que el
+// interval re-escribe el caché DESPUÉS de limpiarlo y ANTES de navegar a /login
+let persistEnabled = true
+
 function cacheKey(): string {
   const org = getActiveOrgId() ?? "sin-org"
   return `cosayb.swr.${CACHE_VERSION}.${org}`
@@ -39,6 +43,7 @@ function createProvider() {
     }
 
     const persist = () => {
+      if (!persistEnabled) return
       try {
         window.localStorage.setItem(
           cacheKey(),
@@ -61,9 +66,13 @@ function createProvider() {
   }
 }
 
-/** Limpia todos los buckets de caché (llamar al cerrar sesión). */
+/**
+ * Limpia todos los buckets de caché y APAGA la persistencia (llamar al
+ * cerrar sesión, antes de navegar a /login).
+ */
 export function clearSWRCache(): void {
   if (typeof window === "undefined") return
+  persistEnabled = false
   const toRemove: string[] = []
   for (let i = 0; i < window.localStorage.length; i++) {
     const key = window.localStorage.key(i)
@@ -86,8 +95,11 @@ export default function SWRProvider({ children }: { children: React.ReactNode })
   // El provider con localStorage se activa DESPUÉS de la hidratación:
   // el primer render del cliente debe coincidir con el HTML del servidor
   // (sin datos). Un tick después, el caché entra y pinta todo al instante.
-  const [hydrated, setHydrated] = useState(false)
-  useEffect(() => setHydrated(true), [])
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,  // cliente (post-hidratación)
+    () => false  // servidor / primer render
+  )
 
   return (
     <SWRConfig value={hydrated ? { ...BASE_CONFIG, provider } : BASE_CONFIG}>

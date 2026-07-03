@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { usePermissions } from "@/hooks/usePermissions"
 import { setLastSurface, switchSurface } from "@/lib/surface"
 import { clearSWRCache } from "@/components/SWRProvider"
+import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
 import {
   Shield, BarChart3, Building2, Users, Drama, CreditCard,
@@ -134,6 +135,7 @@ export default function PlataformaLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
+      <SessionGuard />
       {/* Sidebar de la consola — mismo lenguaje visual que el sidebar del tenant */}
       <aside
         className="w-64 flex flex-col shrink-0 h-full"
@@ -226,9 +228,9 @@ export default function PlataformaLayout({ children }: { children: React.ReactNo
           </div>
           <button
             onClick={async () => {
-              await authClient.signOut()
               clearSWRCache()
-              window.location.href = "/login"
+              await authClient.signOut()
+              window.location.replace("/login")
             }}
             className="flex items-center gap-2 px-1 py-1.5 text-xs transition-colors"
             style={{ color: "#8FA0BC", background: "transparent", border: "none", cursor: "pointer" }}
