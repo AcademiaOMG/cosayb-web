@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register", "/onboarding"];
+const PUBLIC_ROUTES = [
+  "/",
+  "/login",
+  "/register",
+  "/onboarding",
+  "/nosotros",
+  "/contacto",
+  "/libro",
+  "/privacy",
+  "/terms",
+  "/cookies",
+];
 
 // Nombres de cookie de sesión que usa better-auth según el entorno:
 //   HTTPS producción (Vercel) → "__Secure-better-auth.session_token"

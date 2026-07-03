@@ -4,7 +4,9 @@ import Problema from "@/components/landing/Problema"
 import ComoFunciona from "@/components/landing/ComoFunciona"
 import Modulos from "@/components/landing/Modulos"
 import AppMockup from "@/components/landing/AppMockup"
+import Testimonios from "@/components/landing/Testimonios"
 import Pricing from "@/components/landing/Pricing"
+import FAQ from "@/components/landing/FAQ"
 import CTAFinal from "@/components/landing/CTAFinal"
 
 const siteUrl =
@@ -140,7 +142,9 @@ export default function LandingPage() {
       <ComoFunciona />
       <Modulos />
       <AppMockup />
+      <Testimonios />
       <Pricing />
+      <FAQ />
       <CTAFinal />
     </>
   )

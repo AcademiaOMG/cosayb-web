@@ -79,34 +79,167 @@
 
 /* ─── Animations ────────────────────────────────────────────────── */
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(30px); }
+  from { opacity: 0; transform: translateY(32px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-right {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+html { scroll-behavior: smooth; }
 
 .animate-fade-up {
   opacity: 0;
-  animation: fade-up 0.8s ease-out forwards;
+  animation: fade-up 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 .animate-fade-up-delay-1 {
   opacity: 0;
-  animation: fade-up 0.8s ease-out 0.2s forwards;
+  animation: fade-up 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
 }
 .animate-fade-up-delay-2 {
   opacity: 0;
-  animation: fade-up 0.8s ease-out 0.4s forwards;
+  animation: fade-up 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
 }
 .animate-fade-up-delay-3 {
   opacity: 0;
-  animation: fade-up 0.8s ease-out 0.6s forwards;
+  animation: fade-up 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.45s forwards;
 }
 .animate-fade-up-delay-4 {
   opacity: 0;
-  animation: fade-up 0.8s ease-out 0.8s forwards;
+  animation: fade-up 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.6s forwards;
 }
+.animate-fade-up-delay-5 {
+  opacity: 0;
+  animation: fade-up 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.75s forwards;
+}
+.animate-scale-in {
+  opacity: 0;
+  animation: scale-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+}
+.animate-fade-in {
+  opacity: 0;
+  animation: fade-in 0.8s ease-out 0.1s forwards;
+}
+
+/* Card hover elevation */
+.card-hover {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(18, 33, 58, 0.12);
+}
+
+/* ─── SpaceX-style Buttons ──────────────────────────────────────── */
+
+/* Base — shared structure across all button variants */
+.btn-spx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 0.8125rem;   /* 13px */
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: 2px solid;
+  border-radius: 0px;    /* Rectangular SpaceX style */
+  padding: 0.75rem 1.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  /* Smooth fill transition */
+  transition: background-color 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              color 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Arrow icon inside any .btn-spx — slides right on hover */
+.btn-spx .btn-arrow {
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn-spx:hover .btn-arrow {
+  transform: translateX(6px);
+}
+
+/* ── Variant: LIGHT  (use on dark/photo backgrounds) */
+/* Default: transparent background, white text and white border. Hover: solid white + dark text */
+.btn-spx-light {
+  background-color: transparent;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+.btn-spx-light:hover {
+  background-color: #ffffff;
+  color: #12213A;
+  border-color: #ffffff;
+}
+
+/* ── Variant: DARK  (use on cream/light backgrounds) */
+/* Default: transparent background, dark navy text and border. Hover: solid navy + cream text */
+.btn-spx-dark {
+  background-color: transparent;
+  color: #12213A;
+  border-color: #12213A;
+}
+.btn-spx-dark:hover {
+  background-color: #12213A;
+  color: #F5F0E8;
+  border-color: #12213A;
+}
+
+/* ── Variant: ACCENT  (primary CTA — blue border by default, blue fill on hover) */
+/* Default: transparent background, blue text and blue border. Hover: solid blue + white text */
+.btn-spx-accent {
+  background-color: transparent;
+  color: #1B4FD8;
+  border-color: #1B4FD8;
+}
+.btn-spx-accent:hover {
+  background-color: #1B4FD8;
+  color: #ffffff;
+  border-color: #1B4FD8;
+}
+
+/* Remove borders for specific buttons (e.g. Nav/Footer) */
+.btn-spx-noborder {
+  border-color: transparent !important;
+}
+.btn-spx-noborder:hover {
+  border-color: transparent !important;
+}
+
+/* Keep legacy aliases so non-landing app pages don't break */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  background-color: var(--accent); color: #fff;
+  font-weight: 600; border-radius: 2px; border: 1px solid transparent;
+  transition: background-color 0.18s ease;
+  cursor: pointer;
+}
+.btn-primary:hover { background-color: var(--accent-hover); }
+.btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center;
+  background-color: transparent; color: var(--text-primary);
+  font-weight: 600; border-radius: 2px; border: 1px solid var(--border-light);
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+  cursor: pointer;
+}
+.btn-secondary:hover { background-color: var(--bg-secondary); }
+
 
 /* ─── % Materia Prima Slider ────────────────────────────────────── */
 /* Track: gradiente de zonas fijo (verde <32% | amarillo 32-37% | rojo >37%)   */
@@ -165,5 +298,32 @@
 }
 
 /* ─── Tooltip hover ─────────────────────────────────────────────── */
-.group > div:first-of-type { display: none; }
-.group:hover > div:first-of-type { display: block; }
+.group-tooltip > .tooltip-content { display: none; }
+.group-tooltip:hover > .tooltip-content { display: block; }
+
+/* ─── Page transitions ──────────────────────────────────────────── */
+.page-transition {
+  animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ─── Premium Nav Link Animation ────────────────────────────────── */
+.nav-link-spx {
+  position: relative;
+  transition: color 0.3s ease-in-out;
+}
+.nav-link-spx::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.nav-link-spx:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
