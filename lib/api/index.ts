@@ -17,14 +17,19 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
 // ─── Fetcher genérico ─────────────────────────────────────────────────────────
+import { getActiveOrgId } from "@/lib/surface"
+
 async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const activeOrg = getActiveOrgId()
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      // Organización activa (multi-org): el backend la valida contra las membresías
+      ...(activeOrg ? { "X-Organization-Id": activeOrg } : {}),
       ...options.headers,
     },
     credentials: "include", // necesario para enviar cookies de sesión (Better Auth)
@@ -388,18 +393,363 @@ export async function exportBreakEvenExcel(): Promise<Blob> {
 
 export type Resource =
   | "recipes" | "ingredients" | "menus"
-  | "yieldFactors" | "valuations" | "puntoEquilibrio"
-  | "organizations" | "plans" | "publicRecipes";
+  | "yieldFactors" | "valuations" | "breakEven"
+  | "marketPrices" | "reports"
+  | "publicRecipes" | "publicIngredients"
+  | "organization" | "members" | "invitations" | "billing";
 
-export type Action = "list" | "read" | "create" | "update" | "delete";
+export type Action =
+  | "list" | "read" | "create" | "update" | "delete"
+  | "import" | "publish" | "export" | "remove" | "revoke";
 
-export type Permission = `${Action}:${Resource}` | "*:*";
+export type Permission = `${Action}:${Resource}`;
 
-export interface PermissionsResponse {
-  roles: string[]
-  permissions: Permission[]
+export interface MembershipFeature {
+  key: string
+  enabled: boolean
+  limit: number | null
 }
 
-export async function getMyPermissions(): Promise<{ data: PermissionsResponse }> {
-  return fetchAPI("/api/v1/me/permissions")
+export interface AuthzContext {
+  scope: "user" | "organization"
+  roles: string[]
+  permissions: string[]
+  organization: {
+    id: string
+    name: string
+    membership: "free" | "pro" | "academia"
+    features: MembershipFeature[]
+  } | null
+  memberships: {
+    organizationId: string
+    organizationName: string
+    membership: string
+    status: string
+    isDefault: boolean
+  }[]
+  platformRoles: string[]
+  platformPermissions: string[]
+}
+
+/** Contexto de autorización completo (roles, permisos, org activa, membresía) */
+export async function getAuthzContext(): Promise<{ data: AuthzContext }> {
+  return fetchAPI("/api/v1/me/context")
+}
+
+/** Roles asignables según la membresía del tenant (para invitar / cambiar rol) */
+export interface AssignableRole {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  scopeContext: string | null
+}
+
+export async function getAvailableRoles(): Promise<{ data: AssignableRole[] }> {
+  return fetchAPI("/api/v1/roles/available")
+}
+
+/** POST /api/v1/organizations — onboarding explícito */
+export async function createOrganization(name: string): Promise<{ data: { id: string; name: string } }> {
+  return fetchAPI("/api/v1/organizations", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  })
+}
+
+/** GET /api/v1/organizations/me/usage — consumo de límites */
+export async function getMembershipUsage(): Promise<{
+  data: {
+    membership: string
+    features: { featureKey: string; enabled: boolean; limitValue: number | null }[]
+    usage: { members: number }
+  }
+}> {
+  return fetchAPI("/api/v1/organizations/me/usage")
+}
+
+// ─── Dashboard del tenant ────────────────────────────────────────────────────
+
+export interface DashboardSummary {
+  counts: { ingredients: number; recipes: number; menus: number }
+  team: { members: number; limit: number | null }
+  avgCostPerServing: number | null
+  topRecipes: { id: string; name: string; costPerServing: number }[]
+  recentRecipes: { id: string; name: string; updatedAt: string }[]
+  checklist: {
+    hasIngredients: boolean
+    hasRecipes: boolean
+    hasMenus: boolean
+    hasTeam: boolean
+  }
+  onboardingComplete: boolean
+}
+
+export async function getDashboardSummary(): Promise<{ data: DashboardSummary }> {
+  return fetchAPI("/api/v1/dashboard/summary")
+}
+
+// ─── Panel de plataforma (super admin) ───────────────────────────────────────
+
+export interface PlatformOrg {
+  id: string
+  name: string
+  membership: "free" | "pro" | "academia"
+  status: "active" | "suspended"
+  ownerId: string
+  trialEndsAt: string | null
+  createdAt: string
+}
+
+export async function platformListOrgs(search?: string, page = 1): Promise<{
+  data: PlatformOrg[]; total: number; page: number; limit: number
+}> {
+  const params = new URLSearchParams()
+  if (search) params.set("search", search)
+  params.set("page", String(page))
+  return fetchAPI(`/api/v1/platform/organizations?${params}`)
+}
+
+export async function platformUpdateOrg(
+  id: string,
+  data: { membership?: string; name?: string }
+): Promise<{ data: PlatformOrg }> {
+  return fetchAPI(`/api/v1/platform/organizations/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function platformSetOrgStatus(
+  id: string,
+  action: "suspend" | "reactivate",
+  justification?: string
+): Promise<{ data: PlatformOrg }> {
+  return fetchAPI(`/api/v1/platform/organizations/${id}/${action}`, {
+    method: "POST",
+    body: JSON.stringify({ justification }),
+  })
+}
+
+export interface PlatformUser {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  createdAt: string
+  platformRoles: string[]
+  orgRoles: { roleName: string; orgName: string | null }[]
+}
+
+export async function platformListUsers(search?: string, page = 1): Promise<{
+  data: PlatformUser[]; total: number; page: number; limit: number
+}> {
+  const params = new URLSearchParams()
+  if (search) params.set("search", search)
+  params.set("page", String(page))
+  return fetchAPI(`/api/v1/platform/users?${params}`)
+}
+
+export interface AuditLogEntry {
+  id: string
+  actorUserId: string
+  actorRoles: string[]
+  action: string
+  resourceType: string
+  resourceId: string | null
+  organizationId: string | null
+  justification: string | null
+  createdAt: string
+}
+
+export async function platformListAudit(): Promise<{ data: AuditLogEntry[] }> {
+  return fetchAPI("/api/v1/platform/audit")
+}
+
+export interface PlatformUserDetail extends Omit<PlatformUser, "orgRoles"> {
+  memberships: {
+    organizationId: string
+    organizationName: string
+    status: string
+    isDefault: boolean
+  }[]
+  platformRoles: string[]
+  orgRoles: { organizationId: string | null; roleSlug: string; roleName: string }[]
+}
+
+export async function platformGetUser(id: string): Promise<{ data: PlatformUserDetail }> {
+  return fetchAPI(`/api/v1/platform/users/${id}`)
+}
+
+export async function platformSetUserPlatformRoles(
+  id: string,
+  roles: string[]
+): Promise<{ data: { userId: string; platformRoles: string[] } }> {
+  return fetchAPI(`/api/v1/platform/users/${id}/platform-roles`, {
+    method: "PUT",
+    body: JSON.stringify({ roles }),
+  })
+}
+
+export async function platformGetOrg(id: string): Promise<{ data: PlatformOrg & { memberCount: number } }> {
+  return fetchAPI(`/api/v1/platform/organizations/${id}`)
+}
+
+export interface PlatformRoleRow {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  scope: string
+  scopeContext: string | null
+}
+
+export async function platformListRoles(): Promise<{ data: PlatformRoleRow[] }> {
+  return fetchAPI("/api/v1/platform/roles")
+}
+
+export interface PlatformPermissionRow {
+  id: string
+  slug: string
+  resource: string
+  action: string
+}
+
+export async function platformListPermissions(): Promise<{ data: PlatformPermissionRow[] }> {
+  return fetchAPI("/api/v1/platform/permissions")
+}
+
+export async function platformGetRolePermissions(roleId: string): Promise<{ data: { id: string; slug: string }[] }> {
+  return fetchAPI(`/api/v1/platform/roles/${roleId}/permissions`)
+}
+
+export async function platformSetRolePermissions(
+  roleId: string,
+  permissionIds: string[]
+): Promise<{ message: string }> {
+  return fetchAPI(`/api/v1/platform/roles/${roleId}/permissions`, {
+    method: "PUT",
+    body: JSON.stringify({ permissionIds }),
+  })
+}
+
+// ─── Banco público (Content Studio) ──────────────────────────────────────────
+
+export type BancoRecipeType = "all" | "base" | "principal"
+
+export async function bancoListRecipes(
+  search?: string,
+  page = 1,
+  type: BancoRecipeType = "all",
+  limit = 24
+): Promise<{
+  data: (Recipe & { itemCount: number })[]; total: number; page: number; limit: number
+}> {
+  const params = new URLSearchParams()
+  if (search) params.set("search", search)
+  if (type !== "all") params.set("type", type)
+  params.set("page", String(page))
+  params.set("limit", String(limit))
+  return fetchAPI(`/api/v1/platform/banco/recipes?${params}`)
+}
+
+export async function bancoGetRecipe(id: string): Promise<{ data: Recipe }> {
+  return fetchAPI(`/api/v1/platform/banco/recipes/${id}`)
+}
+
+export interface BancoRecipePayload {
+  name: string
+  recipeNumber: string
+  servings: number
+  servingWeightG?: number | null
+  safetyMargin?: number
+  isBase?: boolean
+  description?: string | null
+  items: {
+    componentType: "ingredient" | "recipe"
+    ingredientId?: string
+    subRecipeId?: string
+    quantityG: number
+    sortOrder?: number
+  }[]
+}
+
+export async function bancoCreateRecipe(payload: BancoRecipePayload): Promise<{ data: Recipe }> {
+  return fetchAPI("/api/v1/platform/banco/recipes", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function bancoUpdateRecipe(id: string, payload: Partial<BancoRecipePayload>): Promise<{ data: Recipe }> {
+  return fetchAPI(`/api/v1/platform/banco/recipes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function bancoDeleteRecipe(id: string): Promise<{ message: string }> {
+  return fetchAPI(`/api/v1/platform/banco/recipes/${id}`, { method: "DELETE" })
+}
+
+export async function bancoListIngredients(search?: string, page = 1, limit = 24): Promise<{
+  data: Ingrediente[]; total: number; page: number; limit: number
+}> {
+  const params = new URLSearchParams()
+  if (search) params.set("search", search)
+  params.set("page", String(page))
+  params.set("limit", String(limit))
+  return fetchAPI(`/api/v1/platform/banco/ingredients?${params}`)
+}
+
+export async function bancoCreateIngredient(payload: {
+  name: string; costPerUnit: number; weightGrams: number
+}): Promise<{ data: Ingrediente }> {
+  return fetchAPI("/api/v1/platform/banco/ingredients", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function bancoUpdateIngredient(id: string, payload: {
+  name?: string; costPerUnit?: number; weightGrams?: number
+}): Promise<{ data: Ingrediente }> {
+  return fetchAPI(`/api/v1/platform/banco/ingredients/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function bancoDeleteIngredient(id: string): Promise<{ message: string }> {
+  return fetchAPI(`/api/v1/platform/banco/ingredients/${id}`, { method: "DELETE" })
+}
+
+export async function platformGetMetrics(): Promise<{
+  data: {
+    totalOrganizations: number
+    totalUsers: number
+    organizationsByMembership: { membership: string; total: number }[]
+  }
+}> {
+  return fetchAPI("/api/v1/platform/metrics")
+}
+
+export async function platformListMemberships(): Promise<{
+  data: {
+    features: { id: string; membership: string; featureKey: string; enabled: boolean; limitValue: number | null }[]
+    roleLimits: { membership: string; roleId: string; roleSlug: string; roleName: string }[]
+  }
+}> {
+  return fetchAPI("/api/v1/platform/memberships")
+}
+
+export async function platformUpdateFeature(
+  tier: string,
+  key: string,
+  data: { enabled?: boolean; limitValue?: number | null }
+): Promise<{ data: unknown }> {
+  return fetchAPI(`/api/v1/platform/memberships/${tier}/features/${key}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
 }

@@ -103,8 +103,8 @@ export interface IngredientGridProps {
   currentPage: number
   totalPages: number
   onPageChange: (page: number) => void
-  onEdit: (ingredient: Ingredient) => void
-  onDelete: (ingredient: Ingredient) => void
+  onEdit?: (ingredient: Ingredient) => void
+  onDelete?: (ingredient: Ingredient) => void
   onRetry: () => void
   pageSize: number
 }

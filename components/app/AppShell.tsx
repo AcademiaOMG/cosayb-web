@@ -1,17 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import useSWR from "swr"
 import { mutate } from "swr"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 import { authClient } from "@/lib/auth"
 import { getCurrentOrganization } from "@/lib/api"
+import { setLastSurface, setActiveOrgId } from "@/lib/surface"
+import { clearSWRCache } from "@/components/SWRProvider"
 import type { Plan } from "@/types/domain"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: session } = authClient.useSession()
+
+  // Esta es la superficie "tenant" — recordarla para el landing post-login
+  useEffect(() => {
+    setLastSurface("tenant")
+  }, [])
 
   const { data: orgData } = useSWR(
     "organization-me",
@@ -19,11 +26,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { revalidateOnFocus: false }
   )
 
+  // Sincronizar la org activa persistida con la resuelta por el backend
+  useEffect(() => {
+    if (orgData?.id) setActiveOrgId(orgData.id)
+  }, [orgData?.id])
+
   const orgName = orgData?.name ?? "Mi organización"
-  const plan = (orgData?.plan as Plan) ?? "free"
+  const plan = (orgData?.effectiveMembership as Plan) ?? "free"
 
   async function handleSignOut() {
     await authClient.signOut()
+    setActiveOrgId(null)
+    clearSWRCache()
     void mutate(() => true, undefined, { revalidate: false })
     window.location.href = "/login"
   }

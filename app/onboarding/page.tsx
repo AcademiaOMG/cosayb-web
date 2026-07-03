@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import { authClient } from "@/lib/auth"
+import { setActiveOrgId, getLastSurface } from "@/lib/surface"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3005"
 
@@ -26,6 +27,12 @@ function setOnboardingCookie() {
 
 export default function OnboardingPage() {
   const router = useRouter()
+  // ?new=1 → crear un negocio ADICIONAL (multi-org): salta los checks de
+  // "ya completaste el onboarding" y siempre crea una organización nueva
+  const [isNewOrgFlow] = useState(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("new") === "1"
+  )
   const [step, setStep] = useState<Step>(1)
   const [orgName, setOrgName] = useState("")
   const [city, setCity] = useState("")
@@ -45,9 +52,35 @@ export default function OnboardingPage() {
           return
         }
 
+        // Flujo "crear otro negocio": mostrar siempre el formulario
+        if (isNewOrgFlow) {
+          setChecking(false)
+          return
+        }
+
+        // Usuarios de plataforma: aterrizan en la consola si es su último
+        // contexto o si no tienen negocio propio (ej. platform_chef puro)
+        try {
+          const ctxRes = await fetch(`${API}/api/v1/me/context`, { credentials: "include" })
+          if (ctxRes.ok) {
+            const ctxBody = await ctxRes.json()
+            const platformRoles: string[] = ctxBody.data?.platformRoles ?? []
+            const hasOrg = !!ctxBody.data?.organization
+            if (
+              platformRoles.length > 0 &&
+              (getLastSurface() === "platform" || !hasOrg)
+            ) {
+              router.replace("/plataforma")
+              return
+            }
+          }
+        } catch {
+          // sin contexto — continuar flujo normal
+        }
+
         // Fast path: cookie local indica que el onboarding ya fue completado
         if (document.cookie.includes("cosayb.onboarding=true")) {
-          router.replace("/inventario")
+          router.replace("/dashboard")
           return
         }
 
@@ -58,7 +91,7 @@ export default function OnboardingPage() {
             const body = await res.json()
             if (body.data?.onboardingCompleted) {
               setOnboardingCookie()
-              router.replace("/inventario")
+              router.replace("/dashboard")
               return
             }
           }
@@ -99,47 +132,54 @@ export default function OnboardingPage() {
     setError(null)
 
     try {
-      // 1. Obtener organización existente (creada por el hook en el backend)
-      const orgRes = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
+      // 1. ¿Ya tiene organización activa? (invitado que aceptó, o re-onboarding)
+      //    En el flujo "crear otro negocio" se salta: siempre se crea una nueva.
       let orgId: string | null = null
 
-      if (orgRes.ok) {
-        const orgBody = await orgRes.json()
-        orgId = orgBody.data?.id
+      if (!isNewOrgFlow) {
+        const orgRes = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
+        if (orgRes.ok) {
+          const orgBody = await orgRes.json()
+          orgId = orgBody.data?.id
+        }
       }
 
-      // 2. Si no existe organización, crearla
+      // 2. Si no tiene, crear el negocio (onboarding explícito).
+      //    Toda org nueva arranca con 14 días de trial Pro; al expirar cae a Free.
       if (!orgId) {
         const createRes = await fetch(`${API}/api/v1/organizations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name: orgName, plan: selectedPlan }),
+          body: JSON.stringify({ name: orgName }),
         })
 
         if (!createRes.ok) throw new Error("Error al crear la organización")
         const createBody = await createRes.json()
         orgId = createBody.data?.id
+        // Activar la org recién creada (multi-org: header X-Organization-Id)
+        if (orgId) setActiveOrgId(orgId)
       }
 
-      // 3. Actualizar organización con datos del onboarding
+      // 3. Marcar onboarding como completado
       if (orgId) {
         await fetch(`${API}/api/v1/organizations/${orgId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Organization-Id": orgId,
+          },
           credentials: "include",
           body: JSON.stringify({
             name: orgName,
             onboardingCompleted: true,
-            plan: selectedPlan,
-            ...(city && city !== "otra" && { city }),
           }),
         })
       }
 
-      // 4. Setear cookie y redirigir
+      // 4. Setear cookie y aterrizar en el dashboard del negocio
       setOnboardingCookie()
-      router.push("/inventario")
+      window.location.href = "/dashboard"
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Ocurrió un error inesperado")
     } finally {
