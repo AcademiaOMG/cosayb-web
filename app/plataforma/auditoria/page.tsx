@@ -5,7 +5,7 @@ import { platformListAudit } from "@/lib/api"
 import { ScrollText } from "lucide-react"
 
 export default function AuditoriaPage() {
-  const { data } = useSWR("platform-audit", () =>
+  const { data, isLoading } = useSWR("platform-audit", () =>
     platformListAudit().then((r) => r.data)
   )
 
@@ -17,6 +17,14 @@ export default function AuditoriaPage() {
           Registro de acciones administrativas y accesos de plataforma a datos de tenants
         </p>
       </div>
+
+      {isLoading && !data && (
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="animate-pulse console-row" style={{ height: 58 }} />
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         {(data ?? []).map((log) => (
@@ -43,7 +51,7 @@ export default function AuditoriaPage() {
             </span>
           </div>
         ))}
-        {(data ?? []).length === 0 && (
+        {data && data.length === 0 && (
           <p className="text-sm text-center py-10 console-muted">Sin entradas de auditoría.</p>
         )}
       </div>

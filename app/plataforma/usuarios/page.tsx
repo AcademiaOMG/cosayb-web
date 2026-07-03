@@ -10,7 +10,7 @@ import { Search, ChevronRight } from "lucide-react"
 export default function UsuariosPage() {
   const { platformCan } = usePermissions()
   const [search, setSearch] = useState("")
-  const { data } = useSWR(["platform-users", search], () =>
+  const { data, isLoading } = useSWR(["platform-users", search], () =>
     platformListUsers(search || undefined)
   )
 
@@ -36,6 +36,14 @@ export default function UsuariosPage() {
           style={{ height: 38, paddingLeft: 34, paddingRight: 12 }}
         />
       </div>
+
+      {isLoading && !data && (
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="animate-pulse console-row" style={{ height: 62 }} />
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         {(data?.data ?? []).map((u) => {
@@ -95,7 +103,7 @@ export default function UsuariosPage() {
           )
         })}
 
-        {(data?.data ?? []).length === 0 && (
+        {data && data.data.length === 0 && (
           <p className="text-sm text-center py-10 console-muted">Sin resultados.</p>
         )}
       </div>

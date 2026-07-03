@@ -16,7 +16,6 @@ import {
   UserCircle,
   X,
 } from "lucide-react"
-import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
 import type { Resource, Action } from "@/lib/api"
@@ -215,25 +214,11 @@ export default function Sidebar({
             <UserCircle size={18} />
             Mi cuenta
           </Link>
-
-          <div className="flex items-center gap-2 px-3 pt-3 pb-1">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-              style={{ background: "var(--accent)", color: "#fff" }}
-            >
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium truncate" style={{ color: "#E2E8F0" }}>
-                {userName}
-              </span>
-              <PlanBadge plan={userPlan} />
-            </div>
-          </div>
+          {/* El nombre del usuario y el plan viven en el Topbar — aquí solo acciones */}
           <button
             onClick={onSignOut}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors w-full"
-            style={{ color: "#8FA0BC" }}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full"
+            style={{ color: "#8FA0BC", background: "transparent", border: "none", cursor: "pointer" }}
             onMouseEnter={(e) =>
               (e.currentTarget.style.background = "rgba(255,255,255,0.08)")
             }
@@ -241,7 +226,7 @@ export default function Sidebar({
               (e.currentTarget.style.background = "transparent")
             }
           >
-            <LogOut size={16} />
+            <LogOut size={18} />
             Cerrar sesión
           </button>
         </div>

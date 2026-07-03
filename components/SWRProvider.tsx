@@ -53,6 +53,9 @@ function createProvider() {
     window.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") persist()
     })
+    // beforeunload no siempre dispara (dev/hot-reload, cierres bruscos):
+    // persistir también periódicamente
+    window.setInterval(persist, 4000)
 
     return map
   }
