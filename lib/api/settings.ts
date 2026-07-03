@@ -30,13 +30,14 @@ async function fetchAPI<T>(
 export async function getCurrentOrganization(): Promise<ApiResponse<{
   id: string
   name: string
-  plan: string
-  effectivePlan: string
+  membership: string
+  effectiveMembership: string
   isTrialing: boolean
   trialExpired: boolean
   daysLeft: number
   trialEndsAt: string | null
   onboardingCompleted: boolean
+  myRoles: string[]
 }>> {
   return fetchAPI("/api/v1/organizations/me")
 }
@@ -90,8 +91,9 @@ export interface OrgMember {
   userId: string
   name: string
   email: string
-  role: string
+  roles: { slug: string; name: string }[]
   isOwner: boolean
+  status: string
   joinedAt: string
 }
 
@@ -101,11 +103,11 @@ export async function getMembers(): Promise<ApiResponse<OrgMember[]>> {
 
 export async function updateMemberRole(
   userId: string,
-  role: string
+  roleSlug: string
 ): Promise<ApiResponse<{ role: string }>> {
   return fetchAPI(`/api/v1/members/${userId}/role`, {
     method: "PATCH",
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ roleSlug }),
   })
 }
 
@@ -118,7 +120,8 @@ export async function removeMember(userId: string): Promise<{ message: string }>
 export interface Invitation {
   id: string
   email: string
-  role: string
+  roleSlug: string
+  roleName: string
   status: string
   createdAt: string
   expiresAt: string
@@ -131,11 +134,11 @@ export async function getInvitations(): Promise<ApiResponse<Invitation[]>> {
 
 export async function sendInvitation(
   email: string,
-  role?: string
+  roleSlug: string
 ): Promise<ApiResponse<{ id: string }>> {
   return fetchAPI("/api/v1/invitations", {
     method: "POST",
-    body: JSON.stringify({ email, role }),
+    body: JSON.stringify({ email, roleSlug }),
   })
 }
 
@@ -145,14 +148,15 @@ export async function revokeInvitation(id: string): Promise<{ message: string }>
 
 export async function acceptInvitation(
   id: string
-): Promise<ApiResponse<{ organizationId: string; role: string }>> {
+): Promise<ApiResponse<{ organizationId: string }>> {
   return fetchAPI(`/api/v1/invitations/${id}/accept`, { method: "POST" })
 }
 
 export interface InvitationDetail {
   id: string
   email: string
-  role: string
+  roleSlug: string
+  roleName: string
   invitedByName: string
   organizationName: string
   expiresAt: string

@@ -29,13 +29,13 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list" },
-  { href: "/precios-mercado", label: "Precios de Mercado", icon: ShoppingCart, resource: "ingredients", action: "list" },
+  { href: "/precios-mercado", label: "Precios de Mercado", icon: ShoppingCart, resource: "marketPrices", action: "list" },
   { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale, resource: "yieldFactors", action: "list" },
   { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list" },
   { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list" },
   { href: "/valoracion", label: "Valoración A&B", icon: TrendingUp, resource: "valuations", action: "list" },
-  { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2, resource: "puntoEquilibrio", action: "list" },
-  { href: "/ajustes", label: "Ajustes", icon: Settings, resource: "organizations", action: "read" },
+  { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2, resource: "breakEven", action: "list" },
+  { href: "/ajustes", label: "Ajustes", icon: Settings, resource: "organization", action: "read" },
 ]
 
 export interface SidebarProps {
@@ -54,7 +54,7 @@ export default function Sidebar({
   onSignOut,
 }: SidebarProps) {
   const pathname = usePathname()
-  const { can, isLoading } = usePermissions()
+  const { can, isLoading, isPlatform } = usePermissions()
 
   const visibleItems = isLoading
     ? navItems
@@ -139,6 +139,23 @@ export default function Sidebar({
                 </li>
               )
             })}
+            {isPlatform && (
+              <li key="/admin">
+                <Link
+                  href="/admin"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                  style={{
+                    background: pathname.startsWith("/admin") ? "var(--accent)" : "transparent",
+                    color: pathname.startsWith("/admin") ? "#fff" : "#F0B429",
+                  }}
+                  aria-current={pathname.startsWith("/admin") ? "page" : undefined}
+                >
+                  <Settings size={18} />
+                  Plataforma
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
 

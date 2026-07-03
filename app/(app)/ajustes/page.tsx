@@ -15,9 +15,10 @@ import {
   getMyProfile, updateMyProfile,
   getMembers, updateMemberRole, removeMember,
   getInvitations, sendInvitation, revokeInvitation,
+  getAvailableRoles,
 } from "@/lib/api"
-import type { OrgMember, Invitation } from "@/lib/api"
-import { FEATURE_LABELS, PLAN_FEATURES, type Plan } from "@/config/features"
+import type { OrgMember, Invitation, AssignableRole } from "@/lib/api"
+import { type Plan } from "@/config/features"
 import {
   User, Building2, Mail, CreditCard, Clock, CheckCircle2, Lock,
   ArrowUpRight, Crown, GraduationCap, Zap, Shield, UserMinus,
@@ -32,10 +33,20 @@ const PLAN_CONFIG: Record<Plan, { label: string; bg: string; color: string; icon
   academia: { label: "Academia", bg: "#FEF3C7", color: "#92400E", icon: GraduationCap },
 }
 
-const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  owner: { label: "Propietario", color: "#92400E", bg: "#FEF3C7" },
-  chef: { label: "Chef", color: "#1E40AF", bg: "#DBEAFE" },
-  student: { label: "Estudiante", color: "#065F46", bg: "#D1FAE5" },
+// Colores por slug de rol; el label viene de la API (roles.name)
+const ROLE_COLORS: Record<string, { color: string; bg: string }> = {
+  org_owner: { color: "#92400E", bg: "#FEF3C7" },
+  org_manager: { color: "#6D28D9", bg: "#EDE9FE" },
+  org_chef: { color: "#1E40AF", bg: "#DBEAFE" },
+  org_cost_analyst: { color: "#0369A1", bg: "#E0F2FE" },
+  org_viewer: { color: "#374151", bg: "#F3F4F6" },
+  academic_teacher: { color: "#065F46", bg: "#D1FAE5" },
+  academic_assistant: { color: "#065F46", bg: "#ECFDF5" },
+  academic_student: { color: "#065F46", bg: "#D1FAE5" },
+}
+
+function roleColor(slug: string) {
+  return ROLE_COLORS[slug] ?? { color: "var(--text-muted)", bg: "var(--bg-secondary)" }
 }
 
 type Tab = "perfil" | "organizacion" | "invitaciones"
@@ -50,10 +61,10 @@ const TABS: { key: Tab; label: string; icon: typeof User }[] = [
 
 export default function AjustesPage() {
   const { open: openUpgradeModal } = useUpgradeModal()
-  const { roles } = usePermissions()
+  const { can } = usePermissions()
   const [activeTab, setActiveTab] = useState<Tab>("perfil")
 
-  const isAdmin = roles.includes("owner") || roles.includes("super_admin")
+  const isAdmin = can("organization", "update")
 
   const visibleTabs = isAdmin
     ? TABS
@@ -245,6 +256,11 @@ function OrganizacionTab({ openUpgradeModal }: { openUpgradeModal: () => void })
     () => getMembers().then((r) => r.data ?? []),
     { revalidateOnFocus: false }
   )
+  const { data: availableRoles = [] } = useSWR(
+    "roles-available",
+    () => getAvailableRoles().then((r) => r.data ?? []),
+    { revalidateOnFocus: false }
+  )
 
   const [orgName, setOrgName] = useState("")
   const [nameInit, setNameInit] = useState(false)
@@ -268,11 +284,10 @@ function OrganizacionTab({ openUpgradeModal }: { openUpgradeModal: () => void })
   }
 
   const plan = planData
-  const displayPlan: Plan = (plan?.plan as Plan) ?? "free"
-  const effectivePlan: Plan = (plan?.effectivePlan as Plan) ?? "free"
+  const displayPlan: Plan = (plan?.membership as Plan) ?? "free"
   const planConfig = PLAN_CONFIG[displayPlan]
   const PlanIcon = planConfig.icon
-  const includedFeatures = PLAN_FEATURES[effectivePlan]
+  const includedFeatures = plan?.features.filter((f) => f.enabled) ?? []
 
   function handleRequestSaveName() {
     if (!orgName.trim() || orgName === orgData?.name) return
@@ -418,14 +433,19 @@ function OrganizacionTab({ openUpgradeModal }: { openUpgradeModal: () => void })
             </p>
             <div className="grid grid-cols-2 gap-2">
               {includedFeatures.map((f) => (
-                <div key={f} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+                <div key={f.key} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
                   style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
                   <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                     style={{ background: "#ECFDF5" }}>
                     <CheckCircle2 size={12} style={{ color: "#16A34A" }} />
                   </div>
                   <span className="text-sm" style={{ color: "var(--text-primary)" }}>
-                    {FEATURE_LABELS[f]}
+                    {f.label}
+                    {f.limit != null && (
+                      <span className="ml-1" style={{ color: "var(--text-muted)" }}>
+                        (hasta {f.limit})
+                      </span>
+                    )}
                   </span>
                 </div>
               ))}
@@ -452,7 +472,10 @@ function OrganizacionTab({ openUpgradeModal }: { openUpgradeModal: () => void })
 
         <div className="flex flex-col gap-2">
           {members.map((m) => {
-            const roleInfo = ROLE_LABELS[m.role] ?? { label: m.role, color: "var(--text-muted)", bg: "var(--bg-secondary)" }
+            const primaryRole = m.roles[0]
+            const roleInfo = primaryRole
+              ? { label: primaryRole.name, ...roleColor(primaryRole.slug) }
+              : { label: "Sin rol", color: "var(--text-muted)", bg: "var(--bg-secondary)" }
             return (
               <div
                 key={m.userId}
@@ -482,7 +505,7 @@ function OrganizacionTab({ openUpgradeModal }: { openUpgradeModal: () => void })
                 {!m.isOwner && (
                   <div className="flex gap-1 shrink-0">
                     <button
-                      onClick={() => { setRoleTarget(m); setNewRole(m.role) }}
+                      onClick={() => { setRoleTarget(m); setNewRole(m.roles[0]?.slug ?? "") }}
                       className="p-1.5 rounded-lg transition-colors"
                       style={{ color: "var(--text-muted)" }}
                       title="Cambiar rol"
@@ -533,22 +556,27 @@ function OrganizacionTab({ openUpgradeModal }: { openUpgradeModal: () => void })
         <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
           Cambiar el rol de <strong style={{ color: "var(--text-primary)" }}>{roleTarget?.name}</strong>
         </p>
-        <div className="flex gap-2">
-          {["chef", "student"].map((r) => {
-            const info = ROLE_LABELS[r]
-            const selected = newRole === r
+        <div className="grid grid-cols-2 gap-2">
+          {availableRoles.map((r) => {
+            const info = roleColor(r.slug)
+            const selected = newRole === r.slug
             return (
               <button
-                key={r}
-                onClick={() => setNewRole(r)}
-                className="flex-1 p-3 rounded-xl text-sm font-medium transition-all"
+                key={r.slug}
+                onClick={() => setNewRole(r.slug)}
+                className="p-3 rounded-xl text-sm font-medium transition-all text-left"
                 style={{
                   border: `2px solid ${selected ? info.color : "var(--border-light)"}`,
                   background: selected ? info.bg : "var(--bg-primary)",
                   color: selected ? info.color : "var(--text-secondary)",
                 }}
               >
-                {info.label}
+                <span className="block">{r.name}</span>
+                {r.description && (
+                  <span className="block text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    {r.description}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -610,9 +638,14 @@ function InvitacionesTab() {
     () => getInvitations().then((r) => r.data ?? []),
     { revalidateOnFocus: false }
   )
+  const { data: availableRoles = [] } = useSWR(
+    "roles-available",
+    () => getAvailableRoles().then((r) => r.data ?? []),
+    { revalidateOnFocus: false }
+  )
 
   const [email, setEmail] = useState("")
-  const [role, setRole] = useState("chef")
+  const [role, setRole] = useState("")
   const [sending, setSending] = useState(false)
   const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<Invitation | null>(null)
@@ -629,18 +662,25 @@ function InvitacionesTab() {
   )
   const processed = useMemo(() => invitations.filter((i) => i.status !== "pending"), [invitations])
 
+  // Rol por defecto: el primero disponible según la membresía
+  const effectiveRole = role || availableRoles[0]?.slug || ""
+
   async function handleInvite() {
-    if (!email.trim() || !email.includes("@")) return
+    if (!email.trim() || !email.includes("@") || !effectiveRole) return
     setSending(true)
     setMsg(null)
     try {
-      await sendInvitation(email.trim(), role)
+      await sendInvitation(email.trim(), effectiveRole)
       await mutate()
       setEmail("")
       setMsg({ type: "ok", text: "Invitación enviada" })
       setTimeout(() => setMsg(null), 4000)
-    } catch {
-      setMsg({ type: "error", text: "Error al enviar invitación. Puede que ya exista una invitación pendiente." })
+    } catch (err) {
+      const text =
+        err instanceof Error && err.message !== "" && !err.message.startsWith("HTTP")
+          ? err.message
+          : "Error al enviar invitación. Puede que ya exista una invitación pendiente o hayas alcanzado el límite de tu membresía."
+      setMsg({ type: "error", text })
     } finally {
       setSending(false)
     }
@@ -692,7 +732,7 @@ function InvitacionesTab() {
               </label>
               <div className="relative">
                 <select
-                  value={role}
+                  value={effectiveRole}
                   onChange={(e) => setRole(e.target.value)}
                   className="w-full appearance-none"
                   style={{
@@ -708,8 +748,9 @@ function InvitacionesTab() {
                     cursor: "pointer",
                   }}
                 >
-                  <option value="chef">Chef</option>
-                  <option value="student">Estudiante</option>
+                  {availableRoles.map((r) => (
+                    <option key={r.slug} value={r.slug}>{r.name}</option>
+                  ))}
                 </select>
                 <ChevronDown
                   size={14}
@@ -763,7 +804,7 @@ function InvitacionesTab() {
 
           <div className="flex flex-col gap-2">
             {pending.map((inv) => {
-              const roleInfo = ROLE_LABELS[inv.role] ?? { label: inv.role, color: "var(--text-muted)", bg: "var(--bg-secondary)" }
+              const roleInfo = { label: inv.roleName ?? inv.roleSlug, ...roleColor(inv.roleSlug) }
               return (
                 <div
                   key={inv.id}

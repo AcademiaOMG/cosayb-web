@@ -20,7 +20,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   )
 
   const orgName = orgData?.name ?? "Mi organización"
-  const plan = (orgData?.plan as Plan) ?? "free"
+  const plan = (orgData?.effectiveMembership as Plan) ?? "free"
 
   async function handleSignOut() {
     await authClient.signOut()

@@ -9,10 +9,15 @@ import {
   type InvitationDetail,
 } from "@/lib/api/settings"
 
+// Colores por slug; el label viene de la API (roleName)
 const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  chef: { label: "Cocinero", color: "#059669", bg: "#ecfdf5" },
-  student: { label: "Estudiante", color: "#2563eb", bg: "#eff6ff" },
-  owner: { label: "Propietario", color: "#e94560", bg: "#fff1f2" },
+  org_chef: { label: "Chef", color: "#059669", bg: "#ecfdf5" },
+  org_manager: { label: "Gerente", color: "#6D28D9", bg: "#f5f3ff" },
+  org_cost_analyst: { label: "Analista de costos", color: "#0369A1", bg: "#f0f9ff" },
+  org_viewer: { label: "Observador", color: "#2563eb", bg: "#eff6ff" },
+  academic_teacher: { label: "Docente", color: "#065F46", bg: "#ecfdf5" },
+  academic_assistant: { label: "Asistente", color: "#065F46", bg: "#f0fdf4" },
+  academic_student: { label: "Estudiante", color: "#2563eb", bg: "#eff6ff" },
 }
 
 export default function AcceptInvitationPage({
@@ -129,7 +134,7 @@ export default function AcceptInvitationPage({
 
   if (!invitation) return null
 
-  const roleInfo = ROLE_LABELS[invitation.role] ?? { label: invitation.role, color: "#78716c", bg: "#f5f5f4" }
+  const roleInfo = ROLE_LABELS[invitation.roleSlug] ?? { label: invitation.roleName ?? invitation.roleSlug, color: "#78716c", bg: "#f5f5f4" }
   const isLoggedIn = !!userEmail
   const emailMatch = isLoggedIn && userEmail?.toLowerCase() === invitation.email.toLowerCase()
 

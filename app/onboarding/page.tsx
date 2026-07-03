@@ -99,7 +99,7 @@ export default function OnboardingPage() {
     setError(null)
 
     try {
-      // 1. Obtener organización existente (creada por el hook en el backend)
+      // 1. ¿Ya tiene organización activa? (invitado que aceptó, o re-onboarding)
       const orgRes = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
       let orgId: string | null = null
 
@@ -108,13 +108,14 @@ export default function OnboardingPage() {
         orgId = orgBody.data?.id
       }
 
-      // 2. Si no existe organización, crearla
+      // 2. Si no tiene, crear el negocio (onboarding explícito).
+      //    Toda org nueva arranca con 14 días de trial Pro; al expirar cae a Free.
       if (!orgId) {
         const createRes = await fetch(`${API}/api/v1/organizations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name: orgName, plan: selectedPlan }),
+          body: JSON.stringify({ name: orgName }),
         })
 
         if (!createRes.ok) throw new Error("Error al crear la organización")
@@ -122,7 +123,7 @@ export default function OnboardingPage() {
         orgId = createBody.data?.id
       }
 
-      // 3. Actualizar organización con datos del onboarding
+      // 3. Marcar onboarding como completado
       if (orgId) {
         await fetch(`${API}/api/v1/organizations/${orgId}`, {
           method: "PUT",
@@ -131,8 +132,6 @@ export default function OnboardingPage() {
           body: JSON.stringify({
             name: orgName,
             onboardingCompleted: true,
-            plan: selectedPlan,
-            ...(city && city !== "otra" && { city }),
           }),
         })
       }

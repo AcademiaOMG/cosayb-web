@@ -31,7 +31,7 @@ export default function UpgradeModal() {
     { revalidateOnFocus: false }
   )
 
-  const currentPlan: Plan = (planData?.plan as Plan) ?? "free"
+  const currentPlan: Plan = (planData?.membership as Plan) ?? "free"
   const [selectedPlan, setSelectedPlan] = useState<Plan>("pro")
   const [prevOpen, setPrevOpen] = useState(false)
 

@@ -295,6 +295,8 @@ export interface Subscription {
 export interface PlanFeature {
   key: string
   label: string
+  enabled: boolean
+  limit: number | null
 }
 
 export interface PlanInfo {
@@ -307,14 +309,13 @@ export interface PlanInfo {
 }
 
 export interface CurrentPlanData {
-  plan: Plan
-  effectivePlan: Plan
+  membership: Plan
+  effectiveMembership: Plan
   isTrialing: boolean
   trialExpired: boolean
   daysLeft: number
   trialEndsAt: string | null
   features: PlanFeature[]
-  disabledFeatures: (PlanFeature & { requiredPlan: string })[]
   planInfo: {
     name: string
     price: number
