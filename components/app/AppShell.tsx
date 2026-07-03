@@ -65,7 +65,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           userInitial={userName.charAt(0).toUpperCase()}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-6" style={{ background: "var(--bg-primary)" }}>
+        <main className="flex-1 overflow-y-auto p-6 animate-page-in" style={{ background: "var(--bg-primary)" }}>
           {children}
         </main>
       </div>

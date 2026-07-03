@@ -96,6 +96,10 @@
 }
 
 html { scroll-behavior: smooth; }
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 .animate-fade-up {
   opacity: 0;
@@ -240,6 +244,31 @@ html { scroll-behavior: smooth; }
 }
 .btn-secondary:hover { background-color: var(--bg-secondary); }
 
+
+.animate-page-in {
+  animation: page-in 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-in,
+  .animate-fade-up,
+  .animate-fade-up-delay-1,
+  .animate-fade-up-delay-2,
+  .animate-fade-up-delay-3,
+  .animate-fade-up-delay-4 {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ─── Sidebar scrollbar ─────────────────────────────────────────── */
+.sidebar-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.sidebar-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
 
 /* ─── % Materia Prima Slider ────────────────────────────────────── */
 /* Track: gradiente de zonas fijo (verde <32% | amarillo 32-37% | rojo >37%)   */

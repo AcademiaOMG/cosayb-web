@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
 import Input from "@/components/ui/Input"
 import Table from "@/components/ui/Table"
+import Modal from "@/components/ui/Modal"
 import {
   ArrowLeft, CheckCircle2, Plus, Trash2, UtensilsCrossed, ChefHat, Users, TrendingUp, Loader2, CalendarDays, Pencil,
 } from "lucide-react"
@@ -18,6 +19,7 @@ import {
 } from "@/lib/api"
 import type { CreateMenuPayload } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 
 // ─── Fórmulas (réplica exacta del backend calcularCostoMenu) ─────────────────
 interface RecetaCalculo {
@@ -806,7 +808,7 @@ function MenuTable({
           ),
         },
         {
-          key: "pctMateriaPrima",
+          key: "indicator",
           label: "Indicador",
           render: (v) => {
             const pct = parseFloat(v as string)
@@ -891,6 +893,7 @@ function MenuListSkeleton() {
 type PageView = "list" | "detail"
 
 export default function MenuPage() {
+  useHelpAvailable()
   const { can } = usePermissions()
   const { data: menus = [], isLoading: menusLoading, mutate: mutateMenus } = useSWR(
     "menus",
@@ -900,12 +903,19 @@ export default function MenuPage() {
 
   const { data: availableRecipes = [] } = useSWR(
     "recipes",
-    () => getRecipes().then((r) => r.data ?? []),
+    () => getRecipes(undefined, "all", 1, 100).then((r) => r.data ?? []),
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
   const [view, setView] = useState<PageView>("list")
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  useEffect(() => {
+    function handleHelp() { setHelpOpen(true) }
+    window.addEventListener("open-help", handleHelp)
+    return () => window.removeEventListener("open-help", handleHelp)
+  }, [])
 
   async function openEdit(menu: Menu) {
     try {
@@ -994,6 +1004,47 @@ export default function MenuPage() {
           onDelete={(id) => handleDelete(id)}
         />
       )}
+
+      {/* ── Modal: help ──────────────────────────────────────────────────── */}
+      <Modal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        title="Menús"
+      >
+        <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+          <p>Esta seccion te permite crear y gestionar menus para eventos y servicios, agrupando platos y calculando costos.</p>
+
+          <div>
+            <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
+            <ul className="flex flex-col gap-2 ml-1">
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Crear menu:</strong> Haz clic en Nuevo menu para agregar recetas, porciones y configurar costos.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Definir parametros:</strong> Establece fecha, numero de personas, margen de seguridad y porcentaje de materia prima.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Agregar recetas:</strong> Selecciona recetas existentes y define los gramos por porcion.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Analisis en tiempo real:</strong> Visualiza el costo total, precio sugerido e indicador de rentabilidad.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Indicador de rentabilidad:</strong> MUY BUENO (&lt;32%), REGULAR (32-37%), MALO (&gt;37%).</span>
+              </li>
+            </ul>
+          </div>
+
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <strong>Nota:</strong> El margen de seguridad protege contra subidas de precios. Recomendado: 3-5%.
+          </p>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -149,7 +149,7 @@ export default function EquipoPage() {
     <div className="flex flex-col gap-5">
       {/* Uso del límite de usuarios */}
       {maxUsers != null && (
-        <Card>
+        <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
           <div className="flex items-center gap-3 mb-3">
             <Users size={16} style={{ color: "var(--accent)" }} />
             <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
@@ -180,7 +180,7 @@ export default function EquipoPage() {
 
       {/* Invitar (solo con permiso) */}
       {canInvite && (
-        <Card>
+        <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
           <div className="flex items-center gap-3 mb-5">
             <Send size={18} style={{ color: "var(--accent)" }} />
             <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
@@ -246,7 +246,7 @@ export default function EquipoPage() {
       )}
 
       {/* Miembros */}
-      <Card>
+      <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
         <div className="flex items-center gap-3 mb-5">
           <Shield size={18} style={{ color: "var(--accent)" }} />
           <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
@@ -319,7 +319,7 @@ export default function EquipoPage() {
 
       {/* Invitaciones pendientes */}
       {canInvite && pending.length > 0 && (
-        <Card>
+        <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
           <div className="flex items-center gap-3 mb-5">
             <Clock size={18} style={{ color: "#D97706" }} />
             <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
@@ -369,7 +369,7 @@ export default function EquipoPage() {
 
       {/* Historial de invitaciones */}
       {canInvite && invitations.some((i) => i.status !== "pending") && (
-        <Card>
+        <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
           <div className="flex items-center gap-3 mb-5">
             <CheckCircle2 size={18} style={{ color: "var(--text-muted)" }} />
             <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>

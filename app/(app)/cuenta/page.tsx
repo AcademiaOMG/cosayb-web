@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR from "swr"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
@@ -21,14 +21,14 @@ export default function CuentaPage() {
   )
 
   const [name, setName] = useState("")
-  const [nameInit, setNameInit] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
-  if (profile?.name && !nameInit) {
-    setName(profile.name)
-    setNameInit(true)
-  }
+  useEffect(() => {
+    if (profile?.name) {
+      setName(profile.name)
+    }
+  }, [profile?.name])
 
   async function handleSave() {
     if (!name.trim() || name === profile?.name) return
@@ -50,7 +50,7 @@ export default function CuentaPage() {
     <div className="flex flex-col gap-6 max-w-2xl">
       <PageHeader title="Mi cuenta" subtitle="Tu información personal" />
 
-      <Card>
+      <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
         <div className="flex items-center gap-3 mb-5">
           <User size={18} style={{ color: "var(--accent)" }} />
           <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
