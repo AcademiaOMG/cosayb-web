@@ -23,11 +23,17 @@ export function usePermissions() {
   const permissions = ctx?.permissions ?? []
   const roles = ctx?.roles ?? []
   const platformRoles = ctx?.platformRoles ?? []
+  const platformPermissions = ctx?.platformPermissions ?? []
   const organization = ctx?.organization ?? null
 
   /** ¿Tiene el permiso action:resource en la organización activa? */
   function can(resource: Resource, action: Action): boolean {
     return permissions.includes(`${action}:${resource}`)
+  }
+
+  /** ¿Tiene el permiso action:resource en el scope PLATAFORMA? */
+  function platformCan(resource: string, action: string): boolean {
+    return platformPermissions.includes(`${action}:${resource}`)
   }
 
   /** ¿La membresía de la org activa tiene esta feature habilitada? */
@@ -48,8 +54,10 @@ export function usePermissions() {
     organization,
     memberships: ctx?.memberships ?? [],
     platformRoles,
+    platformPermissions,
     // Helpers
     can,
+    platformCan,
     hasFeature,
     featureLimit,
     isOwner: roles.includes("org_owner"),

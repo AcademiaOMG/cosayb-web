@@ -17,6 +17,7 @@ import {
   getRecipes, getRecipeCost,
 } from "@/lib/api"
 import type { CreateMenuPayload } from "@/lib/api"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // ─── Fórmulas (réplica exacta del backend calcularCostoMenu) ─────────────────
 interface RecetaCalculo {
@@ -786,7 +787,7 @@ function MenuTable({
           key: "recetas",
           label: "Recetas",
           render: (v) => {
-            const arr = v as Menu["recetas"]
+            const arr = (v ?? []) as Menu["recetas"]
             return (
               <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
                 <ChefHat size={13} style={{ color: "var(--text-muted)" }} />
@@ -890,6 +891,7 @@ function MenuListSkeleton() {
 type PageView = "list" | "detail"
 
 export default function MenuPage() {
+  const { can } = usePermissions()
   const { data: menus = [], isLoading: menusLoading, mutate: mutateMenus } = useSWR(
     "menus",
     () => getMenus().then((r) => r.data ?? []),
@@ -953,10 +955,12 @@ export default function MenuPage() {
         title="Menús"
         subtitle="Para eventos y servicios: agrupa platos, define gramos por porción y calcula el precio por persona"
         action={
-          <Button variant="primary" onClick={openCreate}>
-            <Plus size={15} />
-            Nuevo menú
-          </Button>
+          can("menus", "create") ? (
+            <Button variant="primary" onClick={openCreate}>
+              <Plus size={15} />
+              Nuevo menú
+            </Button>
+          ) : undefined
         }
       />
 
@@ -976,10 +980,12 @@ export default function MenuPage() {
               Úsalo para planear eventos o servicios: agrupa platos, define porciones y obtén el precio ideal por persona.
             </p>
           </div>
-          <Button variant="ghost" onClick={openCreate}>
-            <Plus size={14} />
-            Crear primer menú
-          </Button>
+          {can("menus", "create") && (
+            <Button variant="ghost" onClick={openCreate}>
+              <Plus size={14} />
+              Crear primer menú
+            </Button>
+          )}
         </div>
       ) : (
         <MenuTable

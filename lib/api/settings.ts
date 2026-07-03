@@ -1,5 +1,6 @@
 import type { CurrentPlanData, PlanInfo } from "@/types/domain"
 import type { ApiResponse } from "@/types/api"
+import { getActiveOrgId } from "@/lib/surface"
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
@@ -8,10 +9,12 @@ async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const activeOrg = getActiveOrgId()
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(activeOrg ? { "X-Organization-Id": activeOrg } : {}),
       ...options.headers,
     },
     credentials: "include",

@@ -7,8 +7,9 @@ import type { Ingredient } from "@/types/ingredient"
 
 export interface IngredientCardProps {
   ingredient: Ingredient
-  onEdit: (ingredient: Ingredient) => void
-  onDelete: (ingredient: Ingredient) => void
+  /** Sin handler = usuario sin permiso → el botón no se renderiza */
+  onEdit?: (ingredient: Ingredient) => void
+  onDelete?: (ingredient: Ingredient) => void
 }
 
 function getPriceBadge(priceConfirmedAt: string | null): { label: string; variant: "warning" | "muted" } | null {
@@ -67,34 +68,38 @@ export default function IngredientCard({
           </div>
         </div>
 
-        {/* Actions — only for own ingredients */}
-        {isOwn && (
+        {/* Actions — solo ingredientes propios y con permisos */}
+        {isOwn && (onEdit || onDelete) && (
           <div
             className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
             aria-label="Acciones"
           >
-            <button
-              onClick={() => onEdit(ingredient)}
-              aria-label={`Editar ${ingredient.name}`}
-              className="rounded-lg p-1.5 transition-colors hover:bg-[var(--bg-secondary)]"
-              style={{ color: "var(--text-muted)" }}
-            >
-              <Pencil size={14} />
-            </button>
-            <button
-              onClick={() => onDelete(ingredient)}
-              aria-label={`Eliminar ${ingredient.name}`}
-              className="rounded-lg p-1.5 transition-colors hover:bg-red-50"
-              style={{ color: "var(--text-muted)" }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#B42020"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-muted)"
-              }}
-            >
-              <Trash2 size={14} />
-            </button>
+            {onEdit && (
+              <button
+                onClick={() => onEdit(ingredient)}
+                aria-label={`Editar ${ingredient.name}`}
+                className="rounded-lg p-1.5 transition-colors hover:bg-[var(--bg-secondary)]"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <Pencil size={14} />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(ingredient)}
+                aria-label={`Eliminar ${ingredient.name}`}
+                className="rounded-lg p-1.5 transition-colors hover:bg-red-50"
+                style={{ color: "var(--text-muted)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#B42020"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-muted)"
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google"
+import SWRProvider from "@/components/SWRProvider"
 import "./globals.css"
 
 const barlowCondensed = Barlow_Condensed({
@@ -104,7 +105,9 @@ export default function RootLayout({
       lang="es"
       className={`${barlowCondensed.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <SWRProvider>{children}</SWRProvider>
+      </body>
     </html>
   )
 }

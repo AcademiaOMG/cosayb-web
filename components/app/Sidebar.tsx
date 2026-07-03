@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  Home,
   Package,
   Scale,
   ChefHat,
@@ -12,12 +13,17 @@ import {
   Settings,
   ShoppingCart,
   LogOut,
+  UserCircle,
   X,
 } from "lucide-react"
 import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
 import type { Resource, Action } from "@/lib/api"
+
+// ─── Navegación del Restaurant Tenant Workspace ──────────────────────────────
+// Esta superficie NUNCA contiene ítems de Platform Console. El cruce entre
+// superficies vive únicamente en el selector de contexto del Topbar.
 
 interface NavItem {
   href: string
@@ -27,15 +33,36 @@ interface NavItem {
   action: Action
 }
 
-const navItems: NavItem[] = [
-  { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list" },
-  { href: "/precios-mercado", label: "Precios de Mercado", icon: ShoppingCart, resource: "marketPrices", action: "list" },
-  { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale, resource: "yieldFactors", action: "list" },
-  { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list" },
-  { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list" },
-  { href: "/valoracion", label: "Valoración A&B", icon: TrendingUp, resource: "valuations", action: "list" },
-  { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2, resource: "breakEven", action: "list" },
-  { href: "/ajustes", label: "Ajustes", icon: Settings, resource: "organization", action: "read" },
+interface NavGroup {
+  label: string | null
+  items: NavItem[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: null,
+    items: [
+      // El dashboard es visible para cualquier miembro de la organización
+      { href: "/dashboard", label: "Inicio", icon: Home, resource: "organization", action: "read" },
+    ],
+  },
+  {
+    label: "Operación",
+    items: [
+      { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list" },
+      { href: "/precios-mercado", label: "Precios de Mercado", icon: ShoppingCart, resource: "marketPrices", action: "list" },
+      { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale, resource: "yieldFactors", action: "list" },
+      { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list" },
+      { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list" },
+    ],
+  },
+  {
+    label: "Finanzas",
+    items: [
+      { href: "/valoracion", label: "Valoración A&B", icon: TrendingUp, resource: "valuations", action: "list" },
+      { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2, resource: "breakEven", action: "list" },
+    ],
+  },
 ]
 
 export interface SidebarProps {
@@ -54,11 +81,17 @@ export default function Sidebar({
   onSignOut,
 }: SidebarProps) {
   const pathname = usePathname()
-  const { can, isLoading, isPlatform } = usePermissions()
+  const { can, isLoading } = usePermissions()
 
-  const visibleItems = isLoading
-    ? navItems
-    : navItems.filter((item) => can(item.resource, item.action))
+  // Grupos con solo los ítems permitidos; si un grupo queda vacío no se
+  // renderiza (ni su etiqueta) — la estructura varía por rol, no se "esconde"
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: isLoading ? group.items : group.items.filter((i) => can(i.resource, i.action)),
+  })).filter((group) => group.items.length > 0)
+
+  // Configuración: visible para quien gestiona el negocio o al menos ve el equipo
+  const showConfig = !isLoading && (can("organization", "update") || can("members", "list"))
 
   return (
     <>
@@ -92,9 +125,9 @@ export default function Sidebar({
           className="flex items-center justify-between px-5 h-16 shrink-0"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
         >
-          <span className="font-display text-2xl font-bold text-white">
+          <Link href="/dashboard" className="font-display text-2xl font-bold text-white">
             CO$AYB
-          </span>
+          </Link>
           <button
             onClick={onClose}
             className="lg:hidden rounded-lg p-1.5"
@@ -107,64 +140,83 @@ export default function Sidebar({
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="flex flex-col gap-1" role="list">
-            {visibleItems.map(({ href, label, icon: Icon }) => {
-              const isActive =
-                pathname === href || pathname.startsWith(`${href}/`)
-              return (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    onClick={onClose}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                    style={{
-                      background: isActive
-                        ? "var(--accent)"
-                        : "transparent",
-                      color: isActive ? "#fff" : "#8FA0BC",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive)
-                        e.currentTarget.style.background =
-                          "rgba(255,255,255,0.08)"
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) e.currentTarget.style.background = "transparent"
-                    }}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    <Icon size={18} />
-                    {label}
-                  </Link>
-                </li>
-              )
-            })}
-            {isPlatform && (
-              <li key="/admin">
-                <Link
-                  href="/admin"
-                  onClick={onClose}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                  style={{
-                    background: pathname.startsWith("/admin") ? "var(--accent)" : "transparent",
-                    color: pathname.startsWith("/admin") ? "#fff" : "#F0B429",
-                  }}
-                  aria-current={pathname.startsWith("/admin") ? "page" : undefined}
+          {visibleGroups.map((group, gi) => (
+            <div key={group.label ?? `g${gi}`} className={gi > 0 ? "mt-5" : ""}>
+              {group.label && (
+                <p
+                  className="px-3 mb-1.5 text-[10px] font-bold tracking-[0.14em] uppercase"
+                  style={{ color: "#5B6B85" }}
                 >
-                  <Settings size={18} />
-                  Plataforma
-                </Link>
-              </li>
-            )}
-          </ul>
+                  {group.label}
+                </p>
+              )}
+              <ul className="flex flex-col gap-1" role="list">
+                {group.items.map(({ href, label, icon: Icon }) => {
+                  const isActive =
+                    pathname === href || pathname.startsWith(`${href}/`)
+                  return (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        onClick={onClose}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                        style={{
+                          background: isActive ? "var(--accent)" : "transparent",
+                          color: isActive ? "#fff" : "#8FA0BC",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive)
+                            e.currentTarget.style.background = "rgba(255,255,255,0.08)"
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) e.currentTarget.style.background = "transparent"
+                        }}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        <Icon size={18} />
+                        {label}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
-        {/* User section */}
+        {/* Configuración + cuenta + sesión */}
         <div
-          className="px-4 py-4 flex flex-col gap-3 shrink-0"
+          className="px-3 py-3 flex flex-col gap-1 shrink-0"
           style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
         >
-          <div className="flex items-center gap-2">
+          {showConfig && (
+            <Link
+              href="/configuracion/equipo"
+              onClick={onClose}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+              style={{
+                background: pathname.startsWith("/configuracion") ? "var(--accent)" : "transparent",
+                color: pathname.startsWith("/configuracion") ? "#fff" : "#8FA0BC",
+              }}
+            >
+              <Settings size={18} />
+              Configuración
+            </Link>
+          )}
+          <Link
+            href="/cuenta"
+            onClick={onClose}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+            style={{
+              background: pathname.startsWith("/cuenta") ? "var(--accent)" : "transparent",
+              color: pathname.startsWith("/cuenta") ? "#fff" : "#8FA0BC",
+            }}
+          >
+            <UserCircle size={18} />
+            Mi cuenta
+          </Link>
+
+          <div className="flex items-center gap-2 px-3 pt-3 pb-1">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
               style={{ background: "var(--accent)", color: "#fff" }}
@@ -172,10 +224,7 @@ export default function Sidebar({
               {userName.charAt(0).toUpperCase()}
             </div>
             <div className="flex flex-col min-w-0">
-              <span
-                className="text-sm font-medium truncate"
-                style={{ color: "#E2E8F0" }}
-              >
+              <span className="text-sm font-medium truncate" style={{ color: "#E2E8F0" }}>
                 {userName}
               </span>
               <PlanBadge plan={userPlan} />

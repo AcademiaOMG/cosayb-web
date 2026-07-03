@@ -17,6 +17,7 @@ import {
   deleteFactorRendimiento,
 } from "@/lib/api"
 import { Scale, Plus } from "lucide-react"
+import { usePermissions } from "@/hooks/usePermissions"
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function TableSkeleton() {
@@ -57,6 +58,7 @@ function TableSkeleton() {
 
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function FactorRendimientoPage() {
+  const { can } = usePermissions()
   const { data: factors = [], isLoading, error, mutate } = useSWR(
     "yield-factors",
     () => getFactoresRendimiento().then((r) => r.data ?? []),
@@ -127,10 +129,12 @@ export default function FactorRendimientoPage() {
         title="Factor de Rendimiento"
         subtitle="¿Cuánto aprovechas de lo que compras? Descuenta huesos, cáscaras y grasa para saber el costo real por gramo"
         action={
-          <Button variant="primary" onClick={openCreate}>
-            <Plus size={16} />
-            Nuevo factor
-          </Button>
+          can("yieldFactors", "create") ? (
+            <Button variant="primary" onClick={openCreate}>
+              <Plus size={16} />
+              Nuevo factor
+            </Button>
+          ) : undefined
         }
       />
 

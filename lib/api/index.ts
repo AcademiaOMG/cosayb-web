@@ -17,14 +17,19 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
 // ─── Fetcher genérico ─────────────────────────────────────────────────────────
+import { getActiveOrgId } from "@/lib/surface"
+
 async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const activeOrg = getActiveOrgId()
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      // Organización activa (multi-org): el backend la valida contra las membresías
+      ...(activeOrg ? { "X-Organization-Id": activeOrg } : {}),
       ...options.headers,
     },
     credentials: "include", // necesario para enviar cookies de sesión (Better Auth)
@@ -423,6 +428,7 @@ export interface AuthzContext {
     isDefault: boolean
   }[]
   platformRoles: string[]
+  platformPermissions: string[]
 }
 
 /** Contexto de autorización completo (roles, permisos, org activa, membresía) */
@@ -460,6 +466,27 @@ export async function getMembershipUsage(): Promise<{
   }
 }> {
   return fetchAPI("/api/v1/organizations/me/usage")
+}
+
+// ─── Dashboard del tenant ────────────────────────────────────────────────────
+
+export interface DashboardSummary {
+  counts: { ingredients: number; recipes: number; menus: number }
+  team: { members: number; limit: number | null }
+  avgCostPerServing: number | null
+  topRecipes: { id: string; name: string; costPerServing: number }[]
+  recentRecipes: { id: string; name: string; updatedAt: string }[]
+  checklist: {
+    hasIngredients: boolean
+    hasRecipes: boolean
+    hasMenus: boolean
+    hasTeam: boolean
+  }
+  onboardingComplete: boolean
+}
+
+export async function getDashboardSummary(): Promise<{ data: DashboardSummary }> {
+  return fetchAPI("/api/v1/dashboard/summary")
 }
 
 // ─── Panel de plataforma (super admin) ───────────────────────────────────────
@@ -510,6 +537,8 @@ export interface PlatformUser {
   email: string
   emailVerified: boolean
   createdAt: string
+  platformRoles: string[]
+  orgRoles: { roleName: string; orgName: string | null }[]
 }
 
 export async function platformListUsers(search?: string, page = 1): Promise<{
@@ -535,6 +564,164 @@ export interface AuditLogEntry {
 
 export async function platformListAudit(): Promise<{ data: AuditLogEntry[] }> {
   return fetchAPI("/api/v1/platform/audit")
+}
+
+export interface PlatformUserDetail extends Omit<PlatformUser, "orgRoles"> {
+  memberships: {
+    organizationId: string
+    organizationName: string
+    status: string
+    isDefault: boolean
+  }[]
+  platformRoles: string[]
+  orgRoles: { organizationId: string | null; roleSlug: string; roleName: string }[]
+}
+
+export async function platformGetUser(id: string): Promise<{ data: PlatformUserDetail }> {
+  return fetchAPI(`/api/v1/platform/users/${id}`)
+}
+
+export async function platformSetUserPlatformRoles(
+  id: string,
+  roles: string[]
+): Promise<{ data: { userId: string; platformRoles: string[] } }> {
+  return fetchAPI(`/api/v1/platform/users/${id}/platform-roles`, {
+    method: "PUT",
+    body: JSON.stringify({ roles }),
+  })
+}
+
+export async function platformGetOrg(id: string): Promise<{ data: PlatformOrg & { memberCount: number } }> {
+  return fetchAPI(`/api/v1/platform/organizations/${id}`)
+}
+
+export interface PlatformRoleRow {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  scope: string
+  scopeContext: string | null
+}
+
+export async function platformListRoles(): Promise<{ data: PlatformRoleRow[] }> {
+  return fetchAPI("/api/v1/platform/roles")
+}
+
+export interface PlatformPermissionRow {
+  id: string
+  slug: string
+  resource: string
+  action: string
+}
+
+export async function platformListPermissions(): Promise<{ data: PlatformPermissionRow[] }> {
+  return fetchAPI("/api/v1/platform/permissions")
+}
+
+export async function platformGetRolePermissions(roleId: string): Promise<{ data: { id: string; slug: string }[] }> {
+  return fetchAPI(`/api/v1/platform/roles/${roleId}/permissions`)
+}
+
+export async function platformSetRolePermissions(
+  roleId: string,
+  permissionIds: string[]
+): Promise<{ message: string }> {
+  return fetchAPI(`/api/v1/platform/roles/${roleId}/permissions`, {
+    method: "PUT",
+    body: JSON.stringify({ permissionIds }),
+  })
+}
+
+// ─── Banco público (Content Studio) ──────────────────────────────────────────
+
+export type BancoRecipeType = "all" | "base" | "principal"
+
+export async function bancoListRecipes(
+  search?: string,
+  page = 1,
+  type: BancoRecipeType = "all",
+  limit = 24
+): Promise<{
+  data: (Recipe & { itemCount: number })[]; total: number; page: number; limit: number
+}> {
+  const params = new URLSearchParams()
+  if (search) params.set("search", search)
+  if (type !== "all") params.set("type", type)
+  params.set("page", String(page))
+  params.set("limit", String(limit))
+  return fetchAPI(`/api/v1/platform/banco/recipes?${params}`)
+}
+
+export async function bancoGetRecipe(id: string): Promise<{ data: Recipe }> {
+  return fetchAPI(`/api/v1/platform/banco/recipes/${id}`)
+}
+
+export interface BancoRecipePayload {
+  name: string
+  recipeNumber: string
+  servings: number
+  servingWeightG?: number | null
+  safetyMargin?: number
+  isBase?: boolean
+  description?: string | null
+  items: {
+    componentType: "ingredient" | "recipe"
+    ingredientId?: string
+    subRecipeId?: string
+    quantityG: number
+    sortOrder?: number
+  }[]
+}
+
+export async function bancoCreateRecipe(payload: BancoRecipePayload): Promise<{ data: Recipe }> {
+  return fetchAPI("/api/v1/platform/banco/recipes", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function bancoUpdateRecipe(id: string, payload: Partial<BancoRecipePayload>): Promise<{ data: Recipe }> {
+  return fetchAPI(`/api/v1/platform/banco/recipes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function bancoDeleteRecipe(id: string): Promise<{ message: string }> {
+  return fetchAPI(`/api/v1/platform/banco/recipes/${id}`, { method: "DELETE" })
+}
+
+export async function bancoListIngredients(search?: string, page = 1, limit = 24): Promise<{
+  data: Ingrediente[]; total: number; page: number; limit: number
+}> {
+  const params = new URLSearchParams()
+  if (search) params.set("search", search)
+  params.set("page", String(page))
+  params.set("limit", String(limit))
+  return fetchAPI(`/api/v1/platform/banco/ingredients?${params}`)
+}
+
+export async function bancoCreateIngredient(payload: {
+  name: string; costPerUnit: number; weightGrams: number
+}): Promise<{ data: Ingrediente }> {
+  return fetchAPI("/api/v1/platform/banco/ingredients", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function bancoUpdateIngredient(id: string, payload: {
+  name?: string; costPerUnit?: number; weightGrams?: number
+}): Promise<{ data: Ingrediente }> {
+  return fetchAPI(`/api/v1/platform/banco/ingredients/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function bancoDeleteIngredient(id: string): Promise<{ message: string }> {
+  return fetchAPI(`/api/v1/platform/banco/ingredients/${id}`, { method: "DELETE" })
 }
 
 export async function platformGetMetrics(): Promise<{

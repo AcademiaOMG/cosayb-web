@@ -11,6 +11,7 @@ import IngredientSearchBar from "@/components/app/inventario/IngredientSearchBar
 import IngredientFilters from "@/components/app/inventario/IngredientFilters"
 import IngredientGrid from "@/components/app/inventario/IngredientGrid"
 import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
+import { usePermissions } from "@/hooks/usePermissions"
 import type { Ingredient, IngredientForm, IngredientOriginFilter } from "@/types/ingredient"
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -29,13 +30,17 @@ export default function InventarioPage() {
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
-  // ── Plan (no se cachea — viene del AppShell también) ─────────────────────
+  // ── Permisos y plan ───────────────────────────────────────────────────────
+  const { can } = usePermissions()
   const [plan, setPlan] = useState<"free" | "pro">("free")
 
   useEffect(() => {
     fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((b) => { if (b?.data?.plan) setPlan(b.data.plan) })
+      .then((b) => {
+        const m = b?.data?.effectiveMembership
+        if (m) setPlan(m === "free" ? "free" : "pro")
+      })
       .catch(() => {})
   }, [])
 
@@ -202,18 +207,20 @@ export default function InventarioPage() {
             : "Precios de compra de tus ingredientes — base de tus recetas"
         }
         action={
-          <Button
-            variant="primary"
-            onClick={openCreate}
-            disabled={quotaFull}
-            title={
-              quotaFull
-                ? `Límite del plan Free: ${FREE_LIMIT} ingredientes`
-                : undefined
-            }
-          >
-            Nuevo ingrediente
-          </Button>
+          can("ingredients", "create") ? (
+            <Button
+              variant="primary"
+              onClick={openCreate}
+              disabled={quotaFull}
+              title={
+                quotaFull
+                  ? `Límite del plan Free: ${FREE_LIMIT} ingredientes`
+                  : undefined
+              }
+            >
+              Nuevo ingrediente
+            </Button>
+          ) : undefined
         }
       />
 
@@ -247,8 +254,8 @@ export default function InventarioPage() {
         currentPage={safePage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
-        onEdit={openEdit}
-        onDelete={setDeleteTarget}
+        onEdit={can("ingredients", "update") ? openEdit : undefined}
+        onDelete={can("ingredients", "delete") ? setDeleteTarget : undefined}
         onRetry={() => void mutate()}
         pageSize={PAGE_SIZE}
       />

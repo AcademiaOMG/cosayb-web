@@ -7,7 +7,8 @@ import { ChefHat, BookMarked, Globe, Trash2 } from "lucide-react"
 interface RecipeCardProps {
   recipe: Recipe
   onClick: (recipe: Recipe) => void
-  onDelete: (recipe: Recipe) => void
+  /** Sin handler = usuario sin permiso → el botón no se renderiza */
+  onDelete?: (recipe: Recipe) => void
 }
 
 const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: RecipeCardProps) {
@@ -45,7 +46,7 @@ const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: Recip
       }}
     >
       {/* Botón eliminar — esquina superior derecha, solo recetas propias */}
-      {!isPublic && (
+      {!isPublic && onDelete && (
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(recipe) }}
           title="Eliminar receta"

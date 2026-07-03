@@ -9,6 +9,7 @@ import Input from "@/components/ui/Input"
 import Table from "@/components/ui/Table"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import { ArrowLeft, CheckCircle2, Plus, Calculator, RotateCcw } from "lucide-react"
+import { usePermissions } from "@/hooks/usePermissions"
 import type { Valuation, ValuationIndicator, ValuationRefType, Recipe } from "@/types/domain"
 import { getValuations, createValuation, getRecipes, getRecipeCost } from "@/lib/api"
 import type { ValuationCreateResult, CreateValuationPayload } from "@/lib/api"
@@ -574,6 +575,7 @@ function DetailView({
 type PageView = "list" | "detail"
 
 export default function ValoracionPage() {
+  const { can } = usePermissions()
   const { data: history = [], isLoading, mutate } = useSWR(
     "valuations",
     () => getValuations().then((r) => r.data ?? []),
@@ -631,10 +633,12 @@ export default function ValoracionPage() {
         title="Valoración de Costos"
         subtitle="Fija el precio de venta de un plato a partir de su costo de ingredientes por porción"
         action={
-          <Button variant="primary" onClick={openCreate}>
-            <Plus size={15} />
-            Nueva valoración
-          </Button>
+          can("valuations", "create") ? (
+            <Button variant="primary" onClick={openCreate}>
+              <Plus size={15} />
+              Nueva valoración
+            </Button>
+          ) : undefined
         }
       />
 
@@ -656,10 +660,12 @@ export default function ValoracionPage() {
               Úsalo para fijar el precio de venta de cualquier plato a partir de su costo de materia prima.
             </p>
           </div>
-          <Button variant="ghost" onClick={openCreate}>
-            <Plus size={14} />
-            Crear primera valoración
-          </Button>
+          {can("valuations", "create") && (
+            <Button variant="ghost" onClick={openCreate}>
+              <Plus size={14} />
+              Crear primera valoración
+            </Button>
+          )}
         </div>
       )}
 

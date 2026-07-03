@@ -28,6 +28,49 @@ interface HeaderForm {
   servingWeightG: string
   safetyMargin: string
   isBase: boolean
+  description: string
+}
+
+export interface RecipePayload {
+  name: string
+  recipeNumber: string
+  servings: number
+  servingWeightG?: number
+  safetyMargin: number
+  isBase: boolean
+  description?: string | null
+  items: RecipeItemPayload[]
+}
+
+/**
+ * Fuente de datos inyectable: el MISMO formulario sirve al Tenant Workspace
+ * (recetas de la organización) y al Content Studio del banco público
+ * (Platform Console), con distinto submit handler y distinto catálogo.
+ */
+export interface RecipeFormDataSource {
+  /** Clave para el caché SWR — debe diferir entre superficies */
+  sourceKey: string
+  loadCatalog: () => Promise<{ ingredients: Ingredient[]; baseRecipes: Recipe[] }>
+  loadRecipe: (id: string) => Promise<Recipe>
+  create: (payload: RecipePayload) => Promise<unknown>
+  update: (id: string, payload: RecipePayload) => Promise<unknown>
+}
+
+/** Fuente por defecto: recetas del tenant activo */
+const TENANT_SOURCE: RecipeFormDataSource = {
+  sourceKey: "tenant",
+  loadCatalog: async () => {
+    const [ingRes, baseRes] = await Promise.all([
+      fetch(`${API}/api/v1/ingredients`, { credentials: "include" }).then((r) =>
+        r.ok ? r.json() : { data: [] }
+      ),
+      getBaseRecipes().catch(() => ({ data: [] })),
+    ])
+    return { ingredients: ingRes.data ?? [], baseRecipes: baseRes.data ?? [] }
+  },
+  loadRecipe: (id) => getRecipeById(id).then((r) => r.data),
+  create: (payload) => createRecipe(payload),
+  update: (id, payload) => updateRecipe(id, payload),
 }
 
 interface RecipeFormModalProps {
@@ -35,6 +78,7 @@ interface RecipeFormModalProps {
   onClose: () => void
   onSaved: () => void
   editRecipeId?: string | null
+  dataSource?: RecipeFormDataSource
 }
 
 function emptyItem(): ItemDraft {
@@ -52,6 +96,7 @@ export default function RecipeFormModal({
   onClose,
   onSaved,
   editRecipeId,
+  dataSource = TENANT_SOURCE,
 }: RecipeFormModalProps) {
   const isEditing = !!editRecipeId
 
@@ -61,6 +106,7 @@ export default function RecipeFormModal({
     servingWeightG: "",
     safetyMargin: "3",
     isBase: false,
+    description: "",
   })
 
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()])
@@ -93,22 +139,17 @@ export default function RecipeFormModal({
   const [success, setSuccess] = useState(false)
 
   const { isLoading: catalogLoading } = useSWR(
-    open ? "recipes-catalog" : null,
+    open ? ["recipes-catalog", dataSource.sourceKey] : null,
     async () => {
-      const [ingRes, baseRes] = await Promise.all([
-        fetch(`${API}/api/v1/ingredients`, { credentials: "include" }).then((r) =>
-          r.ok ? r.json() : { data: [] }
-        ),
-        getBaseRecipes().catch(() => ({ data: [] })),
-      ])
-      setIngredients(ingRes.data ?? [])
-      setBaseRecipes(baseRes.data ?? [])
+      const catalog = await dataSource.loadCatalog()
+      setIngredients(catalog.ingredients)
+      setBaseRecipes(catalog.baseRecipes)
     },
   )
 
   const { data: editData, isLoading: loadingRecipe } = useSWR(
-    open && editRecipeId ? ["recipe-edit", editRecipeId] : null,
-    () => getRecipeById(editRecipeId!).then((r) => r.data),
+    open && editRecipeId ? ["recipe-edit", dataSource.sourceKey, editRecipeId] : null,
+    () => dataSource.loadRecipe(editRecipeId!),
   )
 
   useEffect(() => {
@@ -121,6 +162,7 @@ export default function RecipeFormModal({
           servingWeightG: editData.servingWeightG ?? "",
           safetyMargin: editData.safetyMargin,
           isBase: editData.isBase,
+          description: editData.description ?? "",
         })
         if (editData.items && editData.items.length > 0) {
           setItems(
@@ -144,6 +186,7 @@ export default function RecipeFormModal({
           servingWeightG: "",
           safetyMargin: "3",
           isBase: false,
+          description: "",
         })
         setItems([emptyItem()])
       })
@@ -239,13 +282,14 @@ export default function RecipeFormModal({
 
       const recipeNumber = `R-${Date.now().toString(36).toUpperCase().slice(-5)}`
 
-      const payload = {
+      const payload: RecipePayload = {
         name: form.name.trim(),
         recipeNumber,
         servings: servingsNum,
         servingWeightG,
         safetyMargin,
         isBase: form.isBase,
+        description: form.description.trim() || null,
         items: items.map(
           (item, idx): RecipeItemPayload => ({
             componentType: item.componentType,
@@ -258,16 +302,16 @@ export default function RecipeFormModal({
       }
 
       if (isEditing && editRecipeId) {
-        await updateRecipe(editRecipeId, payload)
+        await dataSource.update(editRecipeId, payload)
       } else {
-        await createRecipe(payload)
+        await dataSource.create(payload)
       }
 
       setSuccess(true)
+      onSaved() // revalidar de una — la lista se actualiza mientras cierra el modal
       setTimeout(() => {
-        onSaved()
         onClose()
-      }, 800)
+      }, 350)
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error al guardar la receta."
       setFormError(msg)
@@ -353,6 +397,35 @@ export default function RecipeFormModal({
                 placeholder="Ej. 10"
                 value={form.servings}
                 onChange={(e) => setForm((f) => ({ ...f, servings: e.target.value }))}
+              />
+            </div>
+
+            {/* Descripción */}
+            <div style={{ marginTop: "12px" }}>
+              <label
+                htmlFor="recipe-description"
+                className="block text-xs font-medium mb-1"
+                style={{ color: "var(--text-muted)" }}
+              >
+                Descripción (opcional)
+              </label>
+              <textarea
+                id="recipe-description"
+                rows={2}
+                placeholder="Breve descripción del plato…"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: "10px",
+                  border: "1px solid var(--border-light)",
+                  background: "var(--bg-surface)",
+                  color: "var(--text-primary)",
+                  fontSize: "13px",
+                  outline: "none",
+                  resize: "vertical",
+                }}
               />
             </div>
 

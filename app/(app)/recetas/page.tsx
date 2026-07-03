@@ -13,6 +13,7 @@ import RecipeDetailModal from "@/components/app/recipes/RecipeDetailModal"
 import type { Recipe } from "@/types/domain"
 import type { RecipeFilter, RecipeExtraFilters } from "@/lib/api"
 import { getRecipes, deleteRecipe } from "@/lib/api"
+import { usePermissions } from "@/hooks/usePermissions"
 import { ChefHat, Plus, Search, Globe, User, SlidersHorizontal, X } from "lucide-react"
 
 const PAGE_SIZE = 12
@@ -26,6 +27,7 @@ const TAB_OPTIONS: { value: RecipeFilter; label: string; icon: typeof ChefHat }[
 const EMPTY_EXTRA: RecipeExtraFilters = {}
 
 export default function RecetasPage() {
+  const { can } = usePermissions()
   const [filter, setFilter]   = useState<RecipeFilter>("all")
   const [search, setSearch]   = useState("")
   const [page, setPage]       = useState(1)
@@ -78,11 +80,16 @@ export default function RecetasPage() {
   function clearExtra() { setExtra(EMPTY_EXTRA); setPage(1) }
 
   async function handleDelete() {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try { await deleteRecipe(deleteTarget.id); setDeleteTarget(null); void mutate() }
-    catch { setDeleteTarget(null) }
-    finally { setDeleting(false) }
+    if (!deleteTarget || !data) return
+    const id = deleteTarget.id
+    setDeleteTarget(null) // cerrar de inmediato — la card desaparece al instante
+    const optimistic = { ...data, data: data.data.filter((r) => r.id !== id), total: data.total - 1 }
+    try {
+      await mutate(
+        async () => { await deleteRecipe(id); return optimistic },
+        { optimisticData: optimistic, rollbackOnError: true, revalidate: true }
+      )
+    } catch { /* rollback automático: la card reaparece si la API falló */ }
   }
 
   function handleOpenEdit(id: string) {
@@ -95,9 +102,11 @@ export default function RecetasPage() {
         title="Recetas"
         subtitle={stats}
         action={
-          <Button variant="primary" onClick={() => { setEditRecipeId(null); setFormOpen(true) }}>
-            <Plus size={16} /> Nueva receta
-          </Button>
+          can("recipes", "create") ? (
+            <Button variant="primary" onClick={() => { setEditRecipeId(null); setFormOpen(true) }}>
+              <Plus size={16} /> Nueva receta
+            </Button>
+          ) : undefined
         }
       />
 
@@ -262,7 +271,7 @@ export default function RecetasPage() {
               : "Crea tu primera ficha técnica con ingredientes y porciones."
           }
           action={
-            !search && filter === "all" && activeFilterCount === 0 ? (
+            !search && filter === "all" && activeFilterCount === 0 && can("recipes", "create") ? (
               <Button variant="primary" onClick={() => { setEditRecipeId(null); setFormOpen(true) }}>
                 <Plus size={16} /> Crear primera receta
               </Button>
@@ -279,7 +288,7 @@ export default function RecetasPage() {
                 key={recipe.id}
                 recipe={recipe}
                 onClick={r => setDetailRecipeId(r.id)}
-                onDelete={setDeleteTarget}
+                onDelete={can("recipes", "delete") ? setDeleteTarget : undefined}
               />
             ))}
           </div>
@@ -315,8 +324,8 @@ export default function RecetasPage() {
         open={!!detailRecipeId}
         recipeId={detailRecipeId}
         onClose={() => setDetailRecipeId(null)}
-        onEdit={handleOpenEdit}
-        onDelete={r => { setDetailRecipeId(null); setDeleteTarget(r) }}
+        onEdit={can("recipes", "update") ? handleOpenEdit : undefined}
+        onDelete={can("recipes", "delete") ? (r => { setDetailRecipeId(null); setDeleteTarget(r) }) : undefined}
         onImported={() => { setDetailRecipeId(null); void mutate() }}
       />
     </div>
