@@ -1,7 +1,7 @@
 "use client"
 
 import { SWRConfig } from "swr"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { getActiveOrgId } from "@/lib/surface"
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -72,20 +72,25 @@ export function clearSWRCache(): void {
   toRemove.forEach((k) => window.localStorage.removeItem(k))
 }
 
+const BASE_CONFIG = {
+  revalidateOnFocus: false,
+  revalidateIfStale: true, // pinta el caché y revalida en background
+  keepPreviousData: true,
+  dedupingInterval: 30_000,
+  errorRetryCount: 2,
+}
+
 export default function SWRProvider({ children }: { children: React.ReactNode }) {
   const provider = useMemo(() => createProvider(), [])
 
+  // El provider con localStorage se activa DESPUÉS de la hidratación:
+  // el primer render del cliente debe coincidir con el HTML del servidor
+  // (sin datos). Un tick después, el caché entra y pinta todo al instante.
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => setHydrated(true), [])
+
   return (
-    <SWRConfig
-      value={{
-        provider,
-        revalidateOnFocus: false,
-        revalidateIfStale: true, // pinta el caché y revalida en background
-        keepPreviousData: true,
-        dedupingInterval: 30_000,
-        errorRetryCount: 2,
-      }}
-    >
+    <SWRConfig value={hydrated ? { ...BASE_CONFIG, provider } : BASE_CONFIG}>
       {children}
     </SWRConfig>
   )
