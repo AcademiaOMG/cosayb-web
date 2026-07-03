@@ -39,7 +39,13 @@ export function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  return NextResponse.next();
+  // Rutas autenticadas: prohibir caché del navegador/proxies.
+  // Sin esto, el HTML "logueado" queda en caché de disco y reaparece con el
+  // botón atrás después de cerrar sesión.
+  const res = NextResponse.next();
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.headers.set("Pragma", "no-cache");
+  return res;
 }
 
 export const config = {
