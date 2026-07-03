@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Menu, ChevronDown, Check, Plus, Shield } from "lucide-react"
+import { Menu, ChevronDown, Check, Plus, Shield, HelpCircle } from "lucide-react"
 import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { getActiveOrgId, setActiveOrgId, switchSurface } from "@/lib/surface"
 
 export interface TopbarProps {
@@ -17,10 +18,10 @@ export interface TopbarProps {
 export default function Topbar({
   orgName = "Mi organización",
   userPlan = "free",
-  userInitial = "U",
   onMenuClick,
 }: TopbarProps) {
   const { memberships, isPlatform } = usePermissions()
+  const helpAvailable = useHelpAvailable()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -41,6 +42,7 @@ export default function Topbar({
   function handleSwitchOrg(orgId: string) {
     setActiveOrgId(orgId)
     // Cambio de tenant = recarga completa (todo el estado SWR es de otra org)
+    // eslint-disable-next-line react-hooks/immutability
     window.location.href = "/dashboard"
   }
 
@@ -151,14 +153,29 @@ export default function Topbar({
         </div>
       </div>
 
-      {/* Right: avatar */}
-      <div
-        className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-        style={{ background: "var(--accent)", color: "#fff" }}
-        aria-label="Perfil de usuario"
-      >
-        {userInitial}
-      </div>
+      {/* Right: help button (only visible when a page has a help modal) */}
+      {helpAvailable && (
+        <button
+          onClick={() => window.dispatchEvent(new Event("open-help"))}
+          className="inline-flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-150"
+          style={{
+            border: "1px solid var(--border-light)",
+            background: "var(--bg-surface)",
+            color: "var(--text-muted)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--bg-secondary)"
+            e.currentTarget.style.borderColor = "var(--border-medium)"
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--bg-surface)"
+            e.currentTarget.style.borderColor = "var(--border-light)"
+          }}
+          title="Ayuda"
+        >
+          <HelpCircle size={18} />
+        </button>
+      )}
     </header>
   )
 }

@@ -7,7 +7,7 @@ import Input from "@/components/ui/Input"
 import { authClient } from "@/lib/auth"
 import { setActiveOrgId, getLastSurface } from "@/lib/surface"
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3005"
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
 type Step = 1 | 2 | 3
 
@@ -161,7 +161,7 @@ export default function OnboardingPage() {
         if (orgId) setActiveOrgId(orgId)
       }
 
-      // 3. Marcar onboarding como completado
+      // 3. Marcar onboarding como completado y guardar datos del onboarding
       if (orgId) {
         await fetch(`${API}/api/v1/organizations/${orgId}`, {
           method: "PUT",
@@ -173,6 +173,8 @@ export default function OnboardingPage() {
           body: JSON.stringify({
             name: orgName,
             onboardingCompleted: true,
+            ...(businessType && { businessType }),
+            ...(city && { city }),
           }),
         })
       }

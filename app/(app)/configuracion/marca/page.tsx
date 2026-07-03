@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR from "swr"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
@@ -22,16 +22,16 @@ export default function MarcaPage() {
   )
 
   const [orgName, setOrgName] = useState("")
-  const [nameInit, setNameInit] = useState(false)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingName, setPendingName] = useState("")
 
-  if (orgData?.name && !nameInit) {
-    setOrgName(orgData.name)
-    setNameInit(true)
-  }
+  useEffect(() => {
+    if (orgData?.name) {
+      setOrgName(orgData.name)
+    }
+  }, [orgData?.name])
 
   function handleRequestSave() {
     if (!orgName.trim() || orgName === orgData?.name) return
@@ -58,7 +58,7 @@ export default function MarcaPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Card>
+      <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
         <div className="flex items-center gap-3 mb-5">
           <Building2 size={18} style={{ color: "var(--accent)" }} />
           <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
@@ -93,7 +93,7 @@ export default function MarcaPage() {
         </div>
       </Card>
 
-      <Card>
+      <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
         <div className="flex items-center gap-3 mb-3">
           <Palette size={18} style={{ color: "var(--text-muted)" }} />
           <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>

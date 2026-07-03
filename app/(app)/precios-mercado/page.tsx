@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect } from "react"
 import useSWR from "swr"
 import { Search, Store, MapPin, Scale, DollarSign } from "lucide-react"
 import PageHeader from "@/components/ui/PageHeader"
 import Modal from "@/components/ui/Modal"
 import Badge from "@/components/ui/Badge"
+import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 const PAGE_SIZE = 50
@@ -122,11 +123,19 @@ function PriceDetailModal({ row, onClose }: { row: PriceRow | null; onClose: () 
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function PreciosMercadoPage() {
+  useHelpAvailable()
   const [search, setSearch] = useState("")
   const [city, setCity] = useState("")
   const [source, setSource] = useState("")
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<PriceRow | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  useEffect(() => {
+    function handleHelp() { setHelpOpen(true) }
+    window.addEventListener("open-help", handleHelp)
+    return () => window.removeEventListener("open-help", handleHelp)
+  }, [])
 
   const params = new URLSearchParams({
     limit: String(PAGE_SIZE),
@@ -337,6 +346,47 @@ export default function PreciosMercadoPage() {
       </div>
 
       <PriceDetailModal row={selected} onClose={() => setSelected(null)} />
+
+      {/* ── Modal: help ──────────────────────────────────────────────────── */}
+      <Modal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        title="Precios de Mercado"
+      >
+        <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+          <p>Esta seccion muestra precios actualizados de ingredientes en supermercados colombianos.</p>
+
+          <div>
+            <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
+            <ul className="flex flex-col gap-2 ml-1">
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Buscar ingredientes:</strong> Usa la barra de busqueda para encontrar productos especificos.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Filtrar por supermercado:</strong> Selecciona Exito o Makro para ver precios de una tienda.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Filtrar por ciudad:</strong> Elige tu ciudad para ver precios locales.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Ver detalles:</strong> Haz clic en un producto para ver precio por kg, precio por gramo y mas informacion.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Precios por gramo:</strong> Util para calcular costos de recetas que usan gramos.</span>
+              </li>
+            </ul>
+          </div>
+
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <strong>Nota:</strong> Los precios se actualizan diariamente. La informacion proviene de fuentes publicas de supermercados.
+          </p>
+        </div>
+      </Modal>
     </div>
   )
 }

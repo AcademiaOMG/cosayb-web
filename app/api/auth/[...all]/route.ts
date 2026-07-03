@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3005"
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 
 export async function GET(
   request: NextRequest,
@@ -32,10 +32,6 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
   })
   headers.set("accept-encoding", "identity")
 
-  console.log(`[proxy] ${request.method} ${API_URL}/auth${fullPath}`)
-  console.log(`[proxy] cookies del browser:`, request.headers.get("cookie")?.slice(0, 300) ?? "(ninguna)")
-  console.log(`[proxy] accept-encoding enviado:`, headers.get("accept-encoding"))
-
   try {
     const response = await fetch(`${API_URL}/auth${fullPath}`, {
       method: request.method,
@@ -46,10 +42,6 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
       redirect: "manual",
     })
 
-    console.log(`[proxy] respuesta: ${response.status}`)
-    console.log(`[proxy] content-encoding:`, response.headers.get("content-encoding"))
-    console.log(`[proxy] transfer-encoding:`, response.headers.get("transfer-encoding"))
-
     const responseHeaders = new Headers()
     response.headers.forEach((value, key) => {
       const lower = key.toLowerCase()
@@ -59,13 +51,11 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
     })
 
     const setCookies = response.headers.getSetCookie?.() ?? []
-    console.log(`[proxy] set-cookie headers:`, setCookies.map(c => c.slice(0, 100)))
     for (const cookie of setCookies) {
       responseHeaders.append("set-cookie", cookie)
     }
 
     const body = await response.text()
-    console.log(`[proxy] body (primeros 200 chars):`, body.slice(0, 200))
 
     return new NextResponse(body, {
       status: response.status,

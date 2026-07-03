@@ -1,14 +1,16 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { BarChart2, Plus, Trash2, Calculator, Download, Clock, TrendingUp, DollarSign, Package } from "lucide-react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import Card from "@/components/ui/Card"
 import Table from "@/components/ui/Table"
+import Modal from "@/components/ui/Modal"
 import type { BreakEvenRecord, FixedCostItem } from "@/types/domain"
 import { createBreakEven, getBreakEvenHistory, exportBreakEvenExcel } from "@/lib/api"
+import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatCOP(value: number): string {
@@ -109,6 +111,7 @@ function ResultCard({ icon, label, value, accent = false }: ResultCardProps) {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function PuntoEquilibrioPage() {
+  useHelpAvailable()
   // ── Formulario ──────────────────────────────────────────────────────────────
   const [fixedCosts, setFixedCosts] = useState<FixedCostItem[]>([
     { name: "", amount: 0 },
@@ -124,6 +127,13 @@ export default function PuntoEquilibrioPage() {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  useEffect(() => {
+    function handleHelp() { setHelpOpen(true) }
+    window.addEventListener("open-help", handleHelp)
+    return () => window.removeEventListener("open-help", handleHelp)
+  }, [])
 
   // ── Manejo de costos fijos ──────────────────────────────────────────────────
   const handleCostChange = useCallback(
@@ -566,6 +576,47 @@ export default function PuntoEquilibrioPage() {
           </div>
         )}
       </section>
+
+      {/* ── Modal: help ──────────────────────────────────────────────────── */}
+      <Modal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        title="Punto de Equilibrio"
+      >
+        <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+          <p>Esta seccion te permite calcular cuantas unidades necesitas vender para cubrir todos tus costos.</p>
+
+          <div>
+            <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
+            <ul className="flex flex-col gap-2 ml-1">
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Costos fijos mensuales:</strong> Registra arriendo, nomina, servicios y otros costos fijos.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Precio de venta:</strong> Ingresa el precio promedio de tu producto o servicio.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Costo variable:</strong> Define el costo de materiales e insumos por unidad.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Calcular:</strong> Presiona Calcular y Guardar para obtener tu punto de equilibrio.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Historial:</strong> Consulta tus calculos anteriores y exporta a Excel.</span>
+              </li>
+            </ul>
+          </div>
+
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <strong>Nota:</strong> El punto de equilibrio te indica cuantas unidades debes vender para no tener perdidas.
+          </p>
+        </div>
+      </Modal>
     </div>
   )
 }

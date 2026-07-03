@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR from "swr"
-import { useEffect, useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
@@ -12,20 +12,32 @@ import IngredientFilters from "@/components/app/inventario/IngredientFilters"
 import IngredientGrid from "@/components/app/inventario/IngredientGrid"
 import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { fetchAPI } from "@/lib/api"
 import type { Ingredient, IngredientForm, IngredientOriginFilter } from "@/types/ingredient"
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 const FREE_LIMIT = 30
 const PAGE_SIZE = 12
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function formatNumberInput(value: string): string {
+  const raw = value.replace(/\D/g, "")
+  if (!raw) return ""
+  return parseInt(raw, 10).toLocaleString("es-CO")
+}
+
+function parseFormattedNumber(value: string): string {
+  return value.replace(/\./g, "").replace(/,/g, "")
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function InventarioPage() {
+  useHelpAvailable()
   const { data: items = [], isLoading, error, mutate } = useSWR<Ingredient[]>(
     "ingredients",
     () =>
-      fetch(`${API}/api/v1/ingredients`, { credentials: "include" })
-        .then((r) => { if (!r.ok) throw new Error("Response not ok"); return r.json() })
+      fetchAPI<{ data: Ingredient[] }>("/api/v1/ingredients")
         .then((b) => b.data ?? []),
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
@@ -35,8 +47,7 @@ export default function InventarioPage() {
   const [plan, setPlan] = useState<"free" | "pro">("free")
 
   useEffect(() => {
-    fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
+    fetchAPI<{ data: { effectiveMembership?: string } }>("/api/v1/organizations/me")
       .then((b) => {
         const m = b?.data?.effectiveMembership
         if (m) setPlan(m === "free" ? "free" : "pro")
@@ -64,6 +75,16 @@ export default function InventarioPage() {
   // ── Modal: delete ─────────────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Ingredient | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  // ── Modal: help ──────────────────────────────────────────────────────────
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  // Listen for help event from Topbar
+  useEffect(() => {
+    function handleHelp() { setHelpOpen(true) }
+    window.addEventListener("open-help", handleHelp)
+    return () => window.removeEventListener("open-help", handleHelp)
+  }, [])
 
   // ── Reset page when filters change ────────────────────────────────────────
   function handleSearchChange(value: string) {
@@ -149,25 +170,14 @@ export default function InventarioPage() {
 
     try {
       const url = editing
-        ? `${API}/api/v1/ingredients/${editing.id}`
-        : `${API}/api/v1/ingredients`
+        ? `/api/v1/ingredients/${editing.id}`
+        : `/api/v1/ingredients`
       const method = editing ? "PUT" : "POST"
 
-      const res = await fetch(url, {
+      await fetchAPI<{ data: unknown }>(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(payload),
       })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        if (res.status === 429) {
-          setFormError(`Límite del plan Free: máximo ${FREE_LIMIT} ingredientes.`)
-          return
-        }
-        throw new Error((err as { message?: string }).message ?? "Error al guardar")
-      }
 
       setModalOpen(false)
       await mutate()
@@ -182,9 +192,8 @@ export default function InventarioPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await fetch(`${API}/api/v1/ingredients/${deleteTarget.id}`, {
+      await fetchAPI(`/api/v1/ingredients/${deleteTarget.id}`, {
         method: "DELETE",
-        credentials: "include",
       })
       setDeleteTarget(null)
       await mutate()
@@ -300,28 +309,29 @@ export default function InventarioPage() {
           <Input
             label="Precio de compra (COP)"
             placeholder="Ej. 3.500"
-            type="number"
-            step="any"
-            min="0"
-            value={form.costPerUnit}
-            onChange={(e) => setForm((f) => ({ ...f, costPerUnit: e.target.value }))}
+            type="text"
+            inputMode="numeric"
+            value={form.costPerUnit ? parseInt(form.costPerUnit, 10).toLocaleString("es-CO") : ""}
+            onChange={(e) => setForm((f) => ({ ...f, costPerUnit: parseFormattedNumber(e.target.value) }))}
             hint="Lo que pagaste por esta presentación o empaque"
           />
           <Input
             label="Peso del empaque (g)"
-            placeholder="Ej. 1000"
-            type="number"
-            step="any"
-            min="0"
-            value={form.weightGrams}
-            onChange={(e) => setForm((f) => ({ ...f, weightGrams: e.target.value }))}
+            placeholder="Ej. 1.000"
+            type="text"
+            inputMode="numeric"
+            value={form.weightGrams ? parseInt(form.weightGrams, 10).toLocaleString("es-CO") : ""}
+            onChange={(e) => setForm((f) => ({ ...f, weightGrams: parseFormattedNumber(e.target.value) }))}
             hint="¿Cuántos gramos trae la presentación que compraste?"
           />
           {form.costPerUnit && form.weightGrams && parseFloat(form.weightGrams) > 0 && (
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
               Costo por gramo calculado:{" "}
               <strong>
-                ${(parseFloat(form.costPerUnit) / parseFloat(form.weightGrams)).toFixed(4)}
+                ${(() => {
+                  const cost = parseFloat(form.costPerUnit) / parseFloat(form.weightGrams)
+                  return Number.isInteger(cost) ? cost.toLocaleString("es-CO") : cost.toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 2 })
+                })()}
               </strong>{" "}
               
             </p>
@@ -355,6 +365,51 @@ export default function InventarioPage() {
           <strong style={{ color: "var(--text-primary)" }}>{deleteTarget?.name}</strong>
           ? Esta acción no se puede deshacer.
         </p>
+      </Modal>
+
+      {/* ── Modal: help ──────────────────────────────────────────────────── */}
+      <Modal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        title="Inventario"
+      >
+        <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+          <p>En esta seccion podra gestionar el inventario de ingredientes de manera eficiente.</p>
+
+          <div>
+            <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
+            <ul className="flex flex-col gap-2 ml-1">
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Almacenamiento de productos:</strong> Registra ingredientes con su costo por unidad y peso en gramos.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Verificar existencia:</strong> Usa la barra de busqueda para verificar si un ingrediente ya existe antes de crearlo.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Modificar un producto:</strong> Haz clic en el icono de editar para actualizar el costo, peso o nombre.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Insertar un nuevo producto:</strong> Haz clic en Nuevo ingrediente y completa los campos (nombre, precio, peso).</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Eliminar un producto:</strong> Haz clic en el icono de eliminar junto al ingrediente.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Filtros:</strong> Usa los filtros Todos, Propios y Banco base para organizar tu vista.</span>
+              </li>
+            </ul>
+          </div>
+
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <strong>Nota:</strong> La informacion se basa en promedios de mercado. Trabaja unicamente en las casillas indicadas e ingresa la informacion correspondiente.
+          </p>
+        </div>
       </Modal>
     </div>
   )
