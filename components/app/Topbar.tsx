@@ -5,7 +5,7 @@ import { Menu, ChevronDown, Check, Plus, Shield, HelpCircle } from "lucide-react
 import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
-import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { useHelpAvailableSnapshot } from "@/hooks/useHelpAvailable"
 import { getActiveOrgId, setActiveOrgId, switchSurface } from "@/lib/surface"
 
 export interface TopbarProps {
@@ -21,7 +21,7 @@ export default function Topbar({
   onMenuClick,
 }: TopbarProps) {
   const { memberships, isPlatform } = usePermissions()
-  const helpAvailable = useHelpAvailable()
+  const helpAvailable = useHelpAvailableSnapshot()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 

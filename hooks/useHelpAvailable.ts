@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react"
 
-let count = 0
+let _count = 0
 let listeners: Array<() => void> = []
 
 function emit() {
@@ -17,26 +17,34 @@ function subscribe(listener: () => void) {
 }
 
 function getSnapshot() {
-  return count > 0
+  return _count
 }
 
 function getServerSnapshot() {
-  return false
+  return 0
 }
 
 /**
  * Call this hook at the top of any page that has a help modal.
- * The Topbar will only render the ? button when at least one page has registered.
+ * Increments a global counter on mount and decrements on unmount.
  */
 export function useHelpAvailable() {
   useEffect(() => {
-    count++
+    _count++
     emit()
     return () => {
-      count--
+      _count--
       emit()
     }
   }, [])
 
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot) > 0
+}
+
+/**
+ * Read-only selector — does NOT register. Use in Topbar or any
+ * component that just needs to know if a help modal is available.
+ */
+export function useHelpAvailableSnapshot() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot) > 0
 }
