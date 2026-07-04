@@ -63,13 +63,6 @@ export default function Modulos() {
             </h2>
             <p className="font-body text-lg text-[#7A6E60]">Seis módulos integrados. Un solo sistema.</p>
           </div>
-          <div
-            className="shrink-0 hidden md:flex items-center gap-2 bg-[#FDFAF6] border border-[#DDD6C8] rounded-xl px-5 py-3"
-            style={{ boxShadow: "0 2px 8px rgba(18,33,58,0.06)" }}
-          >
-            <span className="font-mono font-bold text-2xl text-[#1B4FD8]">6</span>
-            <span className="font-body text-sm text-[#7A6E60]">módulos<br />incluidos en Pro</span>
-          </div>
         </div>
 
         {/* Module grid */}

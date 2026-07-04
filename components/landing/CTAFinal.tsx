@@ -61,27 +61,14 @@ export default function CTAFinal() {
 
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-          <Link href="/login" className="btn-spx btn-spx-light px-8 py-4">
+          <Link href="/login" className="btn-spx btn-spx-light">
             Crear mi cuenta gratis
             <ArrowRight size={20} className="btn-arrow" />
           </Link>
-          <Link href="#precios" className="btn-spx btn-spx-light px-8 py-4">
+          <Link href="#precios" className="btn-spx btn-spx-light">
             Ver planes
             <ArrowRight size={16} className="btn-arrow" />
           </Link>
-        </div>
-
-        {/* Trust row */}
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-          {[
-            "✓ Sin tarjeta de crédito",
-            "✓ Cancela cuando quieras",
-            "✓ Datos 100% seguros",
-          ].map((item) => (
-            <span key={item} className="font-body text-xs text-[#4A6080]">
-              {item}
-            </span>
-          ))}
         </div>
       </div>
     </section>

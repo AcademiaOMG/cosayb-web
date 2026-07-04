@@ -176,7 +176,7 @@ export default function Pricing() {
                 {/* CTA */}
                 <Link
                   href="/login"
-                  className={`w-full !py-2.5 !text-[11px] flex items-center justify-center gap-2 ${
+                  className={`w-full ${
                     highlighted ? "btn-spx btn-spx-accent" : "btn-spx btn-spx-light"
                   }`}
                 >

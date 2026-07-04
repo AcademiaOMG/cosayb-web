@@ -102,7 +102,7 @@ export default function FAQ() {
             </p>
             <a
               href="/contacto"
-              className="btn-spx btn-spx-dark px-6 py-3"
+              className="btn-spx btn-spx-dark"
             >
               Ir a Contacto
             </a>

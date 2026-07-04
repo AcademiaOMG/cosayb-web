@@ -67,7 +67,7 @@ export default function LibroPage() {
     <div className="page-transition">
 
       {/* ─── HERO ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden min-h-[70vh] lg:min-h-[90vh]">
+      <section className="relative overflow-hidden min-h-dvh">
         {/* Background image */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -78,19 +78,11 @@ export default function LibroPage() {
         {/* Dark overlay */}
         <div className="absolute inset-0 bg-[#0A1520]/60" />
         {/* Gradient bottom fade */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0A1520] to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1520] to-transparent" />
 
         {/* Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-[70vh] lg:min-h-[90vh] pt-20 pb-16">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
           <div className="max-w-2xl animate-fade-up">
-            {/* Badge */}
-            <span
-              className="inline-flex items-center gap-2 text-xs font-body font-semibold tracking-[0.15em] uppercase px-4 py-2 rounded-full mb-8 text-[#8FA0BC]"
-              style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}
-            >
-              <BookOpen size={12} />
-              Academia OMG
-            </span>
 
             <h1
               className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
@@ -107,11 +99,11 @@ export default function LibroPage() {
             </p>
 
             <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
-              <a href="#comprar" className="btn-spx btn-spx-accent px-8 py-4">
+              <a href="#comprar" className="btn-spx btn-spx-accent">
                 Comprar libro
                 <ArrowRight size={16} className="btn-arrow" />
               </a>
-              <a href="#about" className="btn-spx btn-spx-light px-8 py-4">
+              <a href="#about" className="btn-spx btn-spx-light">
                 Ver muestra
                 <ArrowRight size={16} className="btn-arrow" />
               </a>
@@ -346,7 +338,7 @@ export default function LibroPage() {
 
               <button
                 type="submit"
-                className="btn-spx btn-spx-accent px-8 py-4 self-start"
+                className="btn-spx btn-spx-accent self-start"
               >
                 Comprar libro
                 <ArrowRight size={16} className="btn-arrow" />
@@ -399,11 +391,11 @@ export default function LibroPage() {
 
           {/* CTA bar */}
           <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/contacto" className="btn-spx btn-spx-dark px-8 py-4">
+            <Link href="/contacto" className="btn-spx btn-spx-dark">
               Ir a Contacto
               <ArrowRight size={16} className="btn-arrow" />
             </Link>
-            <Link href="/" className="btn-spx btn-spx-accent px-8 py-4">
+            <Link href="/" className="btn-spx btn-spx-accent">
               Conocer CO$AYB
               <ArrowRight size={16} className="btn-arrow" />
             </Link>
