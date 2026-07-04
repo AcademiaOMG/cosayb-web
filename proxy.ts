@@ -24,11 +24,15 @@ const SESSION_COOKIE_NAMES = [
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Recursos internos de Next.js y rutas de auth siempre pasan
+  // Recursos internos de Next.js, archivos estáticos y rutas de auth siempre pasan
   if (
     pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/images/") ||
     pathname.startsWith("/favicon.ico") ||
-    pathname.startsWith("/api/auth")
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    /\.(png|jpg|jpeg|webp|svg|gif|ico|css|js)$/.test(pathname)
   ) {
     return NextResponse.next();
   }
@@ -60,5 +64,7 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|images/|robots.txt|sitemap.xml|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.webp$|.*\\.svg$|.*\\.gif$|.*\\.ico$|.*\\.css$|.*\\.js$).*)",
+  ],
 };
