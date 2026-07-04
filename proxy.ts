@@ -21,10 +21,7 @@ const SESSION_COOKIE_NAMES = [
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-<<<<<<< HEAD
   // Recursos internos de Next.js, archivos estáticos y rutas de auth siempre pasan
-=======
->>>>>>> origin/main
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
