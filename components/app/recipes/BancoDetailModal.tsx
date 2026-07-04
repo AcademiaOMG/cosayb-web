@@ -40,7 +40,7 @@ export default function BancoDetailModal({
           <Button
             variant="ghost"
             loading={importing}
-            onClick={() => { onImport(recipe); onClose() }}
+            onClick={async () => { await onImport(recipe); onClose() }}
           >
             <Download size={14} />
             Importar
@@ -144,7 +144,9 @@ export default function BancoDetailModal({
                     }}
                   >
                     <span style={{ color: "var(--text-primary)" }}>
-                      {item.ingredientName ?? "Ingrediente"}
+                      {item.componentType === "recipe" 
+                        ? (item.subRecipeName ?? "Sub-receta")
+                        : (item.ingredientName ?? "Ingrediente")}
                     </span>
                     <span
                       style={{

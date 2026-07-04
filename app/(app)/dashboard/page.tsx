@@ -105,10 +105,8 @@ export default function DashboardPage() {
                     <Link
                       key={r.id}
                       href="/recetas"
-                      className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors"
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--bg-secondary)]"
                       style={{ color: "var(--text-primary)" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-primary)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <span className="text-sm font-medium truncate">{r.name}</span>
                       <span className="text-xs shrink-0" style={{ color: "var(--text-muted)" }}>
@@ -133,10 +131,8 @@ export default function DashboardPage() {
                     <Link
                       key={r.id}
                       href="/recetas"
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--bg-secondary)]"
                       style={{ color: "var(--text-primary)" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-primary)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <span
                         className="w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
@@ -284,16 +280,8 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-2xl px-4 py-3.5 transition-all"
+      className="flex items-center gap-3 rounded-2xl px-4 h-[52px] transition-all hover:border-[var(--accent)] hover:shadow-[0_2px_12px_rgba(18,33,58,0.08)]"
       style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "var(--accent)"
-        e.currentTarget.style.boxShadow = "0 2px 12px rgba(18,33,58,0.08)"
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "var(--border-light)"
-        e.currentTarget.style.boxShadow = ""
-      }}
     >
       <span
         className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"

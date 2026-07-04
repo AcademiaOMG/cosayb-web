@@ -31,21 +31,11 @@ export default function IngredientCard({
 
   return (
     <article
-      className="group relative flex flex-col gap-4 rounded-2xl p-5 transition-all duration-200"
+      className="relative flex flex-col gap-4 rounded-2xl p-5 transition-all duration-200 hover:shadow-[0_4px_16px_rgba(18,33,58,0.10)] hover:border-[var(--border-medium)] hover:scale-[1.02]"
       style={{
         background: "var(--bg-surface)",
         border: "1px solid var(--border-light)",
         boxShadow: "0 1px 3px rgba(18,33,58,0.04)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 16px rgba(18,33,58,0.10)"
-        e.currentTarget.style.borderColor = "var(--border-medium)"
-        e.currentTarget.style.transform = "translateY(-1px)"
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 1px 3px rgba(18,33,58,0.04)"
-        e.currentTarget.style.borderColor = "var(--border-light)"
-        e.currentTarget.style.transform = "translateY(0)"
       }}
     >
       {/* Header */}
@@ -71,7 +61,7 @@ export default function IngredientCard({
         {/* Actions — solo ingredientes propios y con permisos */}
         {isOwn && (onEdit || onDelete) && (
           <div
-            className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+            className="flex gap-1 shrink-0"
             aria-label="Acciones"
           >
             {onEdit && (
@@ -90,12 +80,6 @@ export default function IngredientCard({
                 aria-label={`Eliminar ${ingredient.name}`}
                 className="rounded-lg p-1.5 transition-colors hover:bg-red-50"
                 style={{ color: "var(--text-muted)" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#B42020"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-muted)"
-                }}
               >
                 <Trash2 size={14} />
               </button>
@@ -157,7 +141,7 @@ export default function IngredientCard({
             className="text-xs font-bold font-mono"
             style={{ color: "var(--accent-text)" }}
           >
-            ${costPerGram.toFixed(4)}/g
+            ${Number.isInteger(costPerGram) ? costPerGram.toLocaleString("es-CO") : costPerGram.toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}/g
           </span>
         </div>
       </dl>

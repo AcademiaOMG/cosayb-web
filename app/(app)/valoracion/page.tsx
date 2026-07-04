@@ -8,8 +8,10 @@ import Card from "@/components/ui/Card"
 import Input from "@/components/ui/Input"
 import Table from "@/components/ui/Table"
 import SearchableSelect from "@/components/ui/SearchableSelect"
+import Modal from "@/components/ui/Modal"
 import { ArrowLeft, CheckCircle2, Plus, Calculator, RotateCcw } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import type { Valuation, ValuationIndicator, ValuationRefType, Recipe } from "@/types/domain"
 import { getValuations, createValuation, getRecipes, getRecipeCost } from "@/lib/api"
 import type { ValuationCreateResult, CreateValuationPayload } from "@/lib/api"
@@ -221,12 +223,15 @@ function DetailView({
 
   const handleRecipeSelect = useCallback(async (recipeId: string) => {
     setSelectedRecipeId(recipeId)
-    if (!recipeId) return
+    if (!recipeId) {
+      setForm((prev) => ({ ...prev, refType: "standalone" }))
+      return
+    }
     setRecipeLoading(true)
     try {
       const res = await getRecipeCost(recipeId)
-      if (res.data?.costWithMarginPerServing != null) {
-        setForm((prev) => ({ ...prev, costMateriaprima: String(Math.round(res.data.costWithMarginPerServing)) }))
+      if (res.data?.rawCostPerServing != null) {
+        setForm((prev) => ({ ...prev, costMateriaprima: String(Math.round(res.data.rawCostPerServing)), refType: "recipe" }))
         setError(null)
       }
     } catch {
@@ -575,6 +580,7 @@ function DetailView({
 type PageView = "list" | "detail"
 
 export default function ValoracionPage() {
+  useHelpAvailable()
   const { can } = usePermissions()
   const { data: history = [], isLoading, mutate } = useSWR(
     "valuations",
@@ -584,7 +590,7 @@ export default function ValoracionPage() {
 
   const { data: availableRecipes = [] } = useSWR(
     "recipes",
-    () => getRecipes().then((r) => r.data ?? []),
+    () => getRecipes(undefined, "all", 1, 100).then((r) => r.data ?? []),
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
@@ -592,6 +598,13 @@ export default function ValoracionPage() {
   const [initForm, setInitForm]       = useState<FormState>(EMPTY)
   const [isNew, setIsNew]             = useState(true)
   const [sourceName, setSourceName]   = useState<string | undefined>(undefined)
+  const [helpOpen, setHelpOpen]       = useState(false)
+
+  useEffect(() => {
+    function handleHelp() { setHelpOpen(true) }
+    window.addEventListener("open-help", handleHelp)
+    return () => window.removeEventListener("open-help", handleHelp)
+  }, [])
 
   function openCreate() {
     setInitForm(emptyForm())
@@ -778,6 +791,51 @@ export default function ValoracionPage() {
           rowKey="id"
         />
       )}
+
+      {/* ── Modal: help ──────────────────────────────────────────────────── */}
+      <Modal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        title="Valoración de Costos"
+      >
+        <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+          <p>Esta seccion te permite fijar el precio de venta de un plato a partir de su costo de ingredientes.</p>
+
+          <div>
+            <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
+            <ul className="flex flex-col gap-2 ml-1">
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Crear valoracion:</strong> Haz clic en Nueva valoracion para analizar la rentabilidad de un plato.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Cargar desde receta:</strong> Selecciona una receta existente y el costo se llena automaticamente.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Definir % Materia Prima:</strong> Establece que porcentaje del precio final son ingredientes.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Margen de seguridad:</strong> Agrega un colchon del 3-5% ante subidas de precios.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Analisis en tiempo real:</strong> Visualiza el precio sugerido, desglose de costos e indicador de rentabilidad.</span>
+              </li>
+              <li className="flex gap-2">
+                <span style={{ color: "var(--accent)" }}>•</span>
+                <span><strong>Comparar precios:</strong> Ingresa el precio real de venta para comparar con el sugerido.</span>
+              </li>
+            </ul>
+          </div>
+
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <strong>Nota:</strong> El indicador MUY BUENO significa que el plato es altamente rentable (menos del 32% son ingredientes).
+          </p>
+        </div>
+      </Modal>
     </div>
   )
 }

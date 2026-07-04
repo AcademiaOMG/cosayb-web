@@ -8,6 +8,7 @@ import {
   acceptInvitation,
   type InvitationDetail,
 } from "@/lib/api/settings"
+import { setActiveOrgId } from "@/lib/surface"
 
 // Colores por slug; el label viene de la API (roleName)
 const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
@@ -57,6 +58,8 @@ export default function AcceptInvitationPage({
     setError(null)
     try {
       const res = await acceptInvitation(id)
+      const newOrgId = res.data?.organizationId
+      if (newOrgId) setActiveOrgId(newOrgId)
       setAccepted(true)
       setTimeout(() => router.push("/inventario"), 3000)
     } catch (err: unknown) {

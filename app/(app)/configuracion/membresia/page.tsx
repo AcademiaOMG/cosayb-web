@@ -32,7 +32,7 @@ export default function MembresiaPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Card>
+      <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
         <div className="flex items-center gap-3 mb-5">
           <CreditCard size={18} style={{ color: "var(--accent)" }} />
           <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>

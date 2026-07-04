@@ -138,7 +138,7 @@ export default function Sidebar({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 sidebar-scroll relative">
           {visibleGroups.map((group, gi) => (
             <div key={group.label ?? `g${gi}`} className={gi > 0 ? "mt-5" : ""}>
               {group.label && (

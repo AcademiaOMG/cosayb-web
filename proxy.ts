@@ -13,9 +13,6 @@ const PUBLIC_ROUTES = [
   "/cookies",
 ];
 
-// Nombres de cookie de sesión que usa better-auth según el entorno:
-//   HTTPS producción (Vercel) → "__Secure-better-auth.session_token"
-//   HTTP  desarrollo local    → "better-auth.session_token"
 const SESSION_COOKIE_NAMES = [
   "__Secure-better-auth.session_token",
   "better-auth.session_token",
@@ -24,7 +21,10 @@ const SESSION_COOKIE_NAMES = [
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+<<<<<<< HEAD
   // Recursos internos de Next.js, archivos estáticos y rutas de auth siempre pasan
+=======
+>>>>>>> origin/main
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||
@@ -34,18 +34,16 @@ export function proxy(req: NextRequest) {
     pathname === "/sitemap.xml" ||
     /\.(png|jpg|jpeg|webp|svg|gif|ico|css|js)$/.test(pathname)
   ) {
-    return NextResponse.next();
+    return undefined;
   }
 
-  // Rutas públicas siempre pasan
   if (
     PUBLIC_ROUTES.includes(pathname) ||
     pathname.startsWith("/accept-invitation")
   ) {
-    return NextResponse.next();
+    return undefined;
   }
 
-  // Verificación de sesión: lectura de cookie — sincrónica, sin fetch, sin llamadas externas
   const hasSession = SESSION_COOKIE_NAMES.some((name) =>
     req.cookies.has(name)
   );
@@ -54,9 +52,6 @@ export function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Rutas autenticadas: prohibir caché del navegador/proxies.
-  // Sin esto, el HTML "logueado" queda en caché de disco y reaparece con el
-  // botón atrás después de cerrar sesión.
   const res = NextResponse.next();
   res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
   res.headers.set("Pragma", "no-cache");

@@ -56,6 +56,7 @@ async function fetchAPI<T>(
 
   return response.json() as Promise<T>
 }
+export { fetchAPI }
 
 // ─── Tipos de respuesta del backend ──────────────────────────────────────────
 // El backend devuelve { data, total } — sin paginación por cursor todavía.
@@ -380,10 +381,12 @@ export async function getBreakEvenHistory(): Promise<{
 
 /** GET /api/v1/break-even/export — descarga el Excel directamente */
 export async function exportBreakEvenExcel(): Promise<Blob> {
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+  const activeOrg = getActiveOrgId()
   const response = await fetch(`${API_BASE_URL}/api/v1/break-even/export`, {
     credentials: "include",
+    headers: {
+      ...(activeOrg ? { "X-Organization-Id": activeOrg } : {}),
+    },
   })
   if (!response.ok) throw new Error("Error al exportar el historial")
   return response.blob()
