@@ -91,11 +91,11 @@ export default function Hero() {
 
           {/* CTA row */}
           <div className="flex flex-wrap items-center gap-4 mb-16 animate-fade-up-delay-3">
-            <Link href="/login" className="btn-spx btn-spx-accent px-8 py-4">
+            <Link href="/login" className="btn-spx btn-spx-accent">
               Probar 14 días gratis
               <ArrowRight size={18} className="btn-arrow" />
             </Link>
-            <Link href="#como-funciona" className="btn-spx btn-spx-light px-8 py-4">
+            <Link href="#como-funciona" className="btn-spx btn-spx-light">
               Ver cómo funciona
               <ChevronDown size={16} className="btn-arrow" />
             </Link>

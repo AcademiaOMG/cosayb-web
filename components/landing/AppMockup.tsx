@@ -55,7 +55,7 @@ export default function AppMockup() {
             ))}
           </ul>
 
-          <Link href="/login" className="btn-spx btn-spx-light px-7 py-3.5">
+          <Link href="/login" className="btn-spx btn-spx-light">
             Probar ahora gratis
             <ArrowRight size={16} className="btn-arrow" />
           </Link>
@@ -139,7 +139,7 @@ export default function AppMockup() {
                     $ 3.339
                   </div>
                 </div>
-                <button className="btn-spx btn-spx-light px-4 py-2">
+                <button className="btn-spx btn-spx-light">
                   Exportar PDF
                 </button>
               </div>

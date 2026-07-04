@@ -56,13 +56,13 @@ export default function Footer() {
             </p>
 
             {/* CTA */}
-            <Link href="/login" className="btn-spx btn-spx-light btn-spx-noborder px-5 py-2.5 mb-8 inline-flex">
+            <Link href="/login" className="btn-spx btn-spx-light">
               Probar gratis
               <ArrowRight size={14} className="btn-arrow" />
             </Link>
 
             {/* Contact info */}
-            <div className="flex flex-col gap-1.5 mt-2">
+            <div className="flex flex-col gap-1.5 mt-6">
               <a
                 href="mailto:hola@cosayb.co"
                 className="font-body text-xs text-[#4A6080] hover:text-[#8FA0BC] transition-colors"

@@ -57,12 +57,12 @@ export default function Nav() {
           </div>
 
           {/* Col 2: MENÚ CENTRADO */}
-          <nav className="hidden lg:flex justify-center items-center gap-1.5">
+          <nav className="hidden lg:flex justify-center items-center gap-1.5 self-stretch h-full">
             {navLinks.map(({ label, href }) => (
               <Link
   key={label}
   href={href}
-  className={`whitespace-nowrap font-body text-sm px-3 py-2 rounded transition-all duration-300 ease-in-out ${
+  className={`whitespace-nowrap font-body text-sm px-3 h-full inline-flex items-center transition-all duration-300 ease-in-out ${
     scrolled
       ? "text-[#4A4438] hover:text-[#12213A] hover:bg-[#EDE7DB]"
       : "text-[#C8D5E8] hover:text-[#F5F0E8] hover:bg-white/10"
@@ -147,7 +147,7 @@ export default function Nav() {
             <Link
               href="/login"
               onClick={() => setMenuOpen(false)}
-              className="btn-spx btn-spx-accent btn-spx-noborder w-full py-4"
+              className="btn-spx btn-spx-accent btn-spx-noborder w-full"
             >
               Empezar 14 días gratis
               <ArrowRight size={14} className="btn-arrow" />

@@ -42,13 +42,9 @@ export default function NosotrosPage() {
   return (
     <div className="page-transition">
       {/* Hero */}
-      <section className="bg-[#12213A] pt-20 pb-24 sm:pt-28 sm:pb-32 px-6 sm:px-10 lg:px-16">
+      <section className="bg-[#12213A] min-h-dvh flex flex-col justify-center px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <div className="max-w-3xl">
-            <span className="inline-block text-xs font-body font-semibold tracking-[0.15em] uppercase px-4 py-2 rounded-full mb-6 text-[#8FA0BC]"
-              style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              Sobre Nosotros
-            </span>
             <h1
               className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6"
               style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}
@@ -158,11 +154,11 @@ export default function NosotrosPage() {
             recetas anidadas y un motor de pricing que te dice cuánto cobrar.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/login" className="btn-spx btn-spx-light px-8 py-4">
+            <Link href="/login" className="btn-spx btn-spx-light">
               Probar 14 días gratis
               <ArrowRight size={14} className="btn-arrow" />
             </Link>
-            <Link href="/contacto" className="btn-spx btn-spx-light px-8 py-4">
+            <Link href="/contacto" className="btn-spx btn-spx-light">
               Hablar con nosotros
               <ArrowRight size={14} className="btn-arrow" />
             </Link>
