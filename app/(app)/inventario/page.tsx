@@ -43,17 +43,8 @@ export default function InventarioPage() {
   )
 
   // ── Permisos y plan ───────────────────────────────────────────────────────
-  const { can } = usePermissions()
-  const [plan, setPlan] = useState<"free" | "pro">("free")
-
-  useEffect(() => {
-    fetchAPI<{ data: { effectiveMembership?: string } }>("/api/v1/organizations/me")
-      .then((b) => {
-        const m = b?.data?.effectiveMembership
-        if (m) setPlan(m === "free" ? "free" : "pro")
-      })
-      .catch(() => {})
-  }, [])
+  const { can, organization } = usePermissions()
+  const plan = organization?.membership === "free" ? "free" : "pro"
 
   // ── Search / Filter / Pagination ──────────────────────────────────────────
   const [search, setSearch] = useState("")

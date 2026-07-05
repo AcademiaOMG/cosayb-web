@@ -260,14 +260,13 @@ html { scroll-behavior: smooth; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-page-in,
-  .animate-fade-up,
-  .animate-fade-up-delay-1,
-  .animate-fade-up-delay-2,
-  .animate-fade-up-delay-3,
-  .animate-fade-up-delay-4 {
-    animation: none;
-    opacity: 1;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

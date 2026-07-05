@@ -335,7 +335,7 @@ export default function OnboardingPage() {
                 selected={selectedPlan === "pro"}
                 onSelect={() => setSelectedPlan("pro")}
                 title="Pro"
-                price="$49.900 / mes"
+                price="$30.000 / mes"
                 features={[
                   "Ingredientes ilimitados", "Recetas ilimitadas", "Menús ilimitados",
                   "Valoración A&B", "Punto de equilibrio", "Exportar PDFs", "Soporte prioritario",

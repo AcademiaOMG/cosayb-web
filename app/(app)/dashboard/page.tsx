@@ -104,7 +104,7 @@ export default function DashboardPage() {
                   {data.recentRecipes.map((r) => (
                     <Link
                       key={r.id}
-                      href="/recetas"
+                      href={`/recetas?id=${r.id}`}
                       className="flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--bg-secondary)]"
                       style={{ color: "var(--text-primary)" }}
                     >
@@ -130,7 +130,7 @@ export default function DashboardPage() {
                   {data.topRecipes.map((r, i) => (
                     <Link
                       key={r.id}
-                      href="/recetas"
+                      href={`/recetas?id=${r.id}`}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--bg-secondary)]"
                       style={{ color: "var(--text-primary)" }}
                     >

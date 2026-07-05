@@ -12,6 +12,11 @@ export interface Ingrediente {
   userId: string | null   // null = ingrediente del banco base público
   createdAt: string
   updatedAt: string
+  // Campos extendidos para inventario
+  priceConfirmedAt?: string | null
+  priceSource?: string | null
+  sipsaMatchName?: string | null
+  category?: string | null
 }
 
 export interface YieldFactorWasteItem {

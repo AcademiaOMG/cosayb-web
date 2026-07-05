@@ -12,7 +12,7 @@ import RecipeFormModal from "@/components/app/recipes/RecipeFormModal"
 import RecipeDetailModal from "@/components/app/recipes/RecipeDetailModal"
 import type { Recipe } from "@/types/domain"
 import type { RecipeFilter, RecipeExtraFilters } from "@/lib/api"
-import { getRecipes, deleteRecipe } from "@/lib/api"
+import { getRecipes, deleteRecipe, getRecipeCounts } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { ChefHat, Plus, Search, Globe, User, SlidersHorizontal, X } from "lucide-react"
@@ -56,28 +56,18 @@ export default function RecetasPage() {
     { revalidateOnFocus: false, dedupingInterval: 60_000, keepPreviousData: true },
   )
 
-  // Counts for filter tabs (fetch all three separately)
-  const { data: allData } = useSWR(
-    "recipes-count-all",
-    () => getRecipes(undefined, "all", 1, 1),
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
-  )
-  const { data: ownData } = useSWR(
-    "recipes-count-own",
-    () => getRecipes(undefined, "own", 1, 1),
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
-  )
-  const { data: bancoData } = useSWR(
-    "recipes-count-banco",
-    () => getRecipes(undefined, "banco", 1, 1),
+  // Counts for filter tabs (single API call)
+  const { data: countsData } = useSWR(
+    "recipe-counts",
+    () => getRecipeCounts(),
     { revalidateOnFocus: false, dedupingInterval: 60_000 }
   )
 
   const filterCounts = useMemo(() => ({
-    all: allData?.total ?? 0,
-    own: ownData?.total ?? 0,
-    banco: bancoData?.total ?? 0,
-  }), [allData, ownData, bancoData])
+    all: countsData?.data?.all ?? 0,
+    own: countsData?.data?.own ?? 0,
+    banco: countsData?.data?.banco ?? 0,
+  }), [countsData])
 
   const recipes = data?.data ?? []
   const total   = data?.total ?? 0
