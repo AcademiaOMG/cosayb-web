@@ -226,6 +226,11 @@ export async function getRecipes(
   return fetchAPI(`/api/v1/recipes${q ? `?${q}` : ""}`)
 }
 
+/** GET /api/v1/recipes/counts — all/own/banco counts in one call */
+export async function getRecipeCounts(): Promise<{ data: { all: number; own: number; banco: number } }> {
+  return fetchAPI("/api/v1/recipes/counts")
+}
+
 /** GET /api/v1/recipes?base=true — solo recetas base del tenant */
 export async function getBaseRecipes(): Promise<{ data: Recipe[] }> {
   return fetchAPI('/api/v1/recipes?base=true')

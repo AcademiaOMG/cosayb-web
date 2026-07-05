@@ -61,7 +61,7 @@ export default function AcceptInvitationPage({
       const newOrgId = res.data?.organizationId
       if (newOrgId) setActiveOrgId(newOrgId)
       setAccepted(true)
-      setTimeout(() => router.push("/inventario"), 3000)
+      setTimeout(() => router.push("/dashboard"), 3000)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al aceptar la invitación"
       setError(msg)
@@ -128,7 +128,7 @@ export default function AcceptInvitationPage({
             ¡Invitación aceptada!
           </h1>
           <p style={{ fontSize: 14, color: "var(--text-muted, #78716c)", marginBottom: 24 }}>
-            Redirigiendo al inventario...
+            Redirigiendo al dashboard...
           </p>
         </div>
       </div>

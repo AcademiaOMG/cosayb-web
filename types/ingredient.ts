@@ -1,12 +1,8 @@
 // Shared Ingredient type used across the inventario feature
-export interface Ingredient {
-  id: string
-  name: string
-  costPerUnit: string
-  weightGrams: string
-  costPerGram: string
-  isPublic: boolean
-  userId: string | null
+// Extends Ingrediente from domain.ts for backward compatibility
+import type { Ingrediente } from "./domain"
+
+export type Ingredient = Ingrediente & {
   priceConfirmedAt: string | null
   priceSource: string | null
   sipsaMatchName: string | null

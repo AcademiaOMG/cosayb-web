@@ -68,8 +68,19 @@ export default function Topbar({
         <div ref={ref} style={{ position: "relative" }}>
           <button
             onClick={() => setOpen((v) => !v)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && open) {
+                e.preventDefault()
+                setOpen(false)
+              } else if (e.key === "ArrowDown" && !open) {
+                e.preventDefault()
+                setOpen(true)
+              }
+            }}
             className="flex items-center gap-2 rounded-xl px-3 py-1.5 transition-colors"
             style={{ border: "1px solid transparent", background: "transparent", cursor: "pointer" }}
+            aria-expanded={open}
+            aria-haspopup="menu"
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "var(--bg-primary)"
               e.currentTarget.style.borderColor = "var(--border-light)"
@@ -90,6 +101,13 @@ export default function Topbar({
 
           {open && (
             <div
+              role="menu"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault()
+                  setOpen(false)
+                }
+              }}
               style={{
                 position: "absolute",
                 top: "calc(100% + 6px)",
@@ -111,6 +129,7 @@ export default function Topbar({
                 return (
                   <button
                     key={m.organizationId}
+                    role="menuitem"
                     onClick={() => handleSwitchOrg(m.organizationId)}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors"
                     style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-primary)" }}
@@ -123,6 +142,7 @@ export default function Topbar({
                 )
               })}
               <button
+                role="menuitem"
                 onClick={() => { window.location.href = "/onboarding?new=1" }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors"
                 style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--accent)" }}
@@ -137,6 +157,7 @@ export default function Topbar({
                 <>
                   <div style={{ height: 1, background: "var(--border-light)", margin: "6px 0" }} />
                   <button
+                    role="menuitem"
                     onClick={() => switchSurface("platform")}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left font-medium transition-colors"
                     style={{ background: "transparent", border: "none", cursor: "pointer", color: "#B45309" }}

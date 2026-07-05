@@ -37,6 +37,16 @@ interface NavGroup {
   items: NavItem[]
 }
 
+interface ActionItem {
+  type: "link" | "button"
+  href?: string
+  label: string
+  icon: typeof Package
+  resource?: Resource
+  action?: Action
+  show?: boolean
+}
+
 const NAV_GROUPS: NavGroup[] = [
   {
     label: null,
@@ -125,7 +135,7 @@ export default function Sidebar({
           style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
         >
           <Link href="/dashboard" className="font-display text-2xl font-bold text-white">
-            CO$AYB
+            ACADEMIA OMG
           </Link>
           <button
             onClick={onClose}
@@ -183,53 +193,87 @@ export default function Sidebar({
           ))}
         </nav>
 
-        {/* Configuración + cuenta + sesión */}
-        <div
-          className="px-3 py-3 flex flex-col gap-1 shrink-0"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
-        >
-          {showConfig && (
-            <Link
-              href="/configuracion/equipo"
-              onClick={onClose}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+        {/* Cuenta + sesión */}
+<div
+  className="px-3 py-3 shrink-0"
+  style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+>
+  <ul className="flex flex-col gap-1">
+    {(
+      [
+        showConfig
+          ? { type: "link" as const, href: "/configuracion", label: "Configuración", icon: Settings }
+          : null,
+        { type: "link" as const, href: "/cuenta", label: "Mi cuenta", icon: UserCircle },
+        { type: "button" as const, label: "Cerrar sesión", icon: LogOut },
+      ]
+    )
+      .filter((item): item is NonNullable<typeof item> => item != null)
+      .map((item) => {
+        const Icon = item.icon
+
+        if (item.type === "link") {
+          const isActive =
+            pathname === item.href ||
+            pathname.startsWith(`${item.href}/`)
+
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onClose}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                style={{
+                  background: isActive
+                    ? "var(--accent)"
+                    : "transparent",
+                  color: isActive ? "#fff" : "#8FA0BC",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive)
+                    e.currentTarget.style.background =
+                      "rgba(255,255,255,0.08)"
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive)
+                    e.currentTarget.style.background = "transparent"
+                }}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <Icon size={18} />
+                {item.label}
+              </Link>
+            </li>
+          )
+        }
+
+        return (
+          <li key={item.label}>
+            <button
+              onClick={onSignOut}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full"
               style={{
-                background: pathname.startsWith("/configuracion") ? "var(--accent)" : "transparent",
-                color: pathname.startsWith("/configuracion") ? "#fff" : "#8FA0BC",
+                background: "transparent",
+                color: "#8FA0BC",
+                border: "none",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background =
+                  "rgba(255,255,255,0.08)"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent"
               }}
             >
-              <Settings size={18} />
-              Configuración
-            </Link>
-          )}
-          <Link
-            href="/cuenta"
-            onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
-            style={{
-              background: pathname.startsWith("/cuenta") ? "var(--accent)" : "transparent",
-              color: pathname.startsWith("/cuenta") ? "#fff" : "#8FA0BC",
-            }}
-          >
-            <UserCircle size={18} />
-            Mi cuenta
-          </Link>
-          {/* El nombre del usuario y el plan viven en el Topbar — aquí solo acciones */}
-          <button
-            onClick={onSignOut}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full"
-            style={{ color: "#8FA0BC", background: "transparent", border: "none", cursor: "pointer" }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "rgba(255,255,255,0.08)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "transparent")
-            }
-          >
-            <LogOut size={18} />
-            Cerrar sesión
-          </button>
-        </div>
+              <Icon size={18} />
+              {item.label}
+            </button>
+          </li>
+        )
+      })}
+  </ul>
+</div>
       </aside>
     </>
   )
