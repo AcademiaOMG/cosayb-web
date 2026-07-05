@@ -134,6 +134,15 @@ html { scroll-behavior: smooth; }
   animation: fade-in 0.8s ease-out 0.1s forwards;
 }
 
+/* ── SpaceX-style subtle entry (no opacity, just translateY) ── */
+@keyframes spacex-reveal {
+  from { transform: translateY(6px); }
+  to   { transform: translateY(0); }
+}
+.animate-spacex {
+  animation: spacex-reveal 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* Card hover elevation */
 .card-hover {
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),

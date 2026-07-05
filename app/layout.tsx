@@ -89,6 +89,9 @@ export const metadata: Metadata = {
     creator: "@academiaomg",
     site: "@academiaomg",
   },
+  icons: {
+    icon: "/LOGO-ACADEMIAOMG.svg",
+  },
   alternates: {
     canonical: siteUrl,
   },

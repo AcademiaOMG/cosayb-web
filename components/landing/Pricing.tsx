@@ -21,6 +21,7 @@ const plans = [
     name: "Pro",
     tagline: "Para profesionales",
     price: "$30.000",
+    usdPrice: "$9",
     period: "COP / mes",
     features: [
       "Todo ilimitado",
@@ -37,6 +38,7 @@ const plans = [
     name: "Academia",
     tagline: "Para aprender y escalar",
     price: "$50.000",
+    usdPrice: "$14",
     period: "COP / mes",
     features: [
       "Todo de Pro",
@@ -76,7 +78,7 @@ export default function Pricing() {
 
         {/* Plans grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
-          {plans.map(({ name, tagline, price, period, features, cta, highlighted, badge }) => (
+          {plans.map(({ name, tagline, price, usdPrice, period, features, cta, highlighted, badge }) => (
             <div
               key={name}
               className={`relative rounded-2xl flex flex-col overflow-hidden transition-all duration-300 ${
@@ -135,6 +137,11 @@ export default function Pricing() {
                     >
                       {price}
                     </span>
+                    {usdPrice && (
+                      <span className="font-mono text-sm text-[#8FA0BC]">
+                        USD {usdPrice}
+                      </span>
+                    )}
                   </div>
                   <span
                     className={`font-body text-sm mt-1 block ${

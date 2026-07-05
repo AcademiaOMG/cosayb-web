@@ -2,7 +2,7 @@ import { CheckCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 const features = [
-  "Costo de materia prima calculado automáticamente",
+  "Costo de materia prima calculado automáticamente CON PRECIO REAL",
   "Indicadores MUY BUENO / ACEPTABLE / REVISAR según la industria",
   "Exporta el análisis completo a PDF en un clic",
 ]

@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = [
   "/onboarding",
   "/nosotros",
   "/contacto",
+  "/capacitacion",
   "/libro",
   "/privacy",
   "/terms",

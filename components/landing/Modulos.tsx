@@ -11,29 +11,29 @@ const modules: {
   {
     icon: Package,
     name: "Inventario",
-    description: "Más de 1.000 ingredientes con costo por gramo calculado automáticamente. Actualiza precios en segundos.",
+    description: "Actualiza automáticamente el costo de todas tus recetas cuando cambian los precios de tus ingredientes. Olvídate de recalcular una por una.",
     featured: true,
   },
   {
     icon: Scale,
     name: "Factor de Rendimiento",
-    description: "Calcula el costo real después de mermas en proteínas, vegetales y cualquier insumo.",
+    description: "Conoce cuánto cuesta realmente cada ingrediente después de la limpieza, merma y desperdicio para calcular tus costos con precisión.",
   },
   {
     icon: ChefHat,
     name: "Recetas",
-    description: "Subrecetas anidadas con costo en cascada. Cada cambio se refleja en tiempo real en todo el sistema.",
+    description: "Crea recetas profesionales con cantidades exactas y conoce al instante el costo real de cada preparación antes de venderla.",
     featured: true,
   },
   {
     icon: UtensilsCrossed,
     name: "Menú",
-    description: "Agrupa recetas y analiza el costo por persona antes de fijar tus precios de carta.",
+    description: "Diseña la carta de tu restaurante utilizando más de 150 recetas actualizadas y establece precios rentables antes de imprimir un solo menú.",
   },
   {
     icon: TrendingUp,
-    name: "Valoración A&B",
-    description: "Motor de pricing: convierte el costo de producción al precio sugerido de venta con margen óptimo.",
+    name: "Calculadora de Costos",
+    description: "Tu calculadora inteligente de costos. Obtén el precio de venta sugerido, la utilidad y el margen ideal en segundos, sin Excel, sin fórmulas y sin cálculos complicados.",
     featured: true,
   },
   {

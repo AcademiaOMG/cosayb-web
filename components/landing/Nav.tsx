@@ -5,7 +5,7 @@ import { X, Menu, ArrowRight } from "lucide-react"
 
 const navLinks = [
   { label: "Inicio", href: "/" },
-  { label: "Características", href: "/#modulos" },
+  { label: "Capacitación", href: "/capacitacion" },
   { label: "Precios", href: "/#precios" },
   { label: "Libro", href: "/libro" },
   { label: "Sobre nosotros", href: "/nosotros" },
@@ -52,7 +52,7 @@ export default function Nav() {
                   : "text-[#F5F0E8] hover:text-[#7AAEFF]"
               }`}
             >
-              CO$AYB
+              ACADEMIA OMG
             </Link>
           </div>
 
@@ -112,7 +112,7 @@ export default function Nav() {
               onClick={() => setMenuOpen(false)}
               className="font-display text-2xl font-bold text-[#12213A]"
             >
-              CO$AYB
+              ACADEMIA OMG
             </Link>
             <button
               onClick={() => setMenuOpen(false)}

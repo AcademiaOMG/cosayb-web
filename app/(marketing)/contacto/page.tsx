@@ -30,7 +30,7 @@ const channels = [
 
 export default function ContactoPage() {
   return (
-    <div className="page-transition">
+    <div>
       {/* Hero */}
       <section className="bg-[#12213A] min-h-dvh flex flex-col justify-center px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">

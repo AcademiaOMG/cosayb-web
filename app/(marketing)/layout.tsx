@@ -1,5 +1,6 @@
 import Nav from "@/components/landing/Nav"
 import Footer from "@/components/landing/Footer"
+import TransitionWrapper from "./TransitionWrapper"
 
 export default function MarketingLayout({
   children,
@@ -12,7 +13,9 @@ export default function MarketingLayout({
       style={{ background: "var(--bg-primary)" }}
     >
       <Nav />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        <TransitionWrapper>{children}</TransitionWrapper>
+      </main>
       <Footer />
     </div>
   )

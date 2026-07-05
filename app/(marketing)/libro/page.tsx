@@ -64,7 +64,7 @@ export default function LibroPage() {
   }
 
   return (
-    <div className="page-transition">
+    <div>
 
       {/* ─── HERO ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden min-h-dvh">
