@@ -1,9 +1,21 @@
 "use client"
 
 import useSWR from "swr"
+import Link from "next/link"
+import { Lock } from "lucide-react"
+import Card from "@/components/ui/Card"
+import Button from "@/components/ui/Button"
+import { usePermissions } from "@/hooks/usePermissions"
 import { getOrganizationActivity } from "@/lib/api"
 
+const DEFAULT_LOCKED_MESSAGE = "El registro de actividad no está disponible en tu plan actual."
+
 const ACTION_LABELS: Record<string, string> = {
+  "organization.create": "Se creó la organización",
+  "invitation.create": "Se envió una invitación",
+  "invitation.accept": "Se aceptó una invitación",
+  "member.role_change": "Se cambió el rol de un miembro",
+  "member.remove": "Se eliminó a un miembro",
   "impersonation.start": "Inició una sesión de soporte",
   "impersonation.elevate": "Habilitó edición durante soporte",
   "impersonation.end": "Terminó la sesión de soporte",
@@ -16,9 +28,28 @@ function labelFor(action: string): string {
 }
 
 export default function ActividadPage() {
-  const { data: entries, isLoading } = useSWR("organization-activity", () =>
-    getOrganizationActivity().then((r) => r.data)
+  const { hasFeature, featureLockedMessage } = usePermissions()
+  const unlocked = hasFeature("activity_log")
+
+  const { data: entries, isLoading } = useSWR(
+    unlocked ? "organization-activity" : null,
+    () => getOrganizationActivity().then((r) => r.data)
   )
+
+  if (!unlocked) {
+    const message = featureLockedMessage("activity_log") || DEFAULT_LOCKED_MESSAGE
+    return (
+      <Card className="flex flex-col items-center text-center gap-3 py-10">
+        <Lock size={28} style={{ color: "var(--text-muted)" }} />
+        <p className="text-sm max-w-sm" style={{ color: "var(--text-secondary)" }}>
+          {message}
+        </p>
+        <Link href="/configuracion/membresia">
+          <Button variant="primary" size="sm">Ver planes</Button>
+        </Link>
+      </Card>
+    )
+  }
 
   if (isLoading) {
     return <p className="text-sm" style={{ color: "var(--text-muted)" }}>Cargando actividad…</p>
@@ -27,7 +58,7 @@ export default function ActividadPage() {
   if (!entries?.length) {
     return (
       <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-        El equipo de soporte de Cosayb no ha accedido a tu organización.
+        Todavía no hay actividad registrada en tu organización.
       </p>
     )
   }
@@ -35,7 +66,7 @@ export default function ActividadPage() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-        Registro de cada vez que soporte de Cosayb accedió a tu organización.
+        Registro de la actividad administrativa de tu organización.
       </p>
       {entries.map((e) => (
         <div
