@@ -807,6 +807,37 @@ export async function platformSetRolePermissions(
   })
 }
 
+export interface OrganizationRoleRow {
+  id: string
+  name: string
+  organizationId: string
+  organizationName: string
+  memberCount: number
+}
+
+/** Roles personalizados de TODAS las organizaciones — supervisión de plataforma */
+export async function platformListOrganizationRoles(): Promise<{ data: OrganizationRoleRow[] }> {
+  return fetchAPI("/api/v1/platform/organization-roles")
+}
+
+export async function platformDeleteOrganizationRole(id: string): Promise<{ data: { deleted: boolean } }> {
+  return fetchAPI(`/api/v1/platform/organization-roles/${id}`, { method: "DELETE" })
+}
+
+export async function platformCreateSystemRole(data: {
+  name: string
+  description?: string
+  scope: "platform" | "organization" | "user"
+  scopeContext?: string | null
+  permissionSlugs: string[]
+  tiers?: ("free" | "pro" | "academia")[]
+}): Promise<{ data: { id: string; slug: string; name: string } }> {
+  return fetchAPI("/api/v1/platform/roles", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
 // ─── Banco público (Content Studio) ──────────────────────────────────────────
 
 export type BancoRecipeType = "all" | "base" | "principal"
