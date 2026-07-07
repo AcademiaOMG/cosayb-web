@@ -21,6 +21,7 @@ import {
 } from "@/lib/api"
 import { Scale, Plus } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
+import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 
 const PAGE_SIZE = 10
@@ -65,7 +66,7 @@ function TableSkeleton() {
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function FactorRendimientoPage() {
   useHelpAvailable()
-  const { can } = usePermissions()
+  const { can, hasFeature, featureLockedMessage } = usePermissions()
   const { data: factors = [], isLoading, error, mutate } = useSWR(
     "yield-factors",
     () => getFactoresRendimiento().then((r) => r.data ?? []),
@@ -181,6 +182,10 @@ export default function FactorRendimientoPage() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
+  if (!hasFeature("module_yieldFactors")) {
+    return <ModuleLocked message={featureLockedMessage("module_yieldFactors")} />
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader

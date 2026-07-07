@@ -15,6 +15,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { fetchAPI } from "@/lib/api"
 import type { Ingredient, IngredientForm, IngredientOriginFilter } from "@/types/ingredient"
+import ModuleLocked from "@/components/app/ModuleLocked"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const FREE_LIMIT = 30
@@ -43,7 +44,7 @@ export default function InventarioPage() {
   )
 
   // ── Permisos y plan ───────────────────────────────────────────────────────
-  const { can, organization } = usePermissions()
+  const { can, organization, hasFeature, featureLockedMessage } = usePermissions()
   const plan = organization?.membership === "free" ? "free" : "pro"
 
   // ── Search / Filter / Pagination ──────────────────────────────────────────
@@ -196,6 +197,10 @@ export default function InventarioPage() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
+  if (!hasFeature("module_ingredients")) {
+    return <ModuleLocked message={featureLockedMessage("module_ingredients")} />
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}

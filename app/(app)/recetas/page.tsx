@@ -15,6 +15,7 @@ import type { RecipeFilter, RecipeExtraFilters } from "@/lib/api"
 import { getRecipes, deleteRecipe, getRecipeCounts } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import ModuleLocked from "@/components/app/ModuleLocked"
 import { ChefHat, Plus, Search, Globe, User, SlidersHorizontal, X } from "lucide-react"
 import { clsx } from "clsx"
 
@@ -30,7 +31,7 @@ const EMPTY_EXTRA: RecipeExtraFilters = {}
 
 export default function RecetasPage() {
   useHelpAvailable()
-  const { can } = usePermissions()
+  const { can, hasFeature, featureLockedMessage } = usePermissions()
   const [filter, setFilter]   = useState<RecipeFilter>("all")
   const [search, setSearch]   = useState("")
   const [page, setPage]       = useState(1)
@@ -123,6 +124,10 @@ export default function RecetasPage() {
 
   function handleOpenEdit(id: string) {
     setDetailRecipeId(null); setEditRecipeId(id); setFormOpen(true)
+  }
+
+  if (!hasFeature("module_recipes")) {
+    return <ModuleLocked message={featureLockedMessage("module_recipes")} />
   }
 
   return (

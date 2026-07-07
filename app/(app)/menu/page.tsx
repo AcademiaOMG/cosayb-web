@@ -22,6 +22,7 @@ import {
 } from "@/lib/api"
 import type { CreateMenuPayload } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
+import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 
 // ─── Fórmulas (réplica exacta del backend calcularCostoMenu) ─────────────────
@@ -1308,7 +1309,7 @@ type PageView = "list" | "detail"
 
 export default function MenuPage() {
   useHelpAvailable()
-  const { can } = usePermissions()
+  const { can, hasFeature, featureLockedMessage } = usePermissions()
   const { data: menus = [], isLoading: menusLoading, mutate: mutateMenus } = useSWR(
     "menus",
     () => getMenus().then((r) => r.data ?? []),
@@ -1368,6 +1369,10 @@ export default function MenuPage() {
   async function handleSaved() {
     await mutateMenus()
     setView("list")
+  }
+
+  if (!hasFeature("module_menus")) {
+    return <ModuleLocked message={featureLockedMessage("module_menus")} />
   }
 
   // ── Vista detalle ──

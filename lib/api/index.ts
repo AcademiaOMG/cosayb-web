@@ -942,7 +942,7 @@ export async function platformGetMetrics(): Promise<{
 export async function platformListMemberships(): Promise<{
   data: {
     features: { id: string; membership: string; featureKey: string; enabled: boolean; limitValue: number | null; lockedMessage: string | null }[]
-    roleLimits: { membership: string; roleId: string; roleSlug: string; roleName: string }[]
+    roleLimits: { membership: string; roleId: string; roleSlug: string; roleName: string; maxUsers: number | null }[]
   }
 }> {
   return fetchAPI("/api/v1/platform/memberships")
@@ -956,5 +956,15 @@ export async function platformUpdateFeature(
   return fetchAPI(`/api/v1/platform/memberships/${tier}/features/${key}`, {
     method: "PATCH",
     body: JSON.stringify(data),
+  })
+}
+
+export async function platformSetMembershipRoles(
+  tier: string,
+  roles: { roleId: string; maxUsers: number | null }[]
+): Promise<{ message: string }> {
+  return fetchAPI(`/api/v1/platform/memberships/${tier}/roles`, {
+    method: "PUT",
+    body: JSON.stringify({ roles }),
   })
 }
