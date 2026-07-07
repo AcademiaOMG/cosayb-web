@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { usePermissions } from "@/hooks/usePermissions"
 import { getDashboardSummary } from "@/lib/api"
+import type { Resource, Action } from "@/lib/api"
 import {
   Package, ChefHat, UtensilsCrossed, Users, Coins, Clock,
   CheckCircle2, Circle, ArrowRight, Plus, TrendingUp, Scale, Send, Sparkles,
@@ -19,7 +20,7 @@ const COP = new Intl.NumberFormat("es-CO", {
 })
 
 export default function DashboardPage() {
-  const { organization, can } = usePermissions()
+  const { organization, can, hasFeature } = usePermissions()
   const { data, isLoading } = useSWR(
     "dashboard-summary",
     () => getDashboardSummary().then((r) => r.data),
@@ -52,7 +53,12 @@ export default function DashboardPage() {
       )}
 
       {!isLoading && data && !data.onboardingComplete && (
-        <OnboardingChecklist checklist={data.checklist} canCreate={can("recipes", "create")} />
+        <OnboardingChecklist
+          checklist={data.checklist}
+          canCreate={can("recipes", "create")}
+          can={can}
+          hasFeature={hasFeature}
+        />
       )}
 
       {!isLoading && data && data.onboardingComplete && (
@@ -65,18 +71,20 @@ export default function DashboardPage() {
               recipes={data.counts.recipes}
               menus={data.counts.menus}
               team={data.team}
+              can={can}
+              hasFeature={hasFeature}
             />
           </div>
 
           {/* ── Accesos rápidos ──────────────────────────────────────────── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {can("recipes", "create") && (
+            {can("recipes", "create") && hasFeature("module_recipes") && (
               <QuickAction icon={ChefHat} label="Nueva receta" href="/recetas" bg="#EDE9FE" color="#6D28D9" />
             )}
-            {can("ingredients", "create") && (
+            {can("ingredients", "create") && hasFeature("module_ingredients") && (
               <QuickAction icon={Package} label="Nuevo ingrediente" href="/inventario" bg="#DCFCE7" color="#16A34A" />
             )}
-            {can("yieldFactors", "create") && (
+            {can("yieldFactors", "create") && hasFeature("module_yieldFactors") && (
               <QuickAction icon={Scale} label="Nuevo factor de rendimiento" href="/factor-rendimiento" bg="var(--accent-light)" color="var(--accent)" />
             )}
             {can("invitations", "create") && (
@@ -236,24 +244,34 @@ function StatStrip({
   recipes,
   menus,
   team,
+  can,
+  hasFeature,
 }: {
   ingredients: number
   recipes: number
   menus: number
   team: { members: number; limit: number | null }
+  can: (resource: Resource, action: Action) => boolean
+  hasFeature: (key: string) => boolean
 }) {
-  const segments = [
-    { icon: Package, label: "Ingredientes", value: String(ingredients), href: "/inventario" },
-    { icon: ChefHat, label: "Recetas propias", value: String(recipes), href: "/recetas" },
-    { icon: UtensilsCrossed, label: "Menús", value: String(menus), href: "/menu" },
+  const allSegments = [
+    { icon: Package, label: "Ingredientes", value: String(ingredients), href: "/inventario", resource: "ingredients" as const, feature: "module_ingredients" },
+    { icon: ChefHat, label: "Recetas propias", value: String(recipes), href: "/recetas", resource: "recipes" as const, feature: "module_recipes" },
+    { icon: UtensilsCrossed, label: "Menús", value: String(menus), href: "/menu", resource: "menus" as const, feature: "module_menus" },
     {
       icon: Users,
       label: "Equipo",
       value: team.limit != null ? `${team.members}/${team.limit}` : String(team.members),
       href: "/configuracion/equipo",
       progress: team.limit != null ? team.members / team.limit : undefined,
+      resource: "members" as const,
+      feature: undefined,
     },
   ]
+
+  const segments = allSegments.filter(
+    (s) => can(s.resource, "list") && (!s.feature || hasFeature(s.feature))
+  )
 
   return (
     <div
@@ -292,17 +310,23 @@ function StatStrip({
 function OnboardingChecklist({
   checklist,
   canCreate,
+  can,
+  hasFeature,
 }: {
   checklist: { hasIngredients: boolean; hasRecipes: boolean; hasMenus: boolean; hasTeam: boolean }
   canCreate: boolean
+  can: (resource: Resource, action: Action) => boolean
+  hasFeature: (key: string) => boolean
 }) {
-  const steps = [
+  const allSteps = [
     {
       done: checklist.hasIngredients,
       title: "Agrega tu primer ingrediente",
       description: "Registra los insumos de tu cocina con su costo, o importa del banco público.",
       href: "/inventario",
       cta: "Ir a Inventario",
+      resource: "ingredients" as const,
+      feature: "module_ingredients",
     },
     {
       done: checklist.hasRecipes,
@@ -310,6 +334,8 @@ function OnboardingChecklist({
       description: "Arma la ficha técnica con componentes y calcula su costo exacto.",
       href: "/recetas",
       cta: "Ir a Recetas",
+      resource: "recipes" as const,
+      feature: "module_recipes",
     },
     {
       done: checklist.hasMenus,
@@ -317,6 +343,8 @@ function OnboardingChecklist({
       description: "Combina recetas y calcula el costo por persona de un evento.",
       href: "/menu",
       cta: "Ir a Menús",
+      resource: "menus" as const,
+      feature: "module_menus",
     },
     {
       done: checklist.hasTeam,
@@ -325,8 +353,17 @@ function OnboardingChecklist({
       href: "/configuracion/equipo",
       cta: "Invitar",
       optional: true,
+      resource: "invitations" as const,
+      feature: undefined,
     },
   ]
+
+  // Un paso solo aparece si el usuario tiene permiso de rol Y la membresía
+  // habilita ese módulo — igual que el Sidebar, para que el checklist nunca
+  // ofrezca un atajo a algo que está bloqueado.
+  const steps = allSteps.filter(
+    (s) => can(s.resource, "list") && (!s.feature || hasFeature(s.feature))
+  )
 
   const required = steps.filter((s) => !s.optional)
   const doneCount = required.filter((s) => s.done).length
