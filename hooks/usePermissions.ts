@@ -46,6 +46,11 @@ export function usePermissions() {
     return organization?.features.find((f) => f.key === key)?.limit
   }
 
+  /** Mensaje configurado por el super admin cuando la feature está bloqueada (null = usar el texto por defecto) */
+  function featureLockedMessage(key: string): string | null | undefined {
+    return organization?.features.find((f) => f.key === key)?.lockedMessage
+  }
+
   return {
     // Datos
     scope: ctx?.scope,
@@ -62,6 +67,7 @@ export function usePermissions() {
     platformCan,
     hasFeature,
     featureLimit,
+    featureLockedMessage,
     isOwner: roles.includes("org_owner"),
     isPlatform: platformRoles.length > 0,
     hasOrganization: !!organization,

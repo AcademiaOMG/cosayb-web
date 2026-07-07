@@ -433,7 +433,7 @@ export type Resource =
   | "yieldFactors" | "valuations" | "breakEven"
   | "marketPrices" | "reports"
   | "publicRecipes" | "publicIngredients"
-  | "organization" | "organizationActivity" | "members" | "invitations" | "billing";
+  | "organization" | "organizationActivity" | "organizationRoles" | "members" | "invitations" | "billing";
 
 export type Action =
   | "list" | "read" | "create" | "update" | "delete"
@@ -445,6 +445,7 @@ export interface MembershipFeature {
   key: string
   enabled: boolean
   limit: number | null
+  lockedMessage: string | null
 }
 
 export interface AuthzContext {
@@ -516,7 +517,7 @@ export async function getOrganizationActivity(): Promise<{ data: ActivityEntry[]
   return fetchAPI("/api/v1/organizations/me/activity")
 }
 
-/** Roles asignables según la membresía del tenant (para invitar / cambiar rol) */
+/** Roles asignables según la membresía del tenant (para invitar / cambiar rol) — sistema + personalizados */
 export interface AssignableRole {
   id: string
   slug: string
@@ -526,7 +527,77 @@ export interface AssignableRole {
 }
 
 export async function getAvailableRoles(): Promise<{ data: AssignableRole[] }> {
-  return fetchAPI("/api/v1/roles/available")
+  return fetchAPI("/api/v1/roles")
+}
+
+// ─── Roles personalizados por organización ───────────────────────────────────
+// Catálogo de permisos que un rol personalizado puede otorgar — dominio
+// operativo, nunca administración (debe coincidir con CUSTOM_ROLE_ALLOWED_RESOURCES
+// del backend, ver src/modules/authz/authz.constants.ts).
+export const CUSTOM_ROLE_MODULES: { resource: Resource; label: string; actions: Action[] }[] = [
+  { resource: "ingredients", label: "Ingredientes", actions: ["list", "read", "create", "update", "delete"] },
+  { resource: "recipes", label: "Recetas", actions: ["list", "read", "create", "update", "delete", "publish"] },
+  { resource: "menus", label: "Menús", actions: ["list", "read", "create", "update", "delete"] },
+  { resource: "yieldFactors", label: "Factor de Rendimiento", actions: ["list", "read", "create", "update", "delete"] },
+  { resource: "valuations", label: "Valoraciones", actions: ["list", "read", "create", "update", "delete"] },
+  { resource: "breakEven", label: "Punto de Equilibrio", actions: ["list", "read", "create", "update", "delete"] },
+  { resource: "marketPrices", label: "Precios de Mercado", actions: ["list", "read"] },
+  { resource: "reports", label: "Reportes", actions: ["list", "read", "export"] },
+  { resource: "publicRecipes", label: "Banco de Recetas", actions: ["list", "read"] },
+  { resource: "publicIngredients", label: "Banco de Ingredientes", actions: ["list", "read"] },
+]
+
+export interface CustomRole {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  scopeContext: string | null
+}
+
+export async function createCustomRole(
+  name: string,
+  permissionSlugs: string[]
+): Promise<{ data: CustomRole }> {
+  return fetchAPI("/api/v1/roles", {
+    method: "POST",
+    body: JSON.stringify({ name, permissionSlugs }),
+  })
+}
+
+export async function updateCustomRole(
+  id: string,
+  data: { name?: string; permissionSlugs?: string[] }
+): Promise<{ data: CustomRole }> {
+  return fetchAPI(`/api/v1/roles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteCustomRole(id: string): Promise<{ data: { deleted: boolean } }> {
+  return fetchAPI(`/api/v1/roles/${id}`, { method: "DELETE" })
+}
+
+export interface CustomRoleSummary {
+  id: string
+  name: string
+  memberCount: number
+}
+
+export async function getCustomRolesSummary(): Promise<{ data: CustomRoleSummary[] }> {
+  return fetchAPI("/api/v1/roles/custom")
+}
+
+export interface CustomRoleDetail {
+  id: string
+  name: string
+  permissionSlugs: string[]
+  memberCount: number
+}
+
+export async function getCustomRoleDetail(id: string): Promise<{ data: CustomRoleDetail }> {
+  return fetchAPI(`/api/v1/roles/${id}`)
 }
 
 /** POST /api/v1/organizations — onboarding explícito */
@@ -839,7 +910,7 @@ export async function platformGetMetrics(): Promise<{
 
 export async function platformListMemberships(): Promise<{
   data: {
-    features: { id: string; membership: string; featureKey: string; enabled: boolean; limitValue: number | null }[]
+    features: { id: string; membership: string; featureKey: string; enabled: boolean; limitValue: number | null; lockedMessage: string | null }[]
     roleLimits: { membership: string; roleId: string; roleSlug: string; roleName: string }[]
   }
 }> {
@@ -849,7 +920,7 @@ export async function platformListMemberships(): Promise<{
 export async function platformUpdateFeature(
   tier: string,
   key: string,
-  data: { enabled?: boolean; limitValue?: number | null }
+  data: { enabled?: boolean; limitValue?: number | null; lockedMessage?: string | null }
 ): Promise<{ data: unknown }> {
   return fetchAPI(`/api/v1/platform/memberships/${tier}/features/${key}`, {
     method: "PATCH",
