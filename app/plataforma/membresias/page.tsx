@@ -46,6 +46,16 @@ export default function MembresiasPage() {
     }
   }
 
+  async function changeLockedMessage(tier: string, key: string, raw: string) {
+    setSaving(`${tier}:${key}`)
+    try {
+      await platformUpdateFeature(tier, key, { lockedMessage: raw.trim() || null })
+      await mutate()
+    } finally {
+      setSaving(null)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -68,24 +78,37 @@ export default function MembresiasPage() {
             <p className="text-[10px] font-bold tracking-widest console-muted mb-2">FEATURES Y LÍMITES</p>
             <div className="flex flex-col gap-1.5 mb-5">
               {featuresByTier(tier).map((f) => (
-                <div key={f.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={f.enabled}
-                    disabled={!canEdit || saving === `${tier}:${f.featureKey}`}
-                    onChange={(e) => toggleFeature(tier, f.featureKey, e.target.checked)}
-                    style={{ accentColor: "var(--accent)", cursor: canEdit ? "pointer" : "default" }}
-                  />
-                  <span className="flex-1 text-xs console-muted truncate">{f.featureKey}</span>
-                  {f.featureKey.startsWith("max_") && (
+                <div key={f.id} className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
                     <input
-                      type="number"
-                      defaultValue={f.limitValue ?? ""}
-                      placeholder="∞"
+                      type="checkbox"
+                      checked={f.enabled}
+                      disabled={!canEdit || saving === `${tier}:${f.featureKey}`}
+                      onChange={(e) => toggleFeature(tier, f.featureKey, e.target.checked)}
+                      style={{ accentColor: "var(--accent)", cursor: canEdit ? "pointer" : "default" }}
+                    />
+                    <span className="flex-1 text-xs console-muted truncate">{f.featureKey}</span>
+                    {f.featureKey.startsWith("max_") && (
+                      <input
+                        type="number"
+                        defaultValue={f.limitValue ?? ""}
+                        placeholder="∞"
+                        disabled={!canEdit}
+                        onBlur={(e) => canEdit && changeLimit(tier, f.featureKey, e.target.value)}
+                        className="console-input text-xs text-right"
+                        style={{ width: 58, height: 26, paddingRight: 6 }}
+                      />
+                    )}
+                  </div>
+                  {!f.enabled && (
+                    <input
+                      type="text"
+                      defaultValue={f.lockedMessage ?? ""}
+                      placeholder="Mensaje de bloqueo (opcional)"
                       disabled={!canEdit}
-                      onBlur={(e) => canEdit && changeLimit(tier, f.featureKey, e.target.value)}
-                      className="console-input text-xs text-right"
-                      style={{ width: 58, height: 26, paddingRight: 6 }}
+                      onBlur={(e) => canEdit && changeLockedMessage(tier, f.featureKey, e.target.value)}
+                      className="console-input text-[11px] ml-6"
+                      style={{ height: 24, paddingLeft: 8 }}
                     />
                   )}
                 </div>
