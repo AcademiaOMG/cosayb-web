@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button"
 import Badge from "@/components/ui/Badge"
 import { useUpgradeModal } from "@/components/app/settings/UpgradeModalProvider"
 import { getCurrentPlan } from "@/lib/api"
-import type { Plan } from "@/config/features"
+import type { Plan } from "@/types/domain"
 import {
   CreditCard, Clock, CheckCircle2, ArrowUpRight, Crown, GraduationCap, Zap,
 } from "lucide-react"

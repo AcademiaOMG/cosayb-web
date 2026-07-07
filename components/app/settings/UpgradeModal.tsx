@@ -6,8 +6,8 @@ import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import { Check, X, Zap, Crown, GraduationCap, Clock, CheckCircle2 } from "lucide-react"
 import { useUpgradeModal } from "./UpgradeModalProvider"
-import { getCurrentPlan } from "@/lib/api"
-import { PLAN_DETAILS, FEATURE_LABELS, PLAN_FEATURES, ALL_FEATURES, type Plan } from "@/config/features"
+import { getCurrentPlan, getPlans } from "@/lib/api"
+import type { Plan, PlanInfo } from "@/types/domain"
 
 const PLAN_ICONS: Record<Plan, typeof Zap> = {
   free: Zap,
@@ -15,7 +15,24 @@ const PLAN_ICONS: Record<Plan, typeof Zap> = {
   academia: GraduationCap,
 }
 
+const PLAN_STYLE: Record<Plan, { color: string; bg: string }> = {
+  free: { color: "var(--text-muted)", bg: "var(--bg-secondary)" },
+  pro: { color: "var(--accent-text)", bg: "var(--accent-light)" },
+  academia: { color: "#92400E", bg: "#FEF3C7" },
+}
+
 const PLAN_ORDER: Plan[] = ["free", "pro", "academia"]
+
+/** Une las features de todos los planes en un solo listado ordenado, sin duplicar claves. */
+function unionFeatureKeys(plans: PlanInfo[]): { key: string; label: string }[] {
+  const seen = new Map<string, string>()
+  for (const plan of plans) {
+    for (const f of plan.features) {
+      if (!seen.has(f.key)) seen.set(f.key, f.label)
+    }
+  }
+  return [...seen.entries()].map(([key, label]) => ({ key, label }))
+}
 
 function getNextPlan(current: Plan): Plan {
   const idx = PLAN_ORDER.indexOf(current)
@@ -28,6 +45,12 @@ export default function UpgradeModal() {
   const { data: planData } = useSWR(
     isOpen ? "current-plan" : null,
     () => getCurrentPlan().then((r) => r.data),
+    { revalidateOnFocus: false }
+  )
+
+  const { data: plans } = useSWR(
+    isOpen ? "all-plans" : null,
+    () => getPlans().then((r) => r.data),
     { revalidateOnFocus: false }
   )
 
@@ -52,10 +75,14 @@ export default function UpgradeModal() {
     }
   }, [isOpen])
 
-  if (!isOpen) return null
+  if (!isOpen || !plans) return null
 
   const isCurrentPlan = selectedPlan === currentPlan
   const isDowngrade = PLAN_ORDER.indexOf(selectedPlan) < PLAN_ORDER.indexOf(currentPlan)
+  const planByKey = new Map(plans.map((p) => [p.id, p]))
+  const featureKeys = unionFeatureKeys(plans)
+  const selectedFeatures = new Map(planByKey.get(selectedPlan)?.features.map((f) => [f.key, f]) ?? [])
+  const currentFeatures = new Map(planByKey.get(currentPlan)?.features.map((f) => [f.key, f]) ?? [])
 
   return (
     <Modal isOpen={isOpen} onClose={close} title="Mejora tu plan">
@@ -79,7 +106,9 @@ export default function UpgradeModal() {
         {/* Planes */}
         <div className="grid grid-cols-3 gap-3">
           {PLAN_ORDER.map((planKey) => {
-            const info = PLAN_DETAILS[planKey]
+            const info = planByKey.get(planKey)
+            if (!info) return null
+            const style = PLAN_STYLE[planKey]
             const Icon = PLAN_ICONS[planKey]
             const isSelected = selectedPlan === planKey
             const isActual = planKey === currentPlan
@@ -90,8 +119,8 @@ export default function UpgradeModal() {
                 onClick={() => setSelectedPlan(planKey)}
                 className="relative flex flex-col gap-3 p-4 rounded-xl text-left transition-all"
                 style={{
-                  background: isSelected ? info.bg : "var(--bg-primary)",
-                  border: `2px solid ${isSelected ? info.color : "var(--border-light)"}`,
+                  background: isSelected ? style.bg : "var(--bg-primary)",
+                  border: `2px solid ${isSelected ? style.color : "var(--border-light)"}`,
                 }}
               >
                 {/* Badge "Tu plan actual" */}
@@ -103,8 +132,8 @@ export default function UpgradeModal() {
                 )}
 
                 <div className="flex items-center gap-2">
-                  <Icon size={18} style={{ color: info.color }} />
-                  <span className="text-sm font-bold" style={{ color: info.color }}>
+                  <Icon size={18} style={{ color: style.color }} />
+                  <span className="text-sm font-bold" style={{ color: style.color }}>
                     {info.name}
                   </span>
                 </div>
@@ -138,15 +167,17 @@ export default function UpgradeModal() {
             )}
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            {ALL_FEATURES.map((feature) => {
-              const included = PLAN_FEATURES[selectedPlan].includes(feature)
-              const wasIncluded = PLAN_FEATURES[currentPlan].includes(feature)
-              const isHighlighted = highlightFeature === feature
+            {featureKeys.map(({ key, label }) => {
+              const selectedFeature = selectedFeatures.get(key)
+              const currentFeature = currentFeatures.get(key)
+              const included = selectedFeature?.enabled ?? false
+              const wasIncluded = currentFeature?.enabled ?? false
+              const isHighlighted = highlightFeature === key
               const isNew = included && !wasIncluded
 
               return (
                 <div
-                  key={feature}
+                  key={key}
                   className="flex items-center gap-2 py-1"
                   style={{
                     background: isHighlighted ? "var(--accent-light)" : "transparent",
@@ -166,7 +197,10 @@ export default function UpgradeModal() {
                       textDecoration: included ? "none" : "line-through",
                     }}
                   >
-                    {FEATURE_LABELS[feature]}
+                    {label}
+                    {included && selectedFeature?.limit != null && (
+                      <span style={{ color: "var(--text-muted)" }}> (hasta {selectedFeature.limit})</span>
+                    )}
                   </span>
                   {isNew && (
                     <span className="text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0"
@@ -202,7 +236,7 @@ export default function UpgradeModal() {
                 close()
               }}
             >
-              {selectedPlan === "free" ? "Plan actual" : `Actualizar a ${PLAN_DETAILS[selectedPlan].name}`}
+              {selectedPlan === "free" ? "Plan actual" : `Actualizar a ${planByKey.get(selectedPlan)?.name}`}
             </Button>
           )}
         </div>
