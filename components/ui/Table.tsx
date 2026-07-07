@@ -12,9 +12,10 @@ export interface TableProps {
   data: Record<string, unknown>[]
   emptyState?: React.ReactNode
   rowKey?: string
+  onRowClick?: (row: Record<string, unknown>) => void
 }
 
-export default function Table({ columns, data, emptyState, rowKey }: TableProps) {
+export default function Table({ columns, data, emptyState, rowKey, onRowClick }: TableProps) {
   return (
     <div
       className="w-full overflow-hidden rounded-xl"
@@ -51,10 +52,12 @@ export default function Table({ columns, data, emptyState, rowKey }: TableProps)
               return (
               <tr
                 key={rowId}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
                 style={{
                   borderTop: "1px solid var(--border-light)",
                   background:
                     rowIndex % 2 === 0 ? "var(--bg-surface)" : "var(--bg-primary)",
+                  cursor: onRowClick ? "pointer" : undefined,
                 }}
               >
                 {columns.map((col) => (

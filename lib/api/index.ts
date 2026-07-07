@@ -3,7 +3,7 @@ import type { ApiResponse } from "@/types/api"
 
 export {
   getCurrentOrganization, updateOrganization, getPlans, getCurrentPlan,
-  getMyProfile, updateMyProfile,
+  getMyProfile, updateMyProfile, getOwnedOrganizations,
   getMembers, updateMemberRole, removeMember,
   getInvitations, sendInvitation, revokeInvitation, acceptInvitation,
   getInvitationById,
@@ -302,6 +302,15 @@ export async function getMenuCosto(id: string): Promise<ApiResponse<Menu & { cos
   return fetchAPI(`/api/v1/menus/${id}/costo`)
 }
 
+export interface MenuItemPayload {
+  componentType?: "recipe" | "ingredient"
+  recipeId?: string
+  ingredientId?: string
+  cantidadGramos?: number     // recetas: gramos por persona
+  cantidadUnidades?: number   // ingredientes sueltos: unidades por persona
+  orden?: number
+}
+
 export interface CreateMenuPayload {
   nombre: string
   fecha: string
@@ -309,7 +318,27 @@ export interface CreateMenuPayload {
   margenSeguridad?: number
   pctMateriaPrima?: number
   notas?: string
-  recetas: { recipeId: string; cantidadGramos: number; orden?: number }[]
+  recetas: MenuItemPayload[]
+}
+
+export interface ListaCompraItem {
+  ingredientId: string
+  nombre: string
+  unidad: "g" | "und"
+  cantidad: number
+  costo: number
+}
+
+export async function getListaCompras(menuId: string): Promise<{
+  data: {
+    menuId: string
+    nombre: string
+    numPersonas: number
+    items: ListaCompraItem[]
+    costoTotal: number
+  }
+}> {
+  return fetchAPI(`/api/v1/menus/${menuId}/lista-compras`)
 }
 
 export async function createMenu(data: CreateMenuPayload): Promise<ApiResponse<Menu>> {
@@ -435,6 +464,7 @@ export interface AuthzContext {
     membership: string
     status: string
     isDefault: boolean
+    joinedAt: string
   }[]
   platformRoles: string[]
   platformPermissions: string[]

@@ -62,6 +62,11 @@ export async function updateMyProfile(
   })
 }
 
+/** Organizaciones de las que el usuario es propietario (bloquean eliminar la cuenta) */
+export async function getOwnedOrganizations(): Promise<ApiResponse<{ id: string; name: string }[]>> {
+  return fetchAPI("/api/v1/me/owned-organizations")
+}
+
 // ─── Miembros ───────────────────────────────────────────────────────────────
 
 export interface OrgMember {

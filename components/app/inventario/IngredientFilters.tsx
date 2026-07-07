@@ -23,7 +23,7 @@ export default function IngredientFilters({
   const options: FilterOption[] = [
     { value: "all", label: "Todos", count: counts.all },
     { value: "own", label: "Propios", count: counts.own },
-    { value: "base", label: "Banco base", count: counts.base },
+    { value: "base", label: "Banco", count: counts.base },
   ]
 
   return (

@@ -378,7 +378,7 @@ export default function RecipeFormModal({
               </h3>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px" }}>
+            <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr]" style={{ gap: "12px" }}>
               <div>
                 <Input
                   id="recipe-name"
@@ -429,7 +429,7 @@ export default function RecipeFormModal({
               />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px" }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: "12px", marginTop: "12px" }}>
               <div style={{ display: "flex", alignItems: "flex-end", gap: "6px" }}>
                 <div style={{ flex: 1 }}>
                   <Input
@@ -641,7 +641,7 @@ export default function RecipeFormModal({
               </h3>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: "10px" }}>
               <SummaryItem
                 label="Peso total"
                 value={totalWeightG > 0 ? `${totalWeightG.toFixed(0)} g` : "—"}

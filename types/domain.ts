@@ -142,9 +142,14 @@ export interface ProfitabilityAnalysis {
 export interface MenuReceta {
   id: string
   menuId: string
-  recipeId: string
-  cantidadGramos: string  // numeric string
+  componentType: "recipe" | "ingredient"
+  recipeId: string | null
+  ingredientId: string | null
+  cantidadGramos: string | null    // recetas: gramos por persona
+  cantidadUnidades: string | null  // ingredientes sueltos: unidades por persona
   orden: number
+  recipeName?: string | null
+  ingredientName?: string | null
 }
 
 // Resultado del cálculo de costo por receta (GET /:id/costo)
@@ -155,6 +160,8 @@ export interface RecetaLineaCosto {
   costoGramo: number
   costoPorcionEnMenu: number
   costoTotalEnMenu: number
+  tipo?: "recipe" | "ingredient"
+  unidad?: "g" | "und"
 }
 
 export type MenuIndicator = "MUY_BUENO" | "REGULAR" | "MALO"
@@ -184,6 +191,8 @@ export interface Menu {
   pctMateriaPrima: string  // numeric string
   notas: string | null
   recetas: MenuReceta[]
+  /** Solo presente en la lista de menús (evita traer los ítems completos) */
+  recetasCount?: number
   createdAt: string
   updatedAt: string
 }

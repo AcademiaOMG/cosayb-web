@@ -392,7 +392,7 @@ export default function InventarioPage() {
               </li>
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Filtros:</strong> Usa los filtros Todos, Propios y Banco base para organizar tu vista.</span>
+                <span><strong>Filtros:</strong> Usa los filtros Todos, Propios y Banco para organizar tu vista.</span>
               </li>
             </ul>
           </div>
