@@ -451,6 +451,28 @@ export async function getAuthzContext(): Promise<{ data: AuthzContext }> {
   return fetchAPI("/api/v1/me/context")
 }
 
+export interface ImpersonationStatus {
+  active: boolean
+  organizationId: string
+  mode: "read_only" | "write"
+  expiresAt: string
+}
+
+export async function getImpersonationCurrent(): Promise<{ data: ImpersonationStatus | null }> {
+  return fetchAPI("/api/v1/impersonation/current")
+}
+
+export async function elevateImpersonation(elevatedJustification: string): Promise<{ data: { mode: string } }> {
+  return fetchAPI("/api/v1/impersonation/elevate", {
+    method: "POST",
+    body: JSON.stringify({ elevatedJustification }),
+  })
+}
+
+export async function endImpersonation(): Promise<{ data: { ended: boolean } }> {
+  return fetchAPI("/api/v1/impersonation/end", { method: "POST" })
+}
+
 /** Roles asignables según la membresía del tenant (para invitar / cambiar rol) */
 export interface AssignableRole {
   id: string
