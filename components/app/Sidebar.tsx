@@ -30,6 +30,8 @@ interface NavItem {
   icon: typeof Package
   resource: Resource
   action: Action
+  /** Feature key de membresía que gatea este módulo, si aplica (ver membership_features) */
+  feature?: string
 }
 
 interface NavGroup {
@@ -58,18 +60,18 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Operación",
     items: [
-      { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list" },
-      { href: "/precios-mercado", label: "Precios de Mercado", icon: ShoppingCart, resource: "marketPrices", action: "list" },
-      { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale, resource: "yieldFactors", action: "list" },
-      { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list" },
-      { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list" },
+      { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list", feature: "module_ingredients" },
+      { href: "/precios-mercado", label: "Precios de Mercado", icon: ShoppingCart, resource: "marketPrices", action: "list", feature: "module_marketPrices" },
+      { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale, resource: "yieldFactors", action: "list", feature: "module_yieldFactors" },
+      { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list", feature: "module_recipes" },
+      { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list", feature: "module_menus" },
     ],
   },
   {
     label: "Finanzas",
     items: [
-      { href: "/valoracion", label: "Valoración A&B", icon: TrendingUp, resource: "valuations", action: "list" },
-      { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2, resource: "breakEven", action: "list" },
+      { href: "/valoracion", label: "Valoración A&B", icon: TrendingUp, resource: "valuations", action: "list", feature: "module_valuations" },
+      { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2, resource: "breakEven", action: "list", feature: "module_breakEven" },
     ],
   },
 ]
@@ -90,13 +92,16 @@ export default function Sidebar({
   onSignOut,
 }: SidebarProps) {
   const pathname = usePathname()
-  const { can, isLoading } = usePermissions()
+  const { can, hasFeature, isLoading } = usePermissions()
 
   // Grupos con solo los ítems permitidos; si un grupo queda vacío no se
-  // renderiza (ni su etiqueta) — la estructura varía por rol, no se "esconde"
+  // renderiza (ni su etiqueta) — la estructura varía por rol, no se "esconde".
+  // Un módulo requiere permiso de rol Y feature de membresía habilitada.
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: isLoading ? group.items : group.items.filter((i) => can(i.resource, i.action)),
+    items: isLoading
+      ? group.items
+      : group.items.filter((i) => can(i.resource, i.action) && (!i.feature || hasFeature(i.feature))),
   })).filter((group) => group.items.length > 0)
 
   // Configuración: visible para quien gestiona el negocio o al menos ve el equipo
