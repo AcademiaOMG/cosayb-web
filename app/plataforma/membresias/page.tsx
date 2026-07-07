@@ -3,7 +3,7 @@
 import useSWR from "swr"
 import { useState } from "react"
 import { usePermissions } from "@/hooks/usePermissions"
-import { platformListMemberships, platformUpdateFeature } from "@/lib/api"
+import { platformListMemberships, platformUpdateFeature, platformSetMembershipRoles, platformListRoles } from "@/lib/api"
 
 const TIER_STYLE: Record<string, { color: string }> = {
   free: { color: "var(--text-muted)" },
@@ -16,6 +16,9 @@ export default function MembresiasPage() {
   const { data, mutate } = useSWR("platform-memberships", () =>
     platformListMemberships().then((r) => r.data)
   )
+  const { data: allRoles = [] } = useSWR("platform-roles-catalog", () =>
+    platformListRoles().then((r) => r.data.filter((role) => role.scope === "organization" && role.slug !== "org_owner"))
+  )
   const [saving, setSaving] = useState<string | null>(null)
   const canEdit = platformCan("platform_memberships", "update")
 
@@ -24,6 +27,33 @@ export default function MembresiasPage() {
     (data?.features ?? []).filter((f) => f.membership === tier)
   const rolesByTier = (tier: string) =>
     (data?.roleLimits ?? []).filter((r) => r.membership === tier)
+
+  async function toggleRole(tier: string, roleId: string, enabled: boolean) {
+    setSaving(`${tier}:role:${roleId}`)
+    try {
+      const current = rolesByTier(tier).map((r) => ({ roleId: r.roleId, maxUsers: r.maxUsers }))
+      const next = enabled
+        ? [...current, { roleId, maxUsers: null }]
+        : current.filter((r) => r.roleId !== roleId)
+      await platformSetMembershipRoles(tier, next)
+      await mutate()
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function changeRoleMaxUsers(tier: string, roleId: string, raw: string) {
+    setSaving(`${tier}:role:${roleId}`)
+    try {
+      const maxUsers = raw === "" ? null : Math.max(0, parseInt(raw) || 0)
+      const current = rolesByTier(tier).map((r) => ({ roleId: r.roleId, maxUsers: r.maxUsers }))
+      const next = current.map((r) => (r.roleId === roleId ? { ...r, maxUsers } : r))
+      await platformSetMembershipRoles(tier, next)
+      await mutate()
+    } finally {
+      setSaving(null)
+    }
+  }
 
   async function toggleFeature(tier: string, key: string, enabled: boolean) {
     setSaving(`${tier}:${key}`)
@@ -116,20 +146,35 @@ export default function MembresiasPage() {
             </div>
 
             <p className="text-[10px] font-bold tracking-widest console-muted mb-2">ROLES ASIGNABLES</p>
-            <div className="flex flex-wrap gap-1.5">
-              {rolesByTier(tier).map((r) => (
-                <span
-                  key={r.roleId}
-                  className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                  style={{
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-secondary)",
-                    border: "1px solid var(--border-light)",
-                  }}
-                >
-                  {r.roleName}
-                </span>
-              ))}
+            <div className="flex flex-col gap-1.5">
+              {allRoles.map((role) => {
+                const assignment = rolesByTier(tier).find((r) => r.roleId === role.id)
+                const enabled = !!assignment
+                return (
+                  <div key={role.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      disabled={!canEdit || saving === `${tier}:role:${role.id}`}
+                      onChange={(e) => toggleRole(tier, role.id, e.target.checked)}
+                      style={{ accentColor: "var(--accent)", cursor: canEdit ? "pointer" : "default" }}
+                    />
+                    <span className="flex-1 text-xs console-muted truncate">{role.name}</span>
+                    {enabled && (
+                      <input
+                        type="number"
+                        defaultValue={assignment?.maxUsers ?? ""}
+                        placeholder="∞"
+                        disabled={!canEdit}
+                        onBlur={(e) => canEdit && changeRoleMaxUsers(tier, role.id, e.target.value)}
+                        className="console-input text-xs text-right"
+                        style={{ width: 58, height: 26, paddingRight: 6 }}
+                        title="Máximo de usuarios con este rol"
+                      />
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         ))}
