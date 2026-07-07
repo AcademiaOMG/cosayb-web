@@ -9,7 +9,7 @@ import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
 import {
   Shield, BarChart3, Building2, Users, Drama, CreditCard,
-  ChefHat, Carrot, ScrollText, LogOut, ShieldAlert,
+  ChefHat, Carrot, ScrollText, LogOut, ShieldAlert, ArrowLeft,
 } from "lucide-react"
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -85,7 +85,7 @@ function firstSectionFor(roles: string[]): string {
 export default function PlataformaLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { platformRoles, isLoading } = usePermissions()
+  const { platformRoles, memberships, isLoading } = usePermissions()
   const { data: session } = authClient.useSession()
 
   const visibleSections = SECTIONS.filter((s) =>
@@ -155,6 +155,21 @@ export default function PlataformaLayout({ children }: { children: React.ReactNo
         {/* Navegación por sub-rol */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="flex flex-col gap-1" role="list">
+            {memberships.length > 0 && (
+              <li>
+                <button
+                  onClick={() => { window.location.href = "/dashboard" }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors mb-2"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "#8FA0BC", border: "none", cursor: "pointer" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#fff" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "#8FA0BC" }}
+                >
+                  <ArrowLeft size={16} />
+                  Volver a mi negocio
+                </button>
+                <div style={{ height: 1, background: "rgba(255,255,255,0.08)", marginBottom: 8 }} />
+              </li>
+            )}
             {visibleSections.map(({ href, label, icon: Icon }) => {
               const isActive =
                 href === "/plataforma"
