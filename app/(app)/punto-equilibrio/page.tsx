@@ -18,6 +18,8 @@ import InfoStat from "@/components/ui/InfoStat"
 import type { BreakEvenRecord, FixedCostItem } from "@/types/domain"
 import { createBreakEven, getBreakEvenHistory, exportBreakEvenExcel } from "@/lib/api"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { usePermissions } from "@/hooks/usePermissions"
+import ModuleLocked from "@/components/app/ModuleLocked"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatCOP(value: number): string {
@@ -452,6 +454,7 @@ type PageView = "list" | "detail"
 
 export default function PuntoEquilibrioPage() {
   useHelpAvailable()
+  const { hasFeature, featureLockedMessage } = usePermissions()
 
   const { data: history = [], isLoading, error, mutate } = useSWR(
     "break-even-history",
@@ -552,6 +555,10 @@ export default function PuntoEquilibrioPage() {
       },
     },
   ]
+
+  if (!hasFeature("module_breakEven")) {
+    return <ModuleLocked message={featureLockedMessage("module_breakEven")} />
+  }
 
   // ── Vista detalle ──
   if (view === "detail") {

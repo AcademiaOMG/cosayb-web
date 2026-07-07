@@ -7,6 +7,8 @@ import PageHeader from "@/components/ui/PageHeader"
 import Modal from "@/components/ui/Modal"
 import Badge from "@/components/ui/Badge"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { usePermissions } from "@/hooks/usePermissions"
+import ModuleLocked from "@/components/app/ModuleLocked"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 const PAGE_SIZE = 50
@@ -124,6 +126,7 @@ function PriceDetailModal({ row, onClose }: { row: PriceRow | null; onClose: () 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function PreciosMercadoPage() {
   useHelpAvailable()
+  const { hasFeature, featureLockedMessage } = usePermissions()
   const [search, setSearch] = useState("")
   const [city, setCity] = useState("")
   const [source, setSource] = useState("")
@@ -169,6 +172,10 @@ export default function PreciosMercadoPage() {
   function goToPage(n: number) {
     setPage(n)
     window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  if (!hasFeature("module_marketPrices")) {
+    return <ModuleLocked message={featureLockedMessage("module_marketPrices")} />
   }
 
   return (

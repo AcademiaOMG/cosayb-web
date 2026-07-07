@@ -13,6 +13,7 @@ import RatioDonut, { RatioRow, COLOR_MP, COLOR_FIXED, COLOR_PROFIT } from "@/com
 import InfoStat from "@/components/ui/InfoStat"
 import { ArrowLeft, CheckCircle2, Plus, Calculator, RotateCcw, Eye, Pencil, StickyNote, ChefHat } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
+import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import type { Valuation, ValuationIndicator, ValuationRefType, Recipe } from "@/types/domain"
 import { getValuations, createValuation, getRecipes, getRecipeCost, getRecipeById } from "@/lib/api"
@@ -735,7 +736,7 @@ type PageView = "list" | "detail"
 
 export default function ValoracionPage() {
   useHelpAvailable()
-  const { can } = usePermissions()
+  const { can, hasFeature, featureLockedMessage } = usePermissions()
   const { data: history = [], isLoading, mutate } = useSWR(
     "valuations",
     () => getValuations().then((r) => r.data ?? []),
@@ -778,6 +779,10 @@ export default function ValoracionPage() {
   async function handleSaved() {
     await mutate()
     setView("list")
+  }
+
+  if (!hasFeature("module_valuations")) {
+    return <ModuleLocked message={featureLockedMessage("module_valuations")} />
   }
 
   // ── Vista detalle ──
