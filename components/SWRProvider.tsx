@@ -2,7 +2,7 @@
 
 import { SWRConfig } from "swr"
 import { useMemo, useSyncExternalStore } from "react"
-import { getActiveOrgId } from "@/lib/surface"
+import { getActiveOrgId } from "@/lib/activeOrg"
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Caché global de datos de Cosayb.

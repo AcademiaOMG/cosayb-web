@@ -8,7 +8,7 @@ import {
   acceptInvitation,
   type InvitationDetail,
 } from "@/lib/api/settings"
-import { setActiveOrgId } from "@/lib/surface"
+import { setActiveOrgId } from "@/lib/activeOrg"
 
 // Colores por slug; el label viene de la API (roleName)
 const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {

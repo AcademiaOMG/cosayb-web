@@ -17,7 +17,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
 // ─── Fetcher genérico ─────────────────────────────────────────────────────────
-import { getActiveOrgId } from "@/lib/surface"
+import { getActiveOrgId } from "@/lib/activeOrg"
 
 async function fetchAPI<T>(
   endpoint: string,
@@ -419,7 +419,8 @@ export interface MembershipFeature {
 }
 
 export interface AuthzContext {
-  scope: "user" | "organization"
+  scope: "user" | "organization" | "platform"
+  identityType: "platform" | "tenant"
   roles: string[]
   permissions: string[]
   organization: {
@@ -437,6 +438,12 @@ export interface AuthzContext {
   }[]
   platformRoles: string[]
   platformPermissions: string[]
+  impersonation: {
+    active: boolean
+    organizationId: string
+    mode: "read_only" | "write"
+    expiresAt: string
+  } | null
 }
 
 /** Contexto de autorización completo (roles, permisos, org activa, membresía) */

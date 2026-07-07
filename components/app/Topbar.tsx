@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Menu, ChevronDown, Check, Plus, Shield, HelpCircle } from "lucide-react"
+import { Menu, ChevronDown, Check, Plus, HelpCircle } from "lucide-react"
 import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailableSnapshot } from "@/hooks/useHelpAvailable"
-import { getActiveOrgId, setActiveOrgId, switchSurface } from "@/lib/surface"
+import { getActiveOrgId, setActiveOrgId } from "@/lib/activeOrg"
 
 export interface TopbarProps {
   orgName?: string
@@ -152,23 +152,6 @@ export default function Topbar({
                 <Plus size={14} />
                 Crear otro negocio
               </button>
-
-              {isPlatform && (
-                <>
-                  <div style={{ height: 1, background: "var(--border-light)", margin: "6px 0" }} />
-                  <button
-                    role="menuitem"
-                    onClick={() => switchSurface("platform")}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left font-medium transition-colors"
-                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "#B45309" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#FEF3C7")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <Shield size={14} />
-                    Cambiar a Plataforma
-                  </button>
-                </>
-              )}
             </div>
           )}
         </div>
