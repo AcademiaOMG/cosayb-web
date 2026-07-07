@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import PageHeader from "@/components/ui/PageHeader"
 import { usePermissions } from "@/hooks/usePermissions"
-import { Users, Palette, CreditCard } from "lucide-react"
+import { Users, Palette, CreditCard, ScrollText } from "lucide-react"
 
 /**
  * Configuración del NEGOCIO — cada dominio es su propia ruta:
@@ -41,6 +41,12 @@ export default function ConfiguracionLayout({
       label: "Membresía",
       icon: CreditCard,
       visible: can("billing", "read"),
+    },
+    {
+      href: "/configuracion/actividad",
+      label: "Actividad",
+      icon: ScrollText,
+      visible: can("organizationActivity", "read"),
     },
   ].filter((s) => isLoading || s.visible)
 

@@ -404,7 +404,7 @@ export type Resource =
   | "yieldFactors" | "valuations" | "breakEven"
   | "marketPrices" | "reports"
   | "publicRecipes" | "publicIngredients"
-  | "organization" | "members" | "invitations" | "billing";
+  | "organization" | "organizationActivity" | "members" | "invitations" | "billing";
 
 export type Action =
   | "list" | "read" | "create" | "update" | "delete"
@@ -471,6 +471,19 @@ export async function elevateImpersonation(elevatedJustification: string): Promi
 
 export async function endImpersonation(): Promise<{ data: { ended: boolean } }> {
   return fetchAPI("/api/v1/impersonation/end", { method: "POST" })
+}
+
+export interface ActivityEntry {
+  id: string
+  action: string
+  actorUserId: string
+  justification: string | null
+  createdAt: string
+  impersonationSessionId: string
+}
+
+export async function getOrganizationActivity(): Promise<{ data: ActivityEntry[] }> {
+  return fetchAPI("/api/v1/organizations/me/activity")
 }
 
 /** Roles asignables según la membresía del tenant (para invitar / cambiar rol) */
