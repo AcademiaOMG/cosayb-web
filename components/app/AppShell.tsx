@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { mutate } from "swr"
 import Sidebar from "./Sidebar"
@@ -8,18 +9,23 @@ import Topbar from "./Topbar"
 import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
 import { getCurrentOrganization } from "@/lib/api"
-import { setLastSurface, setActiveOrgId } from "@/lib/surface"
+import { usePermissions } from "@/hooks/usePermissions"
+import { setActiveOrgId } from "@/lib/activeOrg"
 import { clearSWRCache } from "@/components/SWRProvider"
 import type { Plan } from "@/types/domain"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: session } = authClient.useSession()
+  const { identityType, isLoading: permsLoading } = usePermissions()
 
-  // Esta es la superficie "tenant" — recordarla para el landing post-login
+  // Una identidad de plataforma nunca opera el workspace tenant directamente
   useEffect(() => {
-    setLastSurface("tenant")
-  }, [])
+    if (!permsLoading && identityType === "platform") {
+      router.replace("/plataforma")
+    }
+  }, [permsLoading, identityType, router])
 
   const { data: orgData } = useSWR(
     "organization-me",
