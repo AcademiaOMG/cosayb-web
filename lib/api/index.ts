@@ -568,6 +568,29 @@ export async function platformSetOrgStatus(
   })
 }
 
+export interface OrgMemberOption {
+  membershipId: string
+  userId: string
+  name: string
+  email: string
+  roles: string[]
+}
+
+export async function platformListOrgMembers(organizationId: string): Promise<{ data: OrgMemberOption[] }> {
+  return fetchAPI(`/api/v1/platform/organizations/${organizationId}/members`)
+}
+
+export async function platformStartImpersonation(
+  organizationId: string,
+  actingAsMembershipId: string,
+  justification: string
+): Promise<{ data: { sessionId: string; expiresAt: string } }> {
+  return fetchAPI(`/api/v1/platform/organizations/${organizationId}/impersonate`, {
+    method: "POST",
+    body: JSON.stringify({ actingAsMembershipId, justification }),
+  })
+}
+
 export interface PlatformUser {
   id: string
   name: string
