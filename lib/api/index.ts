@@ -3,7 +3,7 @@ import type { ApiResponse } from "@/types/api"
 
 export {
   getCurrentOrganization, updateOrganization, getPlans, getCurrentPlan,
-  getMyProfile, updateMyProfile,
+  getMyProfile, updateMyProfile, getOwnedOrganizations,
   getMembers, updateMemberRole, removeMember,
   getInvitations, sendInvitation, revokeInvitation, acceptInvitation,
   getInvitationById,
@@ -17,7 +17,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
 // ─── Fetcher genérico ─────────────────────────────────────────────────────────
-import { getActiveOrgId } from "@/lib/surface"
+import { getActiveOrgId } from "@/lib/activeOrg"
 
 async function fetchAPI<T>(
   endpoint: string,
@@ -302,6 +302,15 @@ export async function getMenuCosto(id: string): Promise<ApiResponse<Menu & { cos
   return fetchAPI(`/api/v1/menus/${id}/costo`)
 }
 
+export interface MenuItemPayload {
+  componentType?: "recipe" | "ingredient"
+  recipeId?: string
+  ingredientId?: string
+  cantidadGramos?: number     // recetas: gramos por persona
+  cantidadUnidades?: number   // ingredientes sueltos: unidades por persona
+  orden?: number
+}
+
 export interface CreateMenuPayload {
   nombre: string
   fecha: string
@@ -309,7 +318,27 @@ export interface CreateMenuPayload {
   margenSeguridad?: number
   pctMateriaPrima?: number
   notas?: string
-  recetas: { recipeId: string; cantidadGramos: number; orden?: number }[]
+  recetas: MenuItemPayload[]
+}
+
+export interface ListaCompraItem {
+  ingredientId: string
+  nombre: string
+  unidad: "g" | "und"
+  cantidad: number
+  costo: number
+}
+
+export async function getListaCompras(menuId: string): Promise<{
+  data: {
+    menuId: string
+    nombre: string
+    numPersonas: number
+    items: ListaCompraItem[]
+    costoTotal: number
+  }
+}> {
+  return fetchAPI(`/api/v1/menus/${menuId}/lista-compras`)
 }
 
 export async function createMenu(data: CreateMenuPayload): Promise<ApiResponse<Menu>> {
@@ -404,7 +433,7 @@ export type Resource =
   | "yieldFactors" | "valuations" | "breakEven"
   | "marketPrices" | "reports"
   | "publicRecipes" | "publicIngredients"
-  | "organization" | "members" | "invitations" | "billing";
+  | "organization" | "organizationActivity" | "members" | "invitations" | "billing";
 
 export type Action =
   | "list" | "read" | "create" | "update" | "delete"
@@ -419,7 +448,8 @@ export interface MembershipFeature {
 }
 
 export interface AuthzContext {
-  scope: "user" | "organization"
+  scope: "user" | "organization" | "platform"
+  identityType: "platform" | "tenant"
   roles: string[]
   permissions: string[]
   organization: {
@@ -434,14 +464,56 @@ export interface AuthzContext {
     membership: string
     status: string
     isDefault: boolean
+    joinedAt: string
   }[]
   platformRoles: string[]
   platformPermissions: string[]
+  impersonation: {
+    active: boolean
+    organizationId: string
+    mode: "read_only" | "write"
+    expiresAt: string
+  } | null
 }
 
 /** Contexto de autorización completo (roles, permisos, org activa, membresía) */
 export async function getAuthzContext(): Promise<{ data: AuthzContext }> {
   return fetchAPI("/api/v1/me/context")
+}
+
+export interface ImpersonationStatus {
+  active: boolean
+  organizationId: string
+  mode: "read_only" | "write"
+  expiresAt: string
+}
+
+export async function getImpersonationCurrent(): Promise<{ data: ImpersonationStatus | null }> {
+  return fetchAPI("/api/v1/impersonation/current")
+}
+
+export async function elevateImpersonation(elevatedJustification: string): Promise<{ data: { mode: string } }> {
+  return fetchAPI("/api/v1/impersonation/elevate", {
+    method: "POST",
+    body: JSON.stringify({ elevatedJustification }),
+  })
+}
+
+export async function endImpersonation(): Promise<{ data: { ended: boolean } }> {
+  return fetchAPI("/api/v1/impersonation/end", { method: "POST" })
+}
+
+export interface ActivityEntry {
+  id: string
+  action: string
+  actorUserId: string
+  justification: string | null
+  createdAt: string
+  impersonationSessionId: string
+}
+
+export async function getOrganizationActivity(): Promise<{ data: ActivityEntry[] }> {
+  return fetchAPI("/api/v1/organizations/me/activity")
 }
 
 /** Roles asignables según la membresía del tenant (para invitar / cambiar rol) */
@@ -536,6 +608,29 @@ export async function platformSetOrgStatus(
   return fetchAPI(`/api/v1/platform/organizations/${id}/${action}`, {
     method: "POST",
     body: JSON.stringify({ justification }),
+  })
+}
+
+export interface OrgMemberOption {
+  membershipId: string
+  userId: string
+  name: string
+  email: string
+  roles: string[]
+}
+
+export async function platformListOrgMembers(organizationId: string): Promise<{ data: OrgMemberOption[] }> {
+  return fetchAPI(`/api/v1/platform/organizations/${organizationId}/members`)
+}
+
+export async function platformStartImpersonation(
+  organizationId: string,
+  actingAsMembershipId: string,
+  justification: string
+): Promise<{ data: { sessionId: string; expiresAt: string } }> {
+  return fetchAPI(`/api/v1/platform/organizations/${organizationId}/impersonate`, {
+    method: "POST",
+    body: JSON.stringify({ actingAsMembershipId, justification }),
   })
 }
 

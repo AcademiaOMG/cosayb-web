@@ -4,8 +4,14 @@ import useSWR from "swr"
 import { useState, use } from "react"
 import Link from "next/link"
 import { usePermissions } from "@/hooks/usePermissions"
-import { platformGetOrg, platformUpdateOrg, platformSetOrgStatus } from "@/lib/api"
-import { ArrowLeft, Ban, CheckCircle2, Users, Calendar, CreditCard } from "lucide-react"
+import {
+  platformGetOrg,
+  platformUpdateOrg,
+  platformSetOrgStatus,
+  platformListOrgMembers,
+  platformStartImpersonation,
+} from "@/lib/api"
+import { ArrowLeft, Ban, CheckCircle2, Users, Calendar, CreditCard, Eye } from "lucide-react"
 
 export default function OrganizacionDetallePage({
   params,
@@ -17,13 +23,26 @@ export default function OrganizacionDetallePage({
   const { data: org, mutate } = useSWR(["platform-org", id], () =>
     platformGetOrg(id).then((r) => r.data)
   )
+  const { data: members } = useSWR(["platform-org-members", id], () =>
+    platformListOrgMembers(id).then((r) => r.data)
+  )
 
   const [saving, setSaving] = useState(false)
   const [justification, setJustification] = useState("")
   const [confirmSuspend, setConfirmSuspend] = useState(false)
+  const [impersonating, setImpersonating] = useState(false)
+  const [selectedMembershipId, setSelectedMembershipId] = useState("")
+  const [impersonateReason, setImpersonateReason] = useState("")
 
   const canUpdate = platformCan("platform_organizations", "update")
   const canSuspend = platformCan("platform_organizations", "suspend")
+  const canImpersonate = platformCan("platform_impersonation", "create")
+
+  async function handleStartImpersonation() {
+    if (!selectedMembershipId || impersonateReason.trim().length < 10) return
+    await platformStartImpersonation(id, selectedMembershipId, impersonateReason.trim())
+    window.location.href = "/dashboard"
+  }
 
   async function changeMembership(membership: "free" | "pro" | "academia") {
     if (!org) return
@@ -148,6 +167,65 @@ export default function OrganizacionDetallePage({
           <p className="text-xs console-muted mt-3">Tu rol no permite cambiar la membresía.</p>
         )}
       </div>
+
+      {/* Impersonación */}
+      {canImpersonate && (
+        <div className="console-card">
+          <p className="text-[11px] font-bold tracking-widest console-muted mb-4">VER COMO MIEMBRO</p>
+          {!impersonating ? (
+            <button
+              onClick={() => setImpersonating(true)}
+              disabled={!members?.length}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40"
+              style={{ background: "#F0B429", color: "#1F2937", border: "none", cursor: "pointer" }}
+            >
+              <Eye size={14} />
+              Ver como...
+            </button>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <select
+                value={selectedMembershipId}
+                onChange={(e) => setSelectedMembershipId(e.target.value)}
+                className="console-input text-sm px-3"
+                style={{ height: 38, maxWidth: 420 }}
+              >
+                <option value="">Selecciona un miembro…</option>
+                {members?.map((m) => (
+                  <option key={m.membershipId} value={m.membershipId}>
+                    {m.name} ({m.roles.join(", ") || "sin rol"})
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Motivo (mínimo 10 caracteres, queda en auditoría)"
+                value={impersonateReason}
+                onChange={(e) => setImpersonateReason(e.target.value)}
+                className="console-input text-sm px-3"
+                style={{ height: 38, maxWidth: 420 }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setImpersonating(false); setSelectedMembershipId(""); setImpersonateReason("") }}
+                  className="px-4 py-2 rounded-lg text-sm console-muted"
+                  style={{ background: "transparent", border: "1px solid var(--border-light)", cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleStartImpersonation}
+                  disabled={!selectedMembershipId || impersonateReason.trim().length < 10}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                  style={{ background: "#F0B429", color: "#1F2937", border: "none", cursor: "pointer" }}
+                >
+                  Empezar (solo lectura, 45 min)
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Suspensión */}
       {canSuspend && (

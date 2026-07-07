@@ -50,7 +50,7 @@ export default function IngredientCard({
           </h3>
           <div className="flex flex-wrap gap-1">
             <Badge variant={isOwn ? "accent" : "muted"}>
-              {isOwn ? "Propio" : "Banco base"}
+              {isOwn ? "Propio" : "Banco"}
             </Badge>
             {priceBadge && (
               <Badge variant={priceBadge.variant}>{priceBadge.label}</Badge>

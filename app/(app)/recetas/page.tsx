@@ -23,7 +23,7 @@ const PAGE_SIZE = 12
 const TAB_OPTIONS: { value: RecipeFilter; label: string }[] = [
   { value: "all",   label: "Todos" },
   { value: "own",   label: "Propios" },
-  { value: "banco", label: "Banco base" },
+  { value: "banco", label: "Banco" },
 ]
 
 const EMPTY_EXTRA: RecipeExtraFilters = {}
@@ -376,6 +376,7 @@ export default function RecetasPage() {
 
       {!isLoading && !error && recipes.length > 0 && (
         <>
+          {/* Los badges Base/Principal en cada card indican el tipo de receta */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
             {recipes.map(recipe => (
               <RecipeCard

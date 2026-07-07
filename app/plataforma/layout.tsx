@@ -4,13 +4,12 @@ import { useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { usePermissions } from "@/hooks/usePermissions"
-import { setLastSurface, switchSurface } from "@/lib/surface"
 import { clearSWRCache } from "@/components/SWRProvider"
 import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
 import {
   Shield, BarChart3, Building2, Users, Drama, CreditCard,
-  ChefHat, Carrot, ScrollText, ArrowLeft, LogOut, ShieldAlert,
+  ChefHat, Carrot, ScrollText, LogOut, ShieldAlert,
 } from "lucide-react"
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -86,12 +85,8 @@ function firstSectionFor(roles: string[]): string {
 export default function PlataformaLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { platformRoles, hasOrganization, isLoading } = usePermissions()
+  const { platformRoles, isLoading } = usePermissions()
   const { data: session } = authClient.useSession()
-
-  useEffect(() => {
-    setLastSurface("platform")
-  }, [])
 
   const visibleSections = SECTIONS.filter((s) =>
     s.roles.some((r) => platformRoles.includes(r))
@@ -156,25 +151,6 @@ export default function PlataformaLayout({ children }: { children: React.ReactNo
             </p>
           </div>
         </div>
-
-        {/* Volver al negocio (solo si tiene org propia) */}
-        {hasOrganization && (
-          <button
-            onClick={() => switchSurface("tenant")}
-            className="flex items-center gap-2 mx-3 mt-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
-            style={{
-              color: "#8FA0BC",
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.08)" }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "#8FA0BC"; e.currentTarget.style.background = "transparent" }}
-          >
-            <ArrowLeft size={13} />
-            Volver a mi negocio
-          </button>
-        )}
 
         {/* Navegación por sub-rol */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">

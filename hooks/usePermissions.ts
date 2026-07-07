@@ -49,12 +49,14 @@ export function usePermissions() {
   return {
     // Datos
     scope: ctx?.scope,
+    identityType: ctx?.identityType,
     roles,
     permissions,
     organization,
     memberships: ctx?.memberships ?? [],
     platformRoles,
     platformPermissions,
+    impersonation: ctx?.impersonation ?? null,
     // Helpers
     can,
     platformCan,

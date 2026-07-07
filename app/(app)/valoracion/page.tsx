@@ -9,11 +9,13 @@ import Input from "@/components/ui/Input"
 import Table from "@/components/ui/Table"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import Modal from "@/components/ui/Modal"
-import { ArrowLeft, CheckCircle2, Plus, Calculator, RotateCcw } from "lucide-react"
+import RatioDonut, { RatioRow, COLOR_MP, COLOR_FIXED, COLOR_PROFIT } from "@/components/ui/RatioDonut"
+import InfoStat from "@/components/ui/InfoStat"
+import { ArrowLeft, CheckCircle2, Plus, Calculator, RotateCcw, Eye, Pencil, StickyNote, ChefHat } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import type { Valuation, ValuationIndicator, ValuationRefType, Recipe } from "@/types/domain"
-import { getValuations, createValuation, getRecipes, getRecipeCost } from "@/lib/api"
+import { getValuations, createValuation, getRecipes, getRecipeCost, getRecipeById } from "@/lib/api"
 import type { ValuationCreateResult, CreateValuationPayload } from "@/lib/api"
 
 // ─── Fórmulas ─────────────────────────────────────────────────────────────────
@@ -119,6 +121,154 @@ const fmtPct = (v: number | string) => `${parseFloat(String(v)).toFixed(1)}%`
 const refLabel = (r: ValuationRefType) =>
   r === "recipe" ? "Receta" : r === "menu" ? "Menú" : "Independiente"
 
+// ─── Modal: ver valoración (solo lectura) ─────────────────────────────────────
+function ValuationViewModal({
+  valuation,
+  onClose,
+  onReuse,
+}: {
+  valuation: Valuation | null
+  onClose: () => void
+  onReuse: (v: Valuation) => void
+}) {
+  const linkedRecipeId = valuation?.refType === "recipe" ? valuation.refId : null
+  const { data: linkedRecipe } = useSWR(
+    linkedRecipeId ? ["recipe-name", linkedRecipeId] : null,
+    () => getRecipeById(linkedRecipeId!).then((r) => r.data),
+  )
+
+  if (!valuation) return null
+  const cfg = IND[valuation.indicator]
+
+  const pctMP = parseFloat(valuation.pctMateriaprima)
+  const pctFixed = parseFloat(valuation.pctFixedCosts)
+  const pctProfit = parseFloat(valuation.pctProfit)
+
+  const hasActual = valuation.actualPrice != null
+  const delta = hasActual
+    ? parseFloat(valuation.actualPrice!) - parseFloat(valuation.suggestedPrice)
+    : 0
+
+  return (
+    <Modal
+      open={!!valuation}
+      onClose={onClose}
+      title={valuation.name}
+      footer={
+        <div className="flex items-center justify-between w-full gap-3">
+          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+            {new Date(valuation.createdAt).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose}>Cerrar</Button>
+            <Button variant="primary" onClick={() => onReuse(valuation)}>
+              <RotateCcw size={14} />
+              Reutilizar
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        {/* Origen: sobre qué receta/menú se hizo esta valoración */}
+        <div
+          className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
+          style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
+        >
+          <ChefHat size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+          {valuation.refType === "recipe" && valuation.refId ? (
+            <span style={{ color: "var(--text-secondary)" }}>
+              Basada en la receta{" "}
+              <strong style={{ color: "var(--text-primary)" }}>
+                {linkedRecipe?.name ?? "Cargando…"}
+              </strong>
+            </span>
+          ) : valuation.refType === "recipe" ? (
+            <span style={{ color: "var(--text-secondary)" }}>
+              Basada en una receta (sin vínculo registrado)
+            </span>
+          ) : (
+            <span style={{ color: "var(--text-secondary)" }}>
+              {refLabel(valuation.refType)}
+            </span>
+          )}
+        </div>
+
+        {/* Franja de indicador */}
+        <div
+          className="rounded-xl px-4 py-3 flex items-center justify-between"
+          style={{ background: cfg.bg, border: `1px solid ${cfg.color}30` }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-2 h-2 rounded-full" style={{ background: cfg.color }} />
+            <span className="text-sm font-bold" style={{ color: cfg.text }}>{valuation.indicator}</span>
+          </div>
+          <span className="text-xs" style={{ color: cfg.text, opacity: 0.75 }}>{cfg.sublabel}</span>
+        </div>
+
+        {/* Hero: precio sugerido + comparación con precio real */}
+        <Card>
+          <p className="text-xs font-semibold tracking-widest mb-1" style={{ color: "var(--text-muted)" }}>
+            PRECIO SUGERIDO
+          </p>
+          <p className="font-display text-4xl font-bold tabular-nums mb-1" style={{ color: "var(--text-primary)", lineHeight: 1.1 }}>
+            {fmt(valuation.suggestedPrice)}
+          </p>
+          {hasActual && (
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              Precio real: <strong style={{ color: "var(--text-secondary)" }}>{fmt(valuation.actualPrice!)}</strong>
+              <span
+                className="ml-2 font-semibold"
+                style={{ color: delta >= 0 ? "#166534" : "#991B1B" }}
+              >
+                ({delta >= 0 ? "+" : ""}{fmt(delta)})
+              </span>
+            </p>
+          )}
+
+          {/* Desglose visual — mismo lenguaje que Menú */}
+          <div className="flex justify-center my-5">
+            <RatioDonut mp={pctMP} fixed={pctFixed} profit={pctProfit} profitColor={cfg.color} />
+          </div>
+          <div className="flex flex-col gap-3">
+            <RatioRow label="Materia prima" color={COLOR_MP} pct={pctMP} />
+            <RatioRow label="Costos fijos"  color={COLOR_FIXED} pct={pctFixed} />
+            <RatioRow label="Ganancia"       color={COLOR_PROFIT} pct={pctProfit} />
+          </div>
+        </Card>
+
+        {/* Datos de la valoración */}
+        <div>
+          <p className="text-xs font-semibold tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>
+            DATOS DE LA VALORACIÓN
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <InfoStat label="Costo materia prima" value={fmt(valuation.costMateriaprima)} mono />
+            <InfoStat label="Margen de seguridad" value={fmtPct(valuation.safetyMargin)} mono />
+          </div>
+        </div>
+
+        {valuation.notes && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <StickyNote size={14} style={{ color: "var(--text-muted)" }} />
+              <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
+                NOTAS
+              </p>
+            </div>
+            <p
+              className="text-sm px-3 py-2.5 rounded-xl"
+              style={{ color: "var(--text-secondary)", background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
+            >
+              {valuation.notes}
+            </p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Skeleton de historial ────────────────────────────────────────────────────
 function HistorySkeleton() {
   return (
@@ -150,6 +300,7 @@ function HistorySkeleton() {
 interface FormState {
   name: string
   refType: ValuationRefType
+  refId: string | null
   costMateriaprima: string
   pctMateriaprima: string
   safetyMargin: string
@@ -160,6 +311,7 @@ interface FormState {
 const EMPTY: FormState = {
   name: "",
   refType: "standalone",
+  refId: null,
   costMateriaprima: "",
   pctMateriaprima: "35",
   safetyMargin: "3",
@@ -183,6 +335,7 @@ function fromValuation(v: Valuation): FormState {
   return {
     name: v.name,
     refType: v.refType,
+    refId: v.refId,
     costMateriaprima: parseFloat(v.costMateriaprima).toString(),
     pctMateriaprima: parseFloat(v.pctMateriaprima).toString(),
     safetyMargin: parseFloat(v.safetyMargin).toString(),
@@ -216,7 +369,7 @@ function DetailView({
   const [success, setSuccess] = useState(false)
 
   // ── Selector de receta ────────────────────────────────────────────────────
-  const [selectedRecipeId, setSelectedRecipeId] = useState<string>("")
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string>(initialForm.refId ?? "")
   const [recipeLoading, setRecipeLoading] = useState(false)
 
   const recipeOptions = availableRecipes.map((r) => ({ value: r.id, label: r.name }))
@@ -268,6 +421,7 @@ function DetailView({
       pctMateriaprima: pctMP,
       safetyMargin: margin,
     }
+    if (selectedRecipeId) payload.refId = selectedRecipeId
     if (form.actualPrice) payload.actualPrice = parseFloat(form.actualPrice)
     if (form.notes.trim()) payload.notes = form.notes.trim()
     try {
@@ -338,7 +492,7 @@ function DetailView({
       </div>
 
       {/* ── Contenido principal ── */}
-      <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 1.2fr" }}>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] gap-6">
 
         {/* ── Columna izquierda: parámetros ── */}
         <div className="flex flex-col gap-4">
@@ -599,6 +753,7 @@ export default function ValoracionPage() {
   const [isNew, setIsNew]             = useState(true)
   const [sourceName, setSourceName]   = useState<string | undefined>(undefined)
   const [helpOpen, setHelpOpen]       = useState(false)
+  const [viewingValuation, setViewingValuation] = useState<Valuation | null>(null)
 
   useEffect(() => {
     function handleHelp() { setHelpOpen(true) }
@@ -776,21 +931,42 @@ export default function ValoracionPage() {
             {
               key: "id",
               label: "",
-              render: (_, row) => (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openFromHistory(row as unknown as Valuation)}
-                >
-                  Nuevo análisis desde este
-                </Button>
-              ),
+              render: (_, row) => {
+                const valuation = row as unknown as Valuation
+                return (
+                  <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setViewingValuation(valuation)}
+                      title="Ver valoración"
+                      className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      <Eye size={14} />
+                    </button>
+                    <button
+                      onClick={() => openFromHistory(valuation)}
+                      title="Reutilizar como base para un nuevo cálculo"
+                      className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  </div>
+                )
+              },
             },
           ]}
           data={history as unknown as Record<string, unknown>[]}
           rowKey="id"
+          onRowClick={(row) => setViewingValuation(row as unknown as Valuation)}
         />
       )}
+
+      <ValuationViewModal
+        valuation={viewingValuation}
+        onClose={() => setViewingValuation(null)}
+        onReuse={(v) => { setViewingValuation(null); openFromHistory(v) }}
+      />
 
       {/* ── Modal: help ──────────────────────────────────────────────────── */}
       <Modal

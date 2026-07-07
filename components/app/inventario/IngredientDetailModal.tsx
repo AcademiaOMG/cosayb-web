@@ -82,7 +82,7 @@ export default function IngredientDetailModal({ ingredient, onClose, onEdit }: P
         {/* Badges */}
         <div className="flex flex-wrap gap-2">
           <Badge variant={isOwn ? "accent" : "muted"}>
-            {isOwn ? "Ingrediente propio" : "Banco base"}
+            {isOwn ? "Ingrediente propio" : "Banco"}
           </Badge>
           {ingredient.category && (
             <Badge variant="muted">{ingredient.category}</Badge>

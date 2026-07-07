@@ -2,7 +2,7 @@
 
 import { memo } from "react"
 import type { Recipe } from "@/types/domain"
-import { ChefHat, BookMarked, Globe, Trash2 } from "lucide-react"
+import { ChefHat, BookMarked, UtensilsCrossed, Trash2 } from "lucide-react"
 
 interface RecipeCardProps {
   recipe: Recipe
@@ -111,7 +111,8 @@ const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: Recip
           </h3>
 
           <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
-            {recipe.isBase && (
+            {/* Tipo de receta — alineado con el filtro: Base | Principal */}
+            {recipe.isBase ? (
               <span
                 style={{
                   display: "inline-flex", alignItems: "center", gap: "3px",
@@ -122,8 +123,7 @@ const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: Recip
               >
                 <BookMarked size={9} /> Base
               </span>
-            )}
-            {isPublic && (
+            ) : (
               <span
                 style={{
                   display: "inline-flex", alignItems: "center", gap: "3px",
@@ -132,7 +132,7 @@ const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: Recip
                   borderRadius: "100px", padding: "2px 7px",
                 }}
               >
-                <Globe size={9} /> Banco
+                <UtensilsCrossed size={9} /> Principal
               </span>
             )}
             <span className="text-xs" style={{ color: "var(--text-muted)" }}>

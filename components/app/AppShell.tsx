@@ -1,25 +1,33 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { mutate } from "swr"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
+import ImpersonationBanner from "./ImpersonationBanner"
 import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
 import { getCurrentOrganization } from "@/lib/api"
-import { setLastSurface, setActiveOrgId } from "@/lib/surface"
+import { usePermissions } from "@/hooks/usePermissions"
+import { setActiveOrgId } from "@/lib/activeOrg"
 import { clearSWRCache } from "@/components/SWRProvider"
 import type { Plan } from "@/types/domain"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: session } = authClient.useSession()
+  const { identityType, impersonation, isLoading: permsLoading } = usePermissions()
 
-  // Esta es la superficie "tenant" — recordarla para el landing post-login
+  // Excepción: una identidad platform SÍ puede estar en el workspace tenant
+  // mientras tenga una sesión de impersonación activa.
   useEffect(() => {
-    setLastSurface("tenant")
-  }, [])
+    if (!permsLoading && identityType === "platform" && !impersonation?.active) {
+      router.replace("/plataforma")
+    }
+  }, [permsLoading, identityType, impersonation?.active, router])
 
   const { data: orgData } = useSWR(
     "organization-me",
@@ -48,26 +56,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const userName = session?.user?.name ?? "Usuario"
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
-      <SessionGuard />
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        userName={userName}
-        userPlan={plan}
-        onSignOut={handleSignOut}
-      />
-
-      <div className="flex flex-col flex-1 min-w-0 lg:pl-60">
-        <Topbar
-          orgName={orgName}
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
+      <ImpersonationBanner />
+      <div className="flex flex-1 min-h-0">
+        <SessionGuard />
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          userName={userName}
           userPlan={plan}
-          userInitial={userName.charAt(0).toUpperCase()}
-          onMenuClick={() => setSidebarOpen(true)}
+          onSignOut={handleSignOut}
         />
-        <main className="flex-1 overflow-y-auto p-6 animate-page-in" style={{ background: "var(--bg-primary)" }}>
-          {children}
-        </main>
+
+        <div className="flex flex-col flex-1 min-w-0 lg:pl-60">
+          <Topbar
+            orgName={orgName}
+            userPlan={plan}
+            userInitial={userName.charAt(0).toUpperCase()}
+            onMenuClick={() => setSidebarOpen(true)}
+          />
+          <main className="flex-1 overflow-y-auto p-6 animate-page-in" style={{ background: "var(--bg-primary)" }}>
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   )

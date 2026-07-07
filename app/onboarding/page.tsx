@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import { authClient } from "@/lib/auth"
-import { setActiveOrgId, getLastSurface } from "@/lib/surface"
+import { setActiveOrgId } from "@/lib/activeOrg"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
@@ -58,18 +58,12 @@ export default function OnboardingPage() {
           return
         }
 
-        // Usuarios de plataforma: aterrizan en la consola si es su último
-        // contexto o si no tienen negocio propio (ej. platform_chef puro)
+        // Identidades de plataforma van directo a la consola — nunca ven onboarding
         try {
           const ctxRes = await fetch(`${API}/api/v1/me/context`, { credentials: "include" })
           if (ctxRes.ok) {
             const ctxBody = await ctxRes.json()
-            const platformRoles: string[] = ctxBody.data?.platformRoles ?? []
-            const hasOrg = !!ctxBody.data?.organization
-            if (
-              platformRoles.length > 0 &&
-              (getLastSurface() === "platform" || !hasOrg)
-            ) {
+            if (ctxBody.data?.identityType === "platform") {
               router.replace("/plataforma")
               return
             }
