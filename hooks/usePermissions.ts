@@ -38,6 +38,8 @@ export function usePermissions() {
 
   /** ¿La membresía de la org activa tiene esta feature habilitada? */
   function hasFeature(key: string): boolean {
+    // Usuarios de plataforma bypass todas las feature gates — son los admins del SaaS
+    if (platformRoles.length > 0) return true
     return organization?.features.some((f) => f.key === key && f.enabled) ?? false
   }
 

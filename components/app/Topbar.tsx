@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Menu, ChevronDown, Check, Plus, HelpCircle } from "lucide-react"
+import { Menu, ChevronDown, Check, Shield, HelpCircle } from "lucide-react"
 import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -20,7 +20,7 @@ export default function Topbar({
   userPlan = "free",
   onMenuClick,
 }: TopbarProps) {
-  const { memberships, isPlatform } = usePermissions()
+  const { memberships, isPlatform, platformRoles } = usePermissions()
   const helpAvailable = useHelpAvailableSnapshot()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -141,17 +141,22 @@ export default function Topbar({
                   </button>
                 )
               })}
-              <button
-                role="menuitem"
-                onClick={() => { window.location.href = "/onboarding?new=1" }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors"
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--accent)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-light)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                <Plus size={14} />
-                Crear otro negocio
-              </button>
+              {platformRoles.length > 0 && (
+                <>
+                  <div style={{ height: 1, background: "var(--border-light)", margin: "4px 8px" }} />
+                  <button
+                    role="menuitem"
+                    onClick={() => { window.location.href = "/plataforma" }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors"
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--accent)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-light)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <Shield size={14} />
+                    Cambiar a plataforma
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

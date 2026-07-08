@@ -19,6 +19,26 @@ const SCOPE_LABEL: Record<string, string> = {
   user: "Usuario",
 }
 
+// Nombres más legibles para roles de sistema (slug → display)
+const ROLE_DISPLAY: Record<string, string> = {
+  platform_owner:    "Super Admin",
+  platform_admin:    "Administrador",
+  platform_support:  "Soporte",
+  platform_billing:  "Facturación",
+  platform_auditor:  "Auditor",
+  platform_readonly: "Lector",
+  platform_chef:     "Chef de contenido",
+  org_owner:         "Propietario",
+  org_manager:       "Gerente",
+  org_chef:          "Chef",
+  org_cost_analyst:  "Analista de costos",
+  org_viewer:        "Observador",
+  basic_user:        "Usuario básico",
+  academic_teacher:  "Docente (academia)",
+  academic_assistant:"Asistente (academia)",
+  academic_student:  "Estudiante (academia)",
+}
+
 export default function RolesPage() {
   const { platformCan } = usePermissions()
   const { data: roles = [], mutate: mutateRoles } = useSWR("platform-roles", () =>
@@ -146,12 +166,25 @@ export default function RolesPage() {
     byResource.set(p.resource, list)
   }
 
-  // Roles agrupados por scope
+  const [showAcademic, setShowAcademic] = useState(false)
+
+  // Slugs ocultos del sidebar (existen en DB pero no se exponen en la UI)
+  const HIDDEN_SIDEBAR = new Set([
+    "basic_user",
+    "org_chef",
+    "org_cost_analyst",
+    "platform_auditor",
+    "platform_billing",
+  ])
+
+  // Roles agrupados por scope; académicos van en grupo separado
   const rolesByScope = new Map<string, typeof roles>()
   for (const r of roles) {
-    const list = rolesByScope.get(r.scope) ?? []
+    if (HIDDEN_SIDEBAR.has(r.slug)) continue
+    const key = r.scopeContext === "academic" ? "academic" : r.scope
+    const list = rolesByScope.get(key) ?? []
     list.push(r)
-    rolesByScope.set(r.scope, list)
+    rolesByScope.set(key, list)
   }
 
   return (
@@ -174,7 +207,9 @@ export default function RolesPage() {
       <div className="flex gap-6 items-start flex-col lg:flex-row">
         {/* Lista de roles */}
         <div className="flex flex-col gap-4 shrink-0 w-full lg:w-64">
-          {[...rolesByScope.entries()].map(([scope, scopeRoles]) => (
+          {[...rolesByScope.entries()]
+            .filter(([scope]) => scope !== "academic")
+            .map(([scope, scopeRoles]) => (
             <div key={scope}>
               <p className="text-[10px] font-bold tracking-[0.15em] console-muted mb-1.5 px-1 uppercase">
                 {SCOPE_LABEL[scope] ?? scope}
@@ -194,7 +229,7 @@ export default function RolesPage() {
                         cursor: "pointer",
                       }}
                     >
-                      {role.name}
+                      {ROLE_DISPLAY[role.slug] ?? role.name}
                       <span className="block text-[10px] console-muted">{role.slug}</span>
                     </button>
                   )
@@ -202,6 +237,42 @@ export default function RolesPage() {
               </div>
             </div>
           ))}
+
+          {/* Roles académicos — colapsados por defecto */}
+          {rolesByScope.has("academic") && (
+            <div>
+              <button
+                onClick={() => setShowAcademic((v) => !v)}
+                className="text-[10px] font-bold tracking-[0.15em] console-muted mb-1.5 px-1 uppercase w-full text-left flex items-center gap-1"
+                style={{ background: "transparent", border: "none", cursor: "pointer" }}
+              >
+                Academia {showAcademic ? "▾" : "▸"}
+              </button>
+              {showAcademic && (
+                <div className="flex flex-col gap-1">
+                  {(rolesByScope.get("academic") ?? []).map((role) => {
+                    const active = role.id === selectedRoleId
+                    return (
+                      <button
+                        key={role.id}
+                        onClick={() => { setSelectedRoleId(role.id); setPending(null) }}
+                        className="text-left px-3 py-2 rounded-lg text-sm transition-colors"
+                        style={{
+                          background: active ? "var(--accent-light)" : "transparent",
+                          color: active ? "var(--accent)" : "var(--text-secondary)",
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {ROLE_DISPLAY[role.slug] ?? role.name}
+                        <span className="block text-[10px] console-muted">{role.slug}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Matriz de permisos del rol */}

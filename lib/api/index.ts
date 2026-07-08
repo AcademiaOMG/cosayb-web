@@ -765,6 +765,37 @@ export async function platformSetUserPlatformRoles(
   })
 }
 
+export async function platformSetUserOrgRole(
+  userId: string,
+  orgId: string,
+  roleSlug: string
+): Promise<{ data: { userId: string; organizationId: string; roleSlug: string } }> {
+  return fetchAPI(`/api/v1/platform/users/${userId}/org-memberships/${orgId}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ roleSlug }),
+  })
+}
+
+export async function platformRemoveUserOrgMembership(
+  userId: string,
+  orgId: string
+): Promise<{ data: { userId: string; organizationId: string; removed: boolean } }> {
+  return fetchAPI(`/api/v1/platform/users/${userId}/org-memberships/${orgId}`, {
+    method: "DELETE",
+  })
+}
+
+export async function platformAddUserOrgMembership(
+  userId: string,
+  organizationId: string,
+  roleSlug: string
+): Promise<{ data: { userId: string; organizationId: string; roleSlug: string } }> {
+  return fetchAPI(`/api/v1/platform/users/${userId}/org-memberships`, {
+    method: "POST",
+    body: JSON.stringify({ organizationId, roleSlug }),
+  })
+}
+
 export async function platformGetOrg(id: string): Promise<{ data: PlatformOrg & { memberCount: number } }> {
   return fetchAPI(`/api/v1/platform/organizations/${id}`)
 }
