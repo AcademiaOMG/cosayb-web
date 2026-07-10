@@ -487,7 +487,7 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-wrap items-center gap-4 mb-16 animate-fade-up-delay-3">
-              <Link href="/capacitacion" className="btn-spx btn-spx-accent">
+              <Link href="/capacitacion" className="btn-spx btn-spx-accent-solid">
                 Cursos
                 <ArrowRight size={18} className="btn-arrow" />
               </Link>
@@ -1077,12 +1077,12 @@ export default function LandingPage() {
               <p className="font-body text-[#7A6E60] text-base leading-relaxed mb-8 max-w-sm">
                 Si tienes una pregunta que no aparece aquí, escríbenos y te respondemos en menos de 24 horas.
               </p>
-              <a
+              <Link
                 href="/contacto"
                 className="btn-spx btn-spx-dark"
               >
                 Ir a Contacto
-              </a>
+              </Link>
             </div>
 
             <div>

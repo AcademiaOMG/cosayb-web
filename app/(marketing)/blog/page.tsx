@@ -57,23 +57,29 @@ export default function BlogPage() {
   return (
     <div>
       {/* ─── HERO ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden min-h-[50vh]">
+      <section className="relative overflow-hidden min-h-dvh">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/fondo-principal.webp"
+          src="/images/blog-hero.jpg"
           alt="Blog Academia OMG"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-[#0A1520]/60" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1520] to-transparent" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-end min-h-[50vh] pb-16">
-          <h1
-            className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up"
-            style={{ fontSize: "clamp(3rem, 8vw, 5.5rem)" }}
-          >
-            Blog
-          </h1>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
+          <div className="max-w-2xl animate-fade-up">
+            <h1
+              className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
+              style={{ fontSize: "clamp(2.8rem, 7vw, 5.5rem)" }}
+            >
+              Blog
+            </h1>
+            <p className="font-body text-lg text-[#8FA0BC] leading-relaxed max-w-xl animate-fade-up-delay-2">
+              Artículos y recursos prácticos sobre costos, rentabilidad y gestión gastronómica
+              para restaurantes y cocinas profesionales.
+            </p>
+          </div>
         </div>
       </section>
 

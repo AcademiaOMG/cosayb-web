@@ -91,17 +91,17 @@ export default function ConsultoriaPage() {
   return (
     <div>
       {/* ─── HERO ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden min-h-[70vh]">
+      <section className="relative overflow-hidden min-h-dvh">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/fondo-principal.webp"
+          src="/images/consultoria-hero.png"
           alt="Consultoría gastronómica"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-[#0A1520]/60" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1520] to-transparent" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-[70vh]">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
           <div className="max-w-2xl animate-fade-up">
             <h1
               className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
@@ -115,15 +115,19 @@ export default function ConsultoriaPage() {
               Orientación experta para potenciar la administración y el desempeño gastronómico.
               Evaluamos tu operación y diseñamos un plan de mejora personalizado.
             </p>
-            <a href="#formulario" className="btn-spx btn-spx-accent animate-fade-up-delay-3">
-              Solicitar asesoría
-              <ArrowRight size={16} className="btn-arrow" />
-            </a>
+            <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
+              <a href="#formulario" className="btn-spx btn-spx-accent-solid">
+                Solicitar asesoría
+                <ArrowRight size={16} className="btn-arrow" />
+              </a>
+              <a href="#proceso" className="btn-spx btn-spx-light">
+                Conocer el proceso
+                <ArrowRight size={16} className="btn-arrow" />
+              </a>
+            </div>
           </div>
         </div>
       </section>
-
-      
 
       {/* ─── GESTIÓN INTELIGENTE ──────────────────────────────────── */}
       <section className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
@@ -175,7 +179,7 @@ export default function ConsultoriaPage() {
       </section>
 
 {/* ─── SLIDER ────────────────────────────────────────────────── */}
-      <section className="bg-[#12213A] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
+      <section id="proceso" className="bg-[#12213A] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <div className="relative rounded-2xl overflow-hidden aspect-[16/7]">
             {slides.map((slide, i) => (

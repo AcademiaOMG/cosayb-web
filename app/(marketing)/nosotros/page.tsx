@@ -82,28 +82,21 @@ export default function NosotrosPage() {
   return (
     <div>
       {/* ═══════════════ HERO ═══════════════ */}
-      <section className="relative overflow-hidden bg-[#12213A] min-h-dvh flex flex-col justify-center px-6 sm:px-10 lg:px-16">
-        {/* Background image */}
+      <section className="relative overflow-hidden min-h-dvh">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/fondo-principal.webp"
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-30"
+          src="/images/nosotros-hero.jpg"
+          alt="Equipo de Academia OMG"
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-[#12213A]/70" />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(18,33,58,1) 0%, rgba(18,33,58,0.4) 40%, transparent 100%)",
-          }}
-        />
+        <div className="absolute inset-0 bg-[#0A1520]/60" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1520] to-transparent" />
 
-        <div className="relative z-10 max-w-7xl mx-auto">
-          <div className="max-w-3xl">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
+          <div className="max-w-2xl animate-fade-up">
             <h1
-              className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6"
-              style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}
+              className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
+              style={{ fontSize: "clamp(2.8rem, 7vw, 5.5rem)" }}
             >
               Transformamos la
               <br />
@@ -111,12 +104,20 @@ export default function NosotrosPage() {
               <br />
               <span className="text-[#7AAEFF]">Resultados Reales</span>
             </h1>
-            <p className="font-body text-lg text-[#8FA0BC] leading-relaxed max-w-xl">
+            <p className="font-body text-lg text-[#8FA0BC] leading-relaxed mb-10 max-w-xl animate-fade-up-delay-2">
               Somos un equipo de expertos en gestión gastronómica enfocado en ayudar a negocios del sector
               alimentos y bebidas a mejorar su operación, optimizar recursos y aumentar su rentabilidad.
-              Nuestra experiencia, visión y compromiso nos permiten ofrecer soluciones prácticas y
-              efectivas, respaldadas por la innovación y la capacidad actual.
             </p>
+            <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
+              <Link href="#equipo" className="btn-spx btn-spx-accent-solid">
+                Conocer el equipo
+                <ArrowRight size={16} className="btn-arrow" />
+              </Link>
+              <Link href="/login" className="btn-spx btn-spx-light">
+                Probar gratis
+                <ArrowRight size={16} className="btn-arrow" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -253,7 +254,7 @@ export default function NosotrosPage() {
       <section className="bg-[#EDE7DB] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left — Image + text */}
+            {/* Left — Text + compact features list */}
             <div>
               <h2
                 className="font-display font-extrabold text-[#12213A] leading-[1.05] mb-6"
@@ -279,8 +280,28 @@ export default function NosotrosPage() {
                 </p>
               </div>
 
-              {/* Book mockup */}
-              <div className="mt-8 relative w-full max-w-sm">
+              {/* Features — compact list, light card container */}
+              <div className="mt-8 grid sm:grid-cols-2 gap-4">
+                {features.map(({ Icon, title, description }) => (
+                  <div
+                    key={title}
+                    className="flex items-start gap-3 rounded-xl p-4 bg-[#FDFAF6] border border-[#DDD6C8]"
+                  >
+                    <div className="w-9 h-9 bg-[#DEEAFF] rounded-lg flex items-center justify-center shrink-0">
+                      <Icon size={16} className="text-[#1B4FD8]" />
+                    </div>
+                    <div>
+                      <h3 className="font-body font-bold text-sm text-[#12213A] mb-0.5">{title}</h3>
+                      <p className="font-body text-xs text-[#4A4438] leading-snug">{description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — Book mockup, centered */}
+            <div className="flex justify-center">
+              <div className="relative w-full max-w-sm">
                 <div
                   className="absolute -inset-3 rounded-2xl opacity-15"
                   style={{ background: "linear-gradient(135deg, #1B4FD8 0%, #12213A 100%)" }}
@@ -294,30 +315,12 @@ export default function NosotrosPage() {
                 />
               </div>
             </div>
-
-            {/* Right — Features grid */}
-            <div className="grid sm:grid-cols-2 gap-6">
-              {features.map(({ Icon, title, description }) => (
-                <div
-                  key={title}
-                  className="card-hover bg-white border border-[#DDD6C8] rounded-2xl p-6 flex flex-col gap-4"
-                >
-                  <div className="w-10 h-10 bg-[#DEEAFF] rounded-lg flex items-center justify-center">
-                    <Icon size={18} className="text-[#1B4FD8]" />
-                  </div>
-                  <div>
-                    <h3 className="font-body font-bold text-[#12213A] mb-1">{title}</h3>
-                    <p className="font-body text-sm text-[#4A4438] leading-relaxed">{description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
 
       {/* ═══════════════ NUESTRO EQUIPO ═══════════════ */}
-      <section className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
+      <section id="equipo" className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-14">
             <span className="inline-block bg-[#DEEAFF] text-[#1434A4] text-xs font-body font-semibold tracking-[0.15em] uppercase px-4 py-2 rounded-full mb-5">

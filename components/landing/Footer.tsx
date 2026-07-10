@@ -68,7 +68,7 @@ export default function Footer() {
                 ACADEMIA OMG
               </span>
             </Link>
-            <p className="font-body text-sm text-[#4A6080] leading-relaxed mb-6 max-w-[280px]">
+            <p className="font-body text-sm text-[#8FA0BC] leading-relaxed mb-6 max-w-[280px]">
               Software de costos de alimentos y bebidas para cocinas profesionales colombianas.
             </p>
 
@@ -82,7 +82,7 @@ export default function Footer() {
             <div className="flex flex-col gap-1.5 mt-6">
               <a
                 href="mailto:hola@cosayb.co"
-                className="font-body text-xs text-[#4A6080] hover:text-[#8FA0BC] transition-colors"
+                className="font-body text-xs text-[#8FA0BC] hover:text-[#7AAEFF] transition-colors"
               >
                 hola@cosayb.co
               </a>
@@ -90,11 +90,11 @@ export default function Footer() {
                 href="https://wa.me/573001234567"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-body text-xs text-[#4A6080] hover:text-[#8FA0BC] transition-colors"
+                className="font-body text-xs text-[#8FA0BC] hover:text-[#7AAEFF] transition-colors"
               >
                 WhatsApp: +57 300 123 4567
               </a>
-              <span className="font-body text-xs text-[#2A3A50] mt-1">Colombia · 2026</span>
+              <span className="font-body text-xs text-[#6B85A8] mt-1">Colombia · 2026</span>
             </div>
           </div>
 
@@ -109,7 +109,7 @@ export default function Footer() {
                   <li key={label}>
                     <Link
                       href={href}
-                      className="font-body text-sm text-[#4A6080] hover:text-[#8FA0BC] transition-colors duration-150"
+                      className="font-body text-sm text-[#8FA0BC] hover:text-[#7AAEFF] transition-colors duration-150"
                     >
                       {label}
                     </Link>
@@ -126,7 +126,7 @@ export default function Footer() {
         className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 py-5"
         style={{ borderTop: "1px solid #1A2A3A" }}
       >
-        <p className="font-body text-xs text-[#2A3A50] text-center sm:text-left">
+        <p className="font-body text-xs text-[#6B85A8] text-center sm:text-left">
           © 2026 Academia OMG. Todos los derechos reservados.
         </p>
         <div className="flex items-center gap-4">
@@ -137,7 +137,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={label}
-              className="text-[#2A3A50] hover:text-[#8FA0BC] transition-colors"
+              className="text-[#6B85A8] hover:text-[#7AAEFF] transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d={icon} />

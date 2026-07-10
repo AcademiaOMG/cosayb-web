@@ -112,7 +112,7 @@ export default function LibroPage() {
             </p>
 
             <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
-              <a href="#comprar" className="btn-spx btn-spx-accent">
+              <a href="#comprar" className="btn-spx btn-spx-accent-solid">
                 Comprar libro
                 <ArrowRight size={16} className="btn-arrow" />
               </a>
@@ -128,11 +128,11 @@ export default function LibroPage() {
       {/* ─── ABOUT (two-column) ──────────────────────────────────── */}
       <section id="about" className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
 
-            {/* Left — Book cover */}
+            {/* Left — Book cover, at its natural proportions, capped to a sensible size */}
             <div className="flex justify-center lg:justify-start">
-              <div className="relative">
+              <div className="relative w-full max-w-md">
                 <div
                   className="absolute -inset-4 rounded-2xl opacity-20"
                   style={{ background: "linear-gradient(135deg, #1B4FD8 0%, #12213A 100%)" }}
@@ -141,7 +141,7 @@ export default function LibroPage() {
                 <img
                   src="/images/libro-costos.webp"
                   alt="Portada del libro Costos de Alimentos y Bebidas"
-                  className="relative rounded-xl shadow-2xl max-w-xs w-full"
+                  className="relative rounded-xl shadow-2xl w-full"
                   style={{ boxShadow: "0 32px 80px rgba(18,33,58,0.30)" }}
                 />
               </div>
@@ -153,7 +153,7 @@ export default function LibroPage() {
                 className="inline-block text-xs font-body font-semibold tracking-[0.15em] uppercase px-3 py-1.5 rounded-full mb-6 text-[#1434A4]"
                 style={{ background: "#DEEAFF" }}
               >
-                Descripción
+                Sobre el libro
               </span>
 
               <h2

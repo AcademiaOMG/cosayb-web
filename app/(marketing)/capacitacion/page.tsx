@@ -118,7 +118,7 @@ export default function CapacitacionPage() {
               Aprende a controlar costos, optimizar inventarios y aumentar la rentabilidad de tu negocio gastronómico mediante programas prácticos desarrollados por Academia OMG.
             </p>
             <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
-              <a href="#programas" className="btn-spx btn-spx-accent">
+              <a href="#programas" className="btn-spx btn-spx-accent-solid">
                 Ver programas
                 <ArrowRight size={16} className="btn-arrow" />
               </a>
@@ -302,9 +302,9 @@ export default function CapacitacionPage() {
 
       <section id="formulario" className="bg-[#EDE7DB] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
+          <div className="grid lg:grid-cols-2 gap-16 items-stretch">
             {/* Left — Title + Subtitle + Image */}
-            <div>
+            <div className="flex flex-col">
               <h2
                 className="font-display font-extrabold text-[#12213A] mb-0"
                 style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}
@@ -318,20 +318,18 @@ export default function CapacitacionPage() {
                 operación en un negocio sensible y exitoso.
               </p>
 
-              <div className="mt-14 flex justify-center lg:justify-start">
-                <div className="relative">
-                  <div
-                    className="absolute -inset-4 rounded-2xl opacity-20"
-                    style={{ background: "linear-gradient(135deg, #1B4FD8 0%, #12213A 100%)" }}
-                  />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/images/cocinera-en-la-cocina-usando-un-dispositivo-portatil-scaled.webp"
-                    alt="Capacitación gastronómica"
-                    className="relative rounded-xl shadow-2xl w-full max-w-lg"
-                    style={{ boxShadow: "0 32px 80px rgba(18,33,58,0.30)" }}
-                  />
-                </div>
+              <div className="relative mt-14 p-3 aspect-[4/5] lg:aspect-auto lg:flex-1">
+                <div
+                  className="absolute inset-0 rounded-2xl opacity-20"
+                  style={{ background: "linear-gradient(135deg, #1B4FD8 0%, #12213A 100%)" }}
+                />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/cocinera-en-la-cocina-usando-un-dispositivo-portatil-scaled.webp"
+                  alt="Capacitación gastronómica"
+                  className="relative rounded-xl shadow-2xl w-full h-full object-cover"
+                  style={{ boxShadow: "0 32px 80px rgba(18,33,58,0.30)" }}
+                />
               </div>
             </div>
 
