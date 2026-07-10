@@ -31,8 +31,8 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "CO$AYB — Software de Costos de Alimentos y Bebidas",
-    template: "%s | CO$AYB",
+    default: "Academia OMG — Costos de Alimentos y Bebidas para Restaurantes",
+    template: "%s | Academia OMG",
   },
   description:
     "Calcula el costo real de cada receta, aplica tus costos fijos y conoce el precio exacto de venta para ser rentable. Para restaurantes y cocinas profesionales en Colombia.",
@@ -67,8 +67,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_CO",
     url: siteUrl,
-    siteName: "CO$AYB",
-    title: "CO$AYB — Software de Costos de Alimentos y Bebidas",
+    siteName: "Academia OMG",
+    title: "Academia OMG — Costos de Alimentos y Bebidas para Restaurantes",
     description:
       "Calcula el costo real de cada receta, aplica tus costos fijos y conoce el precio exacto de venta para ser rentable. Para restaurantes en Colombia.",
     images: [
@@ -90,7 +90,12 @@ export const metadata: Metadata = {
     site: "@academiaomg",
   },
   icons: {
-    icon: "/LOGO-ACADEMIAOMG.svg",
+    icon: [
+      { url: "/logo-white.png", type: "image/png", sizes: "32x32" },
+      { url: "/logo-white.png", type: "image/png", sizes: "16x16" },
+      { url: "/logo-white.png", type: "image/png", sizes: "any" },
+    ],
+    apple: "/logo.png",
   },
   alternates: {
     canonical: siteUrl,

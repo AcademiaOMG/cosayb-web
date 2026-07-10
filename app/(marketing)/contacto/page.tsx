@@ -22,8 +22,8 @@ const channels = [
   {
     Icon: Clock,
     title: "Soporte técnico",
-    value: "soporte@cosayb.co",
-    href: "mailto:soporte@cosayb.co",
+    value: "soporte@academiaomg.com",
+    href: "mailto:soporte@academiaomg.com",
     detail: "Para problemas con tu cuenta o datos",
   },
 ]
@@ -186,9 +186,6 @@ export default function ContactoPage() {
                   Enviar mensaje
                 </button>
 
-                <p className="font-body text-xs text-[#7A6E60]">
-                  * Este formulario es solo visual. Para contacto real usa los canales de atención de la izquierda.
-                </p>
               </form>
             </div>
           </div>

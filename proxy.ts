@@ -8,10 +8,27 @@ const PUBLIC_ROUTES = [
   "/nosotros",
   "/contacto",
   "/capacitacion",
+  "/consultoria",
   "/libro",
+  "/blog",
   "/privacy",
   "/terms",
   "/cookies",
+];
+
+// Rutas protegidas del área de app — solo estas redirigen a /login
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/inventario",
+  "/recetas",
+  "/valoracion",
+  "/factor-rendimiento",
+  "/punto-equilibrio",
+  "/menu",
+  "/precios-mercado",
+  "/ajustes",
+  "/configuracion",
+  "/cuenta",
 ];
 
 const SESSION_COOKIE_NAMES = [
@@ -35,6 +52,7 @@ export function proxy(req: NextRequest) {
     return undefined;
   }
 
+  // Rutas públicas — siempre accesibles
   if (
     PUBLIC_ROUTES.includes(pathname) ||
     pathname.startsWith("/accept-invitation")
@@ -42,14 +60,22 @@ export function proxy(req: NextRequest) {
     return undefined;
   }
 
-  const hasSession = SESSION_COOKIE_NAMES.some((name) =>
-    req.cookies.has(name)
+  // Ruta conocida protegida — verificar sesión
+  const isProtected = PROTECTED_PREFIXES.some((prefix) =>
+    pathname === prefix || pathname.startsWith(prefix + "/")
   );
 
-  if (!hasSession) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  if (isProtected) {
+    const hasSession = SESSION_COOKIE_NAMES.some((name) =>
+      req.cookies.has(name)
+    );
+
+    if (!hasSession) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
   }
 
+  // Ruta desconocida (no pública, no protegida) — dejar que Next.js maneje el 404
   const res = NextResponse.next();
   res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
   res.headers.set("Pragma", "no-cache");
