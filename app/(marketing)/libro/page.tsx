@@ -17,26 +17,26 @@ const contactCards = [
   {
     Icon: MapPin,
     title: "Dirección",
-    value: "Bogotá, Colombia",
-    detail: "Envíos a todo el país",
+    value: "Avenida Calle 38B #24",
+    detail: "Bogotá, Colombia",
   },
   {
     Icon: Clock,
-    title: "Horario de atención",
-    value: "Lun – Vie · 8am – 6pm",
+    title: "Horario",
+    value: "Lun – Vie · 8:00 AM – 5 PM",
     detail: "Hora Colombia (UTC−5)",
   },
   {
     Icon: Mail,
-    title: "Correo electrónico",
-    value: "libro@cosayb.co",
+    title: "Email Address",
+    value: "info@academiaomg.com",
     detail: "Respuesta en menos de 24 h",
   },
   {
     Icon: Phone,
-    title: "WhatsApp",
-    value: "+57 300 123 4567",
-    detail: "También por notas de voz",
+    title: "Teléfonos",
+    value: "+57 321 574983",
+    detail: "Llamadas y WhatsApp",
   },
 ]
 
@@ -48,13 +48,19 @@ export default function LibroPage() {
     ciudad: "",
     tipo: "Digital",
     comentarios: "",
+    acepto: false,
   })
   const [sent, setSent] = useState(false)
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    const { name, value, type } = e.target
+    if (type === "checkbox") {
+      setForm((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }))
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }))
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -83,6 +89,12 @@ export default function LibroPage() {
         {/* Content */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
           <div className="max-w-2xl animate-fade-up">
+            <span
+              className="inline-block text-xs font-body font-semibold tracking-[0.15em] uppercase px-3 py-1.5 rounded-full mb-6 text-[#7AAEFF]"
+              style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+            >
+              El libro
+            </span>
 
             <h1
               className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
@@ -94,17 +106,18 @@ export default function LibroPage() {
             </h1>
 
             <p className="font-body text-lg text-[#8FA0BC] leading-relaxed mb-10 max-w-xl animate-fade-up-delay-2">
-              La guía práctica para controlar costos, optimizar inventarios y aumentar
-              la rentabilidad de restaurantes.
+              El aliado práctico y fundamentado para restaurants, estudiantes y profesionales, enfocado en mostrar
+              cómo manejar los costos, optimizar los recursos y comprender la estructura financiera de una operación
+              gastronómica.
             </p>
 
             <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
-              <a href="#comprar" className="btn-spx btn-spx-accent">
+              <a href="#comprar" className="btn-spx btn-spx-accent-solid">
                 Comprar libro
                 <ArrowRight size={16} className="btn-arrow" />
               </a>
               <a href="#about" className="btn-spx btn-spx-light">
-                Ver muestra
+                Ver descripción
                 <ArrowRight size={16} className="btn-arrow" />
               </a>
             </div>
@@ -113,13 +126,13 @@ export default function LibroPage() {
       </section>
 
       {/* ─── ABOUT (two-column) ──────────────────────────────────── */}
-      <section id="about" className="bg-[#F5F0E8] py-24 sm:py-32 px-6 sm:px-10 lg:px-16">
+      <section id="about" className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
 
-            {/* Left — Book cover */}
+            {/* Left — Book cover, at its natural proportions, capped to a sensible size */}
             <div className="flex justify-center lg:justify-start">
-              <div className="relative">
+              <div className="relative w-full max-w-md">
                 <div
                   className="absolute -inset-4 rounded-2xl opacity-20"
                   style={{ background: "linear-gradient(135deg, #1B4FD8 0%, #12213A 100%)" }}
@@ -128,7 +141,7 @@ export default function LibroPage() {
                 <img
                   src="/images/libro-costos.webp"
                   alt="Portada del libro Costos de Alimentos y Bebidas"
-                  className="relative rounded-xl shadow-2xl max-w-xs w-full"
+                  className="relative rounded-xl shadow-2xl w-full"
                   style={{ boxShadow: "0 32px 80px rgba(18,33,58,0.30)" }}
                 />
               </div>
@@ -140,22 +153,24 @@ export default function LibroPage() {
                 className="inline-block text-xs font-body font-semibold tracking-[0.15em] uppercase px-3 py-1.5 rounded-full mb-6 text-[#1434A4]"
                 style={{ background: "#DEEAFF" }}
               >
-                Contenido del libro
+                Sobre el libro
               </span>
 
               <h2
                 className="font-display font-extrabold text-[#12213A] mb-6"
                 style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}
               >
-                Todo lo que necesitas
-                <br />
-                para ser rentable
+                Descripción
               </h2>
 
-              <p className="font-body text-base text-[#4A4438] leading-relaxed mb-8">
-                Este libro nació de más de una década de capacitaciones en cocinas colombianas.
-                Combina teoría sólida con casos reales para que entiendas los costos desde adentro
-                y tomes decisiones con números, no con intuición.
+              <p className="font-body text-base text-[#4A4438] leading-relaxed mb-6">
+                El libro <strong className="text-[#12213A]">Costos de Alimentos y Bebidas</strong> presenta una guía técnica y
+                práctica para la gestión integral de costos en la operación gastronómica. Incluye con
+                matemáticas básicas, pesos, medidas y el uso del gramo como base del sistema de costos,
+                y aborda la importancia de la productividad, el factor de rendimiento y el control eficiente de
+                mermas. Además, se exploran temas clave como la estructura de costos, el cálculo de precios,
+                margen de contribución, punto de equilibrio, contrato operativo y formatos administrativos
+                esenciales.
               </p>
 
               {/* Benefits list */}
@@ -188,24 +203,19 @@ export default function LibroPage() {
       </section>
 
       {/* ─── PURCHASE FORM ──────────────────────────────────────── */}
-      <section id="comprar" className="bg-[#EDE7DB] py-24 sm:py-32 px-6 sm:px-10 lg:px-16">
+      <section id="comprar" className="bg-[#EDE7DB] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <span
-              className="inline-block text-xs font-body font-semibold tracking-[0.15em] uppercase px-3 py-1.5 rounded-full mb-6 text-[#1434A4]"
-              style={{ background: "#DEEAFF" }}
-            >
-              Comprar
-            </span>
             <h2
-              className="font-display font-extrabold text-[#12213A]"
+              className="font-display font-extrabold text-[#12213A] mb-4"
               style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}
             >
-              Solicita tu ejemplar
+              Compra el libro
+              <br />
+              <span className="text-[#1B4FD8]">Costos de Alimentos &amp; Bebidas</span>
             </h2>
             <p className="font-body text-base text-[#4A4438] mt-4 max-w-lg mx-auto">
-              Completa el formulario y nos pondremos en contacto contigo para coordinar
-              el pago y el envío.
+              Selecciona el formato de tu preferencia y completa tus datos para continuar con la compra.
             </p>
           </div>
 
@@ -223,148 +233,175 @@ export default function LibroPage() {
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="bg-white rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col gap-5"
+              className="bg-white rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col gap-6"
               style={{ border: "1px solid #DDD6C8" }}
             >
-              <div className="grid sm:grid-cols-2 gap-5">
-                {/* Nombre */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="nombre" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                    Nombre completo *
+              {/* Formato del libro — radio buttons */}
+              <div>
+                <h3 className="font-body font-bold text-[#12213A] text-base mb-4">Formato del libro</h3>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="tipo"
+                      value="Físico"
+                      checked={form.tipo === "Físico"}
+                      onChange={handleChange}
+                      className="accent-[#1B4FD8] w-4 h-4"
+                    />
+                    <span className="font-body text-sm text-[#12213A] group-hover:text-[#1B4FD8] transition-colors">
+                      <strong>Libro físico</strong> – $250.000 COP
+                    </span>
                   </label>
-                  <input
-                    id="nombre"
-                    name="nombre"
-                    type="text"
-                    required
-                    value={form.nombre}
-                    onChange={handleChange}
-                    placeholder="Tu nombre"
-                    className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                    style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                  />
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="tipo"
+                      value="Digital"
+                      checked={form.tipo === "Digital"}
+                      onChange={handleChange}
+                      className="accent-[#1B4FD8] w-4 h-4"
+                    />
+                    <span className="font-body text-sm text-[#12213A] group-hover:text-[#1B4FD8] transition-colors">
+                      <strong>Libro digital (PDF)</strong> – $100.000 COP
+                    </span>
+                  </label>
                 </div>
+              </div>
 
-                {/* Correo */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="correo" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                    Correo electrónico *
-                  </label>
-                  <input
-                    id="correo"
-                    name="correo"
-                    type="email"
-                    required
-                    value={form.correo}
-                    onChange={handleChange}
-                    placeholder="tu@email.com"
-                    className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                    style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                  />
+              {/* Datos del comprador */}
+              <div>
+                <h3 className="font-body font-bold text-[#12213A] text-base mb-4">Datos del comprador</h3>
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="nombre" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                      Nombre completo *
+                    </label>
+                    <input
+                      id="nombre"
+                      name="nombre"
+                      type="text"
+                      required
+                      value={form.nombre}
+                      onChange={handleChange}
+                      placeholder="Nombre y apellido"
+                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="correo" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                      Correo electrónico *
+                    </label>
+                    <input
+                      id="correo"
+                      name="correo"
+                      type="email"
+                      required
+                      value={form.correo}
+                      onChange={handleChange}
+                      placeholder="correo@ejemplo.com"
+                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="telefono" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                      Teléfono / WhatsApp *
+                    </label>
+                    <input
+                      id="telefono"
+                      name="telefono"
+                      type="tel"
+                      required
+                      value={form.telefono}
+                      onChange={handleChange}
+                      placeholder="+57 300 000 0000"
+                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="ciudad" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                      Ciudad / País
+                    </label>
+                    <input
+                      id="ciudad"
+                      name="ciudad"
+                      type="text"
+                      value={form.ciudad}
+                      onChange={handleChange}
+                      placeholder="Ciudad y país"
+                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
+                    />
+                  </div>
                 </div>
+              </div>
 
-                {/* Teléfono */}
+              {/* Información adicional */}
+              <div>
+                <h3 className="font-body font-bold text-[#12213A] text-base mb-4">Información adicional</h3>
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="telefono" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                    Teléfono / WhatsApp *
+                  <label htmlFor="comentarios" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                    Comentarios (opcional)
                   </label>
-                  <input
-                    id="telefono"
-                    name="telefono"
-                    type="tel"
-                    required
-                    value={form.telefono}
+                  <textarea
+                    id="comentarios"
+                    name="comentarios"
+                    rows={4}
+                    value={form.comentarios}
                     onChange={handleChange}
-                    placeholder="+57 300 000 0000"
-                    className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                    style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                  />
-                </div>
-
-                {/* Ciudad */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="ciudad" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                    Ciudad
-                  </label>
-                  <input
-                    id="ciudad"
-                    name="ciudad"
-                    type="text"
-                    value={form.ciudad}
-                    onChange={handleChange}
-                    placeholder="Bogotá"
-                    className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                    placeholder="Datos para envío físico o interrogantes"
+                    className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none resize-none"
                     style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
                   />
                 </div>
               </div>
 
-              {/* Tipo de libro */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="tipo" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                  Tipo de libro *
-                </label>
-                <select
-                  id="tipo"
-                  name="tipo"
+              {/* Acepto */}
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="acepto"
+                  name="acepto"
+                  checked={form.acepto}
+                  onChange={handleChange}
+                  className="mt-1 accent-[#1B4FD8]"
                   required
-                  value={form.tipo}
-                  onChange={handleChange}
-                  className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none appearance-none"
-                  style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                >
-                  <option value="Digital">Digital (PDF)</option>
-                  <option value="Físico">Físico (envío a domicilio)</option>
-                  <option value="Ambos">Ambos (Digital + Físico)</option>
-                </select>
-              </div>
-
-              {/* Comentarios */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="comentarios" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                  Comentarios adicionales
-                </label>
-                <textarea
-                  id="comentarios"
-                  name="comentarios"
-                  rows={4}
-                  value={form.comentarios}
-                  onChange={handleChange}
-                  placeholder="Pedidos especiales, preguntas sobre el contenido, etc."
-                  className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none resize-none"
-                  style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
                 />
+                <label htmlFor="acepto" className="font-body text-xs text-[#7A6E60] leading-relaxed">
+                  Acepto los términos de compra y autorizo el contacto por <strong className="text-[#12213A]">Academia OMG</strong>.
+                </label>
               </div>
 
-              <button
-                type="submit"
-                className="btn-spx btn-spx-accent self-start"
-              >
-                Comprar libro
-                <ArrowRight size={16} className="btn-arrow" />
-              </button>
-
-              <p className="font-body text-xs text-[#7A6E60]">
-                * Campos obligatorios. Nos contactaremos contigo en menos de 24 horas hábiles.
-              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  className="btn-spx btn-spx-accent"
+                >
+                  Agregar al carrito / Comprar
+                  <ArrowRight size={16} className="btn-arrow" />
+                </button>
+              </div>
             </form>
           )}
         </div>
       </section>
 
       {/* ─── CONTACT CARDS ───────────────────────────────────────── */}
-      <section className="bg-[#F5F0E8] py-20 sm:py-28 px-6 sm:px-10 lg:px-16">
+      <section className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2
               className="font-display font-extrabold text-[#12213A]"
               style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)" }}
             >
-              ¿Tienes dudas antes de comprar?
+              Contact Us
             </h2>
-            <p className="font-body text-base text-[#4A4438] mt-4">
-              Escríbenos directamente. Con gusto te orientamos.
-            </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -387,18 +424,6 @@ export default function LibroPage() {
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* CTA bar */}
-          <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/contacto" className="btn-spx btn-spx-dark">
-              Ir a Contacto
-              <ArrowRight size={16} className="btn-arrow" />
-            </Link>
-            <Link href="/" className="btn-spx btn-spx-accent">
-              Conocer CO$AYB
-              <ArrowRight size={16} className="btn-arrow" />
-            </Link>
           </div>
         </div>
       </section>

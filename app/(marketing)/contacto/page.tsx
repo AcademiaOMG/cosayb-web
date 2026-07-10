@@ -1,6 +1,7 @@
 "use client"
 
-import { Mail, MessageCircle, Clock, CheckCircle } from "lucide-react"
+import Link from "next/link"
+import { Mail, MessageCircle, Clock, CheckCircle, ArrowRight } from "lucide-react"
 
 
 
@@ -22,8 +23,8 @@ const channels = [
   {
     Icon: Clock,
     title: "Soporte técnico",
-    value: "soporte@cosayb.co",
-    href: "mailto:soporte@cosayb.co",
+    value: "soporte@academiaomg.com",
+    href: "mailto:soporte@academiaomg.com",
     detail: "Para problemas con tu cuenta o datos",
   },
 ]
@@ -32,27 +33,42 @@ export default function ContactoPage() {
   return (
     <div>
       {/* Hero */}
-      <section className="bg-[#12213A] min-h-dvh flex flex-col justify-center px-6 sm:px-10 lg:px-16">
-        <div className="max-w-7xl mx-auto">
-          <div className="max-w-2xl">
+      <section className="relative overflow-hidden min-h-dvh">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/contacto-hero.jpg"
+          alt="Contacto Academia OMG"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-[#0A1520]/60" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1520] to-transparent" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
+          <div className="max-w-2xl animate-fade-up">
             <h1
-              className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6"
-              style={{ fontSize: "clamp(3rem, 8vw, 5.5rem)" }}
+              className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
+              style={{ fontSize: "clamp(2.8rem, 7vw, 5.5rem)" }}
             >
               Estamos
               <br />
               <span className="text-[#7AAEFF]">para ayudarte.</span>
             </h1>
-            <p className="font-body text-lg text-[#8FA0BC] leading-relaxed">
+            <p className="font-body text-lg text-[#8FA0BC] leading-relaxed mb-10 max-w-xl animate-fade-up-delay-2">
               Resolvemos tus dudas sobre planes, funcionalidades o cualquier problema técnico.
               Sin chatbots. Sin formularios complicados.
             </p>
+            <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
+              <Link href="#formulario" className="btn-spx btn-spx-accent-solid">
+                Enviar mensaje
+                <ArrowRight size={16} className="btn-arrow" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Main content */}
-      <section className="bg-[#F5F0E8] py-24 sm:py-32 px-6 sm:px-10 lg:px-16">
+      <section id="formulario" className="bg-[#F5F0E8] py-24 sm:py-32 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-[1fr_1.4fr] gap-16">
             {/* Channels */}
@@ -172,9 +188,9 @@ export default function ContactoPage() {
                   />
                   <label htmlFor="privacy" className="font-body text-xs text-[#7A6E60] leading-relaxed">
                     He leído y acepto la{" "}
-                    <a href="/privacy" className="text-[#1B4FD8] hover:underline">
+                    <Link href="/privacy" className="text-[#1B4FD8] hover:underline">
                       Política de Privacidad
-                    </a>
+                    </Link>
                     . Entiendo que mis datos serán usados únicamente para atender mi consulta.
                   </label>
                 </div>
@@ -186,9 +202,6 @@ export default function ContactoPage() {
                   Enviar mensaje
                 </button>
 
-                <p className="font-body text-xs text-[#7A6E60]">
-                  * Este formulario es solo visual. Para contacto real usa los canales de atención de la izquierda.
-                </p>
               </form>
             </div>
           </div>
