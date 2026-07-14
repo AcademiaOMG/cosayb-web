@@ -20,7 +20,7 @@ const COP = new Intl.NumberFormat("es-CO", {
 })
 
 export default function DashboardPage() {
-  const { organization, can, hasFeature } = usePermissions()
+  const { organization, can, hasFeature, isLoading: permsLoading } = usePermissions()
   const { data, isLoading } = useSWR(
     "dashboard-summary",
     () => getDashboardSummary().then((r) => r.data),
@@ -38,7 +38,7 @@ export default function DashboardPage() {
         }
       />
 
-      {isLoading && (
+      {(isLoading || permsLoading) && (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4">
             <div className="animate-pulse rounded-2xl h-36" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }} />
@@ -52,7 +52,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {!isLoading && data && !data.onboardingComplete && (
+      {!isLoading && !permsLoading && data && !data.onboardingComplete && (
         <OnboardingChecklist
           checklist={data.checklist}
           canCreate={can("recipes", "create")}
@@ -61,7 +61,7 @@ export default function DashboardPage() {
         />
       )}
 
-      {!isLoading && data && data.onboardingComplete && (
+      {!isLoading && !permsLoading && data && data.onboardingComplete && (
         <>
           {/* ── Hero: costo + panorama del negocio ──────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 items-stretch">
