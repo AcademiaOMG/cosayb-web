@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { ChevronDown, Search, X } from "lucide-react"
 
 export interface Option {
@@ -17,6 +18,12 @@ interface SearchableSelectProps {
   ariaLabel?: string
 }
 
+interface DropdownRect {
+  top: number
+  left: number
+  width: number
+}
+
 export default function SearchableSelect({
   options,
   value,
@@ -28,7 +35,9 @@ export default function SearchableSelect({
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [highlightIndex, setHighlightIndex] = useState(-1)
+  const [dropdownRect, setDropdownRect] = useState<DropdownRect | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -38,10 +47,23 @@ export default function SearchableSelect({
     opt.label.toLowerCase().includes(search.toLowerCase())
   )
 
-  // Close when clicking outside
+  const computeRect = useCallback((): DropdownRect | null => {
+    if (!containerRef.current) return null
+    const rect = containerRef.current.getBoundingClientRect()
+    return {
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    }
+  }, [])
+
+  // Close when clicking outside either the trigger or the portal dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const inContainer = containerRef.current?.contains(target)
+      const inDropdown = dropdownRef.current?.contains(target)
+      if (!inContainer && !inDropdown) {
         setIsOpen(false)
         setSearch("")
         setHighlightIndex(-1)
@@ -51,14 +73,29 @@ export default function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Reset highlight when search changes (handled in onChange)
+  // Close and recompute position on scroll/resize while open
+  useEffect(() => {
+    if (!isOpen) return
+    function handleScrollOrResize() {
+      const rect = computeRect()
+      if (rect) setDropdownRect(rect)
+    }
+    window.addEventListener("scroll", handleScrollOrResize, true)
+    window.addEventListener("resize", handleScrollOrResize)
+    return () => {
+      window.removeEventListener("scroll", handleScrollOrResize, true)
+      window.removeEventListener("resize", handleScrollOrResize)
+    }
+  }, [isOpen, computeRect])
 
   const openDropdown = useCallback(() => {
+    const rect = computeRect()
+    setDropdownRect(rect)
     setIsOpen(true)
     setSearch("")
     setHighlightIndex(-1)
     setTimeout(() => inputRef.current?.focus(), 0)
-  }, [])
+  }, [computeRect])
 
   const closeDropdown = useCallback(() => {
     setIsOpen(false)
@@ -110,6 +147,122 @@ export default function SearchableSelect({
     }
   }, [highlightIndex])
 
+  const dropdownPanel = isOpen && dropdownRect ? (
+    <div
+      ref={dropdownRef}
+      id="searchable-select-listbox"
+      role="listbox"
+      style={{
+        position: "fixed",
+        top: dropdownRect.top,
+        left: dropdownRect.left,
+        width: dropdownRect.width,
+        zIndex: 9999,
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border-light)",
+        borderRadius: "8px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        padding: "4px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+      }}
+    >
+      {/* Search box */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          padding: "0 8px",
+          height: "32px",
+          borderRadius: "6px",
+          background: "var(--bg-primary)",
+          border: "1px solid var(--border-light)",
+        }}
+      >
+        <Search size={14} style={{ color: "var(--text-muted)" }} />
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder={placeholder}
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setHighlightIndex(-1) }}
+          onKeyDown={handleInputKeyDown}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            border: "none",
+            background: "transparent",
+            color: "var(--text-primary)",
+            fontSize: "12px",
+            outline: "none",
+            width: "100%",
+          }}
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setSearch("")
+            }}
+            style={{
+              border: "none",
+              background: "transparent",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              padding: 0,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <X size={12} />
+          </button>
+        )}
+      </div>
+
+      {/* Options list */}
+      <div ref={listRef} style={{ maxHeight: "240px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        {filteredOptions.length > 0 ? (
+          filteredOptions.map((opt, idx) => {
+            const isSelected = opt.value === value
+            const isHighlighted = idx === highlightIndex
+            return (
+              <div
+                key={opt.value}
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => selectOption(opt)}
+                onMouseEnter={() => setHighlightIndex(idx)}
+                style={{
+                  padding: "6px 8px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  background: isSelected ? "var(--accent-light)" : isHighlighted ? "var(--bg-secondary)" : "transparent",
+                  color: isSelected ? "var(--accent)" : "var(--text-primary)",
+                  fontWeight: isSelected ? 500 : 400,
+                  transition: "background 0.1s ease",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  lineHeight: "1.5",
+                  flexShrink: 0,
+                }}
+              >
+                {opt.label}
+              </div>
+            )
+          })
+        ) : (
+          <div style={{ padding: "8px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>
+            {emptyMessage}
+          </div>
+        )}
+      </div>
+    </div>
+  ) : null
+
   return (
     <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
       {/* Trigger */}
@@ -144,121 +297,8 @@ export default function SearchableSelect({
         <ChevronDown size={14} style={{ color: "var(--text-muted)", marginLeft: "4px", flexShrink: 0 }} />
       </div>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div
-          id="searchable-select-listbox"
-          role="listbox"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 4px)",
-            left: 0,
-            right: 0,
-            zIndex: 100,
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-light)",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            padding: "4px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-          }}
-        >
-          {/* Search box */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "0 8px",
-              height: "32px",
-              borderRadius: "6px",
-              background: "var(--bg-primary)",
-              border: "1px solid var(--border-light)",
-            }}
-          >
-            <Search size={14} style={{ color: "var(--text-muted)" }} />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder={placeholder}
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setHighlightIndex(-1) }}
-              onKeyDown={handleInputKeyDown}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "var(--text-primary)",
-                fontSize: "12px",
-                outline: "none",
-                width: "100%",
-              }}
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSearch("")
-                }}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  padding: 0,
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
-
-          {/* Options list */}
-          <div ref={listRef} style={{ maxHeight: "110px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((opt, idx) => {
-                const isSelected = opt.value === value
-                const isHighlighted = idx === highlightIndex
-                return (
-                  <div
-                    key={opt.value}
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => selectOption(opt)}
-                    onMouseEnter={() => setHighlightIndex(idx)}
-                    style={{
-                      padding: "6px 8px",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                      background: isSelected ? "var(--accent-light)" : isHighlighted ? "var(--bg-secondary)" : "transparent",
-                      color: isSelected ? "var(--accent)" : "var(--text-primary)",
-                      fontWeight: isSelected ? 500 : 400,
-                      transition: "background 0.1s ease",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      lineHeight: "1.5",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {opt.label}
-                  </div>
-                )
-              })
-            ) : (
-              <div style={{ padding: "8px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>
-                {emptyMessage}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Dropdown rendered via portal to escape overflow clipping */}
+      {typeof document !== "undefined" && createPortal(dropdownPanel, document.body)}
     </div>
   )
 }

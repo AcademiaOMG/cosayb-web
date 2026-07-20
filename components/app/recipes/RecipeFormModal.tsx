@@ -9,10 +9,9 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import type { Ingrediente as Ingredient, Recipe } from "@/types/domain"
 import type { RecipeItemPayload } from "@/lib/api"
-import { createRecipe, updateRecipe, getRecipeById, getBaseRecipes } from "@/lib/api"
+import { createRecipe, updateRecipe, getRecipeById, getBaseRecipes, fetchAPI } from "@/lib/api"
 import { Plus, Trash2, GripVertical, AlertCircle, CheckCircle2, ChefHat, Info } from "lucide-react"
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
 interface ItemDraft {
   _key: string
@@ -61,12 +60,10 @@ const TENANT_SOURCE: RecipeFormDataSource = {
   sourceKey: "tenant",
   loadCatalog: async () => {
     const [ingRes, baseRes] = await Promise.all([
-      fetch(`${API}/api/v1/ingredients`, { credentials: "include" }).then((r) =>
-        r.ok ? r.json() : { data: [] }
-      ),
+      fetchAPI("/api/v1/ingredients").catch(() => ({ data: [] })),
       getBaseRecipes().catch(() => ({ data: [] })),
     ])
-    return { ingredients: ingRes.data ?? [], baseRecipes: baseRes.data ?? [] }
+    return { ingredients: (ingRes as { data: Ingredient[] }).data ?? [], baseRecipes: baseRes.data ?? [] }
   },
   loadRecipe: (id) => getRecipeById(id).then((r) => r.data),
   create: (payload) => createRecipe(payload),
