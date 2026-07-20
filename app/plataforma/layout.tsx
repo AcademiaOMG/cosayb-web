@@ -104,13 +104,7 @@ export default function PlataformaLayout({ children }: { children: React.ReactNo
     }
   }, [isLoading, platformRoles, pathname, router])
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
-        <p className="animate-pulse text-sm" style={{ color: "var(--text-muted)" }}>Cargando consola…</p>
-      </div>
-    )
-  }
+  if (isLoading) return null
 
   if (platformRoles.length === 0) {
     return (
