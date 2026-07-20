@@ -343,7 +343,7 @@ export default function RecipeFormModal({
         </div>
       }
     >
-      {(loadingRecipe || catalogLoading) ? (
+      {loadingRecipe ? (
         <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
           <LoadingSpinner size={32} />
         </div>
