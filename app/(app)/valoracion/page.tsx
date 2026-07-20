@@ -181,7 +181,7 @@ function ValuationViewModal({
             <span style={{ color: "var(--text-secondary)" }}>
               Basada en la receta{" "}
               <strong style={{ color: "var(--text-primary)" }}>
-                {linkedRecipe?.name ?? "Cargando…"}
+                {linkedRecipe?.name ?? "—"}
               </strong>
             </span>
           ) : valuation.refType === "recipe" ? (

@@ -132,8 +132,9 @@ export default function RecipeDetailModal({
       }
     >
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
-          <LoadingSpinner size={32} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="animate-pulse rounded-xl h-28" style={{ background: "var(--bg-primary)" }} />
+          <div className="animate-pulse rounded-xl h-28" style={{ background: "var(--bg-primary)" }} />
         </div>
       ) : error ? (
         <div
@@ -279,11 +280,7 @@ export default function RecipeDetailModal({
                 </h3>
               </div>
 
-              {costLoading ? (
-                <div style={{ display: "flex", justifyContent: "center", padding: "20px 0" }}>
-                  <LoadingSpinner size={20} />
-                </div>
-              ) : cost ? (
+              {costLoading ? null : cost ? (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                   <CostCard
                     label="Costo materia prima"

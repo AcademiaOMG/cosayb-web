@@ -183,13 +183,7 @@ export default function OnboardingPage() {
     }
   }
 
-  if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
-        <div className="animate-pulse text-lg" style={{ color: "var(--text-muted)" }}>Cargando...</div>
-      </div>
-    )
-  }
+  if (checking) return null
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ background: "var(--bg-primary)" }}>

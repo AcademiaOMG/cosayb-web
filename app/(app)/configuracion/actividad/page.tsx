@@ -52,7 +52,13 @@ export default function ActividadPage() {
   }
 
   if (isLoading) {
-    return <p className="text-sm" style={{ color: "var(--text-muted)" }}>Cargando actividad…</p>
+    return (
+      <div className="flex flex-col gap-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-pulse rounded-xl h-12" style={{ background: "var(--bg-surface)" }} />
+        ))}
+      </div>
+    )
   }
 
   if (!entries?.length) {

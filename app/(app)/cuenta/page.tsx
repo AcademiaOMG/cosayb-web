@@ -447,7 +447,7 @@ function SessionsCard() {
       </div>
 
       {!sessions ? (
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Cargando…</p>
+        <div className="animate-pulse rounded-xl h-14" style={{ background: "var(--bg-primary)" }} />
       ) : (
         <div className="flex flex-col gap-2">
           {sorted.map((s) => {
