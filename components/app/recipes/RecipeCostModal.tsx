@@ -4,7 +4,6 @@ import { useState } from "react"
 import type { RecipeCostResult } from "@/types/domain"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
-import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import { AlertTriangle, TrendingUp, TrendingDown, Minus } from "lucide-react"
 
 interface RecipeCostModalProps {
@@ -53,19 +52,9 @@ export default function RecipeCostModal({
     >
       {/* ── Loading ─────────────────────────────────────────────── */}
       {loading && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "12px",
-            padding: "40px 0",
-          }}
-        >
-          <LoadingSpinner size={32} />
-          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            Calculando el costo…
-          </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="animate-pulse rounded-xl h-16" style={{ background: "var(--bg-primary)" }} />
+          <div className="animate-pulse rounded-xl h-16" style={{ background: "var(--bg-primary)" }} />
         </div>
       )}
 

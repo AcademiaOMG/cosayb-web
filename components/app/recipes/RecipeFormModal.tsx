@@ -559,7 +559,6 @@ export default function RecipeFormModal({
                   Ingredientes y sub-recetas ({items.length})
                 </h3>
               </div>
-              {catalogLoading && <LoadingSpinner size={14} />}
             </div>
 
             <div
