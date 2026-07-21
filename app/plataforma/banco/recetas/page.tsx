@@ -26,7 +26,7 @@ const BANCO_SOURCE: RecipeFormDataSource = {
   sourceKey: "banco",
   loadCatalog: async () => {
     const [ing, rec] = await Promise.all([
-      bancoListIngredients(undefined, 1, 300).then((r) => r.data),
+      bancoListIngredients(undefined, 1, 1000).then((r) => r.data),
       bancoListRecipes(undefined, 1, "base", 300).then((r) => r.data),
     ])
     return { ingredients: ing, baseRecipes: rec }
