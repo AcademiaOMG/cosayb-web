@@ -80,7 +80,12 @@ export default function OrganizacionDetallePage({
   }
 
   if (!org) {
-    return <p className="text-sm console-muted animate-pulse">Cargando organización…</p>
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-8 w-56 animate-pulse rounded-lg" style={{ background: "var(--bg-surface)" }} />
+        <div className="h-40 animate-pulse rounded-2xl" style={{ background: "var(--bg-surface)" }} />
+      </div>
+    )
   }
 
   return (
