@@ -134,6 +134,15 @@ html { scroll-behavior: smooth; }
   animation: fade-in 0.8s ease-out 0.1s forwards;
 }
 
+/* Header nav dropdown panel — quick pop-in, no delay */
+@keyframes nav-panel-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-nav-panel {
+  animation: nav-panel-in 0.16s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 /* Card hover elevation */
 .card-hover {
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
