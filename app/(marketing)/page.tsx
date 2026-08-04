@@ -60,7 +60,7 @@ const servicios = [
     icon: FileText,
     title: "Plantillas Profesionales",
     description: "Herramientas listas para usar en hojas de cálculo y documentos que te ayudan a organizar y gestionar tu operación gastronómica.",
-    href: "#",
+    href: "/contacto",
     featured: false,
   },
   {
@@ -120,17 +120,6 @@ const modules: {
     name: "Punto de Equilibrio",
     description: "Descubre cuántos platos tienes que vender para cubrir costos fijos y no perder dinero.",
   },
-]
-
-/* ─── SOLUCION COMPLETA DATA ───────────────────────────────── */
-
-const solucionFeatures = [
-  "Precios de mercado colombiano actualizados",
-  "Cálculo automático del costo real por ingrediente",
-  "Recetas con sub-recetas anidadas y mermas",
-  "Menú con análisis de rentabilidad por plato",
-  "Exportación de reportes a PDF",
-  "Soporte prioritario y acompañamiento",
 ]
 
 /* ─── APP MOCKUP DATA ──────────────────────────────────────── */
@@ -491,8 +480,8 @@ export default function LandingPage() {
                 Cursos
                 <ArrowRight size={18} className="btn-arrow" />
               </Link>
-              <Link href="/libro" className="btn-spx btn-spx-light">
-                Libro de Costos
+              <Link href="/login" className="btn-spx btn-spx-light">
+                Empezar gratis
                 <ArrowRight size={16} className="btn-arrow" />
               </Link>
             </div>
@@ -564,74 +553,12 @@ export default function LandingPage() {
               </Link>
             ))}
           </div>
-
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/capacitacion" className="btn-spx btn-spx-dark">
-              Cursos
-              <ArrowRight size={16} className="btn-arrow" />
-            </Link>
-            <Link href="/libro" className="btn-spx btn-spx-accent">
-              Libro de Costos
-              <ArrowRight size={16} className="btn-arrow" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ SOLUCION COMPLETA ═══════════════ */}
-      <section className="bg-[#12213A] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <span
-                className="inline-block text-xs font-body font-semibold tracking-[0.15em] uppercase px-4 py-2 rounded-full mb-6 text-[#7AAEFF]"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
-              >
-                Solución integral
-              </span>
-              <h2
-                className="font-display font-extrabold text-[#F5F0E8] leading-[1.05] mb-6"
-                style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}
-              >
-                La Solución Completa
-                <br />
-                para Costos de
-                <br />
-                <span className="text-[#7AAEFF]">Alimentos y Bebidas</span>
-              </h2>
-              <p className="font-body text-base text-[#8FA0BC] leading-relaxed mb-8">
-                En Academia OMG ofrecemos una solución integral que combina capacitación especializada,
-                herramientas tecnológicas y acompañamiento personalizado. Nuestro objetivo es que cada
-                restaurante, chef y emprendedor gastronómico tome decisiones de negocio con números reales,
-                optimice sus costos y aumente la rentabilidad de su operación.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <div
-                className="rounded-2xl p-6"
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <h3 className="font-body font-bold text-[#F5F0E8] text-base mb-4">Incluye:</h3>
-                <ul className="flex flex-col gap-3">
-                  {solucionFeatures.map((f) => (
-                    <li key={f} className="flex items-start gap-3">
-                      <CheckCircle size={18} className="text-[#7AAEFF] shrink-0 mt-0.5" />
-                      <span className="font-body text-sm text-[#C8D5E8]">{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
       {/* ═══════════════ MODULOS ═══════════════ */}
-      <section id="modulos" className="bg-[#EDE7DB] py-14 sm:py-20 px-6 sm:px-10 lg:px-16">
+      <div id="como-funciona" />
+      <section id="modulos" className="bg-[#EDE7DB] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-14">
             <div>
@@ -708,7 +635,7 @@ export default function LandingPage() {
       
 
       {/* ═══════════════ APP MOCKUP ═══════════════ */}
-      <section id="demo" className="bg-[#12213A] py-14 sm:py-20 px-6 sm:px-10 lg:px-16">
+      <section id="demo" className="bg-[#12213A] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
       <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 xl:gap-24 items-center">
         {/* Left column */}
         <div className="order-2 lg:order-1">
@@ -840,39 +767,6 @@ export default function LandingPage() {
       </div>
     </section>
 
-      {/* ═══════════════ CAPACITACION PREVIEW ═══════════════ */}
-      <section className="relative overflow-hidden py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/imagen-hero-capacitacion.webp"
-          alt="Capacitación especializada"
-          className="absolute inset-0 w-full h-full object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-[#0A1520]/70" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0A1520] to-transparent" />
-
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <h2
-            className="font-display font-extrabold text-[#F5F0E8] leading-[1.05] mb-6"
-            style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}
-          >
-            Capacitación
-            <br />
-            <span className="text-[#7AAEFF]">Especializada</span>
-          </h2>
-
-          <p className="font-body text-lg text-[#8FA0BC] leading-relaxed mb-10 max-w-2xl mx-auto">
-            Aprende a controlar, analizar y optimizar los costos para una gestión gastronómica rentable.
-            Programas prácticos diseñados por profesionales con más de una década de experiencia.
-          </p>
-
-          <Link href="/capacitacion" className="btn-spx btn-spx-light">
-            Ver más
-            <ArrowRight size={16} className="btn-arrow" />
-          </Link>
-        </div>
-      </section>
-
       {/* ═══════════════ VOCES COMUNIDAD ═══════════════ */}
       <section className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
         <div className="max-w-7xl mx-auto">
@@ -918,20 +812,6 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="mt-10 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <svg key={i} width="18" height="18" viewBox="0 0 24 24" fill="#F59E0B" stroke="none">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                ))}
-              </div>
-              <span className="font-body font-bold text-sm text-[#12213A]">4.9/5</span>
-            </div>
-            <p className="font-body text-xs text-[#7A6E60] mt-1">Basado en 600+ usuarios activos</p>
           </div>
         </div>
       </section>

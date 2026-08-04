@@ -12,20 +12,25 @@ const footerSections = [
     ],
   },
   {
-    title: "Empresa",
+    title: "Servicios",
     links: [
-      { label: "Sobre Nosotros", href: "/nosotros" },
+      { label: "Capacitación", href: "/capacitacion" },
+      { label: "Libro de costos", href: "/libro" },
       { label: "Consultoría", href: "/consultoria" },
-      { label: "Contacto", href: "/contacto" },
     ],
   },
   {
     title: "Recursos",
     links: [
-      { label: "FAQ", href: "/#faq" },
       { label: "Blog", href: "/blog" },
-      { label: "Libro de costos", href: "/libro" },
-      { label: "Capacitación", href: "/capacitacion" },
+      { label: "FAQ", href: "/#faq" },
+    ],
+  },
+  {
+    title: "Empresa",
+    links: [
+      { label: "Sobre nosotros", href: "/nosotros" },
+      { label: "Contacto", href: "/contacto" },
     ],
   },
   {
@@ -51,7 +56,7 @@ export default function Footer() {
       {/* Top section */}
       <div className="max-w-7xl mx-auto pt-12 sm:pt-16 pb-10">
         {/* Brand + Links */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.5fr_repeat(4,1fr)] gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(5,1fr)] gap-8 lg:gap-10">
           {/* Brand column */}
           <div className="sm:col-span-2 lg:col-span-1">
             <Link
