@@ -148,7 +148,7 @@ const testimonios = [
     name: "Roberto Cortés",
     role: "Propietario",
     company: "Restaurante La Brasserie",
-    quote: "Transformaron nuestra cocina rentable. Hoy sé exactamente cuánto gano en cada plato. Las capacitaciones de Academia OMG cambiaron mi perspectiva del negocio.",
+    quote: "Transformaron la rentabilidad de nuestro negocio. Hoy sé exactamente cuánto gano en cada plato. Las capacitaciones de Academia OMG cambiaron mi perspectiva del negocio.",
     initials: "RC",
   },
   {
@@ -366,7 +366,7 @@ export default function LandingPage() {
         "@id": "https://cosayb.co/#website",
         url: "https://cosayb.co",
         name: "CO$AYB",
-        description: "Software de Costos de Alimentos y Bebidas para cocinas profesionales colombianas",
+        description: "Software de Costos de Alimentos y Bebidas para negocios gastronómicos colombianos",
         publisher: {
           "@type": "Organization",
           name: "Academia OMG",
@@ -381,7 +381,7 @@ export default function LandingPage() {
             name: "¿Qué es CO$AYB?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "CO$AYB es un software SaaS para restaurantes y cocinas profesionales en Colombia que calcula el costo real de cada receta, aplica costos fijos y te indica el precio exacto de venta para ser rentable.",
+              text: "CO$AYB es un software SaaS para restaurantes y negocios gastronómicos en Colombia que calcula el costo real de cada receta, aplica costos fijos y te indica el precio exacto de venta para ser rentable.",
             },
           },
           {
@@ -472,7 +472,7 @@ export default function LandingPage() {
                 Aprende a controlar, analizar y optimizar
               </strong>{" "}
               los costos de tu negocio gastronómico. Herramientas prácticas, capacitación especializada
-              y una plataforma diseñada para aumentar la rentabilidad de tu cocina.
+              y una plataforma diseñada para aumentar la rentabilidad de tu negocio gastronómico.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 mb-16 animate-fade-up-delay-3">
@@ -480,7 +480,7 @@ export default function LandingPage() {
                 Cursos
                 <ArrowRight size={18} className="btn-arrow" />
               </Link>
-              <Link href="/login" className="btn-spx btn-spx-light">
+              <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-light">
                 Empezar gratis
                 <ArrowRight size={16} className="btn-arrow" />
               </Link>
@@ -569,7 +569,7 @@ export default function LandingPage() {
                 className="font-display font-extrabold text-[#12213A] mb-3"
                 style={{ fontSize: "clamp(2.2rem, 5.5vw, 4rem)" }}
               >
-                Todo lo que necesita tu cocina
+                Todo lo que necesita tu negocio
                 <br />
                 para ser rentable
               </h2>
@@ -670,7 +670,7 @@ export default function LandingPage() {
             ))}
           </ul>
 
-          <Link href="/login" className="btn-spx btn-spx-light">
+          <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-light">
             Probar ahora gratis
             <ArrowRight size={16} className="btn-arrow" />
           </Link>
@@ -822,7 +822,7 @@ export default function LandingPage() {
           <div className="text-center mb-8 sm:mb-12">
             <span className="inline-block text-xs font-body font-semibold tracking-[0.15em] uppercase px-4 py-2 rounded-full mb-5 text-[#7AAEFF]"
               style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}>
-              Precios
+              Inversión
             </span>
             <h2
               className="font-display font-extrabold text-[#F5F0E8] mb-4"
@@ -917,6 +917,8 @@ export default function LandingPage() {
 
                   <Link
                     href="/login"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={`w-full ${
                       highlighted ? "btn-spx btn-spx-accent" : "btn-spx btn-spx-light"
                     }`}

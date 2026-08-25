@@ -6,7 +6,7 @@ import { Search, ArrowRight } from "lucide-react"
 const articles = [
   {
     id: 1,
-    title: "El Ingrediente Oculto que Define la Rentabilidad en tu Cocina: ¡Los Costos!",
+    title: "El Ingrediente Oculto que Define la Rentabilidad en tu Negocio Gastronómico: ¡Los Costos!",
     excerpt: "La gestión adecuada de los costos de alimentos es uno de los pilares fundamentales para el éxito de cualquier negocio gastronómico. Muchos chefs y propietarios se enfocan en la calidad del plato y la presentación, pero olvidan que sin un control preciso de costos, incluso los restaurantes más populares pueden estar perdiendo dinero.",
     tags: ["NEWS", "USEFUL"],
     date: "Agosto 18, 2024",
@@ -15,7 +15,7 @@ const articles = [
   },
   {
     id: 2,
-    title: "Costos Claros, Precios Justos: La Clave para Cocinas Rentables y Comensales Felices",
+    title: "Costos Claros, Precios Justos: La Clave para Negocios Gastronómicos Rentables y Comensales Felices",
     excerpt: "Conocer a profundidad los costos de cada preparación es uno de los factores más determinantes para el éxito financiero de un restaurante. Cuando un chef o propietario domina sus números, puede fijar precios justos que reflejen el valor real del plato sin perder competitividad.",
     tags: ["NEWS", "USEFUL"],
     date: "Agosto 18, 2024",
@@ -24,8 +24,8 @@ const articles = [
   },
   {
     id: 3,
-    title: "Comprar con Inteligencia: Por Qué Conocer los Costos es la Clave del Éxito en tu Cocina Profesional",
-    excerpt: "En cualquier operación gastronómica, desde un pequeño café hasta una gran cocina industrial, el proceso de compra de ingredientes representa una de las inversiones más significativas. Saber cuánto cuesta realmente cada ingrediente no solo optimiza el presupuesto, sino que mejora la calidad del producto final.",
+    title: "Comprar con Inteligencia: Por Qué Conocer los Costos es la Clave del Éxito en tu Negocio Gastronómico",
+    excerpt: "En cualquier operación gastronómica, desde un pequeño café hasta una gran cadena de restaurantes, el proceso de compra de ingredientes representa una de las inversiones más significativas. Saber cuánto cuesta realmente cada ingrediente no solo optimiza el presupuesto, sino que mejora la calidad del producto final.",
     tags: ["NEWS", "USEFUL"],
     date: "Agosto 18, 2024",
     image: "/images/cerca-de-chef-cocinando-en-la-cocina-del-restaurante-scaled.webp",
@@ -77,7 +77,7 @@ export default function BlogPage() {
             </h1>
             <p className="font-body text-lg text-[#8FA0BC] leading-relaxed max-w-xl animate-fade-up-delay-2">
               Artículos y recursos prácticos sobre costos, rentabilidad y gestión gastronómica
-              para restaurantes y cocinas profesionales.
+              para restaurantes y negocios gastronómicos.
             </p>
           </div>
         </div>
@@ -198,7 +198,7 @@ export default function BlogPage() {
                   />
                 </svg>
                 <blockquote className="font-display font-extrabold text-white text-xl leading-tight mb-4">
-                  &ldquo;Sin números claros, no hay cocina rentable&rdquo;
+                  &ldquo;Sin números claros, no hay negocio rentable&rdquo;
                 </blockquote>
                 <p className="font-body text-sm text-[#8FA0BC]">Academia OMG</p>
               </div>

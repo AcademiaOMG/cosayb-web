@@ -5,10 +5,9 @@ const footerSections = [
   {
     title: "Producto",
     links: [
-      { label: "Características", href: "/#modulos" },
-      { label: "Precios", href: "/#precios" },
       { label: "Cómo funciona", href: "/#como-funciona" },
       { label: "Demo", href: "/#demo" },
+      { label: "Inversión", href: "/#precios" },
     ],
   },
   {
@@ -23,7 +22,7 @@ const footerSections = [
     title: "Recursos",
     links: [
       { label: "Blog", href: "/blog" },
-      { label: "FAQ", href: "/#faq" },
+      { label: "Preguntas Frecuentes", href: "/#faq" },
     ],
   },
   {
@@ -74,11 +73,11 @@ export default function Footer() {
               </span>
             </Link>
             <p className="font-body text-sm text-[#8FA0BC] leading-relaxed mb-6 max-w-[280px]">
-              Software de costos de alimentos y bebidas para cocinas profesionales colombianas.
+              Software de costos de alimentos y bebidas para negocios gastronómicos colombianos.
             </p>
 
             {/* CTA */}
-            <Link href="/login" className="btn-spx btn-spx-light">
+            <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-light">
               Probar gratis
               <ArrowRight size={14} className="btn-arrow" />
             </Link>
