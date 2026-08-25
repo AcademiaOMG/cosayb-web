@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+const TAB_LOCK_CHANNEL = "cosayb-tab-lock"
 
 /**
- * Guard de sesión, con dos responsabilidades independientes:
+ * Guard de sesión, con tres responsabilidades independientes:
  *
  * 1. Bypass de autenticación por botón "atrás": tras cerrar sesión, el
  *    navegador puede restaurar la página autenticada desde el bfcache
@@ -14,12 +15,21 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
  *    recupera el foco, y expulsa a /login si ya no hay sesión.
  *
  * 2. Concurrencia de sesiones: si el usuario inicia sesión en otro lugar
- *    (otro navegador/dispositivo), el backend invalida esta sesión y
- *    avisa casi al instante vía Server-Sent Events. Esta pestaña bloquea
- *    la UI con un aviso explícito en vez de expulsar en silencio.
+ *    (otro navegador/dispositivo, otro login), el backend invalida esta
+ *    sesión y avisa casi al instante vía Server-Sent Events. Esta pestaña
+ *    bloquea la UI con un aviso explícito en vez de expulsar en silencio.
+ *
+ * 3. Bloqueo de pestañas duplicadas del MISMO login: dos pestañas del
+ *    mismo navegador comparten la misma cookie de sesión, así que el
+ *    backend no las distingue (no hay "otra sesión" que invalidar). Esto
+ *    se resuelve 100% en el cliente vía BroadcastChannel: cada pestaña se
+ *    anuncia al montar y al recuperar el foco; la que queda en segundo
+ *    plano se bloquea con un botón para retomarla ahí mismo.
  */
 export default function SessionGuard() {
   const [revokedElsewhere, setRevokedElsewhere] = useState(false)
+  const [otherTabActive, setOtherTabActive] = useState(false)
+  const tabLockRef = useRef<{ channel: BroadcastChannel; tabId: string } | null>(null)
 
   // ── 1. Bypass por bfcache (comportamiento existente, sin cambios) ──────
   useEffect(() => {
@@ -99,6 +109,46 @@ export default function SessionGuard() {
     }
   }, [])
 
+  // ── 3. Bloqueo de pestañas duplicadas del mismo login ───────────────────
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return // navegador muy viejo: sin bloqueo de pestañas
+
+    const tabId = Math.random().toString(36).slice(2)
+    const channel = new BroadcastChannel(TAB_LOCK_CHANNEL)
+    tabLockRef.current = { channel, tabId }
+
+    function claim() {
+      setOtherTabActive(false)
+      channel.postMessage({ tabId })
+    }
+
+    channel.onmessage = (e) => {
+      if (e.data?.tabId === tabId) return
+      // Otra pestaña se anunció como activa: esta pasa a segundo plano.
+      setOtherTabActive(true)
+    }
+
+    claim() // al montar, esta pestaña se anuncia como la activa
+
+    function onVisible() {
+      if (document.visibilityState === "visible") claim()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible)
+      channel.close()
+      tabLockRef.current = null
+    }
+  }, [])
+
+  function reclaimTab() {
+    const lock = tabLockRef.current
+    if (!lock) return
+    lock.channel.postMessage({ tabId: lock.tabId })
+    setOtherTabActive(false)
+  }
+
   if (revokedElsewhere) {
     return (
       <div
@@ -120,6 +170,30 @@ export default function SessionGuard() {
             className="btn-spx btn-spx-accent"
           >
             Ir a iniciar sesión
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (otherTabActive) {
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+        style={{ background: "rgba(10,21,32,0.92)" }}
+      >
+        <div
+          className="max-w-sm w-full rounded-2xl p-8 text-center"
+          style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
+        >
+          <h2 className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            CO$AYB está abierto en otra pestaña
+          </h2>
+          <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+            Para evitar conflictos, solo una pestaña puede estar activa a la vez.
+          </p>
+          <button onClick={reclaimTab} className="btn-spx btn-spx-accent">
+            Usar la app en esta pestaña
           </button>
         </div>
       </div>
