@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowRight, BookOpen, Package, ChefHat, Scale, BarChart3, CheckCircle } from "lucide-react"
+import { ArrowRight, BookOpen, Package, ChefHat, Scale, BarChart3, CheckCircle, CreditCard, Loader2 } from "lucide-react"
+import Modal from "@/components/ui/Modal"
 
 const tracks = [
   {
@@ -58,6 +59,19 @@ const programaOptions = [
   "Diplomado en Gestión de Costos A&B",
 ]
 
+const inversionPorPrograma: Record<string, number> = {
+  "Introducción": 150000,
+  "Gestión de Almacén": 150000,
+  "La Receta": 150000,
+  "Factor de Rendimiento": 150000,
+  "Gestión del Costo": 150000,
+  "Diplomado en Gestión de Costos A&B": 700000,
+}
+
+function formatCOP(value: number) {
+  return `$${value.toLocaleString("es-CO")} COP`
+}
+
 export default function CapacitacionPage() {
   const [form, setForm] = useState({
     nombre: "",
@@ -68,6 +82,8 @@ export default function CapacitacionPage() {
     mensaje: "",
   })
   const [sent, setSent] = useState(false)
+  const [paymentOpen, setPaymentOpen] = useState(false)
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success">("idle")
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -84,9 +100,33 @@ export default function CapacitacionPage() {
     }))
   }
 
+  // Selecciona una única cápsula/programa (reemplaza cualquier selección previa)
+  // y lleva al usuario directo al formulario de inscripción ya preseleccionado.
+  function handleSelectPrograma(programa: string) {
+    setForm((prev) => ({ ...prev, programas: [programa] }))
+    document.getElementById("formulario")?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSent(true)
+  }
+
+  const totalInversion = form.programas.reduce(
+    (sum, programa) => sum + (inversionPorPrograma[programa] ?? 0),
+    0
+  )
+
+  // Pago simulado: no procesa ningún cobro real, solo demuestra el flujo.
+  function handleFakePayment(e: React.FormEvent) {
+    e.preventDefault()
+    setPaymentStatus("processing")
+    setTimeout(() => setPaymentStatus("success"), 1200)
+  }
+
+  function closePaymentModal() {
+    setPaymentOpen(false)
+    setPaymentStatus("idle")
   }
 
   return (
@@ -197,7 +237,7 @@ export default function CapacitacionPage() {
               >
                 Formación práctica
                 <br />
-                para tu cocina
+                para tu negocio
               </h2>
               <p className="font-body text-lg text-[#7A6E60]">
                 Cinco programas diseñados para dominar los costos gastronómicos.
@@ -212,7 +252,16 @@ export default function CapacitacionPage() {
               {programas.slice(0, 3).map(({ icon: Icon, name, description, price }) => (
                 <div
                   key={name}
-                  className="card-hover bg-[#FDFAF6] border border-[#DDD6C8] hover:border-[#1B4FD8]/40 rounded-2xl p-7 flex flex-col gap-5"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleSelectPrograma(name)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      handleSelectPrograma(name)
+                    }
+                  }}
+                  className="card-hover cursor-pointer bg-[#FDFAF6] border border-[#DDD6C8] hover:border-[#1B4FD8]/40 rounded-2xl p-7 flex flex-col gap-5"
                 >
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#DEEAFF]">
                     <Icon size={22} className="text-[#1B4FD8]" />
@@ -221,9 +270,12 @@ export default function CapacitacionPage() {
                     <h3 className="font-body font-bold text-base text-[#12213A] mb-2">{name}</h3>
                     <p className="font-body text-sm leading-relaxed text-[#4A4438]">{description}</p>
                   </div>
-                  <span className="inline-block self-start text-sm font-bold px-4 py-2 rounded-xl bg-[#12213A] text-[#F5F0E8]">
-                    {price}
-                  </span>
+                  <div className="flex items-center justify-between gap-3 w-full">
+                    <span className="inline-block text-sm font-bold px-4 py-2 rounded-xl bg-[#12213A] text-[#F5F0E8]">
+                      {price}
+                    </span>
+                    <span className="font-body text-xs font-semibold text-[#1B4FD8]">Inscribirme →</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -232,7 +284,16 @@ export default function CapacitacionPage() {
               {programas.slice(3).map(({ icon: Icon, name, description, price }) => (
                 <div
                   key={name}
-                  className="card-hover bg-[#FDFAF6] border border-[#DDD6C8] hover:border-[#1B4FD8]/40 rounded-2xl p-7 flex flex-col gap-5 w-full sm:w-[calc(50%-0.625rem)] lg:w-[calc(33.333%-0.667rem)]"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleSelectPrograma(name)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      handleSelectPrograma(name)
+                    }
+                  }}
+                  className="card-hover cursor-pointer bg-[#FDFAF6] border border-[#DDD6C8] hover:border-[#1B4FD8]/40 rounded-2xl p-7 flex flex-col gap-5 w-full sm:w-[calc(50%-0.625rem)] lg:w-[calc(33.333%-0.667rem)]"
                 >
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[#DEEAFF]">
                     <Icon size={22} className="text-[#1B4FD8]" />
@@ -241,9 +302,12 @@ export default function CapacitacionPage() {
                     <h3 className="font-body font-bold text-base text-[#12213A] mb-2">{name}</h3>
                     <p className="font-body text-sm leading-relaxed text-[#4A4438]">{description}</p>
                   </div>
-                  <span className="inline-block self-start text-sm font-bold px-4 py-2 rounded-xl bg-[#12213A] text-[#F5F0E8]">
-                    {price}
-                  </span>
+                  <div className="flex items-center justify-between gap-3 w-full">
+                    <span className="inline-block text-sm font-bold px-4 py-2 rounded-xl bg-[#12213A] text-[#F5F0E8]">
+                      {price}
+                    </span>
+                    <span className="font-body text-xs font-semibold text-[#1B4FD8]">Inscribirme →</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -291,10 +355,14 @@ export default function CapacitacionPage() {
             $700.000 COP
           </div>
 
-          <a href="#formulario" className="btn-spx btn-spx-light">
+          <button
+            type="button"
+            onClick={() => handleSelectPrograma("Diplomado en Gestión de Costos A&B")}
+            className="btn-spx btn-spx-light"
+          >
             Quiero inscribirme
             <ArrowRight size={16} className="btn-arrow" />
-          </a>
+          </button>
         </div>
       </section>
 
@@ -341,9 +409,19 @@ export default function CapacitacionPage() {
                   <h3 className="font-display font-bold text-2xl text-[#12213A] mb-3">
                     ¡Solicitud recibida!
                   </h3>
-                  <p className="font-body text-sm text-[#4A4438]">
+                  <p className="font-body text-sm text-[#4A4438] mb-6">
                     Nos comunicaremos contigo en las próximas 24 horas hábiles con toda la información.
                   </p>
+                  {totalInversion > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentOpen(true)}
+                      className="btn-spx btn-spx-accent"
+                    >
+                      <CreditCard size={16} />
+                      Pagar ahora
+                    </button>
+                  )}
                 </div>
               ) : (
                 <form
@@ -489,6 +567,94 @@ export default function CapacitacionPage() {
           </div>
         </div>
       </section>
+
+      {/* ─── PAGO SIMULADO ────────────────────────────────────────── */}
+      <Modal open={paymentOpen} onClose={closePaymentModal} title="Pago simulado">
+        {paymentStatus === "success" ? (
+          <div className="text-center py-4">
+            <CheckCircle size={44} className="text-[#1B4FD8] mx-auto mb-4" />
+            <h3 className="font-display font-bold text-xl text-[#12213A] mb-2">
+              ¡Pago simulado exitoso!
+            </h3>
+            <p className="font-body text-sm text-[#4A4438] mb-6">
+              Esto es una demostración: no se realizó ningún cobro real. En producción aquí se conectaría una pasarela de pago.
+            </p>
+            <button type="button" onClick={closePaymentModal} className="btn-spx btn-spx-accent">
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleFakePayment} className="flex flex-col gap-4">
+            <p className="font-body text-xs text-[#7A6E60] leading-relaxed">
+              Pago de demostración — no se procesa ningún cobro real. Los campos no se validan contra ninguna pasarela.
+            </p>
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[#EDE7DB]">
+              <span className="font-body text-sm text-[#4A4438]">
+                {form.programas.join(", ") || "Programa seleccionado"}
+              </span>
+              <span className="font-mono font-bold text-[#12213A]">{formatCOP(totalInversion)}</span>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                Número de tarjeta
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="4242 4242 4242 4242"
+                maxLength={19}
+                className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                  Vencimiento
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="MM/AA"
+                  maxLength={5}
+                  className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                  style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                  CVC
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="123"
+                  maxLength={4}
+                  className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                  style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={paymentStatus === "processing"}
+              className="btn-spx btn-spx-accent self-stretch justify-center disabled:opacity-60"
+            >
+              {paymentStatus === "processing" ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Procesando…
+                </>
+              ) : (
+                <>Pagar {formatCOP(totalInversion)}</>
+              )}
+            </button>
+          </form>
+        )}
+      </Modal>
 
     </div>
   )

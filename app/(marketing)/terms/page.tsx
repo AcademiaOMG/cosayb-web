@@ -23,7 +23,7 @@ const sections = [
   },
   {
     title: "Planes y pagos",
-    body: "CO$AYB ofrece un período de prueba gratuita de 14 días. Después, el uso continuo del servicio requiere un plan de pago. Los precios y características de cada plan están descritos en la página de precios. Los pagos son mensuales y se procesan de forma automática.",
+    body: "CO$AYB ofrece un período de prueba gratuita de 14 días. Después, el uso continuo del servicio requiere un plan de pago. El valor y las características de cada plan están descritos en la sección de inversión de nuestra página. Los pagos son mensuales y se procesan de forma automática.",
   },
   {
     title: "Política de cancelación",

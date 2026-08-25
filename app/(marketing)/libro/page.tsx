@@ -194,7 +194,7 @@ export default function LibroPage() {
                     Más de 200 páginas
                   </strong>{" "}
                   de contenido práctico diseñado exclusivamente para restaurantes y
-                  cocinas profesionales en Colombia.
+                  negocios gastronómicos profesionales en Colombia.
                 </p>
               </div>
             </div>

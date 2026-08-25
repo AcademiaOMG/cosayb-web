@@ -74,7 +74,7 @@ export default function NotFound() {
             style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}
           >
             Esta página se{" "}
-            <span className="text-[#7AAEFF]">perdió en la cocina</span>
+            <span className="text-[#7AAEFF]">quemó en el horno</span>
           </h1>
 
           <p className="font-body text-lg text-[#8FA0BC] max-w-lg mx-auto mb-12 leading-relaxed">

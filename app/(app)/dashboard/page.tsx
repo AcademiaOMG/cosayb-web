@@ -322,7 +322,7 @@ function OnboardingChecklist({
     {
       done: checklist.hasIngredients,
       title: "Agrega tu primer ingrediente",
-      description: "Registra los insumos de tu cocina con su costo, o importa del banco público.",
+      description: "Registra los insumos de tu negocio con su costo, o importa del banco público.",
       href: "/inventario",
       cta: "Ir a Inventario",
       resource: "ingredients" as const,

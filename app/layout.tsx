@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     template: "%s | Academia OMG",
   },
   description:
-    "Calcula el costo real de cada receta, aplica tus costos fijos y conoce el precio exacto de venta para ser rentable. Para restaurantes y cocinas profesionales en Colombia.",
+    "Calcula el costo real de cada receta, aplica tus costos fijos y conoce el precio exacto de venta para ser rentable. Para restaurantes y negocios gastronómicos en Colombia.",
   keywords: [
     "software costos restaurante colombia",
     "costeo de recetas",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     "valoración A&B",
     "ficha técnica recetas",
     "precio de venta platos",
-    "gestión cocina profesional",
+    "gestión de negocios gastronómicos",
     "inventario ingredientes",
     "factor de rendimiento mermas",
     "academia costos gastronomia",

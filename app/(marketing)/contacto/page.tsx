@@ -36,8 +36,8 @@ export default function ContactoPage() {
       <section className="relative overflow-hidden min-h-dvh">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/contacto-hero.jpg"
-          alt="Contacto Academia OMG"
+          src="/images/cocinera-en-la-cocina-usando-un-dispositivo-portatil-scaled.webp"
+          alt="Equipo de Academia OMG listo para ayudarte"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-[#0A1520]/60" />

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   X,
   Menu,
-  LayoutGrid,
+  ChevronDown,
   Settings2,
   Monitor,
   GraduationCap,
@@ -13,10 +13,11 @@ import {
   Users,
   Newspaper,
   HelpCircle,
+  Building2,
 } from "lucide-react"
 
 type NavChild = { label: string; description: string; href: string; icon: React.ElementType }
-type NavGroup = { label: string; children: NavChild[] }
+type NavGroup = { label: string; href: string; children: NavChild[] }
 type NavLink = { label: string; href: string }
 
 function handleSpotlight(e: React.MouseEvent<HTMLElement>) {
@@ -69,14 +70,15 @@ function NavPanelItem({
 const navGroups: NavGroup[] = [
   {
     label: "Producto",
+    href: "/",
     children: [
-      { label: "Características", description: "Los 6 módulos de CO$AYB en detalle", href: "/#modulos", icon: LayoutGrid },
       { label: "Cómo funciona", description: "El proceso, paso a paso", href: "/#como-funciona", icon: Settings2 },
       { label: "Demo", description: "Mira la plataforma en acción", href: "/#demo", icon: Monitor },
     ],
   },
   {
     label: "Servicios",
+    href: "/capacitacion",
     children: [
       { label: "Capacitación", description: "Cursos prácticos de costos gastronómicos", href: "/capacitacion", icon: GraduationCap },
       { label: "Libro de costos", description: "Guía completa de costeo A&B", href: "/libro", icon: BookOpen },
@@ -85,15 +87,17 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "Recursos",
+    href: "/blog",
     children: [
       { label: "Blog", description: "Artículos y novedades del sector", href: "/blog", icon: Newspaper },
-      { label: "FAQ", description: "Resolvemos tus dudas más comunes", href: "/#faq", icon: HelpCircle },
+      { label: "Preguntas Frecuentes", description: "Resolvemos tus dudas más comunes", href: "/#faq", icon: HelpCircle },
+      { label: "Sobre nosotros", description: "Quiénes somos y por qué existe CO$AYB", href: "/nosotros", icon: Building2 },
     ],
   },
 ]
 
 const navLinks: NavLink[] = [
-  { label: "Precio", href: "/#precios" },
+  { label: "Inversión", href: "/#precios" },
   { label: "Contacto", href: "/contacto" },
 ]
 
@@ -126,8 +130,8 @@ export default function Nav() {
     return pathname.startsWith(href)
   }
 
-  function isGroupActive(children: { href: string }[]) {
-    return children.some(({ href }) => isActive(href))
+  function isGroupActive(group: NavGroup) {
+    return isActive(group.href) || group.children.some(({ href }) => isActive(href))
   }
 
   const linkColorClasses = (active: boolean) =>
@@ -183,7 +187,7 @@ export default function Nav() {
           {/* Col 2: MENÚ CENTRADO (desktop) */}
           <nav ref={navRef} className="hidden lg:flex justify-center items-center gap-1 self-stretch">
             {navGroups.map((group) => {
-              const active = isGroupActive(group.children)
+              const active = isGroupActive(group)
               const open = openGroup === group.label
               const dimmed = openGroup !== null && !open
               return (
@@ -194,18 +198,18 @@ export default function Nav() {
                   onMouseEnter={() => setOpenGroup(group.label)}
                   onMouseLeave={() => setOpenGroup((current) => (current === group.label ? null : current))}
                 >
-                  <button
-                    type="button"
+                  <Link
+                    href={group.href}
                     aria-haspopup="true"
                     aria-expanded={open}
-                    onClick={() => setOpenGroup((current) => (current === group.label ? null : group.label))}
+                    onFocus={() => setOpenGroup(group.label)}
                     onKeyDown={(e) => {
                       if (e.key === "Escape") setOpenGroup(null)
                     }}
                     className={`whitespace-nowrap font-body text-sm px-3 h-full inline-flex items-center transition-all duration-300 ease-in-out ${linkColorClasses(active)}`}
                   >
                     {group.label}
-                  </button>
+                  </Link>
 
                   {open && (
                     <div
@@ -241,6 +245,8 @@ export default function Nav() {
           <div className="flex items-center gap-3 flex-shrink-0">
             <Link
               href="/login"
+              target="_blank"
+              rel="noopener noreferrer"
               className={`hidden md:inline-flex items-center justify-center rounded-full font-body text-sm font-semibold tracking-wide px-7 py-2.5 border-2 transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-md ${
                 scrolled
                   ? "border-[#12213A] text-[#12213A] hover:bg-[#12213A] hover:text-[#F5F0E8]"
@@ -305,14 +311,30 @@ export default function Nav() {
                 const open = openGroup === group.label
                 return (
                   <div key={group.label} className="border-b border-[#DDD6C8]">
-                    <button
-                      type="button"
-                      onClick={() => setOpenGroup((current) => (current === group.label ? null : group.label))}
-                      aria-expanded={open}
-                      className="flex items-center justify-between w-full py-3 px-2 font-display text-2xl sm:text-3xl font-bold uppercase tracking-tight text-[#12213A]"
-                    >
-                      {group.label}
-                    </button>
+                    <div className="flex items-center justify-between w-full">
+                      <Link
+                        href={group.href}
+                        onClick={() => {
+                          setMenuOpen(false)
+                          setOpenGroup(null)
+                        }}
+                        className="flex-1 py-3 px-2 font-display text-2xl sm:text-3xl font-bold uppercase tracking-tight text-[#12213A]"
+                      >
+                        {group.label}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setOpenGroup((current) => (current === group.label ? null : group.label))}
+                        aria-expanded={open}
+                        aria-label={`Mostrar opciones de ${group.label}`}
+                        className="p-3 -ml-2 text-[#12213A]"
+                      >
+                        <ChevronDown
+                          size={22}
+                          className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    </div>
                     {open && (
                       <div className="flex flex-col gap-1 pb-3">
                         {group.children.map(({ label, description, href, icon: Icon }) => (
@@ -365,6 +387,8 @@ export default function Nav() {
             <div className="max-w-7xl mx-auto flex flex-col gap-3">
               <Link
                 href="/login"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setMenuOpen(false)}
                 className="inline-flex items-center justify-center rounded-full font-body text-base font-semibold tracking-wide py-4 border-2 border-[#12213A] text-[#12213A] hover:bg-[#12213A] hover:text-[#F5F0E8] transition-all duration-300 ease-in-out text-center w-full"
               >

@@ -222,7 +222,7 @@ export default function OnboardingPage() {
                 ¿Cómo se llama tu negocio?
               </h2>
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                Puede ser el nombre de tu restaurante, cocina o empresa.
+                Puede ser el nombre de tu restaurante, bar o negocio gastronómico.
               </p>
             </div>
             <Input

@@ -5,7 +5,7 @@ import { ArrowRight, Target, Eye, Lightbulb, Users, BookOpen, BarChart3, Refresh
 export const metadata: Metadata = {
   title: "Sobre Nosotros",
   description:
-    "Conoce el equipo detrás de Academia OMG, nuestra misión de hacer rentables las cocinas colombianas y por qué nació esta herramienta.",
+    "Conoce el equipo detrás de Academia OMG, nuestra misión de hacer rentables los negocios gastronómicos colombianos y por qué nació esta herramienta.",
 }
 
 const principios = [
@@ -113,7 +113,7 @@ export default function NosotrosPage() {
                 Conocer el equipo
                 <ArrowRight size={16} className="btn-arrow" />
               </Link>
-              <Link href="/login" className="btn-spx btn-spx-light">
+              <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-light">
                 Probar gratis
                 <ArrowRight size={16} className="btn-arrow" />
               </Link>
@@ -333,8 +333,8 @@ export default function NosotrosPage() {
               Nuestro equipo
             </h2>
             <p className="font-body text-base text-[#7A6E60] max-w-2xl mx-auto">
-              Está conformado por profesionales de la gastronomía y la gestión, con experiencia en cocina,
-              bar, administración y control de costos. Trabajamos de forma práctica y colaborativa para
+              Está conformado por profesionales de la gastronomía y la gestión, con experiencia en restaurantes,
+              bares, administración y control de costos. Trabajamos de forma práctica y colaborativa para
               apoyar el crecimiento, la eficiencia y la rentabilidad de cada proyecto gastronómico.
             </p>
           </div>
@@ -362,7 +362,7 @@ export default function NosotrosPage() {
           >
             Un SaaS construido
             <br />
-            <span className="text-[#1B4FD8]">para la cocina real</span>
+            <span className="text-[#1B4FD8]">para el negocio real</span>
           </h2>
           <p className="font-body text-lg text-[#4A4438] leading-relaxed mb-12 max-w-2xl mx-auto">
             CO$AYB no es una hoja de cálculo disfrazada. Es una plataforma diseñada desde cero para el
@@ -370,7 +370,7 @@ export default function NosotrosPage() {
             recetas anidadas y un motor de pricing que te dice cuánto cobrar.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/login" className="btn-spx btn-spx-accent">
+            <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-accent">
               Probar 14 días gratis
               <ArrowRight size={14} className="btn-arrow" />
             </Link>
