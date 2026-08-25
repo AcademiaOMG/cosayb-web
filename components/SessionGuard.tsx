@@ -118,35 +118,29 @@ export default function SessionGuard() {
   }, [])
 
   // ── 3. Bloqueo de pestañas duplicadas del mismo login ───────────────────
+  //
+  // A propósito NO reclama al recuperar el foco (visibilitychange): si lo
+  // hiciera, el simple hecho de hacer clic en la pestaña bloqueada para
+  // revisarla ya la desbloquearía sola, antes de que el usuario llegue a
+  // verlo sostenido — el bloqueo se volvería imperceptible. Solo el botón
+  // explícito "Usar la app en esta pestaña" (reclaimTab) puede reclamar.
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return // navegador muy viejo: sin bloqueo de pestañas
 
     const channel = new BroadcastChannel(TAB_LOCK_CHANNEL)
     channelRef.current = channel
-    console.log("[tab-lock] mi tabId es", tabId)
-
-    function claim() {
-      console.log("[tab-lock] reclamando como activa", tabId)
-      setOtherTabActive(false)
-      channel.postMessage({ tabId })
-    }
 
     channel.onmessage = (e) => {
-      console.log("[tab-lock] mensaje recibido de", e.data?.tabId, "— yo soy", tabId)
       if (e.data?.tabId === tabId) return
       // Otra pestaña se anunció como activa: esta pasa a segundo plano.
       setOtherTabActive(true)
     }
 
-    claim() // al montar, esta pestaña se anuncia como la activa
-
-    function onVisible() {
-      if (document.visibilityState === "visible") claim()
-    }
-    document.addEventListener("visibilitychange", onVisible)
+    // Al montar, esta pestaña se anuncia como la activa (el estado ya
+    // arranca en false, no hace falta reafirmarlo aquí).
+    channel.postMessage({ tabId })
 
     return () => {
-      document.removeEventListener("visibilitychange", onVisible)
       channel.close()
       channelRef.current = null
     }
