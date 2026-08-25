@@ -29,7 +29,15 @@ const TAB_LOCK_CHANNEL = "cosayb-tab-lock"
 export default function SessionGuard() {
   const [revokedElsewhere, setRevokedElsewhere] = useState(false)
   const [otherTabActive, setOtherTabActive] = useState(false)
-  const tabLockRef = useRef<{ channel: BroadcastChannel; tabId: string } | null>(null)
+  // Identidad estable de la pestaña, generada UNA sola vez (inicializador
+  // perezoso de useState — la forma correcta de generar un valor aleatorio
+  // estable en React). Si se generara dentro del efecto, el doble-montaje
+  // de Strict Mode en desarrollo (o cualquier remontaje real) crearía un id
+  // nuevo en cada corrida — la pestaña terminaría recibiendo su propio
+  // mensaje anterior (de la instancia de canal ya cerrada) como si viniera
+  // de otra pestaña, y se autobloquearía.
+  const [tabId] = useState(() => Math.random().toString(36).slice(2))
+  const channelRef = useRef<BroadcastChannel | null>(null)
 
   // ── 1. Bypass por bfcache (comportamiento existente, sin cambios) ──────
   useEffect(() => {
@@ -113,9 +121,8 @@ export default function SessionGuard() {
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return // navegador muy viejo: sin bloqueo de pestañas
 
-    const tabId = Math.random().toString(36).slice(2)
     const channel = new BroadcastChannel(TAB_LOCK_CHANNEL)
-    tabLockRef.current = { channel, tabId }
+    channelRef.current = channel
 
     function claim() {
       setOtherTabActive(false)
@@ -138,14 +145,12 @@ export default function SessionGuard() {
     return () => {
       document.removeEventListener("visibilitychange", onVisible)
       channel.close()
-      tabLockRef.current = null
+      channelRef.current = null
     }
-  }, [])
+  }, [tabId])
 
   function reclaimTab() {
-    const lock = tabLockRef.current
-    if (!lock) return
-    lock.channel.postMessage({ tabId: lock.tabId })
+    channelRef.current?.postMessage({ tabId })
     setOtherTabActive(false)
   }
 
