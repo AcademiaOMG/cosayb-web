@@ -86,12 +86,12 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Recursos",
-    href: "/blog",
+    label: "Empresa",
+    href: "/nosotros",
     children: [
+      { label: "Sobre nosotros", description: "Quiénes somos y por qué existe CO$AYB", href: "/nosotros", icon: Building2 },
       { label: "Blog", description: "Artículos y novedades del sector", href: "/blog", icon: Newspaper },
       { label: "Preguntas Frecuentes", description: "Resolvemos tus dudas más comunes", href: "/#faq", icon: HelpCircle },
-      { label: "Sobre nosotros", description: "Quiénes somos y por qué existe CO$AYB", href: "/nosotros", icon: Building2 },
     ],
   },
 ]
