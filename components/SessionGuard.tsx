@@ -123,13 +123,16 @@ export default function SessionGuard() {
 
     const channel = new BroadcastChannel(TAB_LOCK_CHANNEL)
     channelRef.current = channel
+    console.log("[tab-lock] mi tabId es", tabId)
 
     function claim() {
+      console.log("[tab-lock] reclamando como activa", tabId)
       setOtherTabActive(false)
       channel.postMessage({ tabId })
     }
 
     channel.onmessage = (e) => {
+      console.log("[tab-lock] mensaje recibido de", e.data?.tabId, "— yo soy", tabId)
       if (e.data?.tabId === tabId) return
       // Otra pestaña se anunció como activa: esta pasa a segundo plano.
       setOtherTabActive(true)
