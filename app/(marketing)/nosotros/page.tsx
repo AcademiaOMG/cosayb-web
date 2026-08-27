@@ -85,8 +85,8 @@ export default function NosotrosPage() {
       <section className="relative overflow-hidden min-h-dvh">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/nosotros-hero.jpg"
-          alt="Equipo de Academia OMG"
+          src="/images/fondo-principal.webp"
+          alt="Profesionales gastronómicos analizando su operación"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-[#0A1520]/60" />
@@ -105,8 +105,9 @@ export default function NosotrosPage() {
               <span className="text-[#7AAEFF]">Resultados Reales</span>
             </h1>
             <p className="font-body text-lg text-[#8FA0BC] leading-relaxed mb-10 max-w-xl animate-fade-up-delay-2">
-              Somos un equipo de expertos en gestión gastronómica enfocado en ayudar a negocios del sector
-              alimentos y bebidas a mejorar su operación, optimizar recursos y aumentar su rentabilidad.
+              Aprende a controlar, analizar y optimizar los costos de tu negocio gastronómico. Obtén herramientas
+              prácticas, capacitación especializada y soluciones diseñadas para mejorar la gestión y aumentar la
+              rentabilidad de tu empresa.
             </p>
             <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
               <Link href="#equipo" className="btn-spx btn-spx-accent-solid">
