@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   CheckCircle,
@@ -198,7 +199,7 @@ const plans = [
       "Factor de rendimiento completo",
       "Soporte prioritario",
     ],
-    cta: "Activar Pro",
+    cta: "Elegir Pro",
     highlighted: true,
     badge: "Más popular",
   },
@@ -214,7 +215,7 @@ const plans = [
       "Certificación incluida",
       "Consultoría mensual 1:1",
     ],
-    cta: "Activar Academia",
+    cta: "Elegir Academia",
     highlighted: false,
     badge: null,
   },
@@ -304,6 +305,12 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 /* ─── MAIN PAGE ────────────────────────────────────────────── */
 
 export default function LandingPage() {
+  const router = useRouter()
+
+  function openPlanCheckout() {
+    router.push("/planes")
+  }
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -480,7 +487,7 @@ export default function LandingPage() {
                 Cursos
                 <ArrowRight size={18} className="btn-arrow" />
               </Link>
-              <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-light">
+              <Link href="/planes" className="btn-spx btn-spx-light">
                 Empezar gratis
                 <ArrowRight size={16} className="btn-arrow" />
               </Link>
@@ -670,7 +677,7 @@ export default function LandingPage() {
             ))}
           </ul>
 
-          <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-light">
+          <Link href="/planes" className="btn-spx btn-spx-light">
             Probar ahora gratis
             <ArrowRight size={16} className="btn-arrow" />
           </Link>
@@ -915,17 +922,16 @@ export default function LandingPage() {
                     ))}
                   </ul>
 
-                  <Link
-                    href="/login"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openPlanCheckout()}
                     className={`w-full ${
                       highlighted ? "btn-spx btn-spx-accent" : "btn-spx btn-spx-light"
                     }`}
                   >
                     {cta}
                     <ArrowRight size={14} className="btn-arrow" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
@@ -939,6 +945,7 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
+
 
       {/* ═══════════════ FAQ ═══════════════ */}
       <section id="faq" className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">

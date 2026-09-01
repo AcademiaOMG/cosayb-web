@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
@@ -40,6 +41,7 @@ function getNextPlan(current: Plan): Plan {
 }
 
 export default function UpgradeModal() {
+  const router = useRouter()
   const { isOpen, highlightFeature, close } = useUpgradeModal()
 
   const { data: planData } = useSWR(
@@ -232,11 +234,16 @@ export default function UpgradeModal() {
             <Button
               variant="primary"
               onClick={() => {
-                // TODO: integrar con pasarela de pago
                 close()
+                const mode = currentPlan !== "free" ? "?mode=upgrade" : ""
+                router.push(`/checkout/subscription/${selectedPlan}${mode}`)
               }}
             >
-              {selectedPlan === "free" ? "Plan actual" : `Actualizar a ${planByKey.get(selectedPlan)?.name}`}
+              {selectedPlan === "free"
+                ? "Plan actual"
+                : currentPlan === "free"
+                  ? `Elegir ${planByKey.get(selectedPlan)?.name}`
+                  : `Actualizar a ${planByKey.get(selectedPlan)?.name}`}
             </Button>
           )}
         </div>

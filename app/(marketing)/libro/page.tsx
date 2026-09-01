@@ -1,8 +1,6 @@
 "use client"
 
-import Link from "next/link"
 import { ArrowRight, CheckCircle, MapPin, Clock, Mail, Phone, BookOpen } from "lucide-react"
-import { useState } from "react"
 
 const benefits = [
   "Costeo de recetas con precisión",
@@ -41,34 +39,6 @@ const contactCards = [
 ]
 
 export default function LibroPage() {
-  const [form, setForm] = useState({
-    nombre: "",
-    correo: "",
-    telefono: "",
-    ciudad: "",
-    tipo: "Digital",
-    comentarios: "",
-    acepto: false,
-  })
-  const [sent, setSent] = useState(false)
-
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) {
-    const { name, value, type } = e.target
-    if (type === "checkbox") {
-      setForm((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }))
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }))
-    }
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    // TODO: connect to purchase API
-    setSent(true)
-  }
-
   return (
     <div>
 
@@ -219,176 +189,38 @@ export default function LibroPage() {
             </p>
           </div>
 
-          {sent ? (
-            <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
-              <CheckCircle size={48} className="text-[#1B4FD8] mx-auto mb-4" />
-              <h3 className="font-display font-bold text-2xl text-[#12213A] mb-3">
-                ¡Solicitud recibida!
-              </h3>
-              <p className="font-body text-sm text-[#4A4438]">
-                Nos comunicaremos contigo en las próximas 24 horas para confirmar
-                tu pedido y los detalles de pago.
-              </p>
+          <div
+            className="bg-white rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col gap-6"
+            style={{ border: "1px solid #DDD6C8" }}
+          >
+            <div>
+              <h3 className="font-body font-bold text-[#12213A] text-base mb-4">Elige el formato</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  { format: "fisico", label: "Libro físico", price: "$250.000 COP", detail: "Entrega a tu dirección" },
+                  { format: "digital", label: "Libro digital (PDF)", price: "$100.000 COP", detail: "Disponible desde tu cuenta" },
+                ].map((o) => (
+                  <a
+                    key={o.format}
+                    href={`/checkout/book?format=${o.format}`}
+                    className="flex flex-col gap-2 rounded-xl border border-[#DDD6C8] bg-[#FDFAF6] p-5 transition hover:border-[#1B4FD8]"
+                  >
+                    <span className="font-body font-bold text-[#12213A]">{o.label}</span>
+                    <span className="font-mono text-lg font-bold text-[#12213A]">{o.price}</span>
+                    <span className="font-body text-xs text-[#7A6E60]">{o.detail}</span>
+                    <span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#1B4FD8]">
+                      Comprar libro <ArrowRight size={14} />
+                    </span>
+                  </a>
+                ))}
+              </div>
             </div>
-          ) : (
-            <form
-              onSubmit={handleSubmit}
-              className="bg-white rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col gap-6"
-              style={{ border: "1px solid #DDD6C8" }}
-            >
-              {/* Formato del libro — radio buttons */}
-              <div>
-                <h3 className="font-body font-bold text-[#12213A] text-base mb-4">Formato del libro</h3>
-                <div className="flex flex-wrap gap-4">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="tipo"
-                      value="Físico"
-                      checked={form.tipo === "Físico"}
-                      onChange={handleChange}
-                      className="accent-[#1B4FD8] w-4 h-4"
-                    />
-                    <span className="font-body text-sm text-[#12213A] group-hover:text-[#1B4FD8] transition-colors">
-                      <strong>Libro físico</strong> – $250.000 COP
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="tipo"
-                      value="Digital"
-                      checked={form.tipo === "Digital"}
-                      onChange={handleChange}
-                      className="accent-[#1B4FD8] w-4 h-4"
-                    />
-                    <span className="font-body text-sm text-[#12213A] group-hover:text-[#1B4FD8] transition-colors">
-                      <strong>Libro digital (PDF)</strong> – $100.000 COP
-                    </span>
-                  </label>
-                </div>
-              </div>
+            <p className="font-body text-xs text-[#7A6E60]">
+              Checkout con datos del comprador, método de pago y confirmación. El pago es simulado — no se realiza
+              ningún cobro real.
+            </p>
+          </div>
 
-              {/* Datos del comprador */}
-              <div>
-                <h3 className="font-body font-bold text-[#12213A] text-base mb-4">Datos del comprador</h3>
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="nombre" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                      Nombre completo *
-                    </label>
-                    <input
-                      id="nombre"
-                      name="nombre"
-                      type="text"
-                      required
-                      value={form.nombre}
-                      onChange={handleChange}
-                      placeholder="Nombre y apellido"
-                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="correo" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                      Correo electrónico *
-                    </label>
-                    <input
-                      id="correo"
-                      name="correo"
-                      type="email"
-                      required
-                      value={form.correo}
-                      onChange={handleChange}
-                      placeholder="correo@ejemplo.com"
-                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="telefono" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                      Teléfono / WhatsApp *
-                    </label>
-                    <input
-                      id="telefono"
-                      name="telefono"
-                      type="tel"
-                      required
-                      value={form.telefono}
-                      onChange={handleChange}
-                      placeholder="+57 300 000 0000"
-                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="ciudad" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                      Ciudad / País
-                    </label>
-                    <input
-                      id="ciudad"
-                      name="ciudad"
-                      type="text"
-                      value={form.ciudad}
-                      onChange={handleChange}
-                      placeholder="Ciudad y país"
-                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Información adicional */}
-              <div>
-                <h3 className="font-body font-bold text-[#12213A] text-base mb-4">Información adicional</h3>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="comentarios" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                    Comentarios (opcional)
-                  </label>
-                  <textarea
-                    id="comentarios"
-                    name="comentarios"
-                    rows={4}
-                    value={form.comentarios}
-                    onChange={handleChange}
-                    placeholder="Datos para envío físico o interrogantes"
-                    className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none resize-none"
-                    style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                  />
-                </div>
-              </div>
-
-              {/* Acepto */}
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  id="acepto"
-                  name="acepto"
-                  checked={form.acepto}
-                  onChange={handleChange}
-                  className="mt-1 accent-[#1B4FD8]"
-                  required
-                />
-                <label htmlFor="acepto" className="font-body text-xs text-[#7A6E60] leading-relaxed">
-                  Acepto los términos de compra y autorizo el contacto por <strong className="text-[#12213A]">Academia OMG</strong>.
-                </label>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  className="btn-spx btn-spx-accent"
-                >
-                  Agregar al carrito / Comprar
-                  <ArrowRight size={16} className="btn-arrow" />
-                </button>
-              </div>
-            </form>
-          )}
         </div>
       </section>
 

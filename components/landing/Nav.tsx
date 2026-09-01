@@ -97,6 +97,7 @@ const navGroups: NavGroup[] = [
 ]
 
 const navLinks: NavLink[] = [
+  { label: "Planes", href: "/planes" },
   { label: "Inversión", href: "/#precios" },
   { label: "Contacto", href: "/contacto" },
 ]
@@ -245,8 +246,6 @@ export default function Nav() {
           <div className="flex items-center gap-3 flex-shrink-0">
             <Link
               href="/login"
-              target="_blank"
-              rel="noopener noreferrer"
               className={`hidden md:inline-flex items-center justify-center rounded-full font-body text-sm font-semibold tracking-wide px-7 py-2.5 border-2 transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-md ${
                 scrolled
                   ? "border-[#12213A] text-[#12213A] hover:bg-[#12213A] hover:text-[#F5F0E8]"
@@ -387,8 +386,6 @@ export default function Nav() {
             <div className="max-w-7xl mx-auto flex flex-col gap-3">
               <Link
                 href="/login"
-                target="_blank"
-                rel="noopener noreferrer"
                 onClick={() => setMenuOpen(false)}
                 className="inline-flex items-center justify-center rounded-full font-body text-base font-semibold tracking-wide py-4 border-2 border-[#12213A] text-[#12213A] hover:bg-[#12213A] hover:text-[#F5F0E8] transition-all duration-300 ease-in-out text-center w-full"
               >
