@@ -1,17 +1,20 @@
 "use client"
 
-import { use } from "react"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 import useSWR from "swr"
 import { Loader2 } from "lucide-react"
 import { billingQueries } from "@/lib/commerce/services"
 import { BOOK, formatCOP } from "@/lib/commerce/catalog"
 
-export default function OrderPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
-  const { data, error, isLoading } = useSWR(id ? `billing/order/${id}` : null, () => billingQueries.order(id), {
-    revalidateOnFocus: false,
-  })
+export default function OrderPage() {
+  const params = useParams<{ id: string }>()
+  const id = params?.id
+  const { data, error, isLoading } = useSWR(
+    id ? `billing/order/${id}` : null,
+    () => billingQueries.order(id as string),
+    { revalidateOnFocus: false, shouldRetryOnError: false }
+  )
 
   return (
     <main className="min-h-screen bg-[#F5F0E8] px-4 py-10 text-[#12213A]">
@@ -26,7 +29,9 @@ export default function OrderPage({ params }: { params: Promise<{ id: string }> 
             <div className="text-center">
               <h1 className="text-2xl font-extrabold">No encontramos esta compra</h1>
               <p className="mt-2 text-sm text-[#4A4438]">
-                El número de orden no existe o no está asociado a tu cuenta.
+                {error instanceof Error && error.message
+                  ? error.message
+                  : "El número de orden no existe o no está asociado a tu cuenta."}
               </p>
               <Link href="/" className="mt-6 inline-block rounded-xl bg-[#1B4FD8] px-5 py-3 font-semibold text-white">
                 Volver al inicio

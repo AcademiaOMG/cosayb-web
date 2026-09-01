@@ -1,8 +1,8 @@
 "use client"
 
-import { Suspense, use } from "react"
+import { Suspense } from "react"
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import useSWR from "swr"
 import { Loader2 } from "lucide-react"
 import CheckoutGuard from "@/components/commerce/CheckoutGuard"
@@ -67,13 +67,9 @@ function CheckoutResolver({ plan }: { plan: PaidPlanId }) {
   )
 }
 
-export default function SubscriptionCheckoutPage({
-  params,
-}: {
-  params: Promise<{ plan: string }>
-}) {
-  const { plan: raw } = use(params)
-  const plan = (raw ?? "").toLowerCase()
+export default function SubscriptionCheckoutPage() {
+  const params = useParams<{ plan: string }>()
+  const plan = (params?.plan ?? "").toLowerCase()
 
   if (!PAID.includes(plan as PaidPlanId)) return <InvalidPlan />
 

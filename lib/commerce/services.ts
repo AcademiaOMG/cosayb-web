@@ -24,16 +24,35 @@ export class CommerceRequestError extends Error {
 async function billingFetch<T>(endpoint: string, options: RequestInit & { idempotencyKey?: string } = {}): Promise<T> {
   const activeOrg = getActiveOrgId()
   const { idempotencyKey, ...rest } = options
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...rest,
-    headers: {
-      "Content-Type": "application/json",
-      ...(activeOrg ? { "X-Organization-Id": activeOrg } : {}),
-      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
-      ...rest.headers,
-    },
-    credentials: "include",
-  })
+
+  // Nunca dejar la petición colgada indefinidamente (evita spinners infinitos).
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 20_000)
+
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...rest,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(activeOrg ? { "X-Organization-Id": activeOrg } : {}),
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        ...rest.headers,
+      },
+      credentials: "include",
+    })
+  } catch (err) {
+    clearTimeout(timeout)
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new CommerceRequestError("TIMEOUT", "La operación tardó demasiado. Verifica tu conexión e inténtalo de nuevo.")
+    }
+    throw new CommerceRequestError(
+      "NETWORK",
+      "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo."
+    )
+  }
+  clearTimeout(timeout)
 
   if (!res.ok) {
     let code = `HTTP_${res.status}`
