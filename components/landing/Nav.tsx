@@ -86,7 +86,7 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Empresa",
+    label: "Nosotros",
     href: "/nosotros",
     children: [
       { label: "Sobre nosotros", description: "Quiénes somos y por qué existe CO$AYB", href: "/nosotros", icon: Building2 },
@@ -97,7 +97,6 @@ const navGroups: NavGroup[] = [
 ]
 
 const navLinks: NavLink[] = [
-  { label: "Planes", href: "/planes" },
   { label: "Inversión", href: "/#precios" },
   { label: "Contacto", href: "/contacto" },
 ]
