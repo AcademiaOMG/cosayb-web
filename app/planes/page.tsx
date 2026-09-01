@@ -52,7 +52,7 @@ export default function PlanesPage() {
   async function startFree() {
     const session = await fetchCommerceSession()
     if (!session.isAuthenticated) {
-      router.push("/register?returnTo=/onboarding")
+      router.push("/login?returnTo=/onboarding")
       return
     }
     // Autenticado con plan pago → no permitir "bajar" por botón
