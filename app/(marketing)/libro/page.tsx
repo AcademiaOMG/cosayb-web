@@ -8,7 +8,7 @@ const benefits = [
   "Control de inventarios y mermas",
   "Cálculo del punto de equilibrio",
   "Análisis de rentabilidad por plato",
-  "Casos reales de restaurantes colombianos",
+  "Casos reales de negocios gastronómicos colombianos",
 ]
 
 const contactCards = [
@@ -76,7 +76,7 @@ export default function LibroPage() {
             </h1>
 
             <p className="font-body text-lg text-[#8FA0BC] leading-relaxed mb-10 max-w-xl animate-fade-up-delay-2">
-              El aliado práctico y fundamentado para restaurants, estudiantes y profesionales, enfocado en mostrar
+              El aliado práctico y fundamentado para negocios gastronómicos, estudiantes y profesionales, enfocado en mostrar
               cómo manejar los costos, optimizar los recursos y comprender la estructura financiera de una operación
               gastronómica.
             </p>
@@ -163,8 +163,8 @@ export default function LibroPage() {
                   <strong className="text-[#F5F0E8] font-semibold">
                     Más de 200 páginas
                   </strong>{" "}
-                  de contenido práctico diseñado exclusivamente para restaurantes y
-                  negocios gastronómicos profesionales en Colombia.
+                  de contenido práctico diseñado exclusivamente para negocios
+                  gastronómicos profesionales en Colombia.
                 </p>
               </div>
             </div>

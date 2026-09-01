@@ -148,7 +148,7 @@ export default function ConsultoriaPage() {
               <p className="font-body text-base text-[#4A4438] leading-relaxed mb-6">
                 Te invitamos a dar el siguiente paso en la administración de tu operación gastronómica.
                 A través de una gestión inteligente de los costos de Alimentos y Bebidas, aprenderás a
-                optimizar recursos, reducir desperdicios y fortalecer la rentabilidad de tu restaurante.
+                optimizar recursos, reducir desperdicios y fortalecer la rentabilidad de tu empresa.
               </p>
               <p className="font-body text-base text-[#4A4438] leading-relaxed">
                 Nuestro acompañamiento te permitirá reducir desperdicios, mejorar la rentabilidad y

@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Consultoría",
   description:
-    "Consultoría especializada en costos de alimentos y bebidas para restaurantes. Diagnóstico, acompañamiento y planes de mejora personalizados por Academia OMG.",
+    "Consultoría especializada en costos de alimentos y bebidas para negocios gastronómicos. Diagnóstico, acompañamiento y planes de mejora personalizados por Academia OMG.",
 }
 
 export default function ConsultoriaLayout({

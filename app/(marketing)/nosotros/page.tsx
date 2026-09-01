@@ -75,7 +75,7 @@ const stats = [
   { value: "2.500+", label: "Proyectos creados" },
   { value: "30.000+", label: "Recetas costeadas" },
   { value: "200+", label: "Cursos" },
-  { value: "600+", label: "Cocineros" },
+  { value: "600+", label: "Profesionales formados" },
 ]
 
 export default function NosotrosPage() {
@@ -210,17 +210,17 @@ export default function NosotrosPage() {
               </h2>
               <div className="space-y-5 font-body text-[#4A4438] leading-relaxed text-base">
                 <p>
-                  Durante años, los dueños de restaurantes en Colombia operaban con una creencia peligrosa:
+                  Durante años, los dueños de negocios gastronómicos en Colombia operaban con una creencia peligrosa:
                   si el local está lleno, el negocio va bien. La realidad era diferente: muchos tenían ventas
                   altas pero márgenes negativos.
                 </p>
                 <p>
-                  En Academia OMG capacitamos a cientos de cocineros en costos gastronómicos. Pero notamos
+                  En Academia OMG capacitamos a cientos de profesionales de la gastronomía en costos. Pero notamos
                   que el conocimiento solo no era suficiente sin una herramienta que lo pusiera en práctica.
                   Las hojas de cálculo eran lentas, propensas a errores y difíciles de mantener actualizadas.
                 </p>
                 <p>
-                  Por eso construimos CO$AYB: para que cualquier restaurante, sin importar su tamaño, pueda
+                  Por eso construimos CO$AYB: para que cualquier establecimiento, sin importar su tamaño, pueda
                   saber exactamente cuánto le cuesta cada plato y a qué precio venderlo para ser rentable.
                 </p>
               </div>
@@ -335,7 +335,7 @@ export default function NosotrosPage() {
             </h2>
             <p className="font-body text-base text-[#7A6E60] max-w-2xl mx-auto">
               Está conformado por profesionales de la gastronomía y la gestión, con experiencia en restaurantes,
-              bares, administración y control de costos. Trabajamos de forma práctica y colaborativa para
+              bares, hoteles, catering, administración y control de costos. Trabajamos de forma práctica y colaborativa para
               apoyar el crecimiento, la eficiencia y la rentabilidad de cada proyecto gastronómico.
             </p>
           </div>
@@ -367,7 +367,7 @@ export default function NosotrosPage() {
           </h2>
           <p className="font-body text-lg text-[#4A4438] leading-relaxed mb-12 max-w-2xl mx-auto">
             CO$AYB no es una hoja de cálculo disfrazada. Es una plataforma diseñada desde cero para el
-            flujo de trabajo real de un restaurante: ingredientes con precios colombianos, mermas reales,
+            flujo de trabajo real de una operación gastronómica: ingredientes con precios colombianos, mermas reales,
             recetas anidadas y un motor de pricing que te dice cuánto cobrar.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

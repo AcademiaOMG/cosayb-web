@@ -117,10 +117,10 @@ export default function CapacitacionPage() {
             >
               Capacitación especializada
               <br />
-              <span className="text-[#7AAEFF]">para restaurantes rentables</span>
+              <span className="text-[#7AAEFF]">para negocios gastronómicos rentables</span>
             </h1>
             <p className="font-body text-lg text-[#8FA0BC] leading-relaxed mb-10 max-w-xl animate-fade-up-delay-2">
-              Aprende a controlar costos, optimizar inventarios y aumentar la rentabilidad de tu negocio gastronómico mediante programas prácticos desarrollados por Academia OMG.
+              Aprende a controlar costos, optimizar inventarios y aumentar la rentabilidad de tu operación mediante programas prácticos desarrollados por Academia OMG.
             </p>
             <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
               <a href="#programas" className="btn-spx btn-spx-accent-solid">
