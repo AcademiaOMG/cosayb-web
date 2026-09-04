@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   CheckCircle,
@@ -29,7 +30,7 @@ const heroStats = [
   { value: "2.500+", label: "Proyectos creados" },
   { value: "30.000+", label: "Recetas costeadas" },
   { value: "200+", label: "Cursos" },
-  { value: "600+", label: "Cocineros" },
+  { value: "600+", label: "Profesionales formados" },
 ]
 
 /* ─── LO QUE HACEMOS DATA ─────────────────────────────────── */
@@ -38,14 +39,14 @@ const servicios = [
   {
     icon: GraduationCap,
     title: "Capacitación",
-    description: "Programas prácticos en costos gastronómicos, inventarios, factor de rendimiento y más. Aprende a controlar y optimizar los costos de tu negocio.",
+    description: "Programas prácticos en costos gastronómicos, inventarios, factor de rendimiento y más. Aprende a controlar y optimizar los costos de tu operación gastronómica.",
     href: "/capacitacion",
     featured: true,
   },
   {
     icon: BookOpen,
     title: "Libro de Costos A&B",
-    description: "Guía completa para entender el flujo de costos, el cálculo de precios y la rentabilidad. Casos reales de restaurantes colombianos.",
+    description: "Guía completa para entender el flujo de costos, el cálculo de precios y la rentabilidad. Casos reales de negocios gastronómicos colombianos.",
     href: "/libro",
     featured: false,
   },
@@ -66,7 +67,7 @@ const servicios = [
   {
     icon: Users,
     title: "Consultorías Personalizadas",
-    description: "Acompañamiento directo para evaluar tu operación, identificar oportunidades de mejora y optimizar la rentabilidad de tu restaurante.",
+    description: "Acompañamiento directo para evaluar tu operación, identificar oportunidades de mejora y optimizar la rentabilidad de tu empresa.",
     href: "/consultoria",
     featured: true,
   },
@@ -107,7 +108,7 @@ const modules: {
   {
     icon: UtensilsCrossed,
     name: "Menú",
-    description: "Diseña la carta de tu restaurante utilizando más de 150 recetas actualizadas y establece precios rentables antes de imprimir un solo menú.",
+    description: "Diseña la carta de tu negocio gastronómico utilizando más de 150 recetas actualizadas y establece precios rentables antes de imprimir un solo menú.",
   },
   {
     icon: TrendingUp,
@@ -198,7 +199,7 @@ const plans = [
       "Factor de rendimiento completo",
       "Soporte prioritario",
     ],
-    cta: "Activar Pro",
+    cta: "Elegir Pro",
     highlighted: true,
     badge: "Más popular",
   },
@@ -214,7 +215,7 @@ const plans = [
       "Certificación incluida",
       "Consultoría mensual 1:1",
     ],
-    cta: "Activar Academia",
+    cta: "Elegir Academia",
     highlighted: false,
     badge: null,
   },
@@ -304,6 +305,12 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 /* ─── MAIN PAGE ────────────────────────────────────────────── */
 
 export default function LandingPage() {
+  const router = useRouter()
+
+  function openPlanCheckout() {
+    router.push("/planes")
+  }
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -313,7 +320,7 @@ export default function LandingPage() {
         name: "CO$AYB",
         alternateName: "Software de Costos de Alimentos y Bebidas",
         description:
-          "Software SaaS para restaurantes en Colombia que calcula el costo real de cada receta, aplica costos fijos y sugiere el precio de venta correcto para ser rentable.",
+          "Software SaaS para negocios gastronómicos en Colombia que calcula el costo real de cada receta, aplica costos fijos y sugiere el precio de venta correcto para ser rentable.",
         url: "https://cosayb.co",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
@@ -381,7 +388,7 @@ export default function LandingPage() {
             name: "¿Qué es CO$AYB?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "CO$AYB es un software SaaS para restaurantes y negocios gastronómicos en Colombia que calcula el costo real de cada receta, aplica costos fijos y te indica el precio exacto de venta para ser rentable.",
+              text: "CO$AYB es un software SaaS para negocios gastronómicos en Colombia —restaurantes, cafeterías, hoteles, catering, bares y más— que calcula el costo real de cada receta, aplica costos fijos y te indica el precio exacto de venta para ser rentable.",
             },
           },
           {
@@ -472,7 +479,7 @@ export default function LandingPage() {
                 Aprende a controlar, analizar y optimizar
               </strong>{" "}
               los costos de tu negocio gastronómico. Herramientas prácticas, capacitación especializada
-              y una plataforma diseñada para aumentar la rentabilidad de tu negocio gastronómico.
+              y una plataforma diseñada para hacer más rentable tu operación.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 mb-16 animate-fade-up-delay-3">
@@ -480,7 +487,7 @@ export default function LandingPage() {
                 Cursos
                 <ArrowRight size={18} className="btn-arrow" />
               </Link>
-              <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-light">
+              <Link href="/planes" className="btn-spx btn-spx-light">
                 Empezar gratis
                 <ArrowRight size={16} className="btn-arrow" />
               </Link>
@@ -670,7 +677,7 @@ export default function LandingPage() {
             ))}
           </ul>
 
-          <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-light">
+          <Link href="/planes" className="btn-spx btn-spx-light">
             Probar ahora gratis
             <ArrowRight size={16} className="btn-arrow" />
           </Link>
@@ -915,17 +922,16 @@ export default function LandingPage() {
                     ))}
                   </ul>
 
-                  <Link
-                    href="/login"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => openPlanCheckout()}
                     className={`w-full ${
                       highlighted ? "btn-spx btn-spx-accent" : "btn-spx btn-spx-light"
                     }`}
                   >
                     {cta}
                     <ArrowRight size={14} className="btn-arrow" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
@@ -939,6 +945,7 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
+
 
       {/* ═══════════════ FAQ ═══════════════ */}
       <section id="faq" className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">

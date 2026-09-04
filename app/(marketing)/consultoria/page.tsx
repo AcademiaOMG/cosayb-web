@@ -101,7 +101,7 @@ export default function ConsultoriaPage() {
         <div className="absolute inset-0 bg-[#0A1520]/60" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1520] to-transparent" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh pt-24 pb-16">
           <div className="max-w-2xl animate-fade-up">
             <h1
               className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
@@ -148,7 +148,7 @@ export default function ConsultoriaPage() {
               <p className="font-body text-base text-[#4A4438] leading-relaxed mb-6">
                 Te invitamos a dar el siguiente paso en la administración de tu operación gastronómica.
                 A través de una gestión inteligente de los costos de Alimentos y Bebidas, aprenderás a
-                optimizar recursos, reducir desperdicios y fortalecer la rentabilidad de tu restaurante.
+                optimizar recursos, reducir desperdicios y fortalecer la rentabilidad de tu empresa.
               </p>
               <p className="font-body text-base text-[#4A4438] leading-relaxed">
                 Nuestro acompañamiento te permitirá reducir desperdicios, mejorar la rentabilidad y

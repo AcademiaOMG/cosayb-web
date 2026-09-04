@@ -16,7 +16,7 @@ const articles = [
   {
     id: 2,
     title: "Costos Claros, Precios Justos: La Clave para Negocios Gastronómicos Rentables y Comensales Felices",
-    excerpt: "Conocer a profundidad los costos de cada preparación es uno de los factores más determinantes para el éxito financiero de un restaurante. Cuando un chef o propietario domina sus números, puede fijar precios justos que reflejen el valor real del plato sin perder competitividad.",
+    excerpt: "Conocer a profundidad los costos de cada preparación es uno de los factores más determinantes para el éxito financiero de un negocio gastronómico. Cuando un chef o propietario domina sus números, puede fijar precios justos que reflejen el valor real del plato sin perder competitividad.",
     tags: ["NEWS", "USEFUL"],
     date: "Agosto 18, 2024",
     image: "/images/imagen-hero-capacitacion.webp",
@@ -67,7 +67,7 @@ export default function BlogPage() {
         <div className="absolute inset-0 bg-[#0A1520]/60" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1520] to-transparent" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh pt-24 pb-16">
           <div className="max-w-2xl animate-fade-up">
             <h1
               className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
@@ -76,8 +76,8 @@ export default function BlogPage() {
               Blog
             </h1>
             <p className="font-body text-lg text-[#8FA0BC] leading-relaxed max-w-xl animate-fade-up-delay-2">
-              Artículos y recursos prácticos sobre costos, rentabilidad y gestión gastronómica
-              para restaurantes y negocios gastronómicos.
+              Artículos y recursos prácticos sobre costos, rentabilidad y gestión
+              para todo tipo de negocio gastronómico.
             </p>
           </div>
         </div>

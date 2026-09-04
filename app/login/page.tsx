@@ -5,24 +5,38 @@ import { authClient } from "@/lib/auth"
 import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, BarChart3, ChefHat, TrendingUp } from "lucide-react"
+import { getPendingCheckout, pendingToPath, pendingContextLine } from "@/lib/commerce/pending"
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = useMemo(() => searchParams.get("redirect"), [searchParams])
+  // Intención de compra pendiente (planes → login → checkout). Se conserva el
+  // soporte del viejo ?redirect= y se añade ?returnTo=.
+  const redirectTo = useMemo(() => {
+    const rt = searchParams.get("returnTo") || searchParams.get("redirect")
+    return rt && rt.startsWith("/") ? rt : null
+  }, [searchParams])
+  const pending = useMemo(
+    () => (typeof window !== "undefined" ? getPendingCheckout() : null),
+    []
+  )
+  const destination = useMemo(
+    () => redirectTo ?? (pending ? pendingToPath(pending) : "/onboarding"),
+    [redirectTo, pending]
+  )
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const callbackURL = useMemo(() => {
     if (typeof window === "undefined") return ""
-    const base = window.location.origin
-    return redirectTo ? `${base}${redirectTo}` : `${base}/onboarding`
-  }, [redirectTo])
+    return `${window.location.origin}${destination}`
+  }, [destination])
 
   useEffect(() => {
     authClient.getSession().then(({ data }) => {
-      if (data?.session) router.replace(redirectTo || "/onboarding")
+      if (data?.session) router.replace(destination)
     })
-  }, [router, redirectTo])
+  }, [router, destination])
 
   const handleGoogleLogin = async () => {
     setLoading(true)
@@ -52,27 +66,30 @@ function LoginForm() {
       {/* ── Left panel – brand (desktop only) ──────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 overflow-hidden"
-        style={{ background: "var(--bg-inverse)" }}
+        style={{
+          backgroundImage: `url('/images/team-bg.jpg')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed",
+        }}
       >
-        {/* Decorative background layers */}
+        {/* Decorative background overlay */}
         <div className="absolute inset-0">
-          {/* Subtle grid pattern */}
+          {/* Dark overlay for readability */}
           <div
-            className="absolute inset-0 opacity-[0.03]"
+            className="absolute inset-0"
+            style={{
+              background: "rgba(18, 33, 58, 0.8)",
+            }}
+          />
+          {/* Subtle texture */}
+          <div
+            className="absolute inset-0 opacity-[0.08]"
             style={{
               backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
                                 linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
               backgroundSize: "48px 48px",
             }}
-          />
-          {/* Glow orbs */}
-          <div
-            className="absolute top-[-120px] left-[-80px] w-[500px] h-[500px] rounded-full"
-            style={{ background: "radial-gradient(circle, var(--accent) 0%, transparent 70%)", opacity: 0.08 }}
-          />
-          <div
-            className="absolute bottom-[-100px] right-[-60px] w-[400px] h-[400px] rounded-full"
-            style={{ background: "radial-gradient(circle, #10B981 0%, transparent 70%)", opacity: 0.06 }}
           />
         </div>
 
@@ -90,12 +107,24 @@ function LoginForm() {
               className="text-4xl xl:text-5xl font-bold leading-tight tracking-tight"
               style={{ color: "#fff", fontFamily: "var(--font-barlow-condensed)" }}
             >
-              Controla los costos
-              <br />
-              de tu restaurante
+              {pending ? (
+                <>
+                  Ya casi terminas
+                  <br />
+                  tu compra
+                </>
+              ) : (
+                <>
+                  Controla los costos
+                  <br />
+                  de tu restaurante
+                </>
+              )}
             </h1>
             <p className="text-base leading-relaxed max-w-md" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Calcula costos reales por porción, analiza rentabilidad y toma mejores decisiones para tu negocio.
+              {pending
+                ? "Ingresa a tu cuenta y retomamos el checkout exactamente donde lo dejaste."
+                : "Calcula costos reales por porción, analiza rentabilidad y toma mejores decisiones para tu negocio."}
             </p>
           </div>
 
@@ -165,10 +194,10 @@ function LoginForm() {
               className="text-2xl font-bold tracking-tight"
               style={{ color: "var(--text-primary)", fontFamily: "var(--font-barlow-condensed)" }}
             >
-              Bienvenido
+              {pending ? "Ingresa a tu cuenta para continuar" : "Bienvenido"}
             </h2>
             <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-              Inicia sesión para continuar
+              {pending ? pendingContextLine(pending) : "Inicia sesión para continuar"}
             </p>
           </div>
 
@@ -225,6 +254,12 @@ function LoginForm() {
                 </svg>
                 {loading ? "Redirigiendo…" : "Continuar con Google"}
               </button>
+
+              {pending && (
+                <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
+                  Al iniciar sesión con Google creas tu cuenta automáticamente si aún no tienes una.
+                </p>
+              )}
             </div>
           </div>
 

@@ -1,8 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowRight, BookOpen, Package, ChefHat, Scale, BarChart3, CheckCircle, CreditCard, Loader2 } from "lucide-react"
-import Modal from "@/components/ui/Modal"
+import { useRouter } from "next/navigation"
+import { ArrowRight, BookOpen, Package, ChefHat, Scale, BarChart3 } from "lucide-react"
+
+const PROGRAM_SLUG: Record<string, string> = {
+  "Introducción": "introduccion",
+  "Gestión de Almacén": "almacen",
+  "La Receta": "receta",
+  "Factor de Rendimiento": "rendimiento",
+  "Gestión del Costo": "costo",
+  "Diplomado en Gestión de Costos A&B": "diplomado",
+}
 
 const tracks = [
   {
@@ -73,60 +82,16 @@ function formatCOP(value: number) {
 }
 
 export default function CapacitacionPage() {
-  const [form, setForm] = useState({
-    nombre: "",
-    correo: "",
-    telefono: "",
-    ciudad: "",
-    programas: [] as string[],
-    mensaje: "",
-  })
-  const [sent, setSent] = useState(false)
-  const [paymentOpen, setPaymentOpen] = useState(false)
-  const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success">("idle")
+  const router = useRouter()
+  const [selectedProgram, setSelectedProgram] = useState<string>("Diplomado en Gestión de Costos A&B")
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  function goToEnrollment(programa: string) {
+    const slug = PROGRAM_SLUG[programa] ?? "introduccion"
+    router.push(`/courses/${slug}/enrollment`)
   }
 
-  function handleProgramaToggle(programa: string) {
-    setForm((prev) => ({
-      ...prev,
-      programas: prev.programas.includes(programa)
-        ? prev.programas.filter((p) => p !== programa)
-        : [...prev.programas, programa],
-    }))
-  }
-
-  // Selecciona una única cápsula/programa (reemplaza cualquier selección previa)
-  // y lleva al usuario directo al formulario de inscripción ya preseleccionado.
   function handleSelectPrograma(programa: string) {
-    setForm((prev) => ({ ...prev, programas: [programa] }))
-    document.getElementById("formulario")?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSent(true)
-  }
-
-  const totalInversion = form.programas.reduce(
-    (sum, programa) => sum + (inversionPorPrograma[programa] ?? 0),
-    0
-  )
-
-  // Pago simulado: no procesa ningún cobro real, solo demuestra el flujo.
-  function handleFakePayment(e: React.FormEvent) {
-    e.preventDefault()
-    setPaymentStatus("processing")
-    setTimeout(() => setPaymentStatus("success"), 1200)
-  }
-
-  function closePaymentModal() {
-    setPaymentOpen(false)
-    setPaymentStatus("idle")
+    goToEnrollment(programa)
   }
 
   return (
@@ -144,7 +109,7 @@ export default function CapacitacionPage() {
         <div className="absolute inset-0 bg-[#0A1520]/60" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1520] to-transparent" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 flex flex-col justify-center min-h-dvh pt-24 pb-16">
           <div className="max-w-2xl animate-fade-up">
             <h1
               className="font-display font-extrabold text-[#F5F0E8] leading-[0.95] tracking-tight mb-6 animate-fade-up-delay-1"
@@ -152,10 +117,10 @@ export default function CapacitacionPage() {
             >
               Capacitación especializada
               <br />
-              <span className="text-[#7AAEFF]">para restaurantes rentables</span>
+              <span className="text-[#7AAEFF]">para negocios gastronómicos rentables</span>
             </h1>
             <p className="font-body text-lg text-[#8FA0BC] leading-relaxed mb-10 max-w-xl animate-fade-up-delay-2">
-              Aprende a controlar costos, optimizar inventarios y aumentar la rentabilidad de tu negocio gastronómico mediante programas prácticos desarrollados por Academia OMG.
+              Aprende a controlar costos, optimizar inventarios y aumentar la rentabilidad de tu operación mediante programas prácticos desarrollados por Academia OMG.
             </p>
             <div className="flex flex-wrap gap-4 animate-fade-up-delay-3">
               <a href="#programas" className="btn-spx btn-spx-accent-solid">
@@ -401,260 +366,47 @@ export default function CapacitacionPage() {
               </div>
             </div>
 
-            {/* Right — Form */}
+            {/* Right — Inscripción */}
             <div>
-              {sent ? (
-                <div className="bg-white rounded-2xl p-10 text-center shadow-sm">
-                  <CheckCircle size={48} className="text-[#1B4FD8] mx-auto mb-4" />
-                  <h3 className="font-display font-bold text-2xl text-[#12213A] mb-3">
-                    ¡Solicitud recibida!
-                  </h3>
-                  <p className="font-body text-sm text-[#4A4438] mb-6">
-                    Nos comunicaremos contigo en las próximas 24 horas hábiles con toda la información.
-                  </p>
-                  {totalInversion > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setPaymentOpen(true)}
-                      className="btn-spx btn-spx-accent"
-                    >
-                      <CreditCard size={16} />
-                      Pagar ahora
-                    </button>
-                  )}
+              <div
+                className="bg-white rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col gap-5"
+                style={{ border: "1px solid #DDD6C8" }}
+              >
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="programa" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
+                    Programa de inscripción
+                  </label>
+                  <select
+                    id="programa"
+                    value={selectedProgram}
+                    onChange={(e) => setSelectedProgram(e.target.value)}
+                    className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
+                    style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
+                  >
+                    {programaOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <form
-                  onSubmit={handleSubmit}
-                  className="bg-white rounded-2xl p-8 sm:p-10 shadow-sm flex flex-col gap-5"
-                  style={{ border: "1px solid #DDD6C8" }}
+                <p className="font-body text-sm text-[#4A4438]">
+                  Continúa a un formulario completo con tus datos, revisión y confirmación de la solicitud. No
+                  necesitas crear una cuenta.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => goToEnrollment(selectedProgram)}
+                  className="btn-spx btn-spx-accent self-start"
                 >
-                  <div className="grid sm:grid-cols-2 gap-5">
-                    {/* Nombre */}
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="nombre" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                        Tu nombre y apellido
-                      </label>
-                      <input
-                        id="nombre"
-                        name="nombre"
-                        type="text"
-                        required
-                        value={form.nombre}
-                        onChange={handleChange}
-                        placeholder="Nombre y apellido"
-                        className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                        style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                      />
-                    </div>
-
-                    {/* Correo */}
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="correo" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                        Tu correo electrónico
-                      </label>
-                      <input
-                        id="correo"
-                        name="correo"
-                        type="email"
-                        required
-                        value={form.correo}
-                        onChange={handleChange}
-                        placeholder="correo@ejemplo.com"
-                        className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                        style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                      />
-                    </div>
-
-                    {/* Teléfono */}
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="telefono" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                        Teléfono / WhatsApp
-                      </label>
-                      <input
-                        id="telefono"
-                        name="telefono"
-                        type="tel"
-                        value={form.telefono}
-                        onChange={handleChange}
-                        placeholder="Número de contacto"
-                        className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                        style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                      />
-                    </div>
-
-                    {/* Ciudad */}
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="ciudad" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                        Ciudad / País
-                      </label>
-                      <input
-                        id="ciudad"
-                        name="ciudad"
-                        type="text"
-                        value={form.ciudad}
-                        onChange={handleChange}
-                        placeholder="Ciudad y país"
-                        className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                        style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Programa de interés — checkboxes */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                      Programa de inscripción
-                    </label>
-                    <div className="flex flex-col gap-3">
-                      {programaOptions.map((opt) => (
-                        <label
-                          key={opt}
-                          className="flex items-center gap-3 cursor-pointer group"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={form.programas.includes(opt)}
-                            onChange={() => handleProgramaToggle(opt)}
-                            className="accent-[#1B4FD8] w-4 h-4"
-                          />
-                          <span className="font-body text-sm text-[#12213A] group-hover:text-[#1B4FD8] transition-colors">
-                            {opt}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Mensaje */}
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="mensaje" className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                      Tu mensaje (opcional)
-                    </label>
-                    <textarea
-                      id="mensaje"
-                      name="mensaje"
-                      rows={4}
-                      value={form.mensaje}
-                      onChange={handleChange}
-                      placeholder="Cuéntanos en qué te gustaría capacitarte..."
-                      className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none resize-none"
-                      style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                    />
-                  </div>
-
-                  {/* Autorización */}
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      id="autorizacion"
-                      className="mt-1 accent-[#1B4FD8]"
-                      required
-                    />
-                    <label htmlFor="autorizacion" className="font-body text-xs text-[#7A6E60] leading-relaxed">
-                      Acepto ser contactado por <strong className="text-[#12213A]">Academia OMG</strong> para recibir información
-                      académica y proceso de inscripción.
-                    </label>
-                  </div>
-
-                  <button type="submit" className="btn-spx btn-spx-accent self-start">
-                    Inscribirme ahora
-                    <ArrowRight size={16} className="btn-arrow" />
-                  </button>
-                </form>
-              )}
+                  Inscribirme
+                  <ArrowRight size={16} className="btn-arrow" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </section>
-
-      {/* ─── PAGO SIMULADO ────────────────────────────────────────── */}
-      <Modal open={paymentOpen} onClose={closePaymentModal} title="Pago simulado">
-        {paymentStatus === "success" ? (
-          <div className="text-center py-4">
-            <CheckCircle size={44} className="text-[#1B4FD8] mx-auto mb-4" />
-            <h3 className="font-display font-bold text-xl text-[#12213A] mb-2">
-              ¡Pago simulado exitoso!
-            </h3>
-            <p className="font-body text-sm text-[#4A4438] mb-6">
-              Esto es una demostración: no se realizó ningún cobro real. En producción aquí se conectaría una pasarela de pago.
-            </p>
-            <button type="button" onClick={closePaymentModal} className="btn-spx btn-spx-accent">
-              Cerrar
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleFakePayment} className="flex flex-col gap-4">
-            <p className="font-body text-xs text-[#7A6E60] leading-relaxed">
-              Pago de demostración — no se procesa ningún cobro real. Los campos no se validan contra ninguna pasarela.
-            </p>
-            <div className="flex items-center justify-between p-4 rounded-xl bg-[#EDE7DB]">
-              <span className="font-body text-sm text-[#4A4438]">
-                {form.programas.join(", ") || "Programa seleccionado"}
-              </span>
-              <span className="font-mono font-bold text-[#12213A]">{formatCOP(totalInversion)}</span>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                Número de tarjeta
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="4242 4242 4242 4242"
-                maxLength={19}
-                className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                  Vencimiento
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="MM/AA"
-                  maxLength={5}
-                  className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                  style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="font-body text-xs font-semibold text-[#12213A] uppercase tracking-wide">
-                  CVC
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="123"
-                  maxLength={4}
-                  className="font-body text-sm text-[#12213A] px-4 py-3 rounded-lg outline-none"
-                  style={{ border: "1px solid #DDD6C8", background: "#FDFAF6" }}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={paymentStatus === "processing"}
-              className="btn-spx btn-spx-accent self-stretch justify-center disabled:opacity-60"
-            >
-              {paymentStatus === "processing" ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Procesando…
-                </>
-              ) : (
-                <>Pagar {formatCOP(totalInversion)}</>
-              )}
-            </button>
-          </form>
-        )}
-      </Modal>
 
     </div>
   )
