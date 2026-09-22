@@ -227,6 +227,8 @@ export interface Valuation {
   safetyMargin: string
   pctMateriaprima: string
   pctFixedCosts: string
+  pctImpuestos: string
+  pctOtros: string
   pctProfit: string
   suggestedPrice: string
   actualPrice: string | null

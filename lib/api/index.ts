@@ -376,6 +376,8 @@ export interface ValuationCreateResult extends Omit<Valuation, "suggestedPrice" 
   breakdown: {
     pctMateriaprima: number
     pctFixedCosts: number
+    pctImpuestos: number
+    pctOtros: number
     pctProfit: number
   }
 }
