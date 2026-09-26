@@ -7,6 +7,7 @@ import { mutate } from "swr"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 import MobileTabBar from "./MobileTabBar"
+import AppContainer from "./AppContainer"
 import ImpersonationBanner from "./ImpersonationBanner"
 import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
@@ -68,8 +69,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             userPlan={plan}
             userInitial={userName.charAt(0).toUpperCase()}
           />
-          <main className="flex-1 overflow-y-auto p-6 pb-32 lg:pb-6 animate-page-in" style={{ background: "var(--bg-primary)" }}>
-            {children}
+          <main className="flex-1 min-w-0 overflow-y-auto pb-32 lg:pb-6 animate-page-in" style={{ background: "var(--bg-primary)" }}>
+            <AppContainer>{children}</AppContainer>
           </main>
           {/* Degradé de desvanecimiento detrás de la barra flotante — así el
               contenido se apaga suavemente en vez de chocar contra ella. */}
