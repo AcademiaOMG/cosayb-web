@@ -18,8 +18,8 @@ export default function InfoStat({
 }) {
   return (
     <div
-      className="rounded-xl px-3 py-2.5"
-      style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
+      className="px-3 py-2.5"
+      style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-md)" }}
     >
       <div className="flex items-center gap-1.5 mb-1">
         {icon}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Menu, ChevronDown, Check, Shield, HelpCircle } from "lucide-react"
+import { ChevronDown, Check, Shield, HelpCircle } from "lucide-react"
 import PlanBadge from "./settings/PlanBadge"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -12,14 +12,15 @@ export interface TopbarProps {
   orgName?: string
   userPlan?: Plan
   userInitial?: string
-  onMenuClick: () => void
 }
 
 export default function Topbar({
   orgName = "Mi organización",
   userPlan = "free",
-  onMenuClick,
 }: TopbarProps) {
+  // El navbar de arriba no existe en mobile en ninguna pantalla — lo
+  // reemplaza MobileTabBar (barra flotante inferior, ver AppShell). Acá solo
+  // queda visible en desktop.
   const { memberships, isPlatform, platformRoles } = usePermissions()
   const helpAvailable = useHelpAvailableSnapshot()
   const [open, setOpen] = useState(false)
@@ -48,23 +49,14 @@ export default function Topbar({
 
   return (
     <header
-      className="flex items-center justify-between h-16 px-6 shrink-0"
+      className="hidden lg:flex h-16 px-6 shrink-0 items-center justify-between"
       style={{
         background: "var(--bg-surface)",
         borderBottom: "1px solid var(--border-light)",
       }}
     >
-      {/* Left: hamburger (mobile) + selector de organización */}
+      {/* Selector de organización */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={onMenuClick}
-          className="lg:hidden rounded-lg p-2 -ml-2"
-          style={{ color: "var(--text-muted)" }}
-          aria-label="Abrir menú"
-        >
-          <Menu size={20} />
-        </button>
-
         <div ref={ref} style={{ position: "relative" }}>
           <button
             onClick={() => setOpen((v) => !v)}
@@ -114,9 +106,8 @@ export default function Topbar({
                 left: 0,
                 minWidth: 260,
                 background: "var(--bg-surface)",
-                border: "1px solid var(--border-light)",
-                borderRadius: 14,
-                boxShadow: "0 8px 30px rgba(18,33,58,0.12)",
+                borderRadius: "var(--radius-lg)",
+                boxShadow: "var(--shadow-md)",
                 padding: 6,
                 zIndex: 50,
               }}

@@ -110,11 +110,11 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative z-10 w-full rounded-2xl flex flex-col max-h-[85vh] overflow-hidden outline-none ${wide ? "max-w-3xl" : "max-w-lg"}`}
+        className={`relative z-10 w-full flex flex-col max-h-[85vh] overflow-hidden outline-none ${wide ? "max-w-3xl" : "max-w-lg"}`}
         style={{
           background: "var(--bg-surface)",
-          border: "1px solid var(--border-light)",
-          boxShadow: "0 16px 48px rgba(18, 33, 58, 0.16)",
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "var(--shadow-md)",
         }}
       >
         {/* Header — fixed */}

@@ -16,7 +16,7 @@ import { getRecipes, deleteRecipe, getRecipeCounts } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import ModuleLocked from "@/components/app/ModuleLocked"
-import { ChefHat, Plus, Search, Globe, User, SlidersHorizontal, X } from "lucide-react"
+import { ChefHat, Plus, Search, SlidersHorizontal, X } from "lucide-react"
 import { clsx } from "clsx"
 
 const PAGE_SIZE = 12
@@ -79,7 +79,7 @@ export default function RecetasPage() {
   ].filter(Boolean).length
 
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
-  const [deleting, setDeleting]         = useState(false)
+  const [deleting] = useState(false)
   const [formOpen, setFormOpen]         = useState(false)
   const [editRecipeId, setEditRecipeId] = useState<string | null>(null)
   const [detailRecipeId, setDetailRecipeId] = useState<string | null>(null)
@@ -90,11 +90,6 @@ export default function RecetasPage() {
     window.addEventListener("open-help", handleHelp)
     return () => window.removeEventListener("open-help", handleHelp)
   }, [])
-
-  const stats = useMemo(() => {
-    if (isLoading) return "Cargando…"
-    return `${total} receta${total !== 1 ? "s" : ""}`
-  }, [total, isLoading])
 
   function changeFilter(v: RecipeFilter) { setFilter(v); setPage(1) }
   function changeSearch(v: string)       { setSearch(v); setPage(1) }
@@ -134,7 +129,7 @@ export default function RecetasPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Recetas"
-        subtitle={stats}
+        subtitle="Gestiona tus recetas, costos y porciones para mantener tus platos consistentes y rentables."
         action={
           can("recipes", "create") ? (
             <Button variant="primary" onClick={() => { setEditRecipeId(null); setFormOpen(true) }}>

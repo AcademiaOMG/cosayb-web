@@ -25,7 +25,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={isDisabled}
         className={clsx(
-          "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+          "inline-flex items-center justify-center gap-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
           {
             "h-8 px-3 text-sm": size === "sm",
             "h-10 px-4 text-sm": size === "md",
@@ -42,6 +42,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 "--btn-ring": "var(--accent)",
                 background: "var(--btn-bg)",
                 color: "var(--btn-text)",
+                borderRadius: "var(--radius-md)",
               } as React.CSSProperties)
             : variant === "ghost"
             ? ({
@@ -52,6 +53,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 background: "transparent",
                 border: "1px solid var(--border-light)",
                 color: "var(--text-primary)",
+                borderRadius: "var(--radius-md)",
               } as React.CSSProperties)
             : ({
                 "--btn-bg": "#B42020",
@@ -60,6 +62,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 "--btn-ring": "#B42020",
                 background: "var(--btn-bg)",
                 color: "var(--btn-text)",
+                borderRadius: "var(--radius-md)",
               } as React.CSSProperties)
         }
         onMouseEnter={(e) => {

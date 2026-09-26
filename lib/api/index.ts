@@ -642,6 +642,17 @@ export async function getDashboardSummary(): Promise<{ data: DashboardSummary }>
   return fetchAPI("/api/v1/dashboard/summary")
 }
 
+export interface DashboardInsights {
+  merma: {
+    totalRecoverable: number
+    items: { ingredientName: string; amount: number }[]
+  }
+}
+
+export async function getDashboardInsights(): Promise<{ data: DashboardInsights }> {
+  return fetchAPI("/api/v1/dashboard/insights")
+}
+
 // ─── Panel de plataforma (super admin) ───────────────────────────────────────
 
 export interface PlatformOrg {

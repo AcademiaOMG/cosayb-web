@@ -24,12 +24,12 @@ export default function Toast({
   return (
     <div
       role="alert"
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg"
+      className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 text-sm font-medium"
       style={{
         background: "var(--bg-surface)",
-        border: "1px solid var(--border-light)",
+        borderRadius: "var(--radius-lg)",
         color: "var(--text-primary)",
-        boxShadow: "0 8px 24px rgba(18, 33, 58, 0.12)",
+        boxShadow: "var(--shadow-md)",
         maxWidth: 360,
       }}
     >

@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      // Foto de perfil de Google (login social vía Better Auth)
+      { protocol: "https", hostname: "*.googleusercontent.com" },
+    ],
+  },
 };
 
 export default nextConfig;

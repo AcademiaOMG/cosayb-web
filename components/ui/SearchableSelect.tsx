@@ -16,6 +16,10 @@ interface SearchableSelectProps {
   placeholder?: string
   emptyMessage?: string
   ariaLabel?: string
+  /** Texto del buscador dentro del desplegable (por defecto, el mismo placeholder) */
+  searchPlaceholder?: string
+  /** Ajustes de estilo del disparador (ej. para integrarlo en una superficie oscura) */
+  triggerStyle?: React.CSSProperties
 }
 
 interface DropdownRect {
@@ -31,6 +35,8 @@ export default function SearchableSelect({
   placeholder = "Buscar...",
   emptyMessage = "No se encontraron resultados",
   ariaLabel,
+  triggerStyle,
+  searchPlaceholder,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -159,9 +165,8 @@ export default function SearchableSelect({
         width: dropdownRect.width,
         zIndex: 9999,
         background: "var(--bg-surface)",
-        border: "1px solid var(--border-light)",
-        borderRadius: "8px",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        borderRadius: "var(--radius-md)",
+        boxShadow: "var(--shadow-md)",
         padding: "4px",
         display: "flex",
         flexDirection: "column",
@@ -185,7 +190,7 @@ export default function SearchableSelect({
         <input
           ref={inputRef}
           type="text"
-          placeholder={placeholder}
+          placeholder={searchPlaceholder ?? placeholder}
           value={search}
           onChange={(e) => { setSearch(e.target.value); setHighlightIndex(-1) }}
           onKeyDown={handleInputKeyDown}
@@ -280,7 +285,7 @@ export default function SearchableSelect({
           alignItems: "center",
           justifyContent: "space-between",
           height: "36px",
-          borderRadius: "8px",
+          borderRadius: "var(--radius-md)",
           border: "1px solid var(--border-light)",
           background: "var(--bg-surface)",
           color: selectedOption ? "var(--text-primary)" : "var(--text-muted)",
@@ -289,12 +294,13 @@ export default function SearchableSelect({
           cursor: "pointer",
           userSelect: "none",
           outline: "none",
+          ...triggerStyle,
         }}
       >
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown size={14} style={{ color: "var(--text-muted)", marginLeft: "4px", flexShrink: 0 }} />
+        <ChevronDown size={14} style={{ color: triggerStyle?.color ?? "var(--text-muted)", marginLeft: "4px", flexShrink: 0 }} />
       </div>
 
       {/* Dropdown rendered via portal to escape overflow clipping */}

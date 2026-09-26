@@ -13,10 +13,11 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className="flex flex-col items-center justify-center gap-4 rounded-xl px-6 py-16 text-center"
+      className="flex flex-col items-center justify-center gap-4 px-6 py-16 text-center"
       style={{
         background: "var(--bg-surface)",
         border: "1px dashed var(--border-medium)",
+        borderRadius: "var(--radius-lg)",
       }}
     >
       {icon && (

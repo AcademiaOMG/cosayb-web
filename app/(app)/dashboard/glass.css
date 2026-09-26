@@ -1,0 +1,192 @@
+/* ─── Inicio — grilla de módulos con cards de vidrio ─────────────────────────
+   Deliberadamente fuera del design system del resto de la app (autorizado
+   para esta pantalla puntual) — namespaced bajo .glass-* para no chocar con
+   nada. Vidrio claro (blanco/beige) con manchas de azul de marca — sin fondo
+   oscuro, así se ve el líquido en vez de un bloque de color. */
+
+.glass-grid-wrap {
+  width: 100%;
+  margin: 0;
+}
+
+/* El ancho global del shell es el único que define la alineación horizontal.
+   Las cards y bloques de dashboard heredan esa regla y no fijan otro eje. */
+.glass-grid-wrap-wide {
+  width: 100%;
+  max-width: none;
+}
+
+/* ── Grilla responsive: 2 cols en mobile (todo visible, sin carrusel), 3 en
+   tablet, 4×2 en desktop — las mismas 8 funcionalidades en todas las
+   plataformas, solo cambia cuánto ancho aprovechan. */
+.glass-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .glass-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .glass-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+}
+
+/* ── Card — degradé líquido sutil, de fondo, sin llamar la atención ───────── */
+.glass-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-decoration: none;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(124, 168, 255, 0.16) 0%, transparent 62%),
+    var(--bg-surface);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.glass-card-icon {
+  position: relative;
+  z-index: 3;
+  width: 46%;
+  max-width: 96px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+}
+
+.glass-card-label {
+  position: relative;
+  z-index: 3;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(13px, 3.6vw, 16px);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.glass-card-skeleton {
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-lg);
+  background: rgba(27, 79, 216, 0.06);
+}
+
+/* ── Títulos de sección — chicos y discretos, la jerarquía la da el
+   contenido de abajo, no el título. ──────────────────────────────────── */
+.dash-section-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ── Banner de insight — pieza editorial, no una card de "título +
+   descripción + botón". Composición de 3 niveles: contexto corto → cifra
+   protagonista → explicación (con una palabra clave en cursiva/acento).
+   Fondo con la imagen de public/background.jpg (sin el navy sólido de
+   antes). Es la pieza más importante de la pantalla. ───────────────────── */
+.dash-banner {
+  position: relative;
+  border-radius: var(--radius-lg);
+  padding: 26px 24px 24px;
+  background:
+    linear-gradient(rgba(18, 33, 58, 0.4), rgba(18, 33, 58, 0.4)),
+    url("/background2.jpg") center / cover no-repeat;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-banner-context {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: -0.01em;
+}
+
+.dash-banner-figure {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(30px, 8vw, 40px);
+  font-weight: 800;
+  line-height: 1.05;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin: 2px 0 4px;
+}
+
+.dash-banner-explanation {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-style: italic;
+  font-size: 22px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  max-width: 40ch;
+}
+
+.dash-banner-emph {
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ── Información que importa — 1 en mobile, hasta 3 en desktop ─────────── */
+.dash-insights-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.dash-insights-row > *:nth-child(n + 2) {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .dash-insights-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .dash-insights-row > *:nth-child(n + 2) {
+    display: flex;
+  }
+}
+
+.dash-insight-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.dash-insight-stat-label {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.dash-insight-stat-value {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
