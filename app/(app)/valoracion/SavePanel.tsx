@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import Card from "@/components/ui/Card"
+import { useEffect, useRef, useState } from "react"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import { CheckCircle2 } from "lucide-react"
@@ -31,6 +30,14 @@ export default function SavePanel({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const nameRef = useRef<HTMLInputElement>(null)
+
+  // Vive dentro de <Modal>, que al abrir enfoca su botón de cerrar (timeout 0).
+  // El primer dato a escribir es el nombre: tomar el foco justo después.
+  useEffect(() => {
+    const t = setTimeout(() => nameRef.current?.focus(), 30)
+    return () => clearTimeout(t)
+  }, [])
 
   function f<K extends keyof SaveFormState>(k: K, v: SaveFormState[K]) {
     onChange({ ...form, [k]: v })
@@ -66,28 +73,31 @@ export default function SavePanel({
   }
 
   return (
-    <Card>
-      <p className="text-xs font-semibold tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>
-        GUARDAR EN HISTORIAL
-      </p>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!saving && !success) void handleSave()
+      }}
+    >
       <div className="flex flex-col gap-4">
         <Input
+          ref={nameRef}
           label="Nombre del plato o producto"
           placeholder="Ej. Pollo con champiñones"
           value={form.name}
           onChange={(e) => f("name", e.target.value)}
-          autoFocus
         />
         <Input
           label="Precio real de venta (COP)"
           type="number" min="0"
-          placeholder="Opcional — para comparar con el sugerido"
+          placeholder="Opcional, para comparar"
           value={form.actualPrice}
           onChange={(e) => f("actualPrice", e.target.value)}
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Notas</label>
+          <label htmlFor="save-valuation-notes" className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Notas</label>
           <textarea
+            id="save-valuation-notes"
             rows={2} placeholder="Observaciones... (opcional)"
             value={form.notes}
             onChange={(e) => f("notes", e.target.value)}
@@ -101,22 +111,23 @@ export default function SavePanel({
           />
         </div>
 
-        <div className="flex items-center gap-3 justify-end">
-          {error && <span className="text-sm mr-auto" style={{ color: "#EF4444" }}>{error}</span>}
-          {success && (
-            <span className="text-sm flex items-center gap-1.5 mr-auto" style={{ color: "#166534" }}>
-              <CheckCircle2 size={14} />
-              Guardado
-            </span>
-          )}
-          <Button variant="ghost" onClick={onCancel} disabled={saving || success}>
+        {error && <p className="text-sm" role="alert" style={{ color: "#DC2626" }}>{error}</p>}
+        {success && (
+          <p className="text-sm flex items-center gap-1.5" role="status" style={{ color: "#166534" }}>
+            <CheckCircle2 size={14} />
+            Guardado en el historial
+          </p>
+        )}
+
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={saving || success}>
             Cancelar
           </Button>
-          <Button variant="primary" loading={saving} disabled={success} onClick={handleSave}>
+          <Button type="submit" variant="primary" loading={saving} disabled={success}>
             Guardar valoración
           </Button>
         </div>
       </div>
-    </Card>
+    </form>
   )
 }

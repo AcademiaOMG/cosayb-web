@@ -4,6 +4,7 @@ import useSWR from "swr"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
 import InfoStat from "@/components/ui/InfoStat"
+import { CalcDisplay } from "@/components/calculator"
 import ValuationDetailCard from "./ValuationDetailCard"
 import "./calculator.css"
 import { RotateCcw, StickyNote, ChefHat } from "lucide-react"
@@ -74,9 +75,8 @@ export default function ValuationViewModal({
 
         {result && (
           <>
-            <div className="calc-screen" style={{ maxWidth: 260, margin: "0 auto" }}>
-              <span className="calc-screen-label">PRECIO SUGERIDO</span>
-              <span className="calc-screen-value">{fmt(result.suggested)}</span>
+            <div style={{ width: "100%", maxWidth: 280, margin: "0 auto" }}>
+              <CalcDisplay size="sm" tone="result" label="PRECIO SUGERIDO" value={fmt(result.suggested)} />
             </div>
             <ValuationDetailCard
               headline="Desglose de la valoración"
