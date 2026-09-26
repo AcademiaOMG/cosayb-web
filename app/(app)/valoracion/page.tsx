@@ -2,8 +2,9 @@
 
 import useSWR from "swr"
 import { useEffect, useState } from "react"
-import PageHeader from "@/components/ui/PageHeader"
+import { Calculator, History } from "lucide-react"
 import Modal from "@/components/ui/Modal"
+import PageHeader from "@/components/ui/PageHeader"
 import { usePermissions } from "@/hooks/usePermissions"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
@@ -18,7 +19,7 @@ type Tab = "calculator" | "history"
 
 export default function ValoracionPage() {
   useHelpAvailable()
-  const { can, hasFeature, featureLockedMessage } = usePermissions()
+  const { can, hasFeature, featureLockedMessage, isLoading: permsLoading } = usePermissions()
 
   const { data: history = [], isLoading, mutate } = useSWR(
     "valuations",
@@ -69,45 +70,59 @@ export default function ValoracionPage() {
     setTab("history")
   }
 
+  // Mientras cargan los permisos no se sabe si el módulo está habilitado —
+  // no mostrar "módulo bloqueado" por un instante a quien sí lo tiene.
+  if (permsLoading) return null
+
   if (!hasFeature("module_valuations")) {
     return <ModuleLocked message={featureLockedMessage("module_valuations")} />
   }
 
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    borderRadius: "var(--radius-sm)",
+    ...(active
+      ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
+      : { color: "var(--text-muted)" }),
+  })
+
   return (
-    <div className="flex flex-col gap-6">
+    // Ancho máximo compartido por ambas pestañas: el título no salta al
+    // cambiar de pestaña y, en la calculadora, queda alineado con el aparato.
+    <div className="w-full flex flex-col gap-7 pt-1 lg:gap-10 lg:pt-3">
       <PageHeader
-        title="Valoración de Costos"
-        subtitle="Calcula el precio de venta, el % de materia prima o el costo de un plato — como con una calculadora"
+        title="Valoración de costos"
+        subtitle="Calcula a cuánto vender cada plato según lo que cuestan sus ingredientes y guarda el resultado para compararlo después."
         action={
-          <div
-            className="flex items-center gap-1 p-1"
-            style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-md)" }}
-          >
-            <button
-              onClick={goToCalculator}
-              className="px-3 py-1.5 text-sm font-medium transition-colors"
-              style={{
-                borderRadius: "var(--radius-sm)",
-                ...(tab === "calculator"
-                  ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
-                  : { color: "var(--text-muted)" }),
-              }}
+          <>
+            <div
+              className="hidden sm:flex items-center gap-1 p-1 shrink-0"
+              style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-md)" }}
             >
-              Calculadora
-            </button>
+              <button onClick={goToCalculator} className="px-3 py-1.5 text-sm font-medium transition-colors" style={tabStyle(tab === "calculator")}>
+                Calculadora
+              </button>
+              <button onClick={() => setTab("history")} className="px-3 py-1.5 text-sm font-medium transition-colors" style={tabStyle(tab === "history")}>
+                Historial
+              </button>
+            </div>
             <button
-              onClick={() => setTab("history")}
-              className="px-3 py-1.5 text-sm font-medium transition-colors"
-              style={{
-                borderRadius: "var(--radius-sm)",
-                ...(tab === "history"
-                  ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
-                  : { color: "var(--text-muted)" }),
-              }}
+              onClick={tab === "calculator" ? () => setTab("history") : goToCalculator}
+              className="sm:hidden flex items-center gap-1.5 h-10 px-3.5 text-sm font-semibold shrink-0"
+              style={{ background: "var(--bg-surface)", color: "var(--text-primary)", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-sm)" }}
             >
-              Historial
+              {tab === "calculator" ? (
+                <>
+                  <History size={16} style={{ color: "var(--text-muted)" }} />
+                  Historial
+                </>
+              ) : (
+                <>
+                  <Calculator size={16} style={{ color: "var(--text-muted)" }} />
+                  Calculadora
+                </>
+              )}
             </button>
-          </div>
+          </>
         }
       />
 
@@ -145,11 +160,11 @@ export default function ValoracionPage() {
             <ul className="flex flex-col gap-2 ml-1">
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Elige qué calcular:</strong> Precio de venta, % de materia prima o Precio de materia prima — solo te pedimos los dos datos necesarios para ese resultado.</span>
+                <span><strong>Elige qué calcular:</strong> Precio de materia prima, % de materia prima o Precio de venta — solo te pedimos los dos datos necesarios para ese resultado. Cada resultado queda cargado para el cálculo siguiente.</span>
               </li>
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Cargar desde una receta:</strong> Cuando el cálculo necesita el costo de materia prima, puedes seleccionar una receta existente y se llena solo.</span>
+                <span><strong>Cargar desde una receta:</strong> Cuando el cálculo necesita el precio de materia prima, elige una receta en <strong>Cargar precio desde una receta</strong> y se llena solo.</span>
               </li>
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>

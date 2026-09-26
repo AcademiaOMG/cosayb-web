@@ -1,279 +1,213 @@
-/* ─── Piel de calculadora física — solo para el flujo de cálculo de Valoración ───
-   Todo namespaced bajo .calc-* para no chocar con el resto de la app. */
+/* ─── Recibo impreso de la valoración (desglose) ──────────────────────────
+   Complemento de la piel de calculadora física: el cuerpo, la pantalla, los
+   registros y las teclas viven en @/components/calculator (reutilizables).
+   Acá solo queda lo propio de Valoración: el recibo que sale "impreso".
+   Namespaced bajo .calc-* para no chocar con el resto de la app. */
 
-.calc-device {
-  background: linear-gradient(160deg, #4A4E56 0%, #2B2D33 55%, #1C1E22 100%);
-  border-radius: 28px;
-  padding: 22px;
-  box-shadow:
-    0 24px 48px -12px rgba(0, 0, 0, 0.45),
-    0 2px 0 rgba(255, 255, 255, 0.04) inset,
-    0 -3px 0 rgba(0, 0, 0, 0.5) inset;
+/* ── Composición de la pantalla de cálculo ───────────────────────────────
+   Se adapta al ANCHO DISPONIBLE (container query), no al de la pantalla:
+   con o sin barra lateral el espacio real cambia mucho.
+
+   Ancho → dos columnas alineadas al borde izquierdo del título de la página:
+     ┌ selector ┐   ¿Pregunta del modo?
+     │ aparato  │   explicación corta
+     │          │   ┌ impresora / recibo ┐
+     └──────────┘   [Guardar] [Seguir con…]
+   El selector va sobre el aparato (son la misma máquina), y la pregunta
+   encabeza la columna de la respuesta: pregunta arriba, recibo debajo.
+
+   Angosto → una columna centrada: selector, aparato y, solo cuando hay
+   resultado, la pregunta como título del recibo. */
+.valuation-stage {
+  container: calc-stage / inline-size;
   width: 100%;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
-.calc-device-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 4px;
-}
-
-.calc-brand {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: #8B8F98;
-}
-
-.calc-leds {
-  display: flex;
-  gap: 6px;
-}
-
-.calc-led {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #45494F;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.4);
-}
-
-.calc-led.calc-led-on {
-  background: #7CE07C;
-  box-shadow: 0 0 6px 1px rgba(124, 224, 124, 0.7), inset 0 1px 1px rgba(0, 0, 0, 0.2);
-}
-
-/* ── Pantalla LCD ─────────────────────────────────────────────────────────── */
-.calc-screen {
-  background: linear-gradient(178deg, #CDDCC0 0%, #B7C9A6 100%);
-  border: 3px solid #14150F;
-  border-radius: 12px;
-  padding: 16px 18px;
-  box-shadow:
-    inset 0 3px 10px rgba(0, 0, 0, 0.38),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.35);
-  min-height: 84px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-}
-
-.calc-screen-label {
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: #3B4A34;
-  opacity: 0.85;
-}
-
-.calc-screen-value {
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 32px;
-  font-weight: 700;
-  color: #1E2B18;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
-  line-height: 1.15;
-  text-align: right;
-  letter-spacing: 0.01em;
-  word-break: break-all;
-}
-
-.calc-screen-value.calc-screen-value-lg {
-  font-size: 40px;
-}
-
-.calc-screen-sub {
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 11px;
-  color: #3B4A34;
-  opacity: 0.8;
-  text-align: right;
-}
-
-/* Revelado del resultado — un solo momento coreografiado */
-@keyframes calc-reveal {
-  from { opacity: 0; transform: translateY(6px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.calc-result-reveal {
-  animation: calc-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .calc-result-reveal { animation: none; }
-}
-
-/* ── Campo de entrada — pantalla encendida (seleccionada) / apagada ───────
-   Cada estado es un color SÓLIDO único (contenedor + input calzan exacto,
-   sin capas translúcidas que generen manchas). */
-.calc-input-screen {
-  border: 3px solid #14150F;
-  border-radius: 12px;
-  padding: 16px 18px;
-  min-height: 84px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  cursor: text;
-  transition: background 0.15s ease;
-}
-
-.calc-input-label {
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.calc-input-screen input {
+.valuation-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "switch"
+    "device"
+    "answer";
+  row-gap: 16px;
   width: 100%;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 28px;
+  max-width: 440px;
+  margin: 0 auto;
+  justify-items: center;
+}
+
+.valuation-switch { grid-area: switch; }
+.valuation-device { grid-area: device; min-width: 0; }
+
+.valuation-answer {
+  grid-area: answer;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+
+/* Sin resultado, en angosto la respuesta no ocupa lugar: el aparato ya
+   dice qué falta; la pregunta vuelve como título del recibo. */
+.valuation-answer[data-state="idle"] { display: none; }
+.valuation-question-hint { display: none; }
+
+.valuation-question { margin-bottom: 18px; }
+
+.valuation-question-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
   font-weight: 700;
-  text-align: right;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  text-wrap: balance;
 }
 
-/* Encendida — seleccionada, lista para recibir el teclado */
-.calc-input-on {
-  background: #C7D6B9;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2), 0 0 0 2px #7CE07C;
+.valuation-question-hint {
+  margin-top: 8px;
+  max-width: 48ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
 }
-.calc-input-on .calc-input-label { color: #3B4A34; }
-.calc-input-on input {
-  color: #1E2B18 !important;
-  color-scheme: light;
-  caret-color: #1E2B18;
-}
-.calc-input-on input::placeholder { color: #5C6B52; opacity: 0.6; }
 
-/* Apagada — sin seleccionar, como una pantalla de calculadora en reposo */
-.calc-input-off {
-  background: #21241E;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+.valuation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
 }
-.calc-input-off .calc-input-label { color: #5B6353; }
-.calc-input-off input {
-  color: #7C8571 !important;
-  color-scheme: dark;
-  caret-color: #7C8571;
-}
-.calc-input-off input::placeholder { color: #454A3F; opacity: 0.8; }
 
-/* ── Teclas — botones 3D ─────────────────────────────────────────────────── */
-.calc-key {
+/* Tablet / laptop angosta con barra lateral: ya caben las dos columnas,
+   con el aparato en su tamaño de celular. */
+@container calc-stage (min-width: 720px) {
+  .valuation-workspace {
+    max-width: 1040px;
+    margin: 0 auto;
+    justify-items: center;
+    align-items: start;
+    grid-template-columns: 380px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "switch answer"
+      "device answer";
+    column-gap: 32px;
+    row-gap: 18px;
+  }
+
+  .valuation-answer,
+  .valuation-answer[data-state="idle"] {
+    display: flex;
+    margin-top: 0;
+    max-width: 460px;
+  }
+
+  .valuation-question { margin-bottom: 24px; }
+  .valuation-question-title { font-size: 24px; line-height: 1.2; }
+  .valuation-question-hint { display: block; }
+}
+
+@container calc-stage (min-width: 900px) {
+  .valuation-workspace {
+    max-width: 1100px;
+    grid-template-columns: 420px minmax(0, 1fr);
+    column-gap: 64px;
+    row-gap: 20px;
+  }
+
+  .valuation-question { margin-bottom: 28px; }
+  .valuation-question-title { font-size: 28px; }
+}
+
+/* ── Selector de modo — mismo lenguaje visual que las teclas del aparato
+   (tecla física de 3D, no un segmented control plano), adaptado a 3 textos
+   completos en vez de un solo glifo. El seleccionado es la misma tecla azul
+   claro, más oscura y "enganchada" (hundida a medias), como una tecla de
+   función que queda trabada. El azul de acento se reserva para acciones
+   (Calcular, Guardar): un modo elegido no es una acción. ─────────────── */
+.calc-key-mode {
   position: relative;
-  border-radius: 12px;
+  min-height: 56px;
+  padding: 8px 6px;
   border: none;
+  border-radius: 12px;
   cursor: pointer;
   font-family: var(--font-jetbrains-mono), monospace;
   font-weight: 700;
-  color: #2A2C30;
-  background: linear-gradient(180deg, #F6F4F0 0%, #E1DED6 100%);
-  box-shadow:
-    0 3px 0 #ADA99E,
-    0 7px 10px -2px rgba(0, 0, 0, 0.35);
-  transition: transform 0.06s ease, box-shadow 0.06s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.calc-key:hover {
-  filter: brightness(1.03);
-}
-
-.calc-key:active,
-.calc-key.calc-key-pressed {
-  transform: translateY(3px);
-  box-shadow:
-    0 0 0 #ADA99E,
-    0 2px 4px -1px rgba(0, 0, 0, 0.3);
-}
-
-.calc-key-num {
-  height: 48px;
-  font-size: 17px;
-}
-
-.calc-key-fn {
-  height: 48px;
-  font-size: 13px;
-  color: #46403A;
-  background: linear-gradient(180deg, #E7DFC9 0%, #D2C7A8 100%);
-  box-shadow: 0 3px 0 #A99A6E, 0 7px 10px -2px rgba(0, 0, 0, 0.35);
-}
-
-.calc-key-mode {
-  height: 56px;
-  padding: 6px 10px;
   font-size: 12.5px;
   line-height: 1.25;
+  text-align: center;
   color: #1B2540;
   background: linear-gradient(180deg, #DCE4F7 0%, #BCCBF0 100%);
   box-shadow: 0 3px 0 #7C93CC, 0 7px 10px -2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.calc-key-mode:hover {
+  filter: brightness(1.03);
+}
+
+.calc-key-mode:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #7C93CC, 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+}
+
+.calc-key-mode:focus-visible {
+  outline: 2px solid #1B4FD8;
+  outline-offset: 2px;
+}
+
+.calc-key-mode-active {
+  color: #0E1A3A;
+  background: linear-gradient(180deg, #AFC0EA 0%, #93A9E0 100%);
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 #5E76B8,
+    0 3px 6px -2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(14, 26, 58, 0.18);
+  cursor: default;
+}
+
+.calc-key-mode-active:hover { filter: none; }
+
+.calc-key-mode-active:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 #5E76B8,
+    0 3px 6px -2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(14, 26, 58, 0.18);
+}
+
+@media (max-width: 640px) {
+  .calc-key-mode {
+    min-height: 52px;
+    font-size: 12px;
+  }
+}
+
+/* Impresora vacía — antes de calcular, la columna de la respuesta muestra
+   dónde va a salir el recibo en vez de quedar en blanco. */
+.calc-receipt-placeholder {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  min-height: 200px;
+  margin: 0 14px;
+  padding: 36px 24px 24px;
+  border: 1.5px dashed #C3CAD8;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  line-height: 1.6;
   text-align: center;
+  color: var(--text-muted);
+  text-wrap: balance;
 }
 
-.calc-key-mode.calc-key-mode-active {
-  background: linear-gradient(180deg, #3E6CF0 0%, #1B4FD8 100%);
-  color: #fff;
-  box-shadow: 0 3px 0 #123896, 0 7px 10px -2px rgba(0, 0, 0, 0.35);
-}
-
-.calc-key-equals {
-  height: 56px;
-  font-size: 15px;
-  letter-spacing: 0.02em;
-  color: #fff;
-  background: linear-gradient(180deg, #3E6CF0 0%, #1B4FD8 100%);
-  box-shadow: 0 4px 0 #123896, 0 9px 14px -2px rgba(0, 0, 0, 0.4);
-}
-
-.calc-key-equals:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.calc-keypad {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.calc-key-zero {
-  grid-column: 1 / -1;
-}
-
-.calc-mode-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-/* ── Campo secundario (ajustes avanzados) — mismo esquema, más compacto ─── */
-.calc-input-compact {
-  min-height: 52px;
-  padding: 8px 14px;
-}
-
-.calc-input-compact input {
-  font-size: 20px;
-}
-
-/* ── Impresora — el recibo sale del dispositivo, con movimiento real ──────── */
+/* ── Impresora — el recibo sale de la ranura, con movimiento real ─────────── */
 .calc-printer {
   position: relative;
 }
@@ -301,19 +235,19 @@
   to { transform: translateY(0); }
 }
 .calc-receipt-print {
-  animation: calc-print-out 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: calc-print-out 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: 0.1s;
 }
 @media (prefers-reduced-motion: reduce) {
   .calc-receipt-print { animation: none; }
 }
 
-/* ── Recibo impreso — desglose de la valoración ──────────────────────────── */
+/* ── Recibo impreso ──────────────────────────────────────────────────────── */
 .calc-receipt {
   background: #FBFAF5;
   border-radius: 4px;
   padding: 22px 20px 18px;
-  box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.3);
   font-family: var(--font-jetbrains-mono), monospace;
   color: #2A2A26;
 }
@@ -365,6 +299,7 @@
 
 .calc-receipt-row-leader {
   flex: 1;
+  min-width: 8px;
   border-bottom: 1px dotted #B7B1A2;
   transform: translateY(-3px);
 }
@@ -408,4 +343,11 @@
   font-size: 10.5px;
   color: #8B8577;
   margin-left: 6px;
+}
+
+@media (max-width: 640px) {
+  .calc-receipt { padding: 20px 14px 16px; }
+  .calc-receipt-torn { margin: -20px -14px 12px; }
+  .calc-receipt-row { font-size: 12px; }
+  .calc-receipt-pct { margin-left: 4px; }
 }
