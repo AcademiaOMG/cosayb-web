@@ -22,6 +22,41 @@
   /* Borders */
   --border-light: #DDD6C8;
   --border-medium: #C8BFB0;
+
+  /* Radios y sombras — valores actuales (rounded-xl/2xl de Tailwind), se
+     mantienen como estaban fuera de la app autenticada. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(18, 33, 58, 0.08);
+  --shadow-md: 0 8px 24px rgba(18, 33, 58, 0.12);
+  --shadow-lg: 0 12px 32px rgba(18, 33, 58, 0.16);
+}
+
+/* App autenticada — blanco/gris claro en vez del beige del marketing/login,
+   tipografía única (Manrope) y una escala de radios/sombras más sutil,
+   manteniendo los mismos azules y el navy. Solo aplica dentro de
+   app/(app)/... (ver el wrapper .app-theme-neutral en ese layout); el
+   sitio de marketing, login/registro y /plataforma no se tocan. */
+.app-theme-neutral {
+  --bg-primary: #EFF2F6;
+  --bg-secondary: #E8EBF0;
+  --bg-surface: #FFFFFF;
+  --text-secondary: #4B5563;
+  --text-muted: #8890A0;
+  --border-light: #E2E5EA;
+  --border-medium: #CBD2DA;
+
+  --font-display: var(--font-manrope);
+  --font-body: var(--font-manrope);
+  --font-mono: var(--font-manrope);
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 8px 20px rgba(16, 24, 40, 0.1);
 }
 
 /* ─── Tailwind Theme Bridge ─────────────────────────────────────── */
@@ -63,18 +98,18 @@
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: var(--font-body), var(--font-inter), system-ui, sans-serif;
     line-height: 1.5;
   }
 }
 
 /* ─── Font Utilities ────────────────────────────────────────────── */
 .font-display {
-  font-family: var(--font-barlow-condensed), system-ui, sans-serif;
+  font-family: var(--font-display), var(--font-barlow-condensed), system-ui, sans-serif;
 }
 
 .font-mono {
-  font-family: var(--font-jetbrains-mono), monospace;
+  font-family: var(--font-mono), var(--font-jetbrains-mono), monospace;
 }
 
 /* ─── Animations ────────────────────────────────────────────────── */

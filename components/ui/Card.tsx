@@ -13,13 +13,12 @@ export default function Card({
 }: CardProps) {
   return (
     <div
-      className={clsx("rounded-xl p-6", className)}
+      className={clsx("p-6", className)}
       style={{
         background: "var(--bg-surface)",
-        border:
-          variant === "bordered"
-            ? "2px solid var(--accent)"
-            : "1px solid var(--border-light)",
+        borderRadius: "var(--radius-lg)",
+        border: variant === "bordered" ? "2px solid var(--accent)" : "none",
+        boxShadow: variant === "bordered" ? "none" : "var(--shadow-sm)",
       }}
       {...props}
     >

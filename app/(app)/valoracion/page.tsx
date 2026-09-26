@@ -79,22 +79,31 @@ export default function ValoracionPage() {
         title="Valoración de Costos"
         subtitle="Calcula el precio de venta, el % de materia prima o el costo de un plato — como con una calculadora"
         action={
-          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: "var(--bg-secondary)" }}>
+          <div
+            className="flex items-center gap-1 p-1"
+            style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-md)" }}
+          >
             <button
               onClick={goToCalculator}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-              style={tab === "calculator"
-                ? { background: "var(--bg-surface)", color: "var(--text-primary)" }
-                : { color: "var(--text-muted)" }}
+              className="px-3 py-1.5 text-sm font-medium transition-colors"
+              style={{
+                borderRadius: "var(--radius-sm)",
+                ...(tab === "calculator"
+                  ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
+                  : { color: "var(--text-muted)" }),
+              }}
             >
               Calculadora
             </button>
             <button
               onClick={() => setTab("history")}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-              style={tab === "history"
-                ? { background: "var(--bg-surface)", color: "var(--text-primary)" }
-                : { color: "var(--text-muted)" }}
+              className="px-3 py-1.5 text-sm font-medium transition-colors"
+              style={{
+                borderRadius: "var(--radius-sm)",
+                ...(tab === "history"
+                  ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
+                  : { color: "var(--text-muted)" }),
+              }}
             >
               Historial
             </button>

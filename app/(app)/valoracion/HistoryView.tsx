@@ -7,7 +7,10 @@ import { IND, fmt, fmtPct, refLabel } from "./lib"
 
 function HistorySkeleton() {
   return (
-    <div className="w-full overflow-hidden rounded-xl animate-pulse" style={{ border: "1px solid var(--border-light)" }}>
+    <div
+      className="w-full overflow-hidden animate-pulse"
+      style={{ borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)" }}
+    >
       <div className="px-4 py-3 flex gap-4" style={{ background: "var(--bg-secondary)" }}>
         {[24, 16, 8, 12, 16, 12, 10, 12].map((pct, i) => (
           <div key={i} className="h-3 rounded"
@@ -16,7 +19,7 @@ function HistorySkeleton() {
       </div>
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="px-4 py-4 flex gap-4 items-center"
-          style={{ borderTop: "1px solid var(--border-light)", background: i % 2 === 0 ? "var(--bg-surface)" : "var(--bg-primary)" }}>
+          style={{ background: i % 2 === 0 ? "var(--bg-surface)" : "var(--bg-primary)" }}>
           <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "24%", flexShrink: 0 }} />
           <div className="h-5 rounded-full" style={{ background: "var(--bg-secondary)", width: "16%", flexShrink: 0 }} />
           <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "8%", flexShrink: 0 }} />
@@ -24,7 +27,7 @@ function HistorySkeleton() {
           <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "16%", flexShrink: 0 }} />
           <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "12%", flexShrink: 0 }} />
           <div className="h-5 rounded-full" style={{ background: "var(--bg-secondary)", width: "10%", flexShrink: 0 }} />
-          <div className="h-7 rounded-lg ml-auto" style={{ background: "var(--bg-secondary)", width: 160, flexShrink: 0 }} />
+          <div className="h-7 ml-auto" style={{ background: "var(--bg-secondary)", width: 160, borderRadius: "var(--radius-sm)", flexShrink: 0 }} />
         </div>
       ))}
     </div>
@@ -51,7 +54,10 @@ export default function HistoryView({
   if (history.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "var(--bg-secondary)" }}>
+        <div
+          className="w-16 h-16 flex items-center justify-center"
+          style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-lg)" }}
+        >
           <Calculator size={28} style={{ color: "var(--text-muted)" }} />
         </div>
         <div>
@@ -150,16 +156,16 @@ export default function HistoryView({
                 <button
                   onClick={() => onView(valuation)}
                   title="Ver valoración"
-                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ color: "var(--text-muted)" }}
+                  className="p-1.5 transition-colors hover:bg-[var(--bg-secondary)]"
+                  style={{ color: "var(--text-muted)", borderRadius: "var(--radius-sm)" }}
                 >
                   <Eye size={14} />
                 </button>
                 <button
                   onClick={() => onReuse(valuation)}
                   title="Reutilizar como base para un nuevo cálculo"
-                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ color: "var(--text-muted)" }}
+                  className="p-1.5 transition-colors hover:bg-[var(--bg-secondary)]"
+                  style={{ color: "var(--text-muted)", borderRadius: "var(--radius-sm)" }}
                 >
                   <Pencil size={14} />
                 </button>

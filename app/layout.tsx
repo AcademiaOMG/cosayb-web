@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google"
+import { Barlow_Condensed, Inter, JetBrains_Mono, Manrope, Cormorant_Garamond } from "next/font/google"
 import SWRProvider from "@/components/SWRProvider"
 import "./globals.css"
 
@@ -20,6 +20,25 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500"],
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
+  display: "swap",
+})
+
+// App autenticada — tipografía única (títulos, cuerpo y cifras), ver el
+// override de --font-display/--font-body/--font-mono en .app-theme-neutral
+// dentro de globals.css.
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+})
+
+// Segunda tipografía, solo para el banner de insight de Inicio (acento
+// editorial en itálica) — no es parte del sistema de tokens general.
+const cormorantGaramond = Cormorant_Garamond({
+  style: ["italic"],
+  weight: ["500", "600"],
+  subsets: ["latin"],
+  variable: "--font-cormorant",
   display: "swap",
 })
 
@@ -111,7 +130,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${barlowCondensed.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${barlowCondensed.variable} ${inter.variable} ${jetbrainsMono.variable} ${manrope.variable} ${cormorantGaramond.variable}`}
     >
       <body>
         <SWRProvider>{children}</SWRProvider>

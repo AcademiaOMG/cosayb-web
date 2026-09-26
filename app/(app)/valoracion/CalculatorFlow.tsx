@@ -7,7 +7,8 @@ import SearchableSelect from "@/components/ui/SearchableSelect"
 import ValuationDetailCard from "./ValuationDetailCard"
 import SavePanel from "./SavePanel"
 import CalcKeypad from "./CalcKeypad"
-import { ArrowLeft, DollarSign, Percent, Package, RotateCcw, ChefHat, Settings2 } from "lucide-react"
+import { useCountUp } from "./useCountUp"
+import { ArrowLeft, RotateCcw, ChefHat, Settings2 } from "lucide-react"
 import type { Recipe, Valuation } from "@/types/domain"
 import { getRecipeCost } from "@/lib/api"
 import {
@@ -31,12 +32,6 @@ const MAX_DIGITS = 12
 type Step = "select" | "inputs" | "result"
 type ActiveField = "costoMP" | "precioVenta" | "pctMP" | "margin"
 const PERCENT_FIELDS: ActiveField[] = ["pctMP", "margin"]
-
-const MODE_ICON: Record<CalculatorMode, typeof DollarSign> = {
-  "precio-venta": DollarSign,
-  "porcentaje-mp": Percent,
-  "precio-mp": Package,
-}
 
 const MODE_SHORT: Record<CalculatorMode, string> = {
   "precio-venta": "Precio de venta",
@@ -212,6 +207,13 @@ export default function CalculatorFlow({
 
   const result = useMemo(() => calcPricing(savedCost, savedPctMP, savedMargin), [savedCost, savedPctMP, savedMargin])
 
+  // Hook siempre llamado (nunca condicional) — el conteo animado del
+  // resultado, el "momento" de revelado. Target en 0 cuando no hay resultado.
+  const resultTarget = result
+    ? mode === "porcentaje-mp" ? result.pctMateriaprima : mode === "precio-mp" ? savedCost : result.suggested
+    : 0
+  const animatedResult = useCountUp(resultTarget)
+
   function newCalculation() {
     onConsumedPrefill?.()
     setStep("select")
@@ -234,15 +236,6 @@ export default function CalculatorFlow({
     return (
       <div className="flex flex-col items-center py-4 gap-4">
         <div className="calc-device">
-          <div className="calc-device-top">
-            <span className="calc-brand">CO$AYB · CALC</span>
-            <div className="calc-leds">
-              <span className="calc-led calc-led-on" />
-              <span className="calc-led" />
-              <span className="calc-led" />
-            </div>
-          </div>
-
           <div className="calc-screen">
             <span className="calc-screen-label">¿QUÉ QUIERES CALCULAR?</span>
             <span className="calc-screen-value" style={{ fontSize: 18 }}>
@@ -251,15 +244,11 @@ export default function CalculatorFlow({
           </div>
 
           <div className="calc-mode-grid">
-            {(Object.keys(MODE_LABELS) as CalculatorMode[]).map((m) => {
-              const Icon = MODE_ICON[m]
-              return (
-                <button key={m} type="button" className="calc-key calc-key-mode" onClick={() => selectMode(m)}>
-                  <Icon size={18} />
-                  {MODE_SHORT[m]}
-                </button>
-              )
-            })}
+            {(Object.keys(MODE_LABELS) as CalculatorMode[]).map((m) => (
+              <button key={m} type="button" className="calc-key calc-key-mode" onClick={() => selectMode(m)}>
+                {MODE_SHORT[m]}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -271,7 +260,6 @@ export default function CalculatorFlow({
     const needsCosto = mode === "precio-venta" || mode === "porcentaje-mp"
     const needsVenta = mode === "porcentaje-mp" || mode === "precio-mp"
     const needsPct = mode === "precio-venta" || mode === "precio-mp"
-    const multiField = [needsCosto, needsVenta, needsPct].filter(Boolean).length > 1
 
     const canCalculate =
       (!needsCosto || parseFloat(costoMP) > 0) &&
@@ -332,12 +320,6 @@ export default function CalculatorFlow({
             />
           )}
 
-          {multiField && (
-            <p className="text-center" style={{ fontSize: 11, color: "#9BA0AA" }}>
-              Toca el campo que quieres llenar antes de usar el teclado
-            </p>
-          )}
-
           <CalcKeypad onDigit={appendDigit} onDecimal={appendDecimal} onBackspace={backspace} onClear={clearActive} />
 
           {needsCosto && (
@@ -387,9 +369,7 @@ export default function CalculatorFlow({
   // ── Paso 3: resultado ──────────────────────────────────────────────────────
   if (step === "result" && result) {
     const headlineValue =
-      mode === "porcentaje-mp" ? `${result.pctMateriaprima.toFixed(1)}%` :
-      mode === "precio-mp" ? fmt(savedCost) :
-      fmt(result.suggested)
+      mode === "porcentaje-mp" ? `${animatedResult.toFixed(1)}%` : fmt(animatedResult)
 
     return (
       <div className="flex flex-col items-center py-4 gap-4">
@@ -412,7 +392,7 @@ export default function CalculatorFlow({
             </div>
           </div>
           <div className="calc-screen">
-            <span className="calc-screen-value calc-screen-value-lg">{headlineValue}</span>
+            <span className="calc-screen-value calc-screen-value-lg calc-result-reveal">{headlineValue}</span>
           </div>
         </div>
 

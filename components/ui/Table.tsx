@@ -18,8 +18,8 @@ export interface TableProps {
 export default function Table({ columns, data, emptyState, rowKey, onRowClick }: TableProps) {
   return (
     <div
-      className="w-full overflow-hidden rounded-xl"
-      style={{ border: "1px solid var(--border-light)" }}
+      className="w-full overflow-hidden"
+      style={{ borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)" }}
     >
       <table className="w-full border-collapse">
         <thead>
@@ -54,7 +54,6 @@ export default function Table({ columns, data, emptyState, rowKey, onRowClick }:
                 key={rowId}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 style={{
-                  borderTop: "1px solid var(--border-light)",
                   background:
                     rowIndex % 2 === 0 ? "var(--bg-surface)" : "var(--bg-primary)",
                   cursor: onRowClick ? "pointer" : undefined,

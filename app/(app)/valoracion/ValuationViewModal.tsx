@@ -56,8 +56,8 @@ export default function ValuationViewModal({
     >
       <div className="flex flex-col gap-5">
         <div
-          className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
-          style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
+          className="flex items-center gap-2 px-3 py-2.5 text-sm"
+          style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-md)" }}
         >
           <ChefHat size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
           {valuation.refType === "recipe" && valuation.refId ? (
@@ -105,8 +105,8 @@ export default function ValuationViewModal({
               <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>NOTAS</p>
             </div>
             <p
-              className="text-sm px-3 py-2.5 rounded-xl"
-              style={{ color: "var(--text-secondary)", background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
+              className="text-sm px-3 py-2.5"
+              style={{ color: "var(--text-secondary)", background: "var(--bg-primary)", borderRadius: "var(--radius-md)" }}
             >
               {valuation.notes}
             </p>

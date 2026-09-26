@@ -12,9 +12,12 @@ import PlanBadge from "@/components/app/settings/PlanBadge"
 import { getMyProfile, updateMyProfile, getOwnedOrganizations } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import { authClient } from "@/lib/auth"
+import { setActiveOrgId } from "@/lib/activeOrg"
+import { clearSWRCache } from "@/components/SWRProvider"
+import { mutate } from "swr"
 import {
   User, Mail, Clock, ShieldCheck, KeyRound, Globe, Building2,
-  AlertTriangle, Monitor, LogOut, ExternalLink, Trash2,
+  AlertTriangle, Monitor, LogOut, ExternalLink, Trash2, Check,
 } from "lucide-react"
 import type { Plan } from "@/types/domain"
 
@@ -102,7 +105,9 @@ function PerfilTab() {
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
-    if (profile?.name) setName(profile.name)
+    if (!profile?.name) return
+    const frame = requestAnimationFrame(() => setName(profile.name))
+    return () => cancelAnimationFrame(frame)
   }, [profile?.name])
 
   async function handleSave() {
@@ -502,6 +507,12 @@ function OrganizacionTab() {
   const roleLabel = roles.map((r) => ROLE_LABELS[r]).find(Boolean) ?? roles[0]
   const activeMembership = memberships.find((m) => m.organizationId === organization?.id)
 
+  function handleSwitchOrg(orgId: string) {
+    setActiveOrgId(orgId)
+    // eslint-disable-next-line react-hooks/immutability
+    window.location.href = "/dashboard"
+  }
+
   if (!organization) {
     return (
       <Card>
@@ -513,45 +524,80 @@ function OrganizacionTab() {
   }
 
   return (
-    <Card>
-      <div className="flex items-center gap-3 mb-5">
-        <Building2 size={18} style={{ color: "var(--accent)" }} />
-        <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
-          NEGOCIO ACTUAL
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <Card>
+        <div className="flex items-center gap-3 mb-5">
+          <Building2 size={18} style={{ color: "var(--accent)" }} />
+          <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
+            NEGOCIO ACTUAL
+          </p>
+        </div>
 
-      <div className="flex items-center gap-2 flex-wrap mb-5">
-        <h3 className="font-display text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-          {organization.name}
-        </h3>
-        <PlanBadge plan={organization.membership as Plan} />
-      </div>
+        <div className="flex items-center gap-2 flex-wrap mb-5">
+          <h3 className="font-display text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+            {organization.name}
+          </h3>
+          <PlanBadge plan={organization.membership as Plan} />
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-        <InfoStat
-          icon={<ShieldCheck size={12} style={{ color: "var(--text-muted)" }} />}
-          label="Tu rol"
-          value={roleLabel ?? "—"}
-        />
-        <InfoStat
-          icon={<Clock size={12} style={{ color: "var(--text-muted)" }} />}
-          label="Fecha de ingreso"
-          value={
-            activeMembership?.joinedAt
-              ? new Date(activeMembership.joinedAt).toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" })
-              : "—"
-          }
-        />
-      </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+          <InfoStat
+            icon={<ShieldCheck size={12} style={{ color: "var(--text-muted)" }} />}
+            label="Tu rol"
+            value={roleLabel ?? "—"}
+          />
+          <InfoStat
+            icon={<Clock size={12} style={{ color: "var(--text-muted)" }} />}
+            label="Fecha de ingreso"
+            value={
+              activeMembership?.joinedAt
+                ? new Date(activeMembership.joinedAt).toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" })
+                : "—"
+            }
+          />
+        </div>
 
-      <Link href="/configuracion/equipo">
-        <Button variant="ghost">
-          Ver organización
-          <ExternalLink size={14} />
-        </Button>
-      </Link>
-    </Card>
+        <Link href="/configuracion/equipo">
+          <Button variant="ghost">
+            Ver organización
+            <ExternalLink size={14} />
+          </Button>
+        </Link>
+      </Card>
+
+      {memberships.length > 1 && (
+        <Card>
+          <div className="flex items-center gap-3 mb-5">
+            <Building2 size={18} style={{ color: "var(--accent)" }} />
+            <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
+              CAMBIAR DE NEGOCIO
+            </p>
+          </div>
+          <div className="flex flex-col gap-1">
+            {memberships.map((m) => {
+              const active = m.organizationId === organization.id
+              return (
+                <button
+                  key={m.organizationId}
+                  onClick={() => handleSwitchOrg(m.organizationId)}
+                  disabled={active}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left transition-colors"
+                  style={{
+                    background: active ? "var(--accent-light)" : "transparent",
+                    color: active ? "var(--accent)" : "var(--text-primary)",
+                    borderRadius: "var(--radius-md)",
+                    cursor: active ? "default" : "pointer",
+                  }}
+                >
+                  <span className="flex-1 truncate">{m.organizationName}</span>
+                  {active && <Check size={14} />}
+                </button>
+              )
+            })}
+          </div>
+        </Card>
+      )}
+    </div>
   )
 }
 
@@ -560,14 +606,26 @@ function OrganizacionTab() {
 // ═══════════════════════════════════════════════════════════════════════════
 function CuentaTab() {
   const [signingOut, setSigningOut] = useState(false)
+  const [signingOutEverywhere, setSigningOutEverywhere] = useState(false)
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    // Mismo orden que en el shell de escritorio: limpiar caché ANTES de
+    // invalidar y navegar (ver AppShell.handleSignOut)
+    clearSWRCache()
+    setActiveOrgId(null)
+    void mutate(() => true, undefined, { revalidate: false })
+    await authClient.signOut()
+    window.location.replace("/login")
+  }
 
   async function handleSignOutEverywhere() {
-    setSigningOut(true)
+    setSigningOutEverywhere(true)
     try {
       await authClient.revokeSessions()
       window.location.replace("/login")
     } catch {
-      setSigningOut(false)
+      setSigningOutEverywhere(false)
     }
   }
 
@@ -580,13 +638,21 @@ function CuentaTab() {
             SESIÓN
           </p>
         </div>
-        <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
-          Cierra tu sesión en todos los dispositivos, incluido este. Tendrás que volver a iniciar sesión.
-        </p>
-        <Button variant="ghost" onClick={handleSignOutEverywhere} loading={signingOut}>
-          <LogOut size={14} />
-          Cerrar sesión en todos los dispositivos
-        </Button>
+        <div className="flex flex-col gap-3 items-start">
+          <Button variant="ghost" onClick={handleSignOut} loading={signingOut}>
+            <LogOut size={14} />
+            Cerrar sesión
+          </Button>
+          <div>
+            <p className="text-sm mb-2" style={{ color: "var(--text-secondary)" }}>
+              O cierra la sesión en todos los dispositivos, incluido este. Tendrás que volver a iniciar sesión.
+            </p>
+            <Button variant="ghost" onClick={handleSignOutEverywhere} loading={signingOutEverywhere}>
+              <LogOut size={14} />
+              Cerrar sesión en todos los dispositivos
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <div

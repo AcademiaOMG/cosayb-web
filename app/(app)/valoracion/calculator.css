@@ -97,6 +97,18 @@
   text-align: right;
 }
 
+/* Revelado del resultado — un solo momento coreografiado */
+@keyframes calc-reveal {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.calc-result-reveal {
+  animation: calc-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calc-result-reveal { animation: none; }
+}
+
 /* ── Campo de entrada — pantalla encendida (seleccionada) / apagada ───────
    Cada estado es un color SÓLIDO único (contenedor + input calzan exacto,
    sin capas translúcidas que generen manchas). */
@@ -261,6 +273,41 @@
   font-size: 20px;
 }
 
+/* ── Impresora — el recibo sale del dispositivo, con movimiento real ──────── */
+.calc-printer {
+  position: relative;
+}
+
+.calc-printer-slot {
+  position: relative;
+  z-index: 2;
+  height: 20px;
+  margin: 0 14px -12px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #4A4E56 0%, #1C1E22 100%);
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.calc-printer-mask {
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+@keyframes calc-print-out {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+.calc-receipt-print {
+  animation: calc-print-out 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.1s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calc-receipt-print { animation: none; }
+}
+
 /* ── Recibo impreso — desglose de la valoración ──────────────────────────── */
 .calc-receipt {
   background: #FBFAF5;
@@ -269,10 +316,6 @@
   box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.35);
   font-family: var(--font-jetbrains-mono), monospace;
   color: #2A2A26;
-  background-image: repeating-linear-gradient(
-    transparent 0 27px,
-    rgba(0, 0, 0, 0.035) 27px 28px
-  );
 }
 
 .calc-receipt-torn {
@@ -283,13 +326,28 @@
   background-color: transparent;
 }
 
-.calc-receipt-title {
-  font-size: 11px;
+.calc-indicator-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.02em;
+  padding: 5px 12px 5px 10px;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.calc-receipt-title {
+  font-family: var(--font-barlow-condensed), var(--font-jetbrains-mono), monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   text-align: center;
-  color: #6B6555;
-  margin-bottom: 10px;
+  color: #201F1C;
+  margin-bottom: 12px;
 }
 
 .calc-receipt-row {
@@ -327,9 +385,23 @@
 .calc-receipt-total {
   display: flex;
   justify-content: space-between;
-  font-size: 15px;
-  font-weight: 700;
+  align-items: baseline;
   padding-top: 2px;
+}
+
+.calc-receipt-total-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #6B6555;
+}
+
+.calc-receipt-total-value {
+  font-family: var(--font-barlow-condensed), var(--font-jetbrains-mono), monospace;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #201F1C;
 }
 
 .calc-receipt-pct {

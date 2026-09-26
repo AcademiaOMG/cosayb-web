@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { mutate } from "swr"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
+import MobileTabBar from "./MobileTabBar"
 import ImpersonationBanner from "./ImpersonationBanner"
 import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
@@ -17,7 +18,6 @@ import type { Plan } from "@/types/domain"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data: session } = authClient.useSession()
   const { identityType, impersonation, isLoading: permsLoading } = usePermissions()
 
@@ -60,24 +60,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <ImpersonationBanner />
       <div className="flex flex-1 min-h-0">
         <SessionGuard />
-        <Sidebar
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          userName={userName}
-          userPlan={plan}
-          onSignOut={handleSignOut}
-        />
+        <Sidebar userPlan={plan} onSignOut={handleSignOut} />
 
         <div className="flex flex-col flex-1 min-w-0 lg:pl-60">
           <Topbar
             orgName={orgName}
             userPlan={plan}
             userInitial={userName.charAt(0).toUpperCase()}
-            onMenuClick={() => setSidebarOpen(true)}
           />
-          <main className="flex-1 overflow-y-auto p-6 animate-page-in" style={{ background: "var(--bg-primary)" }}>
+          <main className="flex-1 overflow-y-auto p-6 pb-32 lg:pb-6 animate-page-in" style={{ background: "var(--bg-primary)" }}>
             {children}
           </main>
+          {/* Degradé de desvanecimiento detrás de la barra flotante — así el
+              contenido se apaga suavemente en vez de chocar contra ella. */}
+          <div
+            className="fixed bottom-0 left-0 right-0 h-28 lg:hidden pointer-events-none"
+            style={{
+              background: "linear-gradient(to top, var(--bg-primary) 20%, transparent)",
+              zIndex: 15,
+            }}
+          />
+          <MobileTabBar />
         </div>
       </div>
     </div>

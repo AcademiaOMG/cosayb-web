@@ -29,7 +29,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={id}
           className={clsx(
-            "h-10 w-full rounded-xl px-3 text-sm outline-none transition-colors",
+            "h-10 w-full px-3 text-sm outline-none transition-colors",
             "placeholder:text-[var(--text-muted)]",
             "focus:ring-2",
             className
@@ -39,6 +39,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             border: error
               ? "1px solid #B42020"
               : "1px solid var(--border-light)",
+            borderRadius: "var(--radius-md)",
             color: "var(--text-primary)",
           }}
           aria-invalid={!!error}
