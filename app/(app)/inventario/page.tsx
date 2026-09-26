@@ -9,8 +9,11 @@ import Input from "@/components/ui/Input"
 import QuotaBanner from "@/components/app/inventario/QuotaBanner"
 import IngredientSearchBar from "@/components/app/inventario/IngredientSearchBar"
 import IngredientFilters from "@/components/app/inventario/IngredientFilters"
-import IngredientGrid from "@/components/app/inventario/IngredientGrid"
+import IngredientList from "@/components/app/inventario/IngredientList"
+import IngredientDetailModal from "@/components/app/inventario/IngredientDetailModal"
 import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
+import { displayName, normalizeForSearch } from "@/components/app/inventario/format"
+import { Plus } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { fetchAPI } from "@/lib/api"
@@ -19,15 +22,9 @@ import ModuleLocked from "@/components/app/ModuleLocked"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const FREE_LIMIT = 30
-const PAGE_SIZE = 12
+const PAGE_SIZE = 20
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function formatNumberInput(value: string): string {
-  const raw = value.replace(/\D/g, "")
-  if (!raw) return ""
-  return parseInt(raw, 10).toLocaleString("es-CO")
-}
-
 function parseFormattedNumber(value: string): string {
   return value.replace(/\./g, "").replace(/,/g, "")
 }
@@ -46,6 +43,8 @@ export default function InventarioPage() {
   // ── Permisos y plan ───────────────────────────────────────────────────────
   const { can, organization, hasFeature, featureLockedMessage } = usePermissions()
   const plan = organization?.membership === "free" ? "free" : "pro"
+  const canUpdate = can("ingredients", "update")
+  const canDelete = can("ingredients", "delete")
 
   // ── Search / Filter / Pagination ──────────────────────────────────────────
   const [search, setSearch] = useState("")
@@ -63,6 +62,9 @@ export default function InventarioPage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [priceSource, setPriceSource] = useState<string | null>(null)
+
+  // ── Modal: detail ─────────────────────────────────────────────────────────
+  const [detail, setDetail] = useState<Ingredient | null>(null)
 
   // ── Modal: delete ─────────────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<Ingredient | null>(null)
@@ -89,22 +91,35 @@ export default function InventarioPage() {
     setCurrentPage(1)
   }
 
+  function clearFilters() {
+    setSearch("")
+    setOriginFilter("all")
+    setCurrentPage(1)
+  }
+
+  function handlePageChange(page: number) {
+    setCurrentPage(page)
+    // El scroll vive en el <main> del AppShell, no en window
+    document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   // ── Derived: quota ────────────────────────────────────────────────────────
   const myIngredients = items.filter((i) => i.userId !== null)
   const quotaUsed = myIngredients.length
   const quotaFull = plan === "free" && quotaUsed >= FREE_LIMIT
 
-  // ── Derived: filter + search ──────────────────────────────────────────────
+  // ── Derived: search (sin tildes ni mayúsculas) → filtro de origen ─────────
+  const searched = useMemo(() => {
+    const q = normalizeForSearch(search)
+    if (!q) return items
+    return items.filter((i) => normalizeForSearch(i.name).includes(q))
+  }, [items, search])
+
   const filtered = useMemo(() => {
-    let result = items
-    if (originFilter === "own") result = result.filter((i) => i.userId !== null)
-    else if (originFilter === "base") result = result.filter((i) => i.userId === null)
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter((i) => i.name.toLowerCase().includes(q))
-    }
-    return result
-  }, [items, originFilter, search])
+    if (originFilter === "own") return searched.filter((i) => i.userId !== null)
+    if (originFilter === "base") return searched.filter((i) => i.userId === null)
+    return searched
+  }, [searched, originFilter])
 
   // ── Derived: pagination ───────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
@@ -113,15 +128,9 @@ export default function InventarioPage() {
 
   // ── Derived: filter counts ────────────────────────────────────────────────
   const filterCounts = useMemo<Record<IngredientOriginFilter, number>>(() => {
-    const base = search.trim()
-      ? items.filter((i) => i.name.toLowerCase().includes(search.toLowerCase()))
-      : items
-    return {
-      all: base.length,
-      own: base.filter((i) => i.userId !== null).length,
-      base: base.filter((i) => i.userId === null).length,
-    }
-  }, [items, search])
+    const own = searched.filter((i) => i.userId !== null).length
+    return { all: searched.length, own, base: searched.length - own }
+  }, [searched])
 
   // ── Actions ───────────────────────────────────────────────────────────────
   function openCreate() {
@@ -206,11 +215,7 @@ export default function InventarioPage() {
       {/* Header */}
       <PageHeader
         title="Inventario"
-        subtitle={
-          plan === "free"
-            ? `${quotaUsed} de ${FREE_LIMIT} ingredientes registrados`
-            : "Precios de compra de tus ingredientes — base de tus recetas"
-        }
+        subtitle="Controla el stock, la trazabilidad y el costo real de cada ingrediente de tu cocina."
         action={
           can("ingredients", "create") ? (
             <Button
@@ -222,8 +227,11 @@ export default function InventarioPage() {
                   ? `Límite del plan Free: ${FREE_LIMIT} ingredientes`
                   : undefined
               }
+              aria-label="Nuevo ingrediente"
             >
-              Nuevo ingrediente
+              <Plus size={17} aria-hidden="true" />
+              <span className="hidden sm:inline">Nuevo ingrediente</span>
+              <span className="sm:hidden">Nuevo</span>
             </Button>
           ) : undefined
         }
@@ -234,35 +242,44 @@ export default function InventarioPage() {
         <QuotaBanner used={quotaUsed} limit={FREE_LIMIT} />
       )}
 
-      {/* Search + Filters toolbar */}
-      {!error && (
-        <div className="flex flex-col gap-3">
-          <IngredientSearchBar
-            value={search}
-            onChange={handleSearchChange}
-            resultCount={search ? filtered.length : undefined}
-          />
-          <IngredientFilters
-            active={originFilter}
-            onChange={handleFilterChange}
-            counts={filterCounts}
-          />
-        </div>
-      )}
+      {/* Buscador + filtro, en una sola línea */}
+      <div className="flex flex-col gap-3">
+        {!error && (
+          <div className="flex items-center gap-2">
+            <IngredientSearchBar value={search} onChange={handleSearchChange} />
+            <IngredientFilters
+              active={originFilter}
+              onChange={handleFilterChange}
+              counts={filterCounts}
+            />
+          </div>
+        )}
 
-      {/* Ingredient grid (loading / error / empty / cards + pagination) */}
-      <IngredientGrid
-        ingredients={paginated}
-        loading={isLoading}
-        error={!!error}
-        searchQuery={search}
-        currentPage={safePage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        onEdit={can("ingredients", "update") ? openEdit : undefined}
-        onDelete={can("ingredients", "delete") ? setDeleteTarget : undefined}
-        onRetry={() => void mutate()}
-        pageSize={PAGE_SIZE}
+        {/* Listado (loading / error / vacío / filas + paginación) */}
+        <IngredientList
+          ingredients={paginated}
+          totalCount={filtered.length}
+          loading={isLoading}
+          error={!!error}
+          searchQuery={search}
+          filter={originFilter}
+          currentPage={safePage}
+          totalPages={totalPages}
+          pageSize={PAGE_SIZE}
+          onPageChange={handlePageChange}
+          onOpen={setDetail}
+          onEdit={canUpdate ? openEdit : undefined}
+          onDelete={canDelete ? setDeleteTarget : undefined}
+          onRetry={() => void mutate()}
+          onClearFilters={clearFilters}
+        />
+      </div>
+
+      <IngredientDetailModal
+        ingredient={detail}
+        onClose={() => setDetail(null)}
+        onEdit={canUpdate ? openEdit : undefined}
+        onDelete={canDelete ? setDeleteTarget : undefined}
       />
 
       {/* ── Modal: create / edit ─────────────────────────────────────────── */}
@@ -358,7 +375,7 @@ export default function InventarioPage() {
       >
         <p style={{ color: "var(--text-secondary)" }}>
           ¿Estás seguro de que quieres eliminar{" "}
-          <strong style={{ color: "var(--text-primary)" }}>{deleteTarget?.name}</strong>
+          <strong style={{ color: "var(--text-primary)" }}>{deleteTarget ? displayName(deleteTarget.name) : ""}</strong>
           ? Esta acción no se puede deshacer.
         </p>
       </Modal>
@@ -397,7 +414,7 @@ export default function InventarioPage() {
               </li>
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Filtros:</strong> Usa los filtros Todos, Propios y Banco para organizar tu vista.</span>
+                <span><strong>Filtros:</strong> Usa el ícono de filtro junto al buscador para ver todos, solo tus ingredientes propios o solo el banco general.</span>
               </li>
             </ul>
           </div>

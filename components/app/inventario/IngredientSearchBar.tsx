@@ -1,22 +1,19 @@
 "use client"
 
 import { Search, X } from "lucide-react"
-import { useId, useRef } from "react"
+import { useRef } from "react"
 
 export interface IngredientSearchBarProps {
   value: string
   onChange: (value: string) => void
   placeholder?: string
-  resultCount?: number
 }
 
 export default function IngredientSearchBar({
   value,
   onChange,
-  placeholder = "Buscar ingrediente...",
-  resultCount,
+  placeholder = "Buscar ingrediente",
 }: IngredientSearchBarProps) {
-  const id = useId()
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleClear() {
@@ -25,69 +22,45 @@ export default function IngredientSearchBar({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="relative">
-        {/* Search icon */}
-        <span
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-          aria-hidden="true"
+    <div className="relative min-w-0 flex-1">
+      <Search
+        size={17}
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
+        style={{ color: "var(--text-muted)" }}
+      />
+      <input
+        ref={inputRef}
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && value) {
+            e.preventDefault()
+            handleClear()
+          }
+        }}
+        placeholder={placeholder}
+        aria-label="Buscar ingrediente por nombre"
+        autoComplete="off"
+        spellCheck={false}
+        className="h-11 w-full border border-[var(--border-light)] pl-10 pr-10 text-[15px] outline-none transition-[border-color,box-shadow] duration-150 focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--accent-light)] [&::-webkit-search-cancel-button]:hidden"
+        style={{
+          background: "var(--bg-surface)",
+          borderRadius: "var(--radius-md)",
+          color: "var(--text-primary)",
+        }}
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={handleClear}
+          aria-label="Limpiar búsqueda"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 transition-colors hover:bg-[var(--bg-secondary)]"
+          style={{ color: "var(--text-muted)", borderRadius: "8px" }}
         >
-          <Search size={16} style={{ color: "var(--text-muted)" }} />
-        </span>
-
-        {/* Input */}
-        <input
-          ref={inputRef}
-          id={id}
-          type="search"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          aria-label="Buscar ingrediente por nombre"
-          aria-describedby={resultCount !== undefined ? `${id}-results` : undefined}
-          className="h-10 w-full rounded-xl pl-9 pr-10 text-sm outline-none transition-all duration-200"
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-light)",
-            color: "var(--text-primary)",
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = "var(--accent)"
-            e.currentTarget.style.boxShadow = "0 0 0 3px var(--accent-light)"
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = "var(--border-light)"
-            e.currentTarget.style.boxShadow = "none"
-          }}
-        />
-
-        {/* Clear button */}
-        {value && (
-          <button
-            type="button"
-            onClick={handleClear}
-            aria-label="Limpiar búsqueda"
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 transition-colors hover:bg-[var(--bg-secondary)]"
-            style={{ color: "var(--text-muted)" }}
-          >
-            <X size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* Live result count hint */}
-      {value && resultCount !== undefined && (
-        <p
-          id={`${id}-results`}
-          className="text-xs pl-1"
-          style={{ color: "var(--text-muted)" }}
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {resultCount === 0
-            ? "Sin resultados"
-            : `${resultCount} resultado${resultCount === 1 ? "" : "s"}`}
-        </p>
+          <X size={15} />
+        </button>
       )}
     </div>
   )

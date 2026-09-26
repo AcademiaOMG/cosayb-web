@@ -50,13 +50,15 @@ export default function PriceSuggestion({ ingredientName, onAccept }: PriceSugge
 
   useEffect(() => {
     if (name.length < 3) {
-      setRef(null)
-      setCommunity(null)
-      return
+      const frame = requestAnimationFrame(() => {
+        setRef(null)
+        setCommunity(null)
+      })
+      return () => cancelAnimationFrame(frame)
     }
 
     let cancelled = false
-    setLoading(true)
+    const frame = requestAnimationFrame(() => setLoading(true))
 
     Promise.all([
       fetchJson<PriceRef>(`${API}/api/v1/ingredients/precio-referencia?nombre=${encodeURIComponent(name)}`),
@@ -68,7 +70,10 @@ export default function PriceSuggestion({ ingredientName, onAccept }: PriceSugge
       setLoading(false)
     })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frame)
+    }
   }, [name])
 
   if (name.length < 3 || (!loading && !ref && !community)) return null
