@@ -78,7 +78,7 @@ export default function CuentaPage() {
           })}
         </nav>
 
-        <div className="flex-1 min-w-0 w-full max-w-2xl">
+        <div className="flex-1 min-w-0 w-full max-w-3xl">
           {tab === "perfil" && <PerfilTab />}
           {tab === "seguridad" && <SeguridadTab />}
           {tab === "organizacion" && <OrganizacionTab />}
