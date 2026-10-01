@@ -433,11 +433,11 @@ function DetailView({
   return (
     <div className="flex flex-col gap-0">
 
-      {/* ── Barra superior ── */}
-      <div className="flex items-center gap-4 mb-6">
+      {/* ── Barra superior (mobile: 3 filas — volver, nombre, acciones) ── */}
+      <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:gap-4">
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70"
+          className="flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70 self-start md:self-center"
           style={{ color: "var(--text-muted)" }}
         >
           <ArrowLeft size={14} />
@@ -449,12 +449,12 @@ function DetailView({
           placeholder="Nombre del menú..."
           value={nombre}
           onChange={(e) => { setNombre(e.target.value); setError(null) }}
-          className="flex-1 bg-transparent text-lg font-semibold outline-none border-none"
+          className="min-w-0 w-full bg-transparent text-lg font-semibold outline-none border-none md:w-auto md:flex-1"
           style={{ color: "var(--text-primary)" }}
         />
 
-        <div className="flex items-center gap-3">
-          {error && <span className="text-sm" style={{ color: "#EF4444" }}>{error}</span>}
+        <div className="flex flex-wrap items-center gap-3">
+          {error && <span className="text-sm break-words" style={{ color: "#EF4444" }}>{error}</span>}
           {success && (
             <span className="text-sm flex items-center gap-1.5" style={{ color: "#166534" }}>
               <CheckCircle2 size={14} />
@@ -796,14 +796,14 @@ function MenuViewModal({
         subview === "compras" ? (
           <ShoppingListFooter menuId={menuId} onBack={() => setSubview("detalle")} />
         ) : (
-          <div className="flex items-center justify-between w-full gap-3">
-            <Button variant="ghost" onClick={() => setSubview("compras")} disabled={!menuId}>
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setSubview("compras")} disabled={!menuId}>
               <ShoppingCart size={14} />
               Lista de compras
             </Button>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={onClose}>Cerrar</Button>
-              <Button variant="primary" onClick={onEdit}>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+              <Button variant="ghost" className="w-full sm:w-auto" onClick={onClose}>Cerrar</Button>
+              <Button variant="primary" className="w-full sm:w-auto" onClick={onEdit}>
                 <Pencil size={14} />
                 Editar
               </Button>
@@ -1058,7 +1058,7 @@ function ShoppingListFooter({
   }
 
   return (
-    <div className="flex items-center justify-between w-full gap-3">
+    <div className="flex flex-wrap items-center justify-between w-full gap-3">
       <Button variant="ghost" onClick={onBack}>
         <ArrowLeftCircle size={14} />
         {backLabel}
@@ -1281,6 +1281,26 @@ function MenuTable({
 function MenuListSkeleton() {
   return (
     <div className="w-full overflow-hidden rounded-xl animate-pulse" style={{ border: "1px solid var(--border-light)" }}>
+      {/* Mobile: bloques a ancho completo (sin columnas que se recorten) */}
+      <div className="md:hidden flex flex-col">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-2 px-4 py-4"
+            style={{
+              borderTop: i === 1 ? undefined : "1px solid var(--border-light)",
+              background: i % 2 === 1 ? "var(--bg-surface)" : "var(--bg-primary)",
+            }}
+          >
+            <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "55%" }} />
+            <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "40%" }} />
+            <div className="h-6 rounded-full self-start" style={{ background: "var(--bg-secondary)", width: "30%" }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: columnas de la tabla */}
+      <div className="hidden md:block">
       <div className="px-4 py-3 flex gap-4" style={{ background: "var(--bg-secondary)" }}>
         {[20, 12, 10, 8, 14, 12, 10].map((w, i) => (
           <div key={i} className="h-3 rounded" style={{ background: "var(--border-light)", width: `${w}%` }} />
@@ -1298,6 +1318,7 @@ function MenuListSkeleton() {
           <div className="h-7 rounded-lg ml-auto" style={{ background: "var(--bg-secondary)", width: 80 }} />
         </div>
       ))}
+      </div>
     </div>
   )
 }

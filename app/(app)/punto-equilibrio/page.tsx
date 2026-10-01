@@ -83,8 +83,8 @@ interface FixedCostRowProps {
 
 function FixedCostRow({ index, item, onChange, onRemove, canRemove }: FixedCostRowProps) {
   return (
-    <div className="flex gap-3 items-end">
-      <div className="flex-1">
+    <div className="flex flex-col gap-3 md:flex-row md:items-end">
+      <div className="min-w-0 flex-1">
         <Input
           label={index === 0 ? "Nombre del costo" : undefined}
           placeholder="Ej: Arriendo, Nómina, Servicios…"
@@ -92,29 +92,31 @@ function FixedCostRow({ index, item, onChange, onRemove, canRemove }: FixedCostR
           onChange={(e) => onChange(index, "name", e.target.value)}
         />
       </div>
-      <div className="w-40">
-        <Input
-          label={index === 0 ? "Monto (COP)" : undefined}
-          type="number"
-          min={0}
-          placeholder="0"
-          value={item.amount === 0 ? "" : item.amount}
-          onChange={(e) => onChange(index, "amount", parseFloat(e.target.value) || 0)}
-        />
+      <div className="flex items-end gap-3">
+        <div className="min-w-0 flex-1 md:w-40 md:flex-none">
+          <Input
+            label={index === 0 ? "Monto (COP)" : undefined}
+            type="number"
+            min={0}
+            placeholder="0"
+            value={item.amount === 0 ? "" : item.amount}
+            onChange={(e) => onChange(index, "amount", parseFloat(e.target.value) || 0)}
+          />
+        </div>
+        <button
+          onClick={() => onRemove(index)}
+          disabled={!canRemove}
+          className="mb-0.5 h-10 w-10 shrink-0 flex items-center justify-center rounded-xl transition-colors disabled:opacity-30"
+          style={{
+            border: "1px solid var(--border-light)",
+            background: "transparent",
+            color: "var(--text-muted)",
+          }}
+          title="Eliminar costo"
+        >
+          <Trash2 size={16} />
+        </button>
       </div>
-      <button
-        onClick={() => onRemove(index)}
-        disabled={!canRemove}
-        className="mb-0.5 h-10 w-10 flex items-center justify-center rounded-xl transition-colors disabled:opacity-30"
-        style={{
-          border: "1px solid var(--border-light)",
-          background: "transparent",
-          color: "var(--text-muted)",
-        }}
-        title="Eliminar costo"
-      >
-        <Trash2 size={16} />
-      </button>
     </div>
   )
 }
@@ -157,6 +159,26 @@ function ResultCard({ icon, label, value, accent = false }: ResultCardProps) {
 function HistorySkeleton() {
   return (
     <div className="w-full overflow-hidden rounded-xl animate-pulse" style={{ border: "1px solid var(--border-light)" }}>
+      {/* Mobile: bloques a ancho completo (sin columnas que se recorten) */}
+      <div className="md:hidden flex flex-col">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-2 px-4 py-4"
+            style={{
+              borderTop: i === 1 ? undefined : "1px solid var(--border-light)",
+              background: i % 2 === 1 ? "var(--bg-surface)" : "var(--bg-primary)",
+            }}
+          >
+            <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "45%" }} />
+            <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "70%" }} />
+            <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "55%" }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: columnas de la tabla */}
+      <div className="hidden md:block">
       <div className="px-4 py-3 flex gap-4" style={{ background: "var(--bg-secondary)" }}>
         {[14, 16, 16, 16, 14, 16, 8].map((w, i) => (
           <div key={i} className="h-3 rounded" style={{ background: "var(--border-light)", width: `${w}%` }} />
@@ -175,6 +197,7 @@ function HistorySkeleton() {
           </div>
         </div>
       ))}
+      </div>
     </div>
   )
 }
@@ -578,7 +601,7 @@ export default function PuntoEquilibrioPage() {
         title="Punto de Equilibrio"
         subtitle="Calcula cuántas unidades necesitas vender para cubrir todos tus costos"
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             {history.length > 0 && (
               <Button variant="ghost" onClick={handleExport} loading={exporting} disabled={exporting}>
                 <Download size={15} />
@@ -670,14 +693,14 @@ export default function PuntoEquilibrioPage() {
         onClose={() => setViewingRecord(null)}
         title="Cálculo de punto de equilibrio"
         footer={
-          <div className="flex items-center justify-between w-full gap-3">
-            <Button variant="ghost" onClick={() => viewingRecord && printRecord(viewingRecord)}>
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => viewingRecord && printRecord(viewingRecord)}>
               <Printer size={14} />
               Imprimir
             </Button>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setViewingRecord(null)}>Cerrar</Button>
-              <Button variant="primary" onClick={() => viewingRecord && openReuse(viewingRecord)}>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+              <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setViewingRecord(null)}>Cerrar</Button>
+              <Button variant="primary" className="w-full sm:w-auto" onClick={() => viewingRecord && openReuse(viewingRecord)}>
                 <Pencil size={14} />
                 Reutilizar
               </Button>

@@ -11,6 +11,26 @@ function HistorySkeleton() {
       className="w-full overflow-hidden animate-pulse"
       style={{ borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)" }}
     >
+      {/* Mobile: bloques a ancho completo (sin columnas que se recorten) */}
+      <div className="md:hidden flex flex-col">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-2 px-4 py-4"
+            style={{
+              borderTop: i === 1 ? undefined : "1px solid var(--border-light)",
+              background: i % 2 === 1 ? "var(--bg-surface)" : "var(--bg-primary)",
+            }}
+          >
+            <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "55%" }} />
+            <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "75%" }} />
+            <div className="h-5 rounded-full self-start" style={{ background: "var(--bg-secondary)", width: "35%" }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: columnas de la tabla */}
+      <div className="hidden md:block">
       <div className="px-4 py-3 flex gap-4" style={{ background: "var(--bg-secondary)" }}>
         {[24, 16, 8, 12, 16, 12, 10, 12].map((pct, i) => (
           <div key={i} className="h-3 rounded"
@@ -30,6 +50,7 @@ function HistorySkeleton() {
           <div className="h-7 ml-auto" style={{ background: "var(--bg-secondary)", width: 160, borderRadius: "var(--radius-sm)", flexShrink: 0 }} />
         </div>
       ))}
+      </div>
     </div>
   )
 }

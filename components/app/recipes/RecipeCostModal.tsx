@@ -282,10 +282,10 @@ export default function RecipeCostModal({
                   overflow: "hidden",
                 }}
               >
-                {/* Encabezados */}
+                {/* Encabezados (solo desktop; en móvil cada fila es una tarjeta apilada) */}
                 <div
+                  className="hidden md:grid"
                   style={{
-                    display: "grid",
                     gridTemplateColumns: "1fr 80px 80px 80px",
                     padding: "8px 12px",
                     background: "var(--bg-secondary)",
@@ -307,9 +307,8 @@ export default function RecipeCostModal({
                 {result.breakdown.map((item, idx) => (
                   <div
                     key={item.ingredientId + idx}
+                    className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_80px_80px_80px]"
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 80px 80px 80px",
                       padding: "8px 12px",
                       gap: "8px",
                       borderTop: idx === 0 ? undefined : "1px solid var(--border-light)",
@@ -317,7 +316,7 @@ export default function RecipeCostModal({
                     }}
                   >
                     <p
-                      className="text-xs"
+                      className="text-xs col-start-1 row-start-1 md:col-auto md:row-auto"
                       style={{
                         color: "var(--text-primary)",
                         paddingLeft: item.depth > 0 ? `${item.depth * 10}px` : undefined,
@@ -332,13 +331,15 @@ export default function RecipeCostModal({
                       )}
                       {item.ingredientName}
                     </p>
-                    <p className="text-xs text-right" style={{ color: "var(--text-secondary)" }}>
+                    <p className="text-xs text-left md:text-right col-start-1 row-start-2 md:col-auto md:row-auto" style={{ color: "var(--text-secondary)" }}>
                       {item.effectiveQuantityG.toFixed(2)}
+                      <span className="md:hidden"> g</span>
                     </p>
-                    <p className="text-xs text-right" style={{ color: "var(--text-secondary)" }}>
+                    <p className="text-xs text-right col-start-2 row-start-2 md:col-auto md:row-auto" style={{ color: "var(--text-secondary)" }}>
                       {item.costPerGram.toFixed(2)}
+                      <span className="md:hidden"> $/g</span>
                     </p>
-                    <p className="text-xs text-right font-medium" style={{ color: "var(--text-primary)" }}>
+                    <p className="text-xs text-right font-medium col-start-2 row-start-1 md:col-auto md:row-auto" style={{ color: "var(--text-primary)" }}>
                       {COP.format(item.lineCost)}
                     </p>
                   </div>
@@ -346,9 +347,8 @@ export default function RecipeCostModal({
 
                 {/* Total row */}
                 <div
+                  className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_80px_80px_80px]"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 80px 80px 80px",
                     padding: "10px 12px",
                     gap: "8px",
                     borderTop: "2px solid var(--border-medium)",
@@ -358,9 +358,9 @@ export default function RecipeCostModal({
                   <p className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
                     Total
                   </p>
-                  <p />
-                  <p />
-                  <p className="text-xs text-right font-bold" style={{ color: "var(--accent)" }}>
+                  <p className="hidden md:block" />
+                  <p className="hidden md:block" />
+                  <p className="text-xs text-right font-bold col-start-2 row-start-1 md:col-auto md:row-auto" style={{ color: "var(--accent)" }}>
                     {COP.format(result.rawCostTotal)}
                   </p>
                 </div>

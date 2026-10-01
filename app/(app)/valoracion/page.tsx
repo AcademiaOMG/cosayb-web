@@ -78,51 +78,37 @@ export default function ValoracionPage() {
     return <ModuleLocked message={featureLockedMessage("module_valuations")} />
   }
 
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    borderRadius: "var(--radius-sm)",
-    ...(active
-      ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
-      : { color: "var(--text-muted)" }),
-  })
-
   return (
     // Ancho máximo compartido por ambas pestañas: el título no salta al
     // cambiar de pestaña y, en la calculadora, queda alineado con el aparato.
     <div className="w-full flex flex-col gap-7 pt-1 lg:gap-10 lg:pt-3">
       <PageHeader
         title="Valoración de costos"
-        subtitle="Calcula a cuánto vender cada plato según lo que cuestan sus ingredientes y guarda el resultado para compararlo después."
+        subtitle="Calcula el precio de venta de tus productos"
         action={
-          <>
-            <div
-              className="hidden sm:flex items-center gap-1 p-1 shrink-0"
-              style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-md)" }}
-            >
-              <button onClick={goToCalculator} className="px-3 py-1.5 text-sm font-medium transition-colors" style={tabStyle(tab === "calculator")}>
-                Calculadora
-              </button>
-              <button onClick={() => setTab("history")} className="px-3 py-1.5 text-sm font-medium transition-colors" style={tabStyle(tab === "history")}>
+          <button
+            onClick={tab === "calculator" ? () => setTab("history") : goToCalculator}
+            className="flex items-center gap-1.5 h-10 px-3.5 text-sm font-semibold shrink-0"
+            style={{
+              background: "var(--bg-surface)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border-light)",
+              borderRadius: "var(--radius-md)",
+              boxShadow: "var(--shadow-sm)",
+            }}
+          >
+            {tab === "calculator" ? (
+              <>
+                <History size={16} style={{ color: "var(--text-muted)" }} />
                 Historial
-              </button>
-            </div>
-            <button
-              onClick={tab === "calculator" ? () => setTab("history") : goToCalculator}
-              className="sm:hidden flex items-center gap-1.5 h-10 px-3.5 text-sm font-semibold shrink-0"
-              style={{ background: "var(--bg-surface)", color: "var(--text-primary)", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-sm)" }}
-            >
-              {tab === "calculator" ? (
-                <>
-                  <History size={16} style={{ color: "var(--text-muted)" }} />
-                  Historial
-                </>
-              ) : (
-                <>
-                  <Calculator size={16} style={{ color: "var(--text-muted)" }} />
-                  Calculadora
-                </>
-              )}
-            </button>
-          </>
+              </>
+            ) : (
+              <>
+                <Calculator size={16} style={{ color: "var(--text-muted)" }} />
+                Calculadora
+              </>
+            )}
+          </button>
         }
       />
 

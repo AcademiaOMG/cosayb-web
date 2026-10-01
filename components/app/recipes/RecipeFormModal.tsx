@@ -558,9 +558,10 @@ export default function RecipeFormModal({
               </div>
             </div>
 
+            {/* Encabezados de columna (solo desktop; en móvil las filas son tarjetas apiladas) */}
             <div
+              className="hidden md:grid"
               style={{
-                display: "grid",
                 gridTemplateColumns: "24px 100px 1fr 80px 32px",
                 gap: "8px",
                 padding: "6px 12px",
@@ -757,16 +758,12 @@ function ItemRow({
 
   return (
     <div
-      className="draggable-row"
+      className="draggable-row grid gap-2 items-center grid-cols-[24px_1fr_28px] md:grid-cols-[24px_100px_1fr_80px_32px]"
       draggable={isDragging}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
       style={{
-        display: "grid",
-        gridTemplateColumns: "24px 100px 1fr 80px 32px",
-        gap: "8px",
-        alignItems: "center",
         padding: "8px 10px",
         borderRadius: "10px",
         background: "var(--bg-surface)",
@@ -803,25 +800,27 @@ function ItemRow({
         <option value="recipe">Sub-receta</option>
       </select>
 
-      {isIngredient ? (
-        <SearchableSelect
-          options={ingredientOptions}
-          value={item.ingredientId}
-          onChange={(val) => onUpdate({ ingredientId: val })}
-          placeholder="Selecciona..."
-          emptyMessage="Sin resultados"
-          ariaLabel="Ingrediente"
-        />
-      ) : (
-        <SearchableSelect
-          options={recipeOptions}
-          value={item.subRecipeId}
-          onChange={(val) => onUpdate({ subRecipeId: val })}
-          placeholder="Selecciona..."
-          emptyMessage="Sin resultados"
-          ariaLabel="Sub-receta"
-        />
-      )}
+      <div className="col-span-3 min-w-0 md:col-auto md:min-w-auto md:row-auto">
+        {isIngredient ? (
+          <SearchableSelect
+            options={ingredientOptions}
+            value={item.ingredientId}
+            onChange={(val) => onUpdate({ ingredientId: val })}
+            placeholder="Selecciona..."
+            emptyMessage="Sin resultados"
+            ariaLabel="Ingrediente"
+          />
+        ) : (
+          <SearchableSelect
+            options={recipeOptions}
+            value={item.subRecipeId}
+            onChange={(val) => onUpdate({ subRecipeId: val })}
+            placeholder="Selecciona..."
+            emptyMessage="Sin resultados"
+            ariaLabel="Sub-receta"
+          />
+        )}
+      </div>
 
       <input
         type="number"
@@ -831,6 +830,7 @@ function ItemRow({
         step="1"
         value={item.quantityG}
         onChange={(e) => onUpdate({ quantityG: e.target.value })}
+        className="col-span-3 min-w-0 md:col-auto md:min-w-auto md:row-auto"
         style={{
           height: "34px",
           borderRadius: "8px",
@@ -848,6 +848,7 @@ function ItemRow({
         aria-label="Eliminar componente"
         onClick={onRemove}
         disabled={!canRemove}
+        className="col-start-3 row-start-1 md:col-auto md:row-auto"
         style={{
           display: "flex",
           alignItems: "center",

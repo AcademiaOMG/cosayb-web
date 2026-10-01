@@ -76,7 +76,7 @@ export default function PriceSuggestion({ ingredientName, onAccept }: PriceSugge
     }
   }, [name])
 
-  if (name.length < 3 || (!loading && !ref && !community)) return null
+  if (name.length < 3 || (!loading && !ref && !community)) return <></>
 
   if (loading) {
     return (

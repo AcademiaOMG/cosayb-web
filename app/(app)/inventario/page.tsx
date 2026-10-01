@@ -11,6 +11,7 @@ import IngredientSearchBar from "@/components/app/inventario/IngredientSearchBar
 import IngredientFilters from "@/components/app/inventario/IngredientFilters"
 import IngredientList from "@/components/app/inventario/IngredientList"
 import IngredientDetailModal from "@/components/app/inventario/IngredientDetailModal"
+import IngredientFormModal from "@/components/app/inventario/IngredientFormModal"
 import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
 import { displayName, normalizeForSearch } from "@/components/app/inventario/format"
 import { Plus } from "lucide-react"
@@ -25,9 +26,7 @@ const FREE_LIMIT = 30
 const PAGE_SIZE = 20
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function parseFormattedNumber(value: string): string {
-  return value.replace(/\./g, "").replace(/,/g, "")
-}
+// (parseFormattedNumber removed — no longer needed with type="number" inputs)
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function InventarioPage() {
@@ -54,14 +53,6 @@ export default function InventarioPage() {
   // ── Modal: create / edit ──────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Ingredient | null>(null)
-  const [form, setForm] = useState<IngredientForm>({
-    name: "",
-    costPerUnit: "",
-    weightGrams: "",
-  })
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [priceSource, setPriceSource] = useState<string | null>(null)
 
   // ── Modal: detail ─────────────────────────────────────────────────────────
   const [detail, setDetail] = useState<Ingredient | null>(null)
@@ -136,57 +127,17 @@ export default function InventarioPage() {
   function openCreate() {
     if (quotaFull) return
     setEditing(null)
-    setForm({ name: "", costPerUnit: "", weightGrams: "" })
-    setFormError(null)
-    setPriceSource(null)
     setModalOpen(true)
   }
 
   function openEdit(ingredient: Ingredient) {
     setEditing(ingredient)
-    setForm({
-      name: ingredient.name,
-      costPerUnit: ingredient.costPerUnit,
-      weightGrams: ingredient.weightGrams,
-    })
-    setFormError(null)
-    setPriceSource(null)
     setModalOpen(true)
   }
 
   async function handleSave() {
-    if (!form.name.trim() || !form.costPerUnit || !form.weightGrams) {
-      setFormError("Todos los campos son obligatorios")
-      return
-    }
-    setSaving(true)
-    setFormError(null)
-
-    const payload: Record<string, unknown> = {
-      name: form.name.trim(),
-      costPerUnit: parseFloat(form.costPerUnit),
-      weightGrams: parseFloat(form.weightGrams),
-      ...(priceSource && { priceConfirmation: { priceSource } }),
-    }
-
-    try {
-      const url = editing
-        ? `/api/v1/ingredients/${editing.id}`
-        : `/api/v1/ingredients`
-      const method = editing ? "PUT" : "POST"
-
-      await fetchAPI<{ data: unknown }>(url, {
-        method,
-        body: JSON.stringify(payload),
-      })
-
-      setModalOpen(false)
-      await mutate()
-    } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setSaving(false)
-    }
+    setModalOpen(false)
+    await mutate()
   }
 
   async function handleDelete() {
@@ -282,80 +233,12 @@ export default function InventarioPage() {
         onDelete={canDelete ? setDeleteTarget : undefined}
       />
 
-      {/* ── Modal: create / edit ─────────────────────────────────────────── */}
-      <Modal
+      <IngredientFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editing ? "Editar ingrediente" : "Nuevo ingrediente"}
-        footer={
-          <div className="flex gap-3 justify-end">
-            <Button variant="ghost" onClick={() => setModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="primary" loading={saving} onClick={handleSave}>
-              {editing ? "Guardar cambios" : "Crear ingrediente"}
-            </Button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <Input
-            label="Nombre del ingrediente"
-            placeholder="Ej. Harina de trigo"
-            value={form.name}
-            onChange={(e) => {
-              setForm((f) => ({ ...f, name: e.target.value }))
-              setPriceSource(null)
-            }}
-          />
-          <PriceSuggestion
-            ingredientName={form.name}
-            onAccept={(pricePerUnit, weightGrams, source) => {
-              setForm((f) => ({
-                ...f,
-                costPerUnit: String(pricePerUnit),
-                weightGrams: String(weightGrams),
-              }))
-              setPriceSource(source)
-            }}
-          />
-          <Input
-            label="Precio de compra (COP)"
-            placeholder="Ej. 3.500"
-            type="text"
-            inputMode="numeric"
-            value={form.costPerUnit ? parseInt(form.costPerUnit, 10).toLocaleString("es-CO") : ""}
-            onChange={(e) => setForm((f) => ({ ...f, costPerUnit: parseFormattedNumber(e.target.value) }))}
-            hint="Lo que pagaste por esta presentación o empaque"
-          />
-          <Input
-            label="Peso del empaque (g)"
-            placeholder="Ej. 1.000"
-            type="text"
-            inputMode="numeric"
-            value={form.weightGrams ? parseInt(form.weightGrams, 10).toLocaleString("es-CO") : ""}
-            onChange={(e) => setForm((f) => ({ ...f, weightGrams: parseFormattedNumber(e.target.value) }))}
-            hint="¿Cuántos gramos trae la presentación que compraste?"
-          />
-          {form.costPerUnit && form.weightGrams && parseFloat(form.weightGrams) > 0 && (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              Costo por gramo calculado:{" "}
-              <strong>
-                ${(() => {
-                  const cost = parseFloat(form.costPerUnit) / parseFloat(form.weightGrams)
-                  return Number.isInteger(cost) ? cost.toLocaleString("es-CO") : cost.toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 2 })
-                })()}
-              </strong>{" "}
-              
-            </p>
-          )}
-          {formError && (
-            <p className="text-sm" style={{ color: "#E24B4A" }}>
-              {formError}
-            </p>
-          )}
-        </div>
-      </Modal>
+        onSaved={() => void mutate()}
+        editing={editing}
+      />
 
       {/* ── Modal: delete ────────────────────────────────────────────────── */}
       <Modal

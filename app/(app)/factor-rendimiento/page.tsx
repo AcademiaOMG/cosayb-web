@@ -30,6 +30,26 @@ const PAGE_SIZE = 10
 function TableSkeleton() {
   return (
     <div className="w-full overflow-hidden rounded-xl animate-pulse" style={{ border: "1px solid var(--border-light)" }}>
+      {/* Mobile: bloques a ancho completo (sin columnas que se recorten) */}
+      <div className="md:hidden flex flex-col">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-2 px-4 py-4"
+            style={{
+              borderTop: i === 1 ? undefined : "1px solid var(--border-light)",
+              background: i % 2 === 1 ? "var(--bg-surface)" : "var(--bg-primary)",
+            }}
+          >
+            <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "60%" }} />
+            <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "40%" }} />
+            <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "30%" }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: columnas de la tabla */}
+      <div className="hidden md:block">
       <div className="px-4 py-3 flex gap-4" style={{ background: "var(--bg-secondary)" }}>
         {[12, 30, 18, 15, 15, 10].map((w, i) => (
           <div key={i} className="h-3 rounded" style={{ background: "var(--border-light)", width: `${w}%` }} />
@@ -59,6 +79,7 @@ function TableSkeleton() {
           </div>
         </div>
       ))}
+      </div>
     </div>
   )
 }
@@ -195,7 +216,8 @@ export default function FactorRendimientoPage() {
           can("yieldFactors", "create") ? (
             <Button variant="primary" onClick={openCreate}>
               <Plus size={16} />
-              Nuevo factor
+              <span className="hidden sm:inline">Nuevo factor</span>
+              <span className="sm:hidden">Nuevo</span>
             </Button>
           ) : undefined
         }

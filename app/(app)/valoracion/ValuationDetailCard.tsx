@@ -128,65 +128,59 @@ export default function ValuationDetailCard({
   const profitMoney = moneyFromPct(result.pctProfit, total)
 
   return (
-    <div className="calc-printer">
-      <div className="calc-printer-slot" />
-      <div className="calc-printer-mask">
-        <div className="calc-receipt calc-receipt-print">
-          <div className="calc-receipt-torn" />
-          <p className="calc-receipt-title">{headline}</p>
+    <div className="calc-receipt calc-receipt-print">
+      <p className="calc-receipt-title">{headline}</p>
 
-          <div className="flex items-center justify-center gap-4 mb-3">
-            <DonutChart
-              mp={result.pctMateriaprima}
-              fixed={result.pctFixedCosts}
-              taxes={result.pctImpuestos}
-              others={result.pctOtros}
-              profit={result.pctProfit}
-              indicator={result.indicator}
-            />
-            <div className="flex flex-col items-start gap-2">
-              <span className="calc-indicator-pill" style={{ background: cfg.bg, color: cfg.text }}>
-                <IndicatorIcon size={13} style={{ color: cfg.color }} />
-                {result.indicator}
-              </span>
-              <span className="text-[11px]" style={{ color: "#8B8577" }}>{cfg.sublabel}</span>
-            </div>
-          </div>
-
-          <hr className="calc-receipt-divider" />
-
-          <ReceiptRow label="Materia prima" value={cost} pct={result.pctMateriaprima} color={SEGMENT_COLOR.mp} />
-          <ReceiptRow label="Costos fijos" value={fixedCostsMoney} pct={result.pctFixedCosts} color={SEGMENT_COLOR.fixed} />
-          <ReceiptRow label="Impuestos de ley" value={impuestosMoney} pct={result.pctImpuestos} color={SEGMENT_COLOR.taxes} />
-          <ReceiptRow label="Otros" value={otrosMoney} pct={result.pctOtros} color={SEGMENT_COLOR.others} />
-          <ReceiptRow label="Ganancia neta" value={profitMoney} pct={result.pctProfit} color={SEGMENT_COLOR.profit} />
-
-          <hr className="calc-receipt-divider" />
-
-          <div className="calc-receipt-total">
-            <span className="calc-receipt-total-label">PRECIO DE VENTA</span>
-            <span className="calc-receipt-total-value">{fmt(total)}</span>
-          </div>
-
-          {hasActual && (() => {
-            const diff = actualPrice! - total
-            const up = diff >= 0
-            return (
-              <div className="calc-receipt-row" style={{ marginTop: 4 }}>
-                <span className="calc-receipt-row-label">Precio real cobrado</span>
-                <span className="calc-receipt-row-leader" />
-                <span className="calc-receipt-row-value" style={{ color: up ? "#166534" : "#991B1B" }}>
-                  {fmt(actualPrice!)}
-                </span>
-              </div>
-            )
-          })()}
-
-          <p className="text-center mt-3" style={{ fontSize: 10.5, color: "#8B8577" }}>
-            Costo con margen de seguridad ({fmtPct(margin)}): {fmt(cost * (1 + margin / 100))}
-          </p>
+      <div className="flex items-center justify-center gap-4 mb-3">
+        <DonutChart
+          mp={result.pctMateriaprima}
+          fixed={result.pctFixedCosts}
+          taxes={result.pctImpuestos}
+          others={result.pctOtros}
+          profit={result.pctProfit}
+          indicator={result.indicator}
+        />
+        <div className="flex flex-col items-start gap-2">
+          <span className="calc-indicator-pill" style={{ background: cfg.bg, color: cfg.text }}>
+            <IndicatorIcon size={13} style={{ color: cfg.color }} />
+            {result.indicator}
+          </span>
+          <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{cfg.sublabel}</span>
         </div>
       </div>
+
+      <hr className="calc-receipt-divider" />
+
+      <ReceiptRow label="Materia prima" value={cost} pct={result.pctMateriaprima} color={SEGMENT_COLOR.mp} />
+      <ReceiptRow label="Costos fijos" value={fixedCostsMoney} pct={result.pctFixedCosts} color={SEGMENT_COLOR.fixed} />
+      <ReceiptRow label="Impuestos de ley" value={impuestosMoney} pct={result.pctImpuestos} color={SEGMENT_COLOR.taxes} />
+      <ReceiptRow label="Otros" value={otrosMoney} pct={result.pctOtros} color={SEGMENT_COLOR.others} />
+      <ReceiptRow label="Ganancia neta" value={profitMoney} pct={result.pctProfit} color={SEGMENT_COLOR.profit} />
+
+      <hr className="calc-receipt-divider" />
+
+      <div className="calc-receipt-total">
+        <span className="calc-receipt-total-label">Precio de venta</span>
+        <span className="calc-receipt-total-value">{fmt(total)}</span>
+      </div>
+
+      {hasActual && (() => {
+        const diff = actualPrice! - total
+        const up = diff >= 0
+        return (
+          <div className="calc-receipt-row" style={{ marginTop: 4 }}>
+            <span className="calc-receipt-row-label">Precio real cobrado</span>
+            <span className="calc-receipt-row-leader" />
+            <span className="calc-receipt-row-value" style={{ color: up ? "#166534" : "#991B1B" }}>
+              {fmt(actualPrice!)}
+            </span>
+          </div>
+        )
+      })()}
+
+      <p className="text-center mt-3" style={{ fontSize: 11, color: "var(--text-muted)" }}>
+        Costo con margen de seguridad ({fmtPct(margin)}): {fmt(cost * (1 + margin / 100))}
+      </p>
     </div>
   )
 }

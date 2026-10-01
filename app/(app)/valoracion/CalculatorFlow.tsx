@@ -35,9 +35,11 @@ const QUESTION_ID = "valuation-question"
 
 /**
  * Composición de la pantalla de cálculo (ver .valuation-* en calculator.css):
- *  - Columna del aparato: selector de modo + calculadora, siempre juntos.
+ *  - Selector de modo arriba, a todo lo ancho.
+ *  - Columna del aparato: card de resultado, cards de resumen, formulario,
+ *    teclado (solo desktop) y Calcular.
  *  - Columna de la respuesta: la pregunta que responde el modo y, debajo, el
- *    recibo impreso con el desglose. Antes de calcular, la impresora vacía.
+ *    desglose con el gráfico. Antes de calcular, el estado vacío.
  * En angosto todo va en una columna y la respuesta solo aparece con resultado.
  */
 export default function CalculatorFlow({
@@ -127,11 +129,8 @@ export default function CalculatorFlow({
               </div>
             </>
           ) : (
-            <div className="calc-printer" aria-hidden>
-              <div className="calc-printer-slot" />
-              <div className="calc-receipt-placeholder">
-                El desglose se imprime aquí cuando pulses Calcular
-              </div>
+            <div className="valuation-empty">
+              El desglose aparece aquí cuando pulses Calcular
             </div>
           )}
         </section>

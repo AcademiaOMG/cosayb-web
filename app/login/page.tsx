@@ -42,8 +42,7 @@ function LoginForm() {
     setLoading(true)
     setError(null)
     try {
-      const apiURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-      const res = await fetch(`${apiURL}/auth/sign-in/social`, {
+      const res = await fetch(`/api/auth/sign-in/social`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

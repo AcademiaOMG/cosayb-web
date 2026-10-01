@@ -25,23 +25,24 @@ function isTypingTarget(el: EventTarget | null) {
   return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)
 }
 
-// El selector de recetas vive dentro del aparato: se viste como una pieza más
-// de la calculadora en vez de un campo blanco pegado encima.
+// El selector de recetas vive en el formulario, debajo de los campos: se
+// viste como un campo más del formulario (superficie clara, borde sutil).
 const RECIPE_TRIGGER: React.CSSProperties = {
-  height: 44,
-  background: "#34373D",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  borderRadius: 12,
-  color: "#E4E7EB",
-  fontSize: 13,
-  padding: "0 12px",
+  height: 46,
+  background: "var(--bg-surface)",
+  border: "1px solid var(--border-light)",
+  borderRadius: "var(--radius-md)",
+  color: "var(--text-primary)",
+  fontSize: 14,
+  padding: "0 14px",
 }
 
 /**
- * La calculadora de valoración: pantalla de resultado, los dos datos que el
- * modo necesita, el margen y el teclado. Recibe el estado de
- * useValuationCalculator, así la misma pieza sirve en cualquier pantalla que
- * necesite valorar un plato.
+ * La calculadora de valoración: card de resultado, cards de resumen con los
+ * valores reales, formulario con los datos que el modo necesita (más margen
+ * y, si aplica, el selector de recetas), teclado (solo desktop) y Calcular.
+ * Recibe el estado de useValuationCalculator, así la misma pieza sirve en
+ * cualquier pantalla que necesite valorar un plato.
  */
 export default function ValuationCalculator({
   calc,
@@ -115,7 +116,7 @@ export default function ValuationCalculator({
 
   function register(field: RegisterField) {
     const isMargin = field === "margin"
-    const label = isMargin ? "MARGEN DE SEGURIDAD" : FIELD_META[field].lcd
+    const label = isMargin ? "Margen de seguridad" : FIELD_META[field].label
     const ariaLabel = isMargin ? "Margen de seguridad (%)" : FIELD_META[field].label
     const hasError = !!error && error.field === field
     return (
@@ -129,6 +130,8 @@ export default function ValuationCalculator({
         ariaLabel={ariaLabel}
         display={formatField(field, values[field])}
         placeholder={PERCENT_FIELDS.includes(field) ? "0 %" : "$ 0"}
+        // Móvil: teclado del sistema numérico (montos) o decimal (%).
+        inputMode={PERCENT_FIELDS.includes(field) ? "decimal" : "numeric"}
         active={active === field}
         // El valor "fantasma" (la próxima tecla lo reemplaza) solo mientras se
         // edita: con un resultado en pantalla o un costo recién traído de una
@@ -136,7 +139,6 @@ export default function ValuationCalculator({
         fresh={calc.fresh && !result && !(field === "costoMP" && calc.recipe)}
         error={hasError}
         describedBy={hasError ? errorId : undefined}
-        variant={isMargin ? "inline" : "block"}
         onActivate={() => calc.activate(field)}
         onKey={calc.press}
         onRawInput={(raw) => calc.setRaw(field, raw)}
@@ -147,6 +149,7 @@ export default function ValuationCalculator({
 
   return (
     <CalcDevice label={`Calculadora de ${meta.title.toLowerCase()}`} className={resting ? "is-resting" : undefined}>
+      {/* ── Resultado principal: la variable que despeja el modo ───────── */}
       <CalcDisplay
         label={meta.resultLabel}
         value={displayValue}
@@ -157,27 +160,43 @@ export default function ValuationCalculator({
         revealKey={result ? `${mode}-${result.value}` : undefined}
       />
 
-      <div className="calc-registers">{meta.inputs.map(register)}</div>
+      {/* ── Resumen: dos stats reales, siempre con lo digitado ─────────── */}
+      <div className="valuation-summary">
+        <div className="valuation-summary-card">
+          <span className="valuation-summary-label">{FIELD_META.costoMP.lcd}</span>
+          <span className="valuation-summary-value">{formatMoneyEntry(values.costoMP) || "$ 0"}</span>
+        </div>
+        <div className="valuation-summary-card">
+          <span className="valuation-summary-label">Margen de utilidad</span>
+          <span className="valuation-summary-value">{formatPercentEntry(values.margin) || "0 %"}</span>
+        </div>
+      </div>
 
-      {/* Otra forma de llenar el precio de materia prima: justo debajo del dato que llena */}
-      {usesCost && recipes && (
-        <SearchableSelect
-          options={recipes.map((r) => ({ value: r.id, label: r.name }))}
-          value={calc.recipe?.id ?? ""}
-          onChange={(id) => {
-            const r = recipes.find((x) => x.id === id)
-            if (r) void calc.loadRecipe({ id: r.id, name: r.name })
-          }}
-          placeholder="Cargar precio desde una receta"
-          searchPlaceholder="Buscar receta"
-          emptyMessage="No se encontraron recetas"
-          ariaLabel="Cargar el precio de materia prima desde una receta"
-          triggerStyle={RECIPE_TRIGGER}
-        />
-      )}
+      {/* ── Formulario: los datos del modo + receta + margen ───────────── */}
+      <div className="flex flex-col gap-3">
+        {meta.inputs.map(register)}
 
-      {register("margin")}
+        {/* Otra forma de llenar el precio de materia prima */}
+        {usesCost && recipes && (
+          <SearchableSelect
+            options={recipes.map((r) => ({ value: r.id, label: r.name }))}
+            value={calc.recipe?.id ?? ""}
+            onChange={(id) => {
+              const r = recipes.find((x) => x.id === id)
+              if (r) void calc.loadRecipe({ id: r.id, name: r.name })
+            }}
+            placeholder="Cargar precio desde una receta"
+            searchPlaceholder="Buscar receta"
+            emptyMessage="No se encontraron recetas"
+            ariaLabel="Cargar el precio de materia prima desde una receta"
+            triggerStyle={RECIPE_TRIGGER}
+          />
+        )}
 
+        {register("margin")}
+      </div>
+
+      {/* Teclado numérico — solo desktop; en móvil lo reemplaza el del sistema */}
       <div className="calc-keypad-slot">
         <CalcKeypad onKey={calc.press} onClearAll={calc.clearAll} decimalEnabled={decimalEnabled} />
       </div>
