@@ -1,23 +1,21 @@
-/* ─── Recibo impreso de la valoración (desglose) ──────────────────────────
-   Complemento de la piel de calculadora física: el cuerpo, la pantalla, los
-   registros y las teclas viven en @/components/calculator (reutilizables).
-   Acá solo queda lo propio de Valoración: el recibo que sale "impreso".
-   Namespaced bajo .calc-* para no chocar con el resto de la app. */
+/* ─── Valoración de costos — composición de la pantalla de cálculo ────────
+   Complemento de la piel de calculadora (los campos, teclas y card de
+   resultado viven en @/components/calculator). Acá solo lo propio de
+   Valoración: el layout de la pantalla, el selector de modo, las cards de
+   resumen y el desglose. Namespaced bajo .valuation-* / .calc-*.
 
-/* ── Composición de la pantalla de cálculo ───────────────────────────────
-   Se adapta al ANCHO DISPONIBLE (container query), no al de la pantalla:
-   con o sin barra lateral el espacio real cambia mucho.
+   Composición (ver CalculatorFlow):
+     HEADER (page)   título + botón Historial
+     ┌ selector de modo ┐
+     │ card resultado   │   ¿Pregunta del modo?
+     │ cards resumen    │   explicación corta
+     │ formulario       │   ┌ desglose con gráfico ┐
+     │ teclado (desktop)│   [Guardar] [Seguir con…]
+     │ Calcular         │
+     └──────────────────┘
+   Angosto: una columna en ese orden. Con ancho: el aparato a la izquierda
+   y la respuesta (pregunta + desglose + acciones) a la derecha. */
 
-   Ancho → dos columnas alineadas al borde izquierdo del título de la página:
-     ┌ selector ┐   ¿Pregunta del modo?
-     │ aparato  │   explicación corta
-     │          │   ┌ impresora / recibo ┐
-     └──────────┘   [Guardar] [Seguir con…]
-   El selector va sobre el aparato (son la misma máquina), y la pregunta
-   encabeza la columna de la respuesta: pregunta arriba, recibo debajo.
-
-   Angosto → una columna centrada: selector, aparato y, solo cuando hay
-   resultado, la pregunta como título del recibo. */
 .valuation-stage {
   container: calc-stage / inline-size;
   width: 100%;
@@ -32,9 +30,8 @@
     "answer";
   row-gap: 16px;
   width: 100%;
-  max-width: 440px;
+  max-width: 560px;
   margin: 0 auto;
-  justify-items: center;
 }
 
 .valuation-switch { grid-area: switch; }
@@ -45,15 +42,14 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  margin-top: 20px;
+  margin-top: 8px;
 }
 
 /* Sin resultado, en angosto la respuesta no ocupa lugar: el aparato ya
-   dice qué falta; la pregunta vuelve como título del recibo. */
+   dice qué falta. */
 .valuation-answer[data-state="idle"] { display: none; }
-.valuation-question-hint { display: none; }
 
-.valuation-question { margin-bottom: 18px; }
+.valuation-question { margin-bottom: 16px; }
 
 .valuation-question-title {
   font-family: var(--font-display);
@@ -77,194 +73,137 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
-/* Tablet / laptop angosta con barra lateral: ya caben las dos columnas,
-   con el aparato en su tamaño de celular. */
-@container calc-stage (min-width: 720px) {
-  .valuation-workspace {
-    max-width: 1040px;
-    margin: 0 auto;
-    justify-items: center;
-    align-items: start;
-    grid-template-columns: 380px minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-      "switch answer"
-      "device answer";
-    column-gap: 32px;
-    row-gap: 18px;
-  }
-
-  .valuation-answer,
-  .valuation-answer[data-state="idle"] {
-    display: flex;
-    margin-top: 0;
-    max-width: 460px;
-  }
-
-  .valuation-question { margin-bottom: 24px; }
-  .valuation-question-title { font-size: 24px; line-height: 1.2; }
-  .valuation-question-hint { display: block; }
+/* ── Cards de resumen — dos stats reales (costo MP y margen) ───────────── */
+.valuation-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-@container calc-stage (min-width: 900px) {
-  .valuation-workspace {
-    max-width: 1100px;
-    grid-template-columns: 420px minmax(0, 1fr);
-    column-gap: 64px;
-    row-gap: 20px;
-  }
-
-  .valuation-question { margin-bottom: 28px; }
-  .valuation-question-title { font-size: 28px; }
+.valuation-summary-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 13px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-/* ── Selector de modo — mismo lenguaje visual que las teclas del aparato
-   (tecla física de 3D, no un segmented control plano), adaptado a 3 textos
-   completos en vez de un solo glifo. El seleccionado es la misma tecla azul
-   claro, más oscura y "enganchada" (hundida a medias), como una tecla de
-   función que queda trabada. El azul de acento se reserva para acciones
-   (Calcular, Guardar): un modo elegido no es una acción. ─────────────── */
-.calc-key-mode {
-  position: relative;
-  min-height: 56px;
-  padding: 8px 6px;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  font-family: var(--font-jetbrains-mono), monospace;
+.valuation-summary-label {
+  font-size: 10.5px;
   font-weight: 700;
-  font-size: 12.5px;
-  line-height: 1.25;
-  text-align: center;
-  color: #1B2540;
-  background: linear-gradient(180deg, #DCE4F7 0%, #BCCBF0 100%);
-  box-shadow: 0 3px 0 #7C93CC, 0 7px 10px -2px rgba(0, 0, 0, 0.35);
-  transition: transform 0.06s ease, box-shadow 0.06s ease;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-.calc-key-mode:hover {
-  filter: brightness(1.03);
+.valuation-summary-value {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
-.calc-key-mode:active {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 #7C93CC, 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-}
-
-.calc-key-mode:focus-visible {
-  outline: 2px solid #1B4FD8;
-  outline-offset: 2px;
-}
-
-.calc-key-mode-active {
-  color: #0E1A3A;
-  background: linear-gradient(180deg, #AFC0EA 0%, #93A9E0 100%);
-  transform: translateY(2px);
-  box-shadow:
-    0 1px 0 #5E76B8,
-    0 3px 6px -2px rgba(0, 0, 0, 0.3),
-    inset 0 1px 2px rgba(14, 26, 58, 0.18);
-  cursor: default;
-}
-
-.calc-key-mode-active:hover { filter: none; }
-
-.calc-key-mode-active:active {
-  transform: translateY(2px);
-  box-shadow:
-    0 1px 0 #5E76B8,
-    0 3px 6px -2px rgba(0, 0, 0, 0.3),
-    inset 0 1px 2px rgba(14, 26, 58, 0.18);
-}
-
-@media (max-width: 640px) {
-  .calc-key-mode {
-    min-height: 52px;
-    font-size: 12px;
-  }
-}
-
-/* Impresora vacía — antes de calcular, la columna de la respuesta muestra
-   dónde va a salir el recibo en vez de quedar en blanco. */
-.calc-receipt-placeholder {
+/* ── Estado vacío de la columna de respuesta (antes: impresora) ────────── */
+.valuation-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
-  margin: 0 14px;
-  padding: 36px 24px 24px;
-  border: 1.5px dashed #C3CAD8;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 12px;
+  min-height: 180px;
+  padding: 32px 24px;
+  border: 1.5px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+  font-size: 13.5px;
   line-height: 1.6;
   text-align: center;
   color: var(--text-muted);
   text-wrap: balance;
 }
 
-/* ── Impresora — el recibo sale de la ranura, con movimiento real ─────────── */
-.calc-printer {
-  position: relative;
+/* ── Selector de modo — segmented control premium ───────────────────────
+   El chip seleccionado es una card blanca con sombra sutil sobre el fondo
+   gris del contenedor. El azul de acento se reserva para acciones
+   (Calcular, Guardar): un modo elegido no es una acción. */
+.calc-key-mode {
+  min-height: 42px;
+  padding: 8px 8px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 5px);
+  cursor: pointer;
+  font-family: var(--font-body), inherit;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.calc-printer-slot {
-  position: relative;
-  z-index: 2;
-  height: 20px;
-  margin: 0 14px -12px;
-  border-radius: 12px;
-  background: linear-gradient(160deg, #4A4E56 0%, #1C1E22 100%);
-  box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+.calc-key-mode:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.65);
 }
 
-.calc-printer-mask {
-  overflow: hidden;
-  border-radius: 4px;
+.calc-key-mode:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
-@keyframes calc-print-out {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
+.calc-key-mode-active,
+.calc-key-mode-active:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 767px) {
+  .calc-key-mode {
+    min-height: 40px;
+    font-size: 12.5px;
+    padding: 7px 5px;
+  }
+}
+
+/* ── Desglose — card limpia con el mismo contenido de siempre ────────────
+   (donut, filas por segmento, indicador y total; el "recibo impreso" con
+   ranura y borde dentado se reemplazó por esta card). */
+.calc-receipt {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 22px 22px 18px;
+  font-family: var(--font-body), inherit;
+  color: var(--text-primary);
+}
+
+@keyframes calc-receipt-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .calc-receipt-print {
-  animation: calc-print-out 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.1s;
+  animation: calc-receipt-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .calc-receipt-print { animation: none; }
-}
-
-/* ── Recibo impreso ──────────────────────────────────────────────────────── */
-.calc-receipt {
-  background: #FBFAF5;
-  border-radius: 4px;
-  padding: 22px 20px 18px;
-  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.3);
-  font-family: var(--font-jetbrains-mono), monospace;
-  color: #2A2A26;
-}
-
-.calc-receipt-torn {
-  height: 8px;
-  margin: -22px -20px 14px;
-  background: linear-gradient(-45deg, #FBFAF5 8px, transparent 0) 0 0 / 12px 12px repeat-x,
-    linear-gradient(45deg, #FBFAF5 8px, transparent 0) 0 0 / 12px 12px repeat-x;
-  background-color: transparent;
 }
 
 .calc-indicator-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: system-ui, sans-serif;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -274,53 +213,52 @@
 }
 
 .calc-receipt-title {
-  font-family: var(--font-barlow-condensed), var(--font-jetbrains-mono), monospace;
+  font-family: var(--font-display), inherit;
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   text-align: center;
-  color: #201F1C;
-  margin-bottom: 12px;
+  color: var(--text-primary);
+  margin-bottom: 14px;
 }
 
 .calc-receipt-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  font-size: 13px;
-  padding: 3px 0;
+  gap: 8px;
+  font-size: 13.5px;
+  padding: 5px 0;
 }
 
 .calc-receipt-row-label {
   white-space: nowrap;
-  color: #4A473F;
+  color: var(--text-secondary);
 }
 
+/* Espaciador flexible: el valor queda alineado a la derecha */
 .calc-receipt-row-leader {
   flex: 1;
   min-width: 8px;
-  border-bottom: 1px dotted #B7B1A2;
-  transform: translateY(-3px);
 }
 
 .calc-receipt-row-value {
   white-space: nowrap;
   font-weight: 700;
-  color: #201F1C;
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .calc-receipt-divider {
   border: none;
-  border-top: 1px dashed #B7B1A2;
-  margin: 8px 0;
+  border-top: 1px solid var(--border-light);
+  margin: 10px 0;
 }
 
 .calc-receipt-total {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 12px;
   padding-top: 2px;
 }
 
@@ -328,26 +266,78 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: #6B6555;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .calc-receipt-total-value {
-  font-family: var(--font-barlow-condensed), var(--font-jetbrains-mono), monospace;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: #201F1C;
+  font-family: var(--font-display), inherit;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 .calc-receipt-pct {
   font-size: 10.5px;
-  color: #8B8577;
+  color: var(--text-muted);
   margin-left: 6px;
 }
 
-@media (max-width: 640px) {
-  .calc-receipt { padding: 20px 14px 16px; }
-  .calc-receipt-torn { margin: -20px -14px 12px; }
-  .calc-receipt-row { font-size: 12px; }
+/* ── Tablet / desktop: dos columnas ─────────────────────────────────────
+   El corte sigue el ancho CONTENIDO (container query), no el de la
+   pantalla: con o sin barra lateral el espacio real cambia. */
+@container calc-stage (min-width: 720px) {
+  .valuation-workspace {
+    max-width: 1080px;
+    grid-template-columns: minmax(0, 460px) minmax(0, 1fr);
+    grid-template-areas:
+      "switch switch"
+      "device answer";
+    column-gap: 40px;
+    row-gap: 18px;
+    align-items: start;
+  }
+
+  .valuation-switch {
+    max-width: 460px;
+  }
+
+  .valuation-answer,
+  .valuation-answer[data-state="idle"] {
+    display: flex;
+    margin-top: 0;
+    max-width: 520px;
+  }
+
+  .valuation-question { margin-bottom: 20px; }
+  .valuation-question-title { font-size: 23px; line-height: 1.2; }
+  .valuation-question-hint { display: block; }
+}
+
+@container calc-stage (min-width: 980px) {
+  .valuation-workspace {
+    grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+    column-gap: 56px;
+    row-gap: 20px;
+  }
+
+  .valuation-question { margin-bottom: 24px; }
+  .valuation-question-title { font-size: 26px; }
+}
+
+@media (max-width: 767px) {
+  .valuation-question-hint { display: none; }
+  .valuation-answer,
+  .valuation-answer[data-state="idle"] {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .calc-receipt { padding: 18px 16px 15px; }
+  .calc-receipt-row { font-size: 12.5px; }
   .calc-receipt-pct { margin-left: 4px; }
+  .calc-receipt-total-value { font-size: 21px; }
 }

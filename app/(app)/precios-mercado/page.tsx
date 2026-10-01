@@ -123,6 +123,123 @@ function PriceDetailModal({ row, onClose }: { row: PriceRow | null; onClose: () 
   )
 }
 
+// ── Mobile: tarjeta de precio (la tabla solo existe en md+) ──────────────────
+function PriceCard({ row, onSelect }: { row: PriceRow; onSelect: (row: PriceRow) => void }) {
+  return (
+    <li
+      className="relative rounded-2xl"
+      style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
+    >
+      {/* Fila completa clicable → abre el mismo PriceDetailModal de desktop */}
+      <button
+        type="button"
+        onClick={() => onSelect(row)}
+        aria-label={`Ver detalle de ${row.originalName}`}
+        className="absolute inset-0 z-0 w-full rounded-2xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+      />
+      <div className="pointer-events-none relative flex flex-col gap-2.5 px-4 py-3.5">
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant={SOURCE_VARIANT[row.source] ?? "muted"}>
+            {SOURCE_LABEL[row.source] ?? row.source}
+          </Badge>
+          <Badge variant="muted">{CITY_LABEL[row.city] ?? row.city}</Badge>
+        </div>
+
+        <div className="min-w-0">
+          <p
+            className="text-[15px] font-semibold leading-snug"
+            style={{ color: "var(--text-primary)" }}
+          >
+            {row.originalName}
+          </p>
+          <p className="text-xs truncate" style={{ color: "var(--text-muted)" }}>
+            {row.ingredientName}
+          </p>
+        </div>
+
+        <div className="flex items-end justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Precio/kg
+            </span>
+            <span
+              className="text-lg font-bold font-mono"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {formatCOP(row.pricePerKg)}
+              <span className="ml-0.5 text-xs font-normal" style={{ color: "var(--text-muted)" }}>
+                /kg
+              </span>
+            </span>
+          </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Precio/g
+            </span>
+            <span className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
+              ${parseFloat(row.pricePerGram).toFixed(4)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function PriceCardSkeleton() {
+  return (
+    <li
+      className="animate-pulse rounded-2xl px-4 py-3.5"
+      style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
+    >
+      <div className="flex flex-col gap-2.5">
+        <div className="h-5 w-24 rounded-full" style={{ background: "var(--bg-secondary)" }} />
+        <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "70%" }} />
+        <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "45%" }} />
+        <div className="h-6 rounded" style={{ background: "var(--bg-secondary)", width: "55%" }} />
+      </div>
+    </li>
+  )
+}
+
+// ── Paginación (compartida por tabla desktop y cards mobile) ─────────────────
+function PreciosPagination({
+  page,
+  hasMore,
+  goToPage,
+}: {
+  page: number
+  hasMore: boolean
+  goToPage: (n: number) => void
+}) {
+  return (
+    <div
+      className="flex items-center justify-between px-4 py-3"
+      style={{ borderTop: "1px solid var(--border-light)" }}
+    >
+      <button
+        onClick={() => goToPage(Math.max(0, page - 1))}
+        disabled={page === 0}
+        className="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
+        style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}
+      >
+        ← Anterior
+      </button>
+      <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+        Página {page + 1}
+      </span>
+      <button
+        onClick={() => goToPage(page + 1)}
+        disabled={!hasMore}
+        className="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
+        style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}
+      >
+        Siguiente →
+      </button>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function PreciosMercadoPage() {
   useHelpAvailable()
@@ -244,9 +361,9 @@ export default function PreciosMercadoPage() {
         </select>
       </div>
 
-      {/* Tabla */}
+      {/* Tabla (desktop) */}
       <div
-        className="rounded-2xl overflow-hidden"
+        className="hidden md:block rounded-2xl overflow-hidden"
         style={{ border: "1px solid var(--border-light)", background: "var(--bg-surface)" }}
       >
         <div className="overflow-x-auto">
@@ -325,32 +442,35 @@ export default function PreciosMercadoPage() {
 
         {/* Paginación */}
         {(page > 0 || hasMore) && (
-          <div
-            className="flex items-center justify-between px-4 py-3"
-            style={{ borderTop: "1px solid var(--border-light)" }}
-          >
-            <button
-              onClick={() => goToPage(Math.max(0, page - 1))}
-              disabled={page === 0}
-              className="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
-              style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}
-            >
-              ← Anterior
-            </button>
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Página {page + 1}
-            </span>
-            <button
-              onClick={() => goToPage(page + 1)}
-              disabled={!hasMore}
-              className="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
-              style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}
-            >
-              Siguiente →
-            </button>
-          </div>
+          <PreciosPagination page={page} hasMore={hasMore} goToPage={goToPage} />
         )}
       </div>
+
+      {/* Cards (mobile) */}
+      <ul className="md:hidden flex flex-col gap-3" aria-label="Precios de mercado">
+        {isLoading && rows.length === 0 ? (
+          Array.from({ length: 6 }).map((_, i) => <PriceCardSkeleton key={i} />)
+        ) : rows.length > 0 ? (
+          rows.map((row) => <PriceCard key={row.id} row={row} onSelect={setSelected} />)
+        ) : (
+          !isLoading && (
+            <li
+              className="rounded-2xl px-4 py-12 text-center text-sm"
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)", color: "var(--text-muted)" }}
+            >
+              No se encontraron resultados
+            </li>
+          )
+        )}
+      </ul>
+      {(page > 0 || hasMore) && (
+        <div
+          className="md:hidden rounded-2xl overflow-hidden"
+          style={{ border: "1px solid var(--border-light)", background: "var(--bg-surface)" }}
+        >
+          <PreciosPagination page={page} hasMore={hasMore} goToPage={goToPage} />
+        </div>
+      )}
 
       <PriceDetailModal row={selected} onClose={() => setSelected(null)} />
 

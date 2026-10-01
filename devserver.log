@@ -1,0 +1,72 @@
+
+> cosayb-web@0.1.0 dev
+> next dev -p 3002
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3002
+- Network:       http://192.168.1.10:3002
+- Environments: .env
+✓ Ready in 984ms
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\HP\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\HP\Documents\Proyectos\cosayb-web\pnpm-workspace.yaml
+
+
+ GET /login 200 in 1966ms (next.js: 1303ms, proxy.ts: 405ms, application-code: 259ms)
+ GET /valoracion 200 in 1529ms (next.js: 440ms, proxy.ts: 21ms, application-code: 1067ms)
+ GET /api/auth/get-session 200 in 1098ms (next.js: 987ms, application-code: 111ms)
+ GET /login 200 in 117ms (next.js: 12ms, proxy.ts: 8ms, application-code: 97ms)
+ GET /valoracion 200 in 2.0s (next.js: 169ms, proxy.ts: 22ms, application-code: 1851ms)
+ GET /menu 200 in 1988ms (next.js: 389ms, proxy.ts: 10ms, application-code: 1589ms)
+ GET /factor-rendimiento 200 in 1931ms (next.js: 170ms, proxy.ts: 6ms, application-code: 1755ms)
+ GET /dashboard 200 in 2.1s (next.js: 483ms, proxy.ts: 10ms, application-code: 1600ms)
+ GET /recetas 200 in 2.6s (next.js: 988ms, proxy.ts: 38ms, application-code: 1545ms)
+ GET /inventario 200 in 2.2s (next.js: 837ms, proxy.ts: 18ms, application-code: 1386ms)
+ GET /cuenta 200 in 1996ms (next.js: 249ms, proxy.ts: 15ms, application-code: 1732ms)
+ GET /precios-mercado 200 in 2.0s (next.js: 407ms, proxy.ts: 33ms, application-code: 1589ms)
+ GET /punto-equilibrio 200 in 2.2s (next.js: 925ms, proxy.ts: 10ms, application-code: 1222ms)
+ GET /configuracion 307 in 2.1s (next.js: 899ms, proxy.ts: 7ms, application-code: 1203ms)
+ GET /configuracion/equipo 200 in 1179ms (next.js: 293ms, proxy.ts: 62ms, application-code: 824ms)
+ GET /recetas 200 in 1327ms (next.js: 202ms, proxy.ts: 82ms, application-code: 1043ms)
+ GET /punto-equilibrio 200 in 94ms (next.js: 12ms, proxy.ts: 7ms, application-code: 76ms)
+ GET /menu 200 in 112ms (next.js: 48ms, proxy.ts: 6ms, application-code: 59ms)
+ GET /precios-mercado 200 in 105ms (next.js: 42ms, proxy.ts: 5ms, application-code: 58ms)
+ GET /menu 200 in 113ms (next.js: 54ms, proxy.ts: 8ms, application-code: 52ms)
+[browser] App error: TypeError: Cannot read properties of undefined (reading 'bg')
+    at CostoPanel (app/(app)/menu/page.tsx:139:34)
+  137 |       {/* Indicador */}
+  138 |       <div className="rounded-xl px-4 py-3"
+> 139 |         style={{ background: cfg.bg, border: `1px solid ${cfg.color}30`, transition: "bac...
+      |                                  ^
+  140 |         <div className="flex items-center justify-between">
+  141 |           <div className="flex items-center gap-2.5">
+  142 |             <div className="w-2 h-2 rounded-full" style={{ background: cfg.color, transit... (app/(app)
+[browser] App error: TypeError: Cannot read properties of undefined (reading 'bg')
+    at CostoPanel (app/(app)/menu/page.tsx:139:34)
+  137 |       {/* Indicador */}
+  138 |       <div className="rounded-xl px-4 py-3"
+> 139 |         style={{ background: cfg.bg, border: `1px solid ${cfg.color}30`, transition: "bac...
+      |                                  ^
+  140 |         <div className="flex items-center justify-between">
+  141 |           <div className="flex items-center gap-2.5">
+  142 |             <div className="w-2 h-2 rounded-full" style={{ background: cfg.color, transit... (app/(app)
+ GET /valoracion 200 in 63ms (next.js: 5ms, proxy.ts: 3ms, application-code: 55ms)
+ GET /valoracion 200 in 63ms (next.js: 7ms, proxy.ts: 7ms, application-code: 50ms)
+ GET /valoracion 200 in 74ms (next.js: 7ms, proxy.ts: 5ms, application-code: 62ms)
+ GET /valoracion 200 in 61ms (next.js: 5ms, proxy.ts: 4ms, application-code: 52ms)
+ GET /api/auth/get-session 200 in 1183ms (next.js: 23ms, application-code: 1160ms)
+ GET /api/auth/get-session 200 in 40ms (next.js: 19ms, application-code: 20ms)
+ GET /valoracion 200 in 61ms (next.js: 5ms, proxy.ts: 5ms, application-code: 51ms)
+ GET /valoracion 200 in 47ms (next.js: 5ms, proxy.ts: 3ms, application-code: 39ms)
+ GET /valoracion 200 in 46ms (next.js: 5ms, proxy.ts: 4ms, application-code: 37ms)
+ GET /valoracion 200 in 48ms (next.js: 5ms, proxy.ts: 3ms, application-code: 41ms)
+ GET /valoracion 200 in 49ms (next.js: 6ms, proxy.ts: 3ms, application-code: 39ms)
+ GET /valoracion 200 in 54ms (next.js: 7ms, proxy.ts: 5ms, application-code: 43ms)
+ GET /valoracion 200 in 50ms (next.js: 4ms, proxy.ts: 3ms, application-code: 43ms)
+ GET /valoracion 200 in 59ms (next.js: 4ms, proxy.ts: 3ms, application-code: 51ms)
+ GET /valoracion 200 in 48ms (next.js: 5ms, proxy.ts: 3ms, application-code: 41ms)
+ GET /valoracion 200 in 53ms (next.js: 6ms, proxy.ts: 3ms, application-code: 44ms)
+ GET /valoracion 200 in 51ms (next.js: 6ms, proxy.ts: 3ms, application-code: 42ms)

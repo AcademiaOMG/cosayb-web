@@ -750,12 +750,13 @@ function DeleteAccountSection() {
           </p>
           <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="ELIMINAR" />
           {error && <p className="text-xs" style={{ color: "#EF4444" }}>{error}</p>}
-          <div className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => { setConfirming(false); setConfirmText(""); setError(null) }}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => { setConfirming(false); setConfirmText(""); setError(null) }}>
               Cancelar
             </Button>
             <Button
               variant="danger"
+              className="w-full sm:w-auto"
               disabled={confirmText !== "ELIMINAR" || deleting}
               onClick={handleDelete}
             >

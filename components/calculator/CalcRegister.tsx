@@ -6,13 +6,19 @@ import "./calculator.css"
 
 export interface CalcRegisterProps {
   id: string
-  /** Etiqueta corta de la pantalla LCD */
+  /** Etiqueta corta del campo */
   label: string
   /** Nombre completo para lectores de pantalla */
   ariaLabel: string
   /** Valor ya formateado para mostrar ("$ 25.000", "35 %") */
   display: string
   placeholder?: string
+  /**
+   * Teclado del sistema en móvil: "numeric" para montos enteros,
+   * "decimal" para porcentajes, "none" cuando el teclado de la calculadora
+   * propio está en pantalla. En desktop no cambia nada (no hay teclado OS).
+   */
+  inputMode?: "none" | "numeric" | "decimal"
   active: boolean
   /** Recién seleccionado con un valor previo: la primera tecla lo reemplaza */
   fresh?: boolean
@@ -31,13 +37,14 @@ export interface CalcRegisterProps {
 }
 
 /**
- * Pantalla pequeña de entrada. Es un <input> real (foco, teclado físico,
- * lectores de pantalla) pero con `inputMode="none"`: en mobile no abre el
- * teclado del sistema, porque el teclado de la calculadora ya está en pantalla.
+ * Campo de entrada numérico. Es un <input> real (foco, teclado del sistema,
+ * lectores de pantalla): en móvil se le pasa `inputMode="numeric"|"decimal"`
+ * para que abra el teclado nativo; el teclado propio de la calculadora solo
+ * se muestra en desktop.
  *
- * El valor se guarda crudo y el formato es solo de presentación — el teclado
- * físico no edita el texto formateado, pasa por la misma lógica que el
- * teclado en pantalla (applyEntryKey).
+ * El valor se guarda crudo y el formato es solo de presentación — el
+ * teclado físico no edita el texto formateado, pasa por la misma lógica que
+ * el teclado en pantalla (applyEntryKey).
  */
 const CalcRegister = forwardRef<HTMLInputElement, CalcRegisterProps>(function CalcRegister(
   {
@@ -46,6 +53,7 @@ const CalcRegister = forwardRef<HTMLInputElement, CalcRegisterProps>(function Ca
     ariaLabel,
     display,
     placeholder = "0",
+    inputMode = "none",
     active,
     fresh,
     error,
@@ -107,7 +115,7 @@ const CalcRegister = forwardRef<HTMLInputElement, CalcRegisterProps>(function Ca
       <input
         ref={ref}
         id={id}
-        inputMode="none"
+        inputMode={inputMode}
         autoComplete="off"
         spellCheck={false}
         aria-label={ariaLabel}
