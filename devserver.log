@@ -70,3 +70,5 @@
  GET /valoracion 200 in 48ms (next.js: 5ms, proxy.ts: 3ms, application-code: 41ms)
  GET /valoracion 200 in 53ms (next.js: 6ms, proxy.ts: 3ms, application-code: 44ms)
  GET /valoracion 200 in 51ms (next.js: 6ms, proxy.ts: 3ms, application-code: 42ms)
+ GET /api/auth/get-session 200 in 966ms (next.js: 21ms, application-code: 946ms)
+ GET /api/auth/get-session 200 in 22ms (next.js: 3ms, application-code: 19ms)

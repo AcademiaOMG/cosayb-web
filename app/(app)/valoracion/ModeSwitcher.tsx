@@ -34,8 +34,7 @@ export default function ModeSwitcher({
     <div
       role="tablist"
       aria-label="Qué quieres calcular"
-      className="grid grid-cols-3 gap-1 w-full p-1"
-      style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-lg)" }}
+      className="grid grid-cols-3 gap-2 w-full"
     >
       {MODE_ORDER.map((m, i) => {
         const selected = m === mode

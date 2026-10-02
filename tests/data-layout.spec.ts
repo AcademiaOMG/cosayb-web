@@ -404,7 +404,7 @@ const ROUTES: Array<{ route: string } & RouteContent> = [
   { route: "/factor-rendimiento", text: /Pechuga de pollo con piel y hueso/ },
   { route: "/recetas", text: /Salsa de ají costeño casero/ },
   { route: "/menu", text: /Menú corporativo Ejecutivo para Convención Anual/ },
-  { route: "/valoracion", text: /Calcula el precio de venta/ },
+  { route: "/valoracion", text: /Calcula a cuánto vender cada plato/ },
   { route: "/punto-equilibrio", text: /PE Unidades/ },
   { route: "/precios-mercado", text: /Filete de res premium sin grasa/ },
   { route: "/configuracion", text: "", nav: "Secciones de configuración" },
