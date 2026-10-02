@@ -1,119 +1,134 @@
-/* ─── Kit de calculadora — piel premium ───────────────────────────────────
-   Cards claras construidas sobre los tokens del sistema (radio, borde,
-   sombra sutil, accent), tipografía del cuerpo de la app y números
-   tabulares. Sin skeuomorfismo: la jerarquía la dan las cards y el foco
-   accent. Todo namespaced bajo .calc-* para no chocar con el resto.
+/* ─── Kit de calculadora física ───────────────────────────────────────────
+   Piel deliberadamente fuera del sistema de tokens de la app (aprobada así:
+   "que parezca una calculadora de verdad"): cuerpo gunmetal, LCD verde,
+   teclas 3D. Todo namespaced bajo .calc-* para no chocar con el resto.
 
-   Piezas: .calc-device (contenedor) → .calc-display (card de resultado)
-   → .calc-register (campos de entrada) → .calc-keypad (teclado) →
-   .calc-key-equals (Calcular). */
+   Piezas: .calc-device (cuerpo) → .calc-display (pantalla principal, el
+   resultado) → .calc-register (pantallas pequeñas: los datos de entrada)
+   → .calc-keypad (teclado) → .calc-key-equals (Calcular). */
 
 .calc-device {
+  --calc-ink: #1E2B18;
+  --calc-ink-soft: #3B4A34;
+  --calc-lcd: #C7D6B9;
+  --calc-lcd-off: #21241E;
+  --calc-bezel: #14150F;
+  --calc-error: #8A1C12;
+  --calc-error-ring: #F0625A;
+  --calc-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  background: linear-gradient(160deg, #4A4E56 0%, #2B2D33 55%, #1C1E22 100%);
+  border-radius: 28px;
+  padding: 18px;
+  box-shadow:
+    0 24px 48px -16px rgba(0, 0, 0, 0.4),
+    0 2px 0 rgba(255, 255, 255, 0.05) inset,
+    0 -3px 0 rgba(0, 0, 0, 0.5) inset;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
-/* ── Card de resultado (pantalla principal) ───────────────────────────── */
+/* ── Pantalla principal (resultado) ───────────────────────────────────── */
 .calc-display {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: 22px 24px 18px;
-  min-height: 136px;
+  background: linear-gradient(178deg, #CDDCC0 0%, #B7C9A6 100%);
+  border: 3px solid var(--calc-bezel, #14150F);
+  border-radius: 12px;
+  padding: 12px 16px 12px;
+  box-shadow:
+    inset 0 3px 10px rgba(0, 0, 0, 0.38),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.35);
+  min-height: 104px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
+  gap: 2px;
+  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
+  color: var(--calc-ink, #1E2B18);
 }
 
 .calc-display-label {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  color: var(--calc-ink-soft, #3B4A34);
 }
 
 .calc-display-value {
   display: block;
-  margin-top: 6px;
-  font-family: var(--font-display), var(--font-body), inherit;
-  font-size: 44px;
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  margin-top: auto;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: right;
+  letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
   overflow-wrap: anywhere;
 }
 
 /* Siempre reserva dos líneas: el mensaje cambia mientras se escribe
-   ("Falta X y Y" → "Falta Y" → resultado) y si el alto variara, todo
-   el teclado saltaría bajo el dedo a mitad de la entrada. */
+   ("Falta X y Y" → "Falta Y" → resultado) y si el alto variara, todo el
+   teclado saltaría bajo el dedo a mitad de la entrada. */
 .calc-display-sub {
-  min-height: calc(2 * 1.4em);
-  font-size: 13px;
-  line-height: 1.4;
+  min-height: calc(2 * 1.35em);
+  font-size: 11.5px;
+  line-height: 1.35;
   display: flex;
   align-items: flex-end;
-  justify-content: center;
-  text-align: center;
-  color: var(--text-secondary);
+  justify-content: flex-end;
+  text-align: right;
+  color: var(--calc-ink-soft, #3B4A34);
 }
 
-/* Sin resultado todavía: el número en reposo, atenuado */
+/* Sin resultado todavía: el 0 "apagado" de una calculadora en reposo */
 .calc-display.is-idle .calc-display-value,
 .calc-display.is-error .calc-display-value {
-  opacity: 0.3;
+  opacity: 0.28;
 }
 
 .calc-display.is-error .calc-display-sub {
-  color: #DC2626;
-  font-weight: 600;
+  color: var(--calc-error, #8A1C12);
+  font-weight: 700;
 }
 
 /* Revelado del resultado — un solo momento coreografiado */
 @keyframes calc-reveal {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .calc-display.is-result .calc-display-value {
-  animation: calc-reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: calc-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Tamaño compacto (ej. dentro de un modal) */
 .calc-display.is-sm {
   min-height: 0;
-  padding: 14px 16px;
+  padding: 10px 14px;
 }
 .calc-display.is-sm .calc-display-value {
-  font-size: 30px;
+  font-size: 28px;
 }
 
-/* ── Campos de entrada ────────────────────────────────────────────────── */
+/* ── Registros (datos de entrada) ─────────────────────────────────────── */
 .calc-registers {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .calc-register {
   position: relative;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  padding: 11px 14px 12px;
-  min-height: 74px;
+  border: 3px solid var(--calc-bezel, #14150F);
+  border-radius: 12px;
+  padding: 9px 12px 10px;
+  min-height: 70px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   cursor: text;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  font-family: var(--font-body), inherit;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
   min-width: 0;
 }
 
@@ -122,16 +137,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  min-height: 18px;
+  min-height: 20px;
 }
 
 .calc-register-label {
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
   cursor: inherit;
-  transition: color 0.15s ease;
 }
 
 .calc-register input {
@@ -141,85 +155,82 @@
   border: none;
   outline: none;
   font-family: inherit;
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 700;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
   padding: 0;
   min-width: 0;
 }
 
-.calc-register input::placeholder {
-  color: var(--text-muted);
-  opacity: 0.45;
-  font-weight: 600;
-}
-
-/* Activado — el campo que recibe el teclado: anillo accent */
+/* Encendida — el registro que recibe el teclado */
 .calc-register.is-on {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-light);
+  background: var(--calc-lcd, #C7D6B9);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2), 0 0 0 2px #7CE07C;
 }
-.calc-register.is-on .calc-register-label {
-  color: var(--accent-text);
+.calc-register.is-on .calc-register-label { color: var(--calc-ink-soft, #3B4A34); }
+.calc-register.is-on input {
+  color: var(--calc-ink, #1E2B18) !important;
+  color-scheme: light;
+  caret-color: transparent;
 }
+.calc-register.is-on input::placeholder { color: #5C6B52; opacity: 0.6; }
 
 /* Recién seleccionada con un valor previo: se ve "fantasma" porque la
    primera tecla lo reemplaza (como en una calculadora real). */
-.calc-register.is-on.is-fresh input {
-  opacity: 0.45;
-}
+.calc-register.is-on.is-fresh input { opacity: 0.5; }
 
-/* Apagada — sin foco: el valor sigue legible, solo la etiqueta se aquieta */
-.calc-register.is-off .calc-register-label {
-  color: var(--text-muted);
+/* Apagada — pantalla en reposo */
+.calc-register.is-off {
+  background: var(--calc-lcd-off, #21241E);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
 }
+.calc-register.is-off .calc-register-label { color: #6E7864; }
+.calc-register.is-off input {
+  color: #A3AD96 !important;
+  color-scheme: dark;
+  caret-color: transparent;
+}
+.calc-register.is-off input::placeholder { color: #4D5346; opacity: 1; }
 
-.calc-register.is-error {
-  border-color: #DC2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
-}
-.calc-register.is-on.is-error {
-  border-color: #DC2626;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
-}
-.calc-register.is-error .calc-register-label {
-  color: #DC2626;
-}
+.calc-register.is-error { box-shadow: 0 0 0 2px var(--calc-error-ring, #F0625A); }
+.calc-register.is-on.is-error { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2), 0 0 0 2px var(--calc-error-ring, #F0625A); }
+.calc-register.is-error .calc-register-label { color: var(--calc-error-ring, #F0625A); }
+.calc-register.is-on.is-error .calc-register-label { color: var(--calc-error, #8A1C12); }
 
 .calc-register:focus-within {
-  outline: none;
+  outline: 2px solid #7CE07C;
+  outline-offset: 2px;
 }
+.calc-register.is-on:focus-within { outline: none; }
 
 /* Variante en línea: etiqueta a la izquierda, valor a la derecha (ajustes) */
 .calc-register.is-inline {
   flex-direction: row;
   align-items: center;
-  min-height: 48px;
-  padding: 8px 14px;
+  min-height: 42px;
+  padding: 5px 12px;
+  border-width: 2px;
+  border-radius: 10px;
 }
-.calc-register.is-inline .calc-register-head {
-  flex: 1;
-  min-height: 0;
-}
+.calc-register.is-inline .calc-register-head { flex: 1; min-height: 0; }
 .calc-register.is-inline input {
-  width: 110px;
+  width: 96px;
   flex: none;
   margin-top: 0;
   font-size: 16px;
 }
 
-/* Acción secundaria dentro del campo (ej. "Receta") */
+/* Acción secundaria dentro del registro (ej. "Receta") */
 .calc-register-action {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
@@ -227,12 +238,11 @@
   transition: background 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.calc-register-action {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-.calc-register-action:hover { background: var(--border-light); }
-.calc-register-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.calc-register.is-off .calc-register-action { background: rgba(255, 255, 255, 0.08); color: #B5C2A6; }
+.calc-register.is-off .calc-register-action:hover { background: rgba(255, 255, 255, 0.14); }
+.calc-register.is-on .calc-register-action { background: rgba(30, 43, 24, 0.12); color: var(--calc-ink, #1E2B18); }
+.calc-register.is-on .calc-register-action:hover { background: rgba(30, 43, 24, 0.2); }
+.calc-register-action:focus-visible { outline: 2px solid #7CE07C; outline-offset: 1px; }
 
 /* Nota bajo el valor (ej. de qué receta viene) */
 .calc-register-note {
@@ -240,9 +250,8 @@
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  font-size: 11px;
+  font-size: 10.5px;
   line-height: 1.2;
-  color: var(--text-muted);
   min-width: 0;
 }
 .calc-register-note > span {
@@ -250,19 +259,23 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.calc-register.is-on .calc-register-note { color: var(--calc-ink-soft, #3B4A34); }
+.calc-register.is-off .calc-register-note { color: #8C9780; }
 
-/* ── Teclas ───────────────────────────────────────────────────────────── */
+/* ── Teclas — botones 3D ─────────────────────────────────────────────── */
 .calc-key {
   position: relative;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  border: none;
   cursor: pointer;
-  font-family: var(--font-body), inherit;
-  font-weight: 600;
-  color: var(--text-primary);
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
+  font-weight: 700;
+  color: #2A2C30;
+  background: linear-gradient(180deg, #F6F4F0 0%, #E1DED6 100%);
+  box-shadow:
+    0 3px 0 #ADA99E,
+    0 7px 10px -2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
@@ -271,16 +284,17 @@
   justify-content: center;
 }
 
-.calc-key:hover {
-  background: var(--bg-secondary);
-}
+.calc-key:hover { filter: brightness(1.03); }
 
 .calc-key:active {
-  transform: scale(0.96);
+  transform: translateY(3px);
+  box-shadow:
+    0 0 0 #ADA99E,
+    0 2px 4px -1px rgba(0, 0, 0, 0.3);
 }
 
 .calc-key:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid #7CE07C;
   outline-offset: 2px;
 }
 
@@ -293,106 +307,87 @@
 }
 
 .calc-key-num {
-  height: 52px;
-  font-size: 17px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  height: 46px;
+  font-size: 18px;
 }
 
 .calc-key-fn {
-  height: 52px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  background: var(--bg-secondary);
-  border-color: transparent;
-  box-shadow: none;
-}
-.calc-key-fn:hover {
-  background: var(--border-light);
+  height: 46px;
+  font-size: 14px;
+  color: #46403A;
+  background: linear-gradient(180deg, #E7DFC9 0%, #D2C7A8 100%);
+  box-shadow: 0 3px 0 #A99A6E, 0 7px 10px -2px rgba(0, 0, 0, 0.35);
 }
 
 .calc-key-equals {
-  height: 56px;
+  height: 52px;
   width: 100%;
   gap: 10px;
-  font-size: 15.5px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-size: 15px;
+  letter-spacing: 0.02em;
   color: #fff;
-  background: var(--accent);
-  border-color: transparent;
-  box-shadow: 0 8px 20px -8px rgba(27, 79, 216, 0.55);
-}
-.calc-key-equals:hover {
-  background: var(--accent-hover);
-}
-.calc-key-equals:active {
-  transform: scale(0.985);
+  background: linear-gradient(180deg, #3E6CF0 0%, #1B4FD8 100%);
+  box-shadow: 0 4px 0 #123896, 0 9px 14px -2px rgba(0, 0, 0, 0.4);
 }
 .calc-key-equals .calc-key-glyph {
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
 }
 
 .calc-key-word {
-  font-size: 12.5px;
+  font-size: 12px;
+  letter-spacing: 0.01em;
 }
 
 .calc-keypad {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
 
-.calc-key-span-2 {
-  grid-column: span 2;
-}
+.calc-key-span-2 { grid-column: span 2; }
 
-/* ── Teclado en pantalla: SOLO desktop ──────────────────────────────────
-   En móvil/tablet angosta el teclado de la calculadora se oculta y los
-   campos usan el teclado nativo del sistema (inputMode numérico). */
-@media (max-width: 767px) {
-  .calc-keypad-slot {
-    display: none;
-  }
-}
-
-/* "Cambiar datos" (teclado colapsado tras un resultado): en esta piel el
-   teclado desktop siempre queda visible y en móvil no existe, así que el
-   botón nunca se muestra. El componente lo sigue renderizando por si la
-   lógica de "reposo" vuelve. */
+/* ── Aparato "en reposo": ya mostró un resultado ─────────────────────────
+   Si el contenedor `calc-stage` es angosto, el resultado se lee DEBAJO del
+   aparato: el teclado se guarda y deja subir el desglose; "Cambiar datos"
+   (o tocar un dato) lo vuelve a abrir. Con espacio al lado, el teclado
+   queda siempre visible. Depende del ancho disponible, no de la pantalla
+   (con o sin barra lateral cambia todo). */
 .calc-edit-key {
   display: none;
   height: 46px;
   gap: 8px;
   font-size: 13px;
 }
+/* 719px: mismo corte en que .valuation-workspace pasa a dos columnas */
+@container calc-stage (max-width: 719px) {
+  .calc-device.is-resting .calc-keypad-slot,
+  .calc-device.is-resting .calc-key-equals {
+    display: none;
+  }
+  .calc-device.is-resting .calc-edit-key {
+    display: flex;
+  }
+}
 
-/* ── Móvil: densidad para que todo entre en la pantalla de un teléfono ── */
-@media (max-width: 767px) {
+/* ── Mobile: todo el aparato (hasta "Calcular") entra en la pantalla de un
+   teléfono; teclas de 48px siguen siendo cómodas para el pulgar. */
+@media (max-width: 640px) {
   .calc-device {
-    gap: 12px;
+    border-radius: 22px;
+    padding: 12px;
+    gap: 8px;
   }
-  .calc-display {
-    min-height: 116px;
-    padding: 18px 16px 14px;
-  }
-  .calc-display-value {
-    font-size: 36px;
-  }
-  .calc-display-sub {
-    font-size: 12.5px;
-  }
-  .calc-register {
-    min-height: 66px;
-    padding: 9px 12px 10px;
-  }
-  .calc-register input {
-    font-size: 19px;
-  }
-  .calc-register.is-inline {
-    min-height: 44px;
-  }
+  .calc-display { min-height: 84px; padding: 8px 12px; }
+  .calc-display-value { font-size: 30px; }
+  .calc-display-sub { font-size: 11px; }
+  .calc-register { min-height: 62px; padding: 7px 10px 8px; }
+  .calc-register input { font-size: 19px; }
+  .calc-register-label { font-size: 10px; letter-spacing: 0.04em; }
+  .calc-register.is-inline { min-height: 38px; }
+  .calc-keypad { gap: 7px; }
+  .calc-key-num, .calc-key-fn { height: 48px; }
+  .calc-key-equals { height: 50px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
