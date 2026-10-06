@@ -2,7 +2,8 @@ import { HTMLAttributes } from "react"
 import { clsx } from "clsx"
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "bordered"
+  // glass: nivel sutil de Liquid Glass (ver docs/design-system.md)
+  variant?: "default" | "bordered" | "glass"
 }
 
 export default function Card({
@@ -11,15 +12,21 @@ export default function Card({
   children,
   ...props
 }: CardProps) {
+  const isGlass = variant === "glass"
+
   return (
     <div
-      className={clsx("p-6", className)}
-      style={{
-        background: "var(--bg-surface)",
-        borderRadius: "var(--radius-lg)",
-        border: variant === "bordered" ? "2px solid var(--accent)" : "none",
-        boxShadow: variant === "bordered" ? "none" : "var(--shadow-sm)",
-      }}
+      className={clsx("p-6", isGlass && "glass", className)}
+      style={
+        isGlass
+          ? undefined
+          : {
+              background: "var(--bg-surface)",
+              borderRadius: "var(--radius-lg)",
+              border: variant === "bordered" ? "2px solid var(--accent)" : "none",
+              boxShadow: variant === "bordered" ? "none" : "var(--shadow-sm)",
+            }
+      }
       {...props}
     >
       {children}

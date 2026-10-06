@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, UserCircle, HelpCircle } from "lucide-react"
 import { useHelpAvailableSnapshot } from "@/hooks/useHelpAvailable"
-import "./mobile-tab-bar.css"
 
 // Reemplaza al Topbar en mobile en toda la app — sin drawer, sin "menú",
 // sin nada oculto detrás de un botón. Inicio ya es el hub completo (todos
@@ -20,7 +19,7 @@ export default function MobileTabBar() {
 
   return (
     <nav
-      className="mobile-tab-bar fixed bottom-5 left-1/2 z-20 flex items-center gap-1 lg:hidden"
+      className="glass-strong fixed bottom-5 left-1/2 z-20 flex items-center gap-1 lg:hidden"
       style={{ transform: "translateX(-50%)", padding: 6, borderRadius: 9999 }}
       aria-label="Navegación"
     >
