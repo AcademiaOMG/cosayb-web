@@ -37,7 +37,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           style={{
             background: "var(--bg-surface)",
             border: error
-              ? "1px solid #B42020"
+              ? "1px solid var(--error)"
               : "1px solid var(--border-light)",
             borderRadius: "var(--radius-md)",
             color: "var(--text-primary)",
@@ -50,7 +50,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <p
             id={`${id}-error`}
             className="text-xs"
-            style={{ color: "#B42020" }}
+            style={{ color: "var(--error)" }}
           >
             {error}
           </p>

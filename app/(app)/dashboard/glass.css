@@ -39,7 +39,7 @@
   }
 }
 
-/* ── Card — degradé líquido sutil, de fondo, sin llamar la atención ───────── */
+/* ── Card — layout de módulo; usar junto con .glass (degradé líquido sutil) ─ */
 .glass-card {
   position: relative;
   display: flex;
@@ -48,16 +48,10 @@
   justify-content: center;
   gap: 16px;
   aspect-ratio: 1 / 1;
-  border-radius: var(--radius-lg);
   padding: 20px;
   text-decoration: none;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 12% 8%, rgba(124, 168, 255, 0.16) 0%, transparent 62%),
-    var(--bg-surface);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  box-shadow: var(--shadow-sm);
+  /* Aspecto vidrio (fondo, blur, radio, sombra) viene de la clase .glass */
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
