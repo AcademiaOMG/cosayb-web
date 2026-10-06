@@ -1,9 +1,10 @@
 "use client"
 
 import useSWR from "swr"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { usePermissions } from "@/hooks/usePermissions"
-import RecipeFormModal, { type RecipeFormDataSource } from "@/components/app/recipes/RecipeFormModal"
+import RecipeCalculatorView from "@/components/app/recipes/RecipeCalculatorView"
+import type { RecipeFormDataSource } from "@/components/app/recipes/recipeSource"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import Pagination from "@/components/app/inventario/Pagination"
@@ -13,17 +14,18 @@ import {
   bancoListRecipes, bancoGetRecipe, bancoCreateRecipe, bancoUpdateRecipe,
   bancoDeleteRecipe, bancoListIngredients,
 } from "@/lib/api"
-import { Search, Plus, Pencil, Trash2, ChefHat, BookMarked, Users } from "lucide-react"
+import { Search, Plus, Pencil, Trash2, ChefHat, BookMarked, Users, CheckCircle2, AlertCircle, X } from "lucide-react"
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Content Studio — recetas del banco público.
-// Reutiliza el <RecipeFormModal> del tenant con un dataSource propio.
+// Reutiliza la vista de calculadora de recetas del tenant con un dataSource propio.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PAGE_SIZE = 12
 
 const BANCO_SOURCE: RecipeFormDataSource = {
   sourceKey: "banco",
+  ingredientsHref: "/plataforma/banco/ingredientes",
   loadCatalog: async () => {
     const [ing, rec] = await Promise.all([
       bancoListIngredients(undefined, 1, 1000).then((r) => r.data),
@@ -58,15 +60,39 @@ export default function BancoRecetasPage() {
   const canUpdate = platformCan("publicRecipes", "update")
   const canDelete = platformCan("publicRecipes", "delete")
 
-  const [formOpen, setFormOpen] = useState(false)
+  const [view, setView] = useState<"list" | "calculator">("list")
   const [editId, setEditId] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting] = useState(false)
 
   const totalPages = useMemo(
     () => (data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1),
     [data]
   )
+
+  // Al cambiar entre la lista y la calculadora, empezar arriba del todo
+  useEffect(() => {
+    document.querySelector("main")?.scrollTo({ top: 0 })
+  }, [view])
+
+  function openCreate() {
+    setNotice(null)
+    setEditId(null)
+    setView("calculator")
+  }
+
+  function openEdit(id: string) {
+    setNotice(null)
+    setEditId(id)
+    setView("calculator")
+  }
+
+  function handleSaved(info: { name: string; created: boolean }) {
+    void mutate()
+    setNotice({ tone: "ok", text: info.created ? `Receta «${info.name}» creada en el banco.` : `Receta «${info.name}» actualizada.` })
+    setView("list")
+  }
 
   function changeType(v: BancoRecipeType) { setType(v); setPage(1) }
   function changeSearch(v: string) { setSearch(v); setPage(1) }
@@ -76,12 +102,33 @@ export default function BancoRecetasPage() {
     const id = deleteTarget.id
     setDeleteTarget(null) // cerrar de inmediato — la card desaparece al instante
     const optimistic = { ...data, data: data.data.filter((r) => r.id !== id), total: data.total - 1 }
+    setNotice(null)
+    // Si era la última receta de esta página, retroceder en vez de dejar "Sin resultados"
+    if (optimistic.data.length === 0 && page > 1) setPage(page - 1)
     try {
       await mutate(
         async () => { await bancoDeleteRecipe(id); return optimistic },
         { optimisticData: optimistic, rollbackOnError: true, revalidate: true }
       )
-    } catch { /* rollback automático si la API falla */ }
+      setNotice({ tone: "ok", text: `Receta «${deleteTarget.name}» eliminada del banco.` })
+    } catch (e) {
+      // rollback automático: la card reaparece; ahora además se explica por qué
+      setNotice({ tone: "error", text: e instanceof Error && e.message ? e.message : "No se pudo eliminar la receta." })
+    }
+  }
+
+  // ── Vista calculadora (crear o editar), como en el espacio de los negocios ──
+  if (view === "calculator") {
+    return (
+      <RecipeCalculatorView
+        key={editId ?? "new"}
+        editRecipeId={editId}
+        dataSource={BANCO_SOURCE}
+        backLabel="Recetas del banco"
+        onBack={() => setView("list")}
+        onSaved={handleSaved}
+      />
+    )
   }
 
   return (
@@ -94,11 +141,29 @@ export default function BancoRecetasPage() {
           </p>
         </div>
         {canCreate && (
-          <Button variant="primary" onClick={() => { setEditId(null); setFormOpen(true) }}>
+          <Button variant="primary" onClick={openCreate}>
             <Plus size={15} /> Nueva receta
           </Button>
         )}
       </div>
+
+      {notice && (
+        <div
+          role={notice.tone === "error" ? "alert" : "status"}
+          className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+          style={
+            notice.tone === "ok"
+              ? { background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#166534" }
+              : { background: "#FEF2F2", border: "1px solid #FECACA", color: "#B42020" }
+          }
+        >
+          {notice.tone === "ok" ? <CheckCircle2 size={16} className="shrink-0" /> : <AlertCircle size={16} className="shrink-0" />}
+          <span className="flex-1">{notice.text}</span>
+          <button type="button" aria-label="Cerrar aviso" onClick={() => setNotice(null)} className="shrink-0 rounded p-0.5 hover:opacity-70">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Filtros + búsqueda */}
       <div className="flex gap-3 flex-wrap items-center">
@@ -171,7 +236,7 @@ export default function BancoRecetasPage() {
               <BancoRecipeCard
                 key={recipe.id}
                 recipe={recipe}
-                onEdit={canUpdate ? () => { setEditId(recipe.id); setFormOpen(true) } : undefined}
+                onEdit={canUpdate ? () => openEdit(recipe.id) : undefined}
                 onDelete={canDelete ? () => setDeleteTarget(recipe) : undefined}
               />
             ))}
@@ -180,15 +245,6 @@ export default function BancoRecetasPage() {
           <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
-
-      {/* Formulario compartido con el tenant, dataSource del banco */}
-      <RecipeFormModal
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSaved={() => void mutate()}
-        editRecipeId={editId}
-        dataSource={BANCO_SOURCE}
-      />
 
       {/* Confirmar eliminación */}
       <Modal

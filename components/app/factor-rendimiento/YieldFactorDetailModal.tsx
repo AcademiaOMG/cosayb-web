@@ -7,6 +7,9 @@ import { saveFactorRendimientoAsIngrediente } from "@/lib/api"
 import { useState } from "react"
 import type { FactorRendimiento } from "@/types/domain"
 
+const grams = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g`
+const percent = (n: number) => `${n.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+
 function formatCOP(amount: number): string {
   return `$ ${amount.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
@@ -20,12 +23,13 @@ interface YieldFactorDetailModalProps {
   isOpen: boolean
   onClose: () => void
   factor: FactorRendimiento | null
-  onSaved?: () => void
+  /** Abre la calculadora con este registro (no se pasa si no hay permiso de editar) */
+  onEdit?: (factor: FactorRendimiento) => void
 }
 
-export default function YieldFactorDetailModal({ isOpen, onClose, factor }: YieldFactorDetailModalProps) {
+export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit }: YieldFactorDetailModalProps) {
   const [isSaving, setIsSaving] = useState(false)
-  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   if (!factor) return null
 
@@ -41,16 +45,28 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
       setIsSaving(true)
       setSaveMsg(null)
       const result = await saveFactorRendimientoAsIngrediente(factor.id)
-      setSaveMsg(result.message ?? "Ingrediente guardado correctamente")
+      setSaveMsg({ text: result.message ?? "Ingrediente guardado correctamente", ok: true })
     } catch (err) {
-      setSaveMsg(err instanceof Error ? err.message : "No se pudo guardar como ingrediente")
+      setSaveMsg({ text: err instanceof Error ? err.message : "No se pudo guardar como ingrediente", ok: false })
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Detalle del ingrediente">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Detalle del ingrediente"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Cerrar</Button>
+          {onEdit && (
+            <Button variant="primary" onClick={() => onEdit(factor)}>Editar en la calculadora</Button>
+          )}
+        </div>
+      }
+    >
       <div className="flex flex-col gap-5">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -58,7 +74,7 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
             <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>{factor.ingredientName}</h3>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant={factor.variant === "bfactor" ? "accent" : "success"}>
-                {factor.variant === "bfactor" ? "Proteina" : "Vegetal"}
+                {factor.variant === "bfactor" ? "Proteína" : "Vegetal"}
               </Badge>
             </div>
           </div>
@@ -70,7 +86,7 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso completo</p>
-              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{totalWeight.toFixed(2)}g</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{grams(totalWeight)}</p>
             </div>
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Costo total</p>
@@ -82,17 +98,17 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
         {/* Lo que se desechó */}
         {wasteSum > 0 && (
           <div className="rounded-xl p-3" style={{ background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.12)" }}>
-            <p className="text-xs font-medium mb-1.5" style={{ color: "#B42020" }}>Lo que se desecho</p>
+            <p className="text-xs font-medium mb-1.5" style={{ color: "#B42020" }}>Lo que se desechó</p>
             <div className="flex flex-col gap-1.5">
               {factor.wasteItems.map((w) => (
                 <div key={w.id} className="flex justify-between text-sm">
                   <span style={{ color: "var(--text-secondary)" }}>{w.name}</span>
-                  <span className="font-mono font-semibold" style={{ color: "#B42020" }}>-{parseFloat(w.weightGrams).toFixed(2)}g</span>
+                  <span className="font-mono font-semibold" style={{ color: "#B42020" }}>-{grams(parseFloat(w.weightGrams))}</span>
                 </div>
               ))}
               <div className="flex justify-between text-sm font-semibold pt-1" style={{ borderTop: "1px solid rgba(239,68,68,0.12)" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Total desecho</span>
-                <span className="font-mono" style={{ color: "#B42020" }}>-{wasteSum.toFixed(2)}g ({((wasteSum / totalWeight) * 100).toFixed(2)}%)</span>
+                <span style={{ color: "var(--text-secondary)" }}>Total desechado</span>
+                <span className="font-mono" style={{ color: "#B42020" }}>-{grams(wasteSum)} ({percent((wasteSum / totalWeight) * 100)})</span>
               </div>
             </div>
           </div>
@@ -101,14 +117,14 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
         {/* Lo que realmente tienes */}
         <div className="rounded-xl p-3" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
           <p className="text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Lo que realmente tienes</p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso util</p>
-              <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{netWeight.toFixed(2)}g</p>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso útil</p>
+              <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{grams(netWeight)}</p>
             </div>
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Rendimiento</p>
-              <p className="text-base font-bold" style={{ color: "var(--accent-text)" }}>{(yieldFactor * 100).toFixed(2)}%</p>
+              <p className="text-base font-bold" style={{ color: "var(--accent-text)" }}>{percent(yieldFactor * 100)}</p>
             </div>
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Costo por gramo</p>
@@ -126,7 +142,7 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
               <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{formatDate(factor.createdAt)}</p>
             </div>
             <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Ultima modificacion</p>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Última modificación</p>
               <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{formatDate(factor.updatedAt)}</p>
             </div>
           </div>
@@ -134,19 +150,19 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor }: Yiel
 
         {/* Guardar como ingrediente limpio */}
         <div className="rounded-xl p-3" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}>
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Guardar como ingrediente limpio</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                Crea o actualiza un ingrediente en la tabla de Inventario con el peso util y costo real calculados.
+                Crea o actualiza un ingrediente en la tabla de Inventario con el peso útil y costo real calculados.
               </p>
             </div>
             <Button variant="primary" onClick={handleSaveAsIngredient} disabled={isSaving} className="whitespace-nowrap">
-              {isSaving ? "Guardando..." : "Guardar"}
+              {isSaving ? "Guardando..." : "Crear en Inventario"}
             </Button>
           </div>
           {saveMsg && (
-            <p className="text-xs mt-2" style={{ color: saveMsg.includes("No se pudo") ? "#EF4444" : "#16A34A" }}>{saveMsg}</p>
+            <p className="text-xs mt-2" role="status" style={{ color: saveMsg.ok ? "#166534" : "#B42020" }}>{saveMsg.text}</p>
           )}
         </div>
       </div>

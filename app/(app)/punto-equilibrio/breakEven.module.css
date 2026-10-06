@@ -1,0 +1,31 @@
+/* Ajustes de layout propios del módulo; la piel del aparato vive en calculator.css */
+
+/* Los rubros llevan montos de hasta "$ 999.999.999" (13 caracteres a 16px mono ≈ 125px):
+   el registro en línea del kit (96px) los cortaría. */
+.rubros {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rubros :global(.calc-register.is-inline) input {
+  width: 136px;
+  max-width: 55%;
+}
+
+/* En el teléfono 9 filas + teclado no caben en la pantalla: la lista de rubros
+   se desplaza por dentro, así el total (arriba) y el teclado (abajo) siguen a la mano.
+   El padding evita que el aro verde de la fila activa se corte en los bordes. */
+@media (max-width: 640px) {
+  .rubros {
+    max-height: min(36vh, 280px);
+    overflow-y: auto;
+    padding: 3px;
+    margin: -3px;
+    scroll-padding: 6px;
+  }
+}
+
+/* Los dos datos del producto son registros grandes: uno por fila en móvil angosto */
+.product :global(.calc-registers) {
+  grid-template-columns: minmax(0, 1fr);
+}
