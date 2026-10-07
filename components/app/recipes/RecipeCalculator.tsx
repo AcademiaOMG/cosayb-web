@@ -682,7 +682,7 @@ export default function RecipeCalculator({
   )
 
   return (
-    <div className="rw" ref={wrapRef}>
+    <div className={`rw${step >= 2 ? " rw--wide" : ""}`} ref={wrapRef}>
       {/* Dónde voy */}
       <ol className="rw-steps" aria-label="Pasos para crear la receta">
         {STEPS.map((s) => {
@@ -710,7 +710,7 @@ export default function RecipeCalculator({
           <h3 id="rw-q1" className="rw-q" tabIndex={-1}>
             ¿Cómo se llama tu receta?
           </h3>
-          <p className="rw-help">Por ejemplo: Arroz con pollo, Salsa bechamel, Torta de chocolate.</p>
+          <p className="rw-help">Por ejemplo: Arroz con pollo.</p>
           <div>
             <input
               id="recipe-name"
@@ -757,13 +757,13 @@ export default function RecipeCalculator({
                 Es una receta base
               </span>
               <span className="block text-xs rw-soft">
-                Actívalo si es una preparación que usarás dentro de otras (salsas, fondos, masas…).
+                Para salsas, fondos o masas que usarás en otras recetas.
               </span>
             </span>
           </button>
           {isBase && (
             <p role="status" className="rw-indicator is-mid">
-              Ojo: una receta base no se puede editar ni eliminar después de guardarla. Revísala bien antes de guardar.
+              Una receta base no se puede editar ni eliminar después de guardarla.
             </p>
           )}
 
@@ -792,40 +792,8 @@ export default function RecipeCalculator({
           <h3 id="rw-q2" className="rw-q" tabIndex={-1}>
             ¿Qué ingredientes lleva «{name.trim() || "tu receta"}»?
           </h3>
-          {lines.length === 0 ? (
-            <ol className="rw-howto">
-              <li>Elige un ingrediente de la lista.</li>
-              <li>Escribe con el teclado cuántos gramos lleva.</li>
-              <li>
-                Pulsa <strong>Agregar</strong>. Repite con cada ingrediente.
-              </li>
-            </ol>
-          ) : (
-            <p className="rw-help">
-              Repite con cada ingrediente. Cuando termines, pulsa <strong>Siguiente</strong>.
-            </p>
-          )}
-
-          {catalog.ingredients.length === 0 && pickKind === "ingredient" && (
-            <div role="status" className="rw-warn">
-              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-              <p>
-                Aún no hay ingredientes para elegir.{" "}
-                {dataSource.ingredientsHref ? (
-                  <>
-                    Crea primero tus ingredientes en{" "}
-                    <Link href={dataSource.ingredientsHref} className="underline font-semibold">
-                      Inventario
-                    </Link>{" "}
-                    y vuelve a esta pantalla.
-                  </>
-                ) : (
-                  "Crea primero los ingredientes y vuelve a esta pantalla."
-                )}
-              </p>
-            </div>
-          )}
-
+          <div className="rw-split">
+            <div className="rw-col-calc">
           <CalcDevice label="Calculadora de ingredientes">
             <CalcDisplay
               label="COSTO DE LOS INGREDIENTES"
@@ -884,6 +852,42 @@ export default function RecipeCalculator({
 
             {keypad}
           </CalcDevice>
+            </div>
+            <div className="rw-col-side">
+          {lines.length === 0 ? (
+            <ol className="rw-howto">
+              <li>Elige un ingrediente de la lista.</li>
+              <li>Escribe con el teclado cuántos gramos lleva.</li>
+              <li>
+                Pulsa <strong>Agregar</strong>. Repite con cada ingrediente.
+              </li>
+            </ol>
+          ) : (
+            <p className="rw-help">
+              Cuando termines, pulsa <strong>Siguiente</strong>.
+            </p>
+          )}
+
+          {catalog.ingredients.length === 0 && pickKind === "ingredient" && (
+            <div role="status" className="rw-warn">
+              <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+              <p>
+                Aún no hay ingredientes para elegir.{" "}
+                {dataSource.ingredientsHref ? (
+                  <>
+                    Crea primero tus ingredientes en{" "}
+                    <Link href={dataSource.ingredientsHref} className="underline font-semibold">
+                      Inventario
+                    </Link>{" "}
+                    y vuelve a esta pantalla.
+                  </>
+                ) : (
+                  "Crea primero los ingredientes y vuelve a esta pantalla."
+                )}
+              </p>
+            </div>
+          )}
+
 
           {/* La cinta: lo ya agregado, fuera del aparato para que se lea cómodo */}
           <div className="rt-tape">
@@ -936,13 +940,14 @@ export default function RecipeCalculator({
           </div>
 
           {warnUnpriced}
-
-          {nav(
-            1,
-            <Button variant="primary" type="button" onClick={nextFrom2}>
-              {pendingEntry ? "Agregar y seguir" : "Siguiente"} <ArrowRight size={16} />
-            </Button>,
-          )}
+            {nav(
+              1,
+              <Button variant="primary" type="button" onClick={nextFrom2}>
+                {pendingEntry ? "Agregar y seguir" : "Siguiente"} <ArrowRight size={16} />
+              </Button>,
+            )}
+            </div>
+          </div>
         </section>
       )}
 
@@ -952,9 +957,8 @@ export default function RecipeCalculator({
           <h3 id="rw-q3" className="rw-q" tabIndex={-1}>
             ¿Cuántas porciones salen de esta receta?
           </h3>
-          {recap(false)}
-          <p className="rw-help">Cuántos platos o raciones se sirven con todo lo que agregaste ({grams(tape.totalGrams)}).</p>
-
+          <div className="rw-split">
+            <div className="rw-col-calc">
           <CalcDevice label="Calculadora de porciones">
             <CalcDisplay
               label="COSTO POR PORCIÓN"
@@ -981,11 +985,16 @@ export default function RecipeCalculator({
             </div>
             {keypad}
           </CalcDevice>
+            </div>
+            <div className="rw-col-side">
+          {recap(false)}
+          <p className="rw-help">Cuántos platos salen con lo que agregaste ({grams(tape.totalGrams)}).</p>
+
 
           <div className="rw-group">
             <p className="rw-group-title">Margen de seguridad</p>
             <p className="rw-help">
-              Un pequeño colchón que se suma al costo por si suben los precios o se desperdicia algo. Lo recomendado es 3 %.
+              Un colchón extra sobre el costo. Recomendado: 3 %.
             </p>
             <div className="rw-chips" role="group" aria-label="Margen de seguridad">
               {[0, 1, 2, 3, 4, 5].map((m) => (
@@ -1006,12 +1015,14 @@ export default function RecipeCalculator({
             )}
           </div>
 
-          {nav(
-            2,
-            <Button variant="primary" type="button" onClick={nextFrom3}>
-              Siguiente <ArrowRight size={16} />
-            </Button>,
-          )}
+            {nav(
+              2,
+              <Button variant="primary" type="button" onClick={nextFrom3}>
+                Siguiente <ArrowRight size={16} />
+              </Button>,
+            )}
+            </div>
+          </div>
         </section>
       )}
 
@@ -1021,13 +1032,8 @@ export default function RecipeCalculator({
           <h3 id="rw-q4" className="rw-q" tabIndex={-1}>
             ¿Qué parte del precio de venta quieres que se vaya en ingredientes?
           </h3>
-          {recap(true)}
-          <p className="rw-help">
-            Es tu «porcentaje de materia prima». En cocina lo habitual es entre 30 % y 35 %: lo que sobra paga arriendo,
-            sueldos y tu ganancia.
-            {boot.pctFromStore && " Empezamos con el que usaste la última vez; cámbialo si quieres."}
-          </p>
-
+          <div className="rw-split">
+            <div className="rw-col-calc">
           <CalcDevice label="Calculadora de precio de venta">
             <CalcDisplay
               label="PRECIO DE VENTA SUGERIDO POR PORCIÓN"
@@ -1054,6 +1060,14 @@ export default function RecipeCalculator({
             </div>
             {keypad}
           </CalcDevice>
+            </div>
+            <div className="rw-col-side">
+          {recap(true)}
+          <p className="rw-help">
+            Lo habitual es entre 30 % y 35 %.
+            {boot.pctFromStore && " Empezamos con el que usaste la última vez; cámbialo si quieres."}
+          </p>
+
 
           <div className="rw-group">
             <p className="rw-group-title">Atajos</p>
@@ -1071,12 +1085,14 @@ export default function RecipeCalculator({
             )}
           </div>
 
-          {nav(
-            3,
-            <Button variant="primary" type="button" onClick={finish}>
-              Ver mi receta <ArrowRight size={16} />
-            </Button>,
-          )}
+            {nav(
+              3,
+              <Button variant="primary" type="button" onClick={finish}>
+                Ver mi receta <ArrowRight size={16} />
+              </Button>,
+            )}
+            </div>
+          </div>
         </section>
       )}
 
@@ -1086,7 +1102,7 @@ export default function RecipeCalculator({
           <h3 id="rw-q5" className="rw-q" tabIndex={-1}>
             Hay que recalcular tu receta
           </h3>
-          <p className="rw-help">Cambió algún costo mientras la revisabas. Pulsa el botón para ver el resultado actualizado.</p>
+          <p className="rw-help">Cambió algún costo. Recalcula para ver el resultado.</p>
           {nav(4, <Button variant="primary" type="button" onClick={finish}>Recalcular <ArrowRight size={16} /></Button>)}
         </section>
       )}
@@ -1096,6 +1112,8 @@ export default function RecipeCalculator({
             Tu receta «{name.trim()}» está lista
           </h3>
 
+          <div className="rw-split">
+            <div className="rw-col-calc">
           <CalcDevice label="Resultado de la receta">
             <CalcDisplay
               label="PRECIO POTENCIAL POR PORCIÓN"
@@ -1106,9 +1124,6 @@ export default function RecipeCalculator({
               revealKey={result.pricePerServing}
             />
           </CalcDevice>
-
-          {warnUnpriced}
-
           <div className="rw-adjust">
             <Button variant="ghost" type="button" onClick={() => goStep(2)}>
               Cambiar ingredientes
@@ -1120,30 +1135,6 @@ export default function RecipeCalculator({
               Cambiar % de materia prima
             </Button>
           </div>
-
-          <CalcBreakdown
-            title="Costos"
-            rows={[
-              { label: "Peso total de la receta", value: grams(result.totalGrams) },
-              { label: "Peso de una porción", value: result.servingWeightG != null ? grams(result.servingWeightG) : "—" },
-              { label: "Costo de 1 gramo (sin margen)", value: formatCOPDecimals(result.costPerGram) },
-              { label: "Materia prima de la receta", value: formatCOP(result.rawCostTotal) },
-              { label: `Costo con margen (${formatPercent(calc.inputs.margin ?? 0, 2)}), receta completa`, value: formatCOP(result.costWithMarginTotal) },
-              { label: "Costo por porción", value: formatCOP(result.rawCostPerServing) },
-              { label: "Costo por porción con margen", value: formatCOP(result.costWithMarginPerServing), strong: true },
-            ]}
-          />
-          <CalcBreakdown
-            title="Precio de venta"
-            rows={[
-              { label: "% de materia prima", value: formatPercent(result.pricing.pctMP, 2) },
-              { label: "Indicador", value: result.pricing.indicator },
-              { label: `Costos fijos (${formatPercent(result.pricing.pctFixedCosts)}), por porción`, value: formatCOP((result.pricePerServing * result.pricing.pctFixedCosts) / 100) },
-              { label: `Ganancia (${formatPercent(result.pricing.pctProfit)}), por porción`, value: formatCOP((result.pricePerServing * result.pricing.pctProfit) / 100) },
-              { label: "Precio potencial por porción", value: formatCOP(result.pricePerServing), strong: true },
-              { label: `Precio potencial de la receta (${result.servings} porc.)`, value: formatCOP(result.priceTotal), strong: true },
-            ]}
-          />
 
           <details className="rw-details" open={!!(boot.servingWeight || editRecipe?.description) || undefined}>
             <summary>Detalles opcionales (peso por porción, descripción)</summary>
@@ -1193,6 +1184,37 @@ export default function RecipeCalculator({
           <Button id="btn-save-recipe" variant="primary" onClick={handleSave} loading={saving} disabled={saved} className="w-full">
             {isEditing ? "Guardar cambios" : "Guardar receta"}
           </Button>
+            </div>
+            <div className="rw-col-side">
+          {warnUnpriced}
+
+          <CalcBreakdown
+            title="Costos"
+            rows={[
+              { label: "Peso total de la receta", value: grams(result.totalGrams) },
+              { label: "Peso de una porción", value: result.servingWeightG != null ? grams(result.servingWeightG) : "—" },
+              { label: "Costo de 1 gramo (sin margen)", value: formatCOPDecimals(result.costPerGram) },
+              { label: "Materia prima de la receta", value: formatCOP(result.rawCostTotal) },
+              { label: `Costo con margen (${formatPercent(calc.inputs.margin ?? 0, 2)}), receta completa`, value: formatCOP(result.costWithMarginTotal) },
+              { label: "Costo por porción", value: formatCOP(result.rawCostPerServing) },
+              { label: "Costo por porción con margen", value: formatCOP(result.costWithMarginPerServing), strong: true },
+            ]}
+          />
+          <CalcBreakdown
+            title="Precio de venta"
+            rows={[
+              { label: "% de materia prima", value: formatPercent(result.pricing.pctMP, 2) },
+              { label: "Indicador", value: result.pricing.indicator },
+              { label: `Costos fijos (${formatPercent(result.pricing.pctFixedCosts)}), por porción`, value: formatCOP((result.pricePerServing * result.pricing.pctFixedCosts) / 100) },
+              { label: `Ganancia (${formatPercent(result.pricing.pctProfit)}), por porción`, value: formatCOP((result.pricePerServing * result.pricing.pctProfit) / 100) },
+              { label: "Precio potencial por porción", value: formatCOP(result.pricePerServing), strong: true },
+              { label: `Precio potencial de la receta (${result.servings} porc.)`, value: formatCOP(result.priceTotal), strong: true },
+            ]}
+          />
+
+
+            </div>
+          </div>
         </section>
       )}
     </div>

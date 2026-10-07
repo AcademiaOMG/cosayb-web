@@ -452,3 +452,127 @@ textarea.rw-input { height: auto; padding: 8px 12px; }
   .rw-q { font-size: 18px; }
   .rw-nav > button:last-child { min-width: 0; flex: 1; }
 }
+
+/* ═══ Pasos 2–5 en dos columnas: calculadora a la izquierda, guía y lista a la derecha ═══ */
+.rw.rw--wide { max-width: 1040px; }
+.rw--wide .rw-steps { width: 100%; max-width: 640px; margin: 0 auto; }
+.rw--wide .rw-card > .rw-q { text-align: left; }
+
+.rw-split { display: grid; gap: 20px; align-items: start; animation: rw-split-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.rw-col-calc, .rw-col-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.rw-col-side { max-width: 640px; }
+
+@keyframes rw-split-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Con espacio: calculadora compacta (sin scroll) y a un lado; el resto ocupa la derecha */
+@media (min-width: 900px) {
+  .rw-split { grid-template-columns: minmax(340px, 390px) minmax(0, 1fr); gap: 28px; }
+  .rw-col-calc { position: sticky; top: 8px; }
+  .rw-split .calc-device { padding: 14px; gap: 8px; border-radius: 24px; }
+  .rw-split .calc-display { min-height: 84px; padding: 8px 14px; }
+  .rw-split .calc-display-value { font-size: 30px; }
+  .rw-split .calc-register { min-height: 60px; padding: 6px 10px 7px; }
+  .rw-split .calc-keypad { gap: 6px; }
+  .rw-split .calc-key-num, .rw-split .calc-key-fn { height: 42px; }
+  .rw-split .calc-key-equals { height: 44px; }
+  .rw-split .rt-add { min-height: 60px; }
+  .rw-split .rt-lines { max-height: min(46vh, 360px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rw-split { animation: none; }
+}
+
+/* ═══ Editor como ventana flotante ═══════════════════════════════════════════
+   En escritorio la ventana tiene un tamaño de diseño fijo (1040×666) que se
+   escala entero para caber en la pantalla: nunca hay scroll, ni espacios vacíos
+   enormes con zoom bajo. En pantallas angostas es una hoja a pantalla completa. */
+.rv-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(18, 33, 58, 0.5);
+  backdrop-filter: blur(4px);
+}
+.rv-panel {
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Móvil / ventana chica: hoja a pantalla completa con scroll normal */
+.rv-panel.is-sheet {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 16px;
+}
+.rv-panel.is-sheet > .rv-rise { min-height: 100%; }
+
+/* Escritorio: tamaño de diseño + escala */
+.rv-panel.is-fit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1040px;
+  height: 666px;
+  border-radius: 24px;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -50%) scale(var(--rv-scale, 1));
+  transform-origin: center;
+}
+.rv-rise { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 18px 24px 20px; animation: rv-open 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.rv-panel.is-sheet .rv-rise { padding: 0; animation-name: rv-open-sheet; }
+@keyframes rv-open {
+  from { opacity: 0; transform: translateY(18px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes rv-open-sheet {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
+}
+.rv-overlay { animation: rv-fade 0.25s ease-out both; }
+@keyframes rv-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.rv-panel.is-fit .rv-rise > div { flex: 1; min-height: 0; gap: 10px; }
+.rv-panel.is-fit .rw { flex: 1; min-height: 0; gap: 10px; max-width: none; }
+.rv-panel.is-fit .rw-card { flex: 1; min-height: 0; gap: 10px; }
+.rv-panel.is-fit .rw-q { font-size: 18px; }
+.rv-panel.is-fit .rw-steps { max-width: 560px; }
+.rv-panel.is-fit .rw-step-n { width: 24px; height: 24px; }
+.rv-panel.is-fit .rw-step::before { top: 12px; }
+.rv-panel.is-fit .rw:not(.rw--wide) { max-width: 560px; }
+.rv-panel.is-fit .rw-split { flex: 1; min-height: 0; grid-template-columns: 380px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 28px; align-items: stretch; animation: none; }
+.rv-panel.is-fit .rw-col-calc { position: static; }
+.rv-panel.is-fit .rw-col-side { overflow: hidden; max-width: none; }
+.rv-panel.is-fit .rw-col-side > .rw-nav { margin-top: auto; padding-top: 4px; }
+
+/* Aparato con medidas fijas */
+.rv-panel.is-fit .calc-device { padding: 12px; gap: 6px; border-radius: 22px; }
+.rv-panel.is-fit .calc-display { min-height: 54px; padding: 7px 14px; }
+.rv-panel.is-fit .calc-display-value { font-size: 26px; }
+.rv-panel.is-fit .calc-register { min-height: 48px; padding: 5px 10px 6px; }
+.rv-panel.is-fit .calc-keypad { gap: 6px; }
+.rv-panel.is-fit .calc-key-num, .rv-panel.is-fit .calc-key-fn { height: 34px; }
+.rv-panel.is-fit .calc-key-equals { height: 40px; }
+.rv-panel.is-fit .rt-add { min-height: 48px; }
+.rv-panel.is-fit .rt-slip { padding: 6px; gap: 6px; }
+.rv-panel.is-fit .rt-kind button { height: 26px; }
+
+/* La lista de ingredientes se estira hasta el fondo; solo ella hace scroll si hay muchos */
+.rv-panel.is-fit .rt-tape { flex: 1; min-height: 120px; }
+.rv-panel.is-fit .rt-lines { flex: 1; min-height: 0; max-height: none; }
+
+/* Desglose del paso 5 más denso */
+.rv-panel.is-fit .rw-col-side .calc-breakdown { padding: 8px 14px; gap: 3px; }
+.rv-panel.is-fit .rw-col-side .calc-breakdown-row { font-size: 12.5px; padding-bottom: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-overlay, .rv-rise { animation: none; }
+}
+
+/* El botón de navegación vive al final de la columna derecha */
+.rw-col-side > .rw-nav { margin-top: 4px; }

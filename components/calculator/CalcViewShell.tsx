@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, X } from "lucide-react"
 import { scrollMainToTop } from "./scrollMainToTop"
 
 /**
@@ -16,6 +16,7 @@ export default function CalcViewShell({
   backLabel,
   onBack,
   dirty = false,
+  asModal = false,
   children,
 }: {
   title: string
@@ -25,6 +26,8 @@ export default function CalcViewShell({
   onBack: () => void
   /** Hay datos escritos que se perderían al salir */
   dirty?: boolean
+  /** Ventana flotante: título a la izquierda y botón "Cerrar" (X) a la derecha, en vez de "← volver" */
+  asModal?: boolean
   children: React.ReactNode
 }) {
   const [confirming, setConfirming] = useState(false)
@@ -46,27 +49,52 @@ export default function CalcViewShell({
 
   return (
     <div className="w-full flex flex-col gap-5">
-      <div className="flex items-start gap-4">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="flex items-center gap-1.5 text-sm font-medium h-9 px-2 -ml-2 rounded-lg transition-colors hover:bg-[var(--bg-secondary)] shrink-0"
-          style={{ color: "var(--text-muted)" }}
-        >
-          <ArrowLeft size={16} aria-hidden />
-          {backLabel}
-        </button>
-        <div className="flex flex-col min-w-0 flex-1">
-          <h2 className="text-lg font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-              {subtitle}
-            </p>
-          )}
+      {asModal ? (
+        <div className="flex items-center gap-4 pb-3 shrink-0" style={{ borderBottom: "1px solid var(--border-light)" }}>
+          <div className="flex flex-col min-w-0 flex-1">
+            <h2 className="text-xl font-bold leading-tight truncate" style={{ color: "var(--text-primary)" }}>
+              {title}
+            </h2>
+            {subtitle && (
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                {subtitle}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label={`Cerrar y volver a ${backLabel}`}
+            title="Cerrar"
+            className="flex items-center justify-center h-9 w-9 rounded-full shrink-0 transition-colors hover:bg-[var(--bg-secondary)]"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <X size={18} aria-hidden />
+          </button>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-start gap-4">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex items-center gap-1.5 text-sm font-medium h-9 px-2 -ml-2 rounded-lg transition-colors hover:bg-[var(--bg-secondary)] shrink-0"
+            style={{ color: "var(--text-muted)" }}
+          >
+            <ArrowLeft size={16} aria-hidden />
+            {backLabel}
+          </button>
+          <div className="flex flex-col min-w-0 flex-1">
+            <h2 className="text-lg font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>
+              {title}
+            </h2>
+            {subtitle && (
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                {subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {confirming && (
         <div
