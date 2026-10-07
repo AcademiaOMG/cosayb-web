@@ -1,0 +1,47 @@
+/* Detalle de receta: lo esencial arriba, el resto plegado. Solo tokens de la app. */
+
+.rd-body { display: flex; flex-direction: column; gap: 16px; }
+
+/* Entrada escalonada de cada bloque (--rd-i = posición) */
+@keyframes rd-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rd-in { animation: rd-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--rd-i, 0) * 70ms + 80ms); }
+
+.rd-hero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .rd-hero { grid-template-columns: 1fr; } }
+
+.rd-stat { padding: 14px; border-radius: 14px; background: var(--bg-primary); border: 1px solid var(--border-light); }
+.rd-stat-label { font-size: 12px; font-weight: 600; color: #5B6472; }
+.rd-stat-value { font-size: 22px; font-weight: 700; line-height: 1.2; margin-top: 4px; color: var(--text-primary); }
+.rd-stat-hint { font-size: 12px; margin-top: 2px; color: #5B6472; }
+.rd-stat.is-accent { background: var(--accent-light); border-color: var(--accent); }
+.rd-stat.is-accent .rd-stat-value { color: var(--accent); }
+.rd-stat.is-good { background: #F0FDF4; border-color: #BBF7D0; }
+.rd-stat.is-good .rd-stat-value { color: #166534; }
+.rd-stat.is-bad { background: #FEF2F2; border-color: #FECACA; }
+.rd-stat.is-bad .rd-stat-value { color: #991B1B; }
+
+.rd-panel { padding: 14px; border-radius: 14px; background: var(--bg-primary); border: 1px solid var(--border-light); }
+.rd-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+
+.rd-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rd-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--border-light); }
+.rd-item:last-child { border-bottom: none; }
+.rd-tag { margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #6D28D9; background: #EDE9FE; }
+
+.rd-more > summary {
+  cursor: pointer; list-style: none; padding: 10px 14px; border-radius: 12px;
+  font-size: 14px; font-weight: 600; color: var(--accent); text-align: center;
+  border: 1px dashed var(--border-medium); transition: background 0.15s;
+}
+.rd-more > summary::-webkit-details-marker { display: none; }
+.rd-more > summary:hover { background: var(--accent-light); }
+.rd-more[open] > summary::after { content: " ▲"; font-size: 10px; }
+.rd-more:not([open]) > summary::after { content: " ▼"; font-size: 10px; }
+.rd-more-body { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; animation: rd-rise 0.3s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-in, .rd-more-body { animation: none; }
+}

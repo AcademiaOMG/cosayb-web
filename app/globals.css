@@ -475,3 +475,19 @@ html { scroll-behavior: smooth; }
   transform: scaleX(1);
   transform-origin: left;
 }
+
+/* Modal con entrada animada (opt-in con la prop `animate`): crece desde la tarjeta pulsada */
+@keyframes modal-overlay-in {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to   { opacity: 1; backdrop-filter: blur(4px); }
+}
+@keyframes modal-panel-in {
+  0%   { opacity: 0; transform: translate(var(--mo-dx, 0px), var(--mo-dy, 24px)) scale(0.55); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+.modal-overlay-in { animation: modal-overlay-in 0.35s ease-out both; }
+.modal-panel-in   { animation: modal-panel-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay-in, .modal-panel-in { animation: none; }
+}
