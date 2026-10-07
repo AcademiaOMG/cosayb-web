@@ -11,9 +11,11 @@ interface YieldFactorDeleteModalProps {
   onConfirm: () => Promise<void>
   factor: FactorRendimiento | null
   isDeleting?: boolean
+  /** Por qué falló el borrado (el modal sigue abierto) */
+  error?: string | null
 }
 
-export default function YieldFactorDeleteModal({ isOpen, onClose, onConfirm, factor, isDeleting }: YieldFactorDeleteModalProps) {
+export default function YieldFactorDeleteModal({ isOpen, onClose, onConfirm, factor, isDeleting, error }: YieldFactorDeleteModalProps) {
   if (!factor) return null
 
   return (
@@ -40,8 +42,13 @@ export default function YieldFactorDeleteModal({ isOpen, onClose, onConfirm, fac
             <strong>{factor.ingredientName}</strong>
           </p>
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-            Se borrarán todos los datos de desecho asociados. Esta acción no se puede deshacer.
+            Se borra el cálculo con todo lo que se pierde (huesos, cáscaras, grasa…). Esta acción no se puede deshacer.
           </p>
+          {error && (
+            <p className="text-sm mt-2" role="alert" style={{ color: "#B42020" }}>
+              {error}
+            </p>
+          )}
         </div>
       </div>
     </Modal>

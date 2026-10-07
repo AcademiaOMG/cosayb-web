@@ -92,6 +92,15 @@ describe("sanitizeEntry", () => {
   })
 })
 
+describe("sanitizeEntry: pegar con separador de miles", () => {
+  const d = { decimals: true, maxDigits: 9, maxDecimals: 2 }
+  it("el último separador es el decimal; el otro agrupa miles", () => {
+    expect(sanitizeEntry("1.234,5", d)).toBe("1234.5")
+    expect(sanitizeEntry("1,234.5", d)).toBe("1234.5")
+    expect(sanitizeEntry("35,5 %", d)).toBe("35.5")
+  })
+})
+
 describe("formato", () => {
   it("formatea montos y porcentajes solo para mostrar", () => {
     expect(formatMoneyEntry("25000")).toBe("$ 25.000")

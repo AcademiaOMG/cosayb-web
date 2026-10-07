@@ -102,7 +102,14 @@ export function sanitizeEntry(raw: string, opts: EntryOptions): string {
   if (!opts.decimals) {
     return raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, maxDigits)
   }
-  const cleaned = raw.replace(/[^\d.,]/g, "").replace(",", ".")
+  let cleaned = raw.replace(/[^\d.,]/g, "")
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    // "1.234,5" o "1,234.5": el último separador es el decimal; el otro agrupa miles
+    const dec = cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".") ? "," : "."
+    const thousands = dec === "," ? "." : ","
+    cleaned = cleaned.split(thousands).join("")
+  }
+  cleaned = cleaned.replace(",", ".")
   const [int = "", ...rest] = cleaned.split(".")
   const dec = rest.join("").slice(0, opts.maxDecimals ?? DEFAULT_MAX_DECIMALS)
   const intPart = int.replace(/^0+(?=\d)/, "").slice(0, maxDigits)
