@@ -394,3 +394,53 @@
   .calc-display.is-result .calc-display-value { animation: none; }
   .calc-key, .calc-key:active { transition: none; }
 }
+
+/* ── Encabezado opcional del aparato (CalcPanel title/hint) ─────────────── */
+.calc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 2px;
+  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
+  color: #D5DBC9;
+}
+.calc-head-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7CE07C;
+  box-shadow: 0 0 8px 1px rgba(124, 224, 124, 0.7);
+}
+.calc-head-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.calc-head-hint { margin-left: auto; font-size: 11px; color: #9AA58D; text-align: right; }
+
+/* ── Desglose bajo el aparato (CalcBreakdown) ────────────────────────────── */
+.calc-breakdown {
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+}
+.calc-breakdown-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.calc-breakdown-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border-light);
+}
+.calc-breakdown-row:last-child { border-bottom: none; padding-bottom: 0; }
+.calc-breakdown-row dt { color: var(--text-secondary); }
+.calc-breakdown-row dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; color: var(--text-primary); }
+.calc-breakdown-row.is-strong dd { color: var(--accent-text); font-weight: 700; }

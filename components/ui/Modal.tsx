@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useCallback } from "react"
+import { useEffect, useLayoutEffect, useRef, useCallback } from "react"
 import type React from "react"
 import { X } from "lucide-react"
 
@@ -13,12 +13,26 @@ export interface ModalProps {
   footer?: React.ReactNode
   /** Modal más ancho (max-w-3xl) para formularios complejos */
   wide?: boolean
+  /** Entrada suave (fundido + leve subida) */
+  animate?: boolean
 }
 
-export default function Modal({ isOpen, open, onClose, title, children, footer, wide }: ModalProps) {
+export default function Modal({ isOpen, open, onClose, title, children, footer, wide, animate }: ModalProps) {
   const visible = typeof open === "boolean" ? open : !!isOpen
   const panelRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+
+  // Entrada animada: el panel "nace" desde el elemento que se pulsó (la tarjeta) y crece hasta su sitio
+  useLayoutEffect(() => {
+    if (!visible || !animate) return
+    const panel = panelRef.current
+    const trigger = document.activeElement as HTMLElement | null
+    if (!panel || !trigger || trigger === document.body) return
+    const t = trigger.getBoundingClientRect()
+    const p = panel.getBoundingClientRect()
+    panel.style.setProperty("--mo-dx", `${t.left + t.width / 2 - (p.left + p.width / 2)}px`)
+    panel.style.setProperty("--mo-dy", `${t.top + t.height / 2 - (p.top + p.height / 2)}px`)
+  }, [visible, animate])
 
   // Store the element that had focus before the modal opened
   useEffect(() => {
@@ -100,7 +114,7 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
     >
       {/* Overlay */}
       <div
-        className="absolute inset-0"
+        className={`absolute inset-0${animate ? " modal-overlay-in" : ""}`}
         style={{ background: "rgba(18, 33, 58, 0.5)" }}
         onClick={onClose}
         aria-hidden="true"
@@ -110,7 +124,7 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative z-10 w-full flex flex-col max-h-[85vh] overflow-hidden outline-none ${wide ? "max-w-3xl" : "max-w-lg"}`}
+        className={`relative z-10 w-full flex flex-col max-h-[85vh] overflow-hidden outline-none${animate ? " modal-panel-in" : ""} ${wide ? "max-w-3xl" : "max-w-lg"}`}
         style={{
           background: "var(--bg-surface)",
           borderRadius: "var(--radius-lg)",

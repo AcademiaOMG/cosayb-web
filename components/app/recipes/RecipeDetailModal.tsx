@@ -4,9 +4,9 @@ import { useState, useMemo } from "react"
 import useSWR from "swr"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
-import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import type { Recipe, RecipeCostResult } from "@/types/domain"
 import { getRecipeById, getRecipeCost, importarBancoRecipe } from "@/lib/api"
+import "./recipe-detail.css"
 import {
   ChefHat, Calculator, TrendingUp, TrendingDown, Minus,
   AlertTriangle, Info, Scale, Download,
@@ -27,6 +27,9 @@ const COP = new Intl.NumberFormat("es-CO", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 })
+
+/** Gramos con hasta 2 decimales (antes se redondeaba a entero: 0,5 g aparecía como "1 g") */
+const gramsText = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g`
 
 export default function RecipeDetailModal({
   open,
@@ -65,7 +68,7 @@ export default function RecipeDetailModal({
     const profitPct = 1 - pct - fixedCostPct
     const profitAmount = potentialSalePrice * profitPct
     const materialCostRating: "MUY_BUENO" | "REGULAR" | "MALO" =
-      pct <= 0.30 ? "MUY_BUENO" : pct <= 0.35 ? "REGULAR" : "MALO"
+      pct < 0.32 ? "MUY_BUENO" : pct > 0.37 ? "MALO" : "REGULAR"
     return { materialCostPct: pct, fixedCostPct, fixedCostAmount, potentialSalePrice, profitPct, profitAmount, materialCostRating }
   }, [cost, materialCostPct])
 
@@ -88,7 +91,8 @@ export default function RecipeDetailModal({
 
   const isPublic = recipe?.isPublic ?? false
   const canEdit = !isPublic && !recipe?.isBase && !!onEdit
-  const canDelete = !isPublic && !!onDelete
+  // La API no permite editar ni eliminar recetas base
+  const canDelete = !isPublic && !recipe?.isBase && !!onDelete
 
   return (
     <Modal
@@ -96,6 +100,7 @@ export default function RecipeDetailModal({
       onClose={onClose}
       title={recipe ? recipe.name : "Detalle de receta"}
       wide
+      animate
       footer={
         <div style={{ display: "flex", gap: "10px", justifyContent: "space-between", alignItems: "center" }}>
           {/* Acciones destructivas a la izquierda */}
@@ -104,6 +109,11 @@ export default function RecipeDetailModal({
               <Button variant="danger" onClick={() => onDelete!(recipe)}>
                 Eliminar
               </Button>
+            )}
+            {recipe?.isBase && !isPublic && (
+              <p className="text-xs" style={{ color: "var(--text-secondary)", maxWidth: 260 }}>
+                Las recetas base no se pueden editar ni eliminar.
+              </p>
             )}
           </div>
 
@@ -153,299 +163,162 @@ export default function RecipeDetailModal({
           <p className="text-sm">{error}</p>
         </div>
       ) : recipe ? (
-        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: "20px" }}>
+        <div className="rd-body">
+          {recipe.description && (
+            <p className="rd-in text-sm" style={{ color: "var(--text-secondary)", lineHeight: "1.6", ["--rd-i" as string]: 0 }}>
+              {recipe.description}
+            </p>
+          )}
 
-          {/* ═══════════════════ IZQUIERDA ═══════════════════ */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-            {/* Descripción */}
-            {recipe.description && (
-              <p className="text-sm" style={{ color: "var(--text-secondary)", lineHeight: "1.6" }}>
-                {recipe.description}
+          {/* ── Lo esencial: cuánto cuesta, a cuánto venderla y cuánto queda ── */}
+          <section className="rd-in rd-hero" aria-label="Resumen de costos" style={{ ["--rd-i" as string]: 1 }}>
+            {profitability && cost ? (
+              <>
+                <HeroStat label="Te cuesta por porción" value={COP.format(cost.costWithMarginPerServing)} hint="Ingredientes + margen" />
+                <HeroStat label="Véndela a" value={COP.format(profitability.potentialSalePrice)} hint="Precio sugerido por porción" tone="accent" />
+                <HeroStat
+                  label="Te queda de ganancia"
+                  value={COP.format(profitability.profitAmount)}
+                  hint={`${(profitability.profitPct * 100).toFixed(0)} % del precio`}
+                  tone={profitability.profitPct > 0 ? "good" : "bad"}
+                />
+              </>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--text-muted)", gridColumn: "1 / -1", padding: "12px 0", textAlign: "center" }}>
+                {costLoading ? "Calculando…" : "No se pudo calcular el costo de esta receta."}
               </p>
             )}
+          </section>
 
-            {/* Ficha técnica */}
-            <section
-              style={{
-                padding: "14px",
-                borderRadius: "12px",
-                background: "var(--bg-primary)",
-                border: "1px solid var(--border-light)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <ChefHat size={16} style={{ color: "var(--accent)" }} />
-                <h3 className="text-xs font-semibold uppercase" style={{ color: "var(--text-muted)", letterSpacing: "0.5px" }}>
-                  Ficha técnica
-                </h3>
-              </div>
+          {/* ── Ingredientes ── */}
+          <section className="rd-in rd-panel" style={{ ["--rd-i" as string]: 2 }}>
+            <h3 className="rd-title">
+              <Scale size={15} style={{ color: "var(--accent)" }} /> Ingredientes ({recipe.items?.length ?? 0})
+            </h3>
+            <ul className="rd-list">
+              {recipe.items?.map((item, idx) => (
+                <li key={item.id ?? idx} className="rd-item">
+                  <span className="text-sm" style={{ color: "var(--text-primary)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {item.componentType === "recipe"
+                      ? (item.subRecipeName ?? "Sub-receta")
+                      : (item.ingredientName ?? "Ingrediente")}
+                    {item.componentType === "recipe" && <span className="rd-tag">Base</span>}
+                  </span>
+                  <span className="text-sm" style={{ color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                    {gramsText(parseFloat(item.quantityG))}
+                  </span>
+                </li>
+              ))}
+              {(recipe.items?.length ?? 0) === 0 && (
+                <li className="text-xs text-center" style={{ color: "var(--text-muted)", padding: "12px 0" }}>
+                  Sin ingredientes registrados.
+                </li>
+              )}
+            </ul>
+            <p className="text-xs" style={{ color: "var(--text-muted)", marginTop: "10px" }}>
+              Rinde {Math.round(parseFloat(recipe.servings))} porciones
+              {recipe.servingWeightG ? ` de ${gramsText(parseFloat(recipe.servingWeightG))}` : ""}.
+            </p>
+          </section>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <DetailField label="Porciones" value={String(Math.round(parseFloat(recipe.servings)))} />
-                <DetailField label="Peso porción" value={recipe.servingWeightG ? `${parseFloat(recipe.servingWeightG).toFixed(0)} g` : "—"} />
-                <DetailField
-                  label="Margen seguridad"
-                  value={`${parseFloat(recipe.safetyMargin).toFixed(1)}%`}
-                  tooltip="Porcentaje extra sobre el costo de materia prima para cubrir variaciones de precio."
-                />
-                <DetailField label="Peso total" value={`${totalWeightG.toFixed(0)} g`} />
-                <DetailField
-                  label="Tipo"
-                  value={recipe.isBase ? "Receta base" : "Receta principal"}
-                  highlight={recipe.isBase}
-                />
-              </div>
-            </section>
+          {/* ── Todo lo demás, a un clic ── */}
+          <details className="rd-in rd-more" style={{ ["--rd-i" as string]: 3 }}>
+            <summary>Ver más detalles</summary>
 
-            {/* Componentes */}
-            <section
-              style={{
-                padding: "14px",
-                borderRadius: "12px",
-                background: "var(--bg-primary)",
-                border: "1px solid var(--border-light)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Scale size={16} style={{ color: "var(--accent)" }} />
-                <h3 className="text-xs font-semibold uppercase" style={{ color: "var(--text-muted)", letterSpacing: "0.5px" }}>
-                  Componentes ({recipe.items?.length ?? 0})
-                </h3>
-              </div>
+            <div className="rd-more-body">
+              <section className="rd-panel">
+                <h3 className="rd-title"><ChefHat size={15} style={{ color: "var(--accent)" }} /> Ficha técnica</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <DetailField label="Porciones" value={String(Math.round(parseFloat(recipe.servings)))} />
+                  <DetailField label="Peso porción" value={recipe.servingWeightG ? gramsText(parseFloat(recipe.servingWeightG)) : "—"} />
+                  <DetailField
+                    label="Margen seguridad"
+                    value={`${parseFloat(recipe.safetyMargin).toFixed(1)}%`}
+                    tooltip="Porcentaje extra sobre el costo de materia prima para cubrir variaciones de precio."
+                  />
+                  <DetailField label="Peso total" value={gramsText(totalWeightG)} />
+                  <DetailField label="Tipo" value={recipe.isBase ? "Receta base" : "Receta principal"} highlight={recipe.isBase} />
+                  <DetailField label="N.° de receta" value={recipe.recipeNumber} />
+                </div>
+              </section>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {recipe.items?.map((item, idx) => (
-                  <div
-                    key={item.id ?? idx}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 70px",
-                      gap: "8px",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      background: idx % 2 === 0 ? "var(--bg-surface)" : "transparent",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span
-                        style={{
-                          fontSize: "9px",
-                          padding: "2px 6px",
-                          borderRadius: "100px",
-                          background: item.componentType === "recipe" ? "#EDE9FE" : "#E0F2FE",
-                          color: item.componentType === "recipe" ? "#6D28D9" : "#0369A1",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {item.componentType === "recipe" ? "Base" : "Ing"}
-                      </span>
-                      <p className="text-xs" style={{ color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {item.componentType === "recipe"
-                          ? (item.subRecipeName ?? "Sub-receta")
-                          : (item.ingredientName ?? "Ingrediente")}
-                      </p>
-                    </div>
-                    <p className="text-xs text-right" style={{ color: "var(--text-secondary)" }}>
-                      {parseFloat(item.quantityG).toFixed(0)} g
-                    </p>
+              <section className="rd-panel">
+                <h3 className="rd-title"><Calculator size={15} style={{ color: "var(--accent)" }} /> Costos</h3>
+                {cost ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                    <CostCard label="Costo materia prima" value={COP.format(cost.rawCostTotal)} sublabel={`${COP.format(cost.rawCostPerServing)} / porción`} />
+                    <CostCard
+                      label={`Con margen ${parseFloat(recipe.safetyMargin).toFixed(1)}%`}
+                      value={COP.format(cost.costWithMarginTotal)}
+                      sublabel={`${COP.format(cost.costWithMarginPerServing)} / porción`}
+                      accent
+                    />
+                    {cost.costPerGram != null && (
+                      <CostCard label="Costo de 1 gramo (con margen)" value={COP.format(cost.costPerGram)} colSpan />
+                    )}
                   </div>
-                ))}
-                {(recipe.items?.length ?? 0) === 0 && (
+                ) : (
                   <p className="text-xs text-center" style={{ color: "var(--text-muted)", padding: "12px 0" }}>
-                    Sin componentes registrados.
+                    No se pudo calcular el costo.
                   </p>
                 )}
-              </div>
-            </section>
-          </div>
+              </section>
 
-          {/* ═══════════════════ DERECHA ═══════════════════ */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-
-            {/* Costos */}
-            <section
-              style={{
-                padding: "14px",
-                borderRadius: "12px",
-                background: "var(--bg-primary)",
-                border: "1px solid var(--border-light)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Calculator size={16} style={{ color: "var(--accent)" }} />
-                <h3 className="text-xs font-semibold uppercase" style={{ color: "var(--text-muted)", letterSpacing: "0.5px" }}>
-                  Análisis de costos
-                </h3>
-              </div>
-
-              {costLoading ? null : cost ? (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                  <CostCard
-                    label="Costo materia prima"
-                    value={COP.format(cost.rawCostTotal)}
-                    sublabel={`${COP.format(cost.rawCostPerServing)} / porción`}
-                  />
-                  <CostCard
-                    label={`Con margen ${parseFloat(recipe.safetyMargin).toFixed(1)}%`}
-                    value={COP.format(cost.costWithMarginTotal)}
-                    sublabel={`${COP.format(cost.costWithMarginPerServing)} / porción`}
-                    accent
-                  />
-                </div>
-              ) : (
-                <p className="text-xs text-center" style={{ color: "var(--text-muted)", padding: "16px 0" }}>
-                  No se pudo calcular el costo.
-                </p>
-              )}
-            </section>
-
-            {/* Rentabilidad */}
-            <section
-              style={{
-                padding: "14px",
-                borderRadius: "12px",
-                background: "var(--bg-primary)",
-                border: "1px solid var(--border-light)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <TrendingUp size={16} style={{ color: "var(--accent)" }} />
-                  <h3 className="text-xs font-semibold uppercase" style={{ color: "var(--text-muted)", letterSpacing: "0.5px" }}>
-                    Rentabilidad
+              <section className="rd-panel">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
+                  <h3 className="rd-title" style={{ marginBottom: 0 }}>
+                    <TrendingUp size={15} style={{ color: "var(--accent)" }} /> Rentabilidad
                   </h3>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <label className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    %MP:
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="99"
-                    value={materialCostPct}
-                    onChange={(e) => setMaterialCostPct(e.target.value)}
-                    style={{
-                      width: "44px",
-                      padding: "3px 4px",
-                      borderRadius: "6px",
-                      border: "1px solid var(--border-light)",
-                      background: "var(--bg-surface)",
-                      fontSize: "11px",
-                      textAlign: "right",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {profitability ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "6px",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      background: "#F0F9FF",
-                      border: "1px solid #BAE6FD",
-                    }}
-                  >
-                    <Info size={12} style={{ color: "#0369A1", marginTop: "2px", flexShrink: 0 }} />
-                    <p className="text-xs" style={{ color: "#0369A1", lineHeight: "1.4" }}>
-                      El <strong>% de materia prima</strong> es el porcentaje del precio de venta destinado a ingredientes.
-                      El rango ideal es entre 30% y 32%.
-                    </p>
-                  </div>
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                    <MetricCard
-                      label="% Materia Prima"
-                      value={`${(profitability.materialCostPct * 100).toFixed(1)}%`}
-                      rating={profitability.materialCostRating}
-                      description="Cuanto menor, mejor"
-                    />
-                    <MetricCard
-                      label="Costos Fijos"
-                      value={`${(profitability.fixedCostPct * 100).toFixed(1)}%`}
-                      amount={COP.format(profitability.fixedCostAmount)}
-                      description="(100% - %MP) / 1.8"
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <label htmlFor="recipe-detail-pctmp" className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                      % del precio en ingredientes:
+                    </label>
+                    <input
+                      id="recipe-detail-pctmp"
+                      type="number"
+                      min="1"
+                      max="99"
+                      value={materialCostPct}
+                      onChange={(e) => setMaterialCostPct(e.target.value)}
+                      style={{
+                        width: "52px",
+                        padding: "4px 6px",
+                        borderRadius: "6px",
+                        border: "1px solid var(--border-light)",
+                        background: "var(--bg-surface)",
+                        fontSize: "12px",
+                        textAlign: "right",
+                      }}
                     />
                   </div>
-
-                  <div
-                    style={{
-                      padding: "12px",
-                      borderRadius: "10px",
-                      background: "var(--accent-light)",
-                      border: "1px solid var(--accent)",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div>
-                      <p className="text-xs font-semibold" style={{ color: "var(--accent-text)" }}>
-                        Precio potencial de venta
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        Costo con margen / %MP
-                      </p>
-                    </div>
-                    <p className="text-lg font-bold" style={{ color: "var(--accent)" }}>
-                      {COP.format(profitability.potentialSalePrice)}
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "12px",
-                      borderRadius: "10px",
-                      background: profitability.profitPct > 0 ? "#F0FDF4" : "#FEF2F2",
-                      border: `1px solid ${profitability.profitPct > 0 ? "#BBF7D0" : "#FECACA"}`,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div>
-                      <p
-                        className="text-xs font-semibold"
-                        style={{ color: profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
-                      >
-                        Ganancia neta
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        100% - (%MP + %CostosFijos)
-                      </p>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <p
-                        className="text-lg font-bold"
-                        style={{ color: profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
-                      >
-                        {(profitability.profitPct * 100).toFixed(1)}%
-                      </p>
-                      <p
-                        className="text-xs"
-                        style={{ color: profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
-                      >
-                        {COP.format(profitability.profitAmount)}
-                      </p>
-                    </div>
-                  </div>
                 </div>
-              ) : (
-                <div style={{ textAlign: "center", padding: "16px 0" }}>
-                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {costLoading ? "Calculando el costo…" : "Ajusta el %MP para ver el análisis de rentabilidad."}
+
+                {profitability ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <p className="text-xs" style={{ color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                      Menos de 32 % es muy bueno, de 32 a 37 % regular y más de 37 % malo.
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                      <MetricCard
+                        label="Ingredientes"
+                        value={`${(profitability.materialCostPct * 100).toFixed(1)}%`}
+                        rating={profitability.materialCostRating}
+                      />
+                      <MetricCard
+                        label="Costos fijos"
+                        value={`${(profitability.fixedCostPct * 100).toFixed(1)}%`}
+                        amount={COP.format(profitability.fixedCostAmount)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-center" style={{ color: "var(--text-muted)", padding: "12px 0" }}>
+                    Escribe un porcentaje entre 1 y 99.
                   </p>
-                </div>
-              )}
-            </section>
-          </div>
+                )}
+              </section>
+            </div>
+          </details>
         </div>
       ) : null}
     </Modal>
@@ -472,41 +345,9 @@ function DetailField({
           {label}
         </p>
         {tooltip && (
-          <div style={{ position: "relative" }} className="group">
-            <Info size={11} style={{ color: "var(--text-muted)", cursor: "help" }} />
-            <div
-              style={{
-                display: "none",
-                position: "absolute",
-                bottom: "100%",
-                left: "50%",
-                transform: "translateX(-50%)",
-                marginBottom: "6px",
-                padding: "8px 10px",
-                borderRadius: "8px",
-                background: "#1E293B",
-                color: "#fff",
-                fontSize: "11px",
-                lineHeight: "1.4",
-                width: "200px",
-                zIndex: 50,
-                pointerEvents: "none",
-              }}
-              className="group-hover:!block"
-            >
-              {tooltip}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  border: "5px solid transparent",
-                  borderTopColor: "#1E293B",
-                }}
-              />
-            </div>
-          </div>
+          <span title={tooltip} role="img" aria-label={tooltip} tabIndex={0} style={{ display: "inline-flex", cursor: "help" }}>
+            <Info size={11} style={{ color: "var(--text-muted)" }} />
+          </span>
         )}
       </div>
       <p
@@ -515,6 +356,26 @@ function DetailField({
       >
         {value}
       </p>
+    </div>
+  )
+}
+
+function HeroStat({
+  label,
+  value,
+  hint,
+  tone = "plain",
+}: {
+  label: string
+  value: string
+  hint: string
+  tone?: "plain" | "accent" | "good" | "bad"
+}) {
+  return (
+    <div className={`rd-stat is-${tone}`}>
+      <p className="rd-stat-label">{label}</p>
+      <p className="rd-stat-value">{value}</p>
+      <p className="rd-stat-hint">{hint}</p>
     </div>
   )
 }
