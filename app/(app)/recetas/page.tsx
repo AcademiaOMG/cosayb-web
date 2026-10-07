@@ -17,7 +17,6 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { CheckCircle2, ChefHat, Plus, Search, SlidersHorizontal, X, AlertCircle } from "lucide-react"
-import { clsx } from "clsx"
 
 const PAGE_SIZE = 12
 
@@ -80,6 +79,9 @@ export default function RecetasPage() {
     extra.type, extra.weight, extra.portions, extra.empty,
   ].filter(Boolean).length
 
+  // Origen (Todos/Propios/Banco) también cuenta como filtro activo
+  const totalActiveFilters = activeFilterCount + (filter !== "all" ? 1 : 0)
+
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
   const [deleting] = useState(false)
   const [view, setView]                 = useState<PageView>("list")
@@ -95,11 +97,6 @@ export default function RecetasPage() {
     window.addEventListener("open-help", handleHelp)
     return () => window.removeEventListener("open-help", handleHelp)
   }, [])
-
-  // Al cambiar entre la lista y la calculadora, empezar arriba del todo
-  useEffect(() => {
-    document.querySelector("main")?.scrollTo({ top: 0 })
-  }, [view])
 
   /** Receta guardada: refrescar lista, contadores y detalles en caché, y volver a la lista */
   function handleSaved(info: { name: string; created: boolean }) {
@@ -201,27 +198,11 @@ export default function RecetasPage() {
     return <ModuleLocked message={featureLockedMessage("module_recipes")} />
   }
 
-  // ── Vista calculadora (crear o editar): ocupa la página, como los otros módulos ──
-  if (view === "calculator") {
-    return (
-      <>
-        <RecipeCalculatorView
-          // Arranque limpio al cambiar entre "nueva" y cada receta a editar
-          key={editRecipeId ?? "new"}
-          editRecipeId={editRecipeId}
-          onBack={() => setView("list")}
-          onSaved={handleSaved}
-        />
-        {helpModal}
-      </>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Recetas"
-        subtitle="Gestiona tus recetas, costos y porciones para mantener tus platos consistentes y rentables."
+        subtitle="Tus platos, ingredientes y porciones."
         action={
           can("recipes", "create") ? (
             <Button variant="primary" onClick={openCreate}>
@@ -251,134 +232,70 @@ export default function RecetasPage() {
 
       {/* ── Barra de controles ── */}
       <div className="flex flex-col gap-3">
-        {/* Búsqueda */}
-        <div className="relative">
-          <span
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-            aria-hidden="true"
-          >
-            <Search size={16} style={{ color: "var(--text-muted)" }} />
-          </span>
-          <input
-            ref={searchRef}
-            type="search"
-            placeholder="Buscar por nombre…"
-            value={search}
-            onChange={e => changeSearch(e.target.value)}
-            className="h-10 w-full rounded-xl pl-9 pr-10 text-sm outline-none transition-all duration-200"
-            style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-light)",
-              color: "var(--text-primary)",
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = "var(--accent)"
-              e.currentTarget.style.boxShadow = "0 0 0 3px var(--accent-light)"
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-light)"
-              e.currentTarget.style.boxShadow = "none"
-            }}
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={handleClearSearch}
-              aria-label="Limpiar búsqueda"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 transition-colors hover:bg-[var(--bg-secondary)]"
-              style={{ color: "var(--text-muted)" }}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        {/* Tabs + Botón filtros */}
+        {/* Búsqueda + filtros (un solo botón con menú, como en Inventario) */}
         <div className="flex items-center gap-2">
-          {/* Tabs */}
-          <div
-            className="flex items-center gap-2 flex-wrap"
-            role="group"
-            aria-label="Filtrar recetas por origen"
-          >
-            {TAB_OPTIONS.map(({ value, label }) => {
-              const isActive = filter === value
-              const count = filterCounts[value]
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => changeFilter(value)}
-                  aria-pressed={isActive}
-                  className={clsx(
-                    "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium transition-all duration-150",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
-                  )}
-                  style={
-                    isActive
-                      ? {
-                          background: "var(--accent)",
-                          color: "#fff",
-                          boxShadow: "0 1px 4px rgba(27,79,216,0.25)",
-                        }
-                      : {
-                          background: "var(--bg-surface)",
-                          color: "var(--text-secondary)",
-                          border: "1px solid var(--border-light)",
-                        }
-                  }
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderColor = "var(--border-medium)"
-                      e.currentTarget.style.background = "var(--bg-secondary)"
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.borderColor = "var(--border-light)"
-                      e.currentTarget.style.background = "var(--bg-surface)"
-                    }
-                  }}
-                >
-                  {label}
-                  <span
-                    className="rounded-full px-1.5 py-0.5 text-xs font-bold leading-none"
-                    style={
-                      isActive
-                        ? { background: "rgba(255,255,255,0.2)", color: "#fff" }
-                        : {
-                            background: "var(--bg-secondary)",
-                            color: "var(--text-muted)",
-                          }
-                    }
-                  >
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
+          {/* Búsqueda */}
+          <div className="relative flex-1 min-w-0">
+            <span
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+              aria-hidden="true"
+            >
+              <Search size={16} style={{ color: "var(--text-muted)" }} />
+            </span>
+            <input
+              ref={searchRef}
+              type="search"
+              placeholder="Buscar por nombre…"
+              value={search}
+              onChange={e => changeSearch(e.target.value)}
+              className="h-10 w-full rounded-xl pl-9 pr-10 text-sm outline-none transition-all duration-200"
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-light)",
+                color: "var(--text-primary)",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "var(--accent)"
+                e.currentTarget.style.boxShadow = "0 0 0 3px var(--accent-light)"
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "var(--border-light)"
+                e.currentTarget.style.boxShadow = "none"
+              }}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 transition-colors hover:bg-[var(--bg-secondary)]"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
+
           {/* Botón filtros */}
-          <div ref={panelRef} className="relative ml-auto">
+          <div ref={panelRef} className="relative shrink-0">
             <button
               onClick={() => setPanelOpen(o => !o)}
               aria-expanded={panelOpen}
               aria-haspopup="true"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-150"
+              aria-label={totalActiveFilters > 0 ? `Filtros (${totalActiveFilters} activos)` : "Filtrar recetas"}
+              className="relative flex h-10 min-w-[44px] items-center justify-center rounded-xl px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               style={{
-                border: `1px solid ${activeFilterCount > 0 ? "var(--accent)" : "var(--border-light)"}`,
-                background: activeFilterCount > 0 ? "var(--accent)" : "var(--bg-surface)",
-                color: activeFilterCount > 0 ? "#fff" : "var(--text-secondary)",
-                boxShadow: activeFilterCount > 0 ? "0 1px 4px rgba(27,79,216,0.25)" : undefined,
+                border: `1px solid ${totalActiveFilters > 0 ? "transparent" : "var(--border-light)"}`,
+                background: totalActiveFilters > 0 ? "var(--accent-light)" : "var(--bg-surface)",
+                color: totalActiveFilters > 0 ? "var(--accent-text)" : "var(--text-secondary)",
                 cursor: "pointer",
               }}
             >
-              <SlidersHorizontal size={14} />
-              Filtros
-              {activeFilterCount > 0 && (
-                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold" style={{ background: "rgba(255,255,255,0.3)" }}>
-                  {activeFilterCount}
+              <SlidersHorizontal size={17} aria-hidden="true" />
+              {totalActiveFilters > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold" style={{ background: "var(--accent)", color: "#fff" }}>
+                  {totalActiveFilters}
                 </span>
               )}
             </button>
@@ -388,13 +305,21 @@ export default function RecetasPage() {
               <div
                 className="absolute top-full right-0 mt-1.5 z-40 flex flex-col gap-3.5 p-3.5"
                 style={{
-                  width: "260px",
+                  width: "280px",
                   background: "var(--bg-surface)",
                   border: "1px solid var(--border-light)",
                   borderRadius: "16px",
                   boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
                 }}
               >
+                <FilterGroup label="Origen">
+                  {TAB_OPTIONS.map(({ value, label }) => (
+                    <Chip key={value} active={filter === value} onClick={() => changeFilter(value)}>
+                      {label} · {filterCounts[value]}
+                    </Chip>
+                  ))}
+                </FilterGroup>
+
                 <FilterGroup label="Tipo de receta">
                   <Chip active={extra.type === "base"}      onClick={() => changeExtra({ type: extra.type === "base"      ? undefined : "base" })}>     Base</Chip>
                   <Chip active={extra.type === "principal"} onClick={() => changeExtra({ type: extra.type === "principal" ? undefined : "principal" })}> Principal</Chip>
@@ -417,9 +342,9 @@ export default function RecetasPage() {
                   </Chip>
                 </FilterGroup>
 
-                {activeFilterCount > 0 && (
+                {totalActiveFilters > 0 && (
                   <button
-                    onClick={() => { clearExtra(); setPanelOpen(false) }}
+                    onClick={() => { clearExtra(); changeFilter("all"); setPanelOpen(false) }}
                     className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150"
                     style={{
                       border: "1px solid var(--border-light)",
@@ -438,8 +363,9 @@ export default function RecetasPage() {
       </div>
 
       {/* Chips de filtros activos */}
-      {activeFilterCount > 0 && (
+      {totalActiveFilters > 0 && (
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {filter !== "all" && <ActiveChip label={filter === "own" ? "Propios" : "Banco"} onRemove={() => changeFilter("all")} />}
           {extra.type      && <ActiveChip label={extra.type === "base" ? "Base" : "Principal"} onRemove={() => changeExtra({ type: undefined })} />}
           {extra.portions  && <ActiveChip label={{ small: "≤ 4 porciones", medium: "5–10 porciones", large: "> 10 porciones" }[extra.portions]} onRemove={() => changeExtra({ portions: undefined })} />}
           {extra.weight    && <ActiveChip label={extra.weight === "yes" ? "Con peso" : "Sin peso"} onRemove={() => changeExtra({ weight: undefined })} />}
@@ -521,6 +447,17 @@ export default function RecetasPage() {
       </Modal>
 
       {helpModal}
+
+      {/* Crear / editar: ventana flotante sobre la lista */}
+      {view === "calculator" && (
+        <RecipeCalculatorView
+          // Arranque limpio al cambiar entre "nueva" y cada receta a editar
+          key={editRecipeId ?? "new"}
+          editRecipeId={editRecipeId}
+          onBack={() => setView("list")}
+          onSaved={handleSaved}
+        />
+      )}
 
       <RecipeDetailModal
         open={!!detailRecipeId}

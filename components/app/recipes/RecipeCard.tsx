@@ -14,9 +14,7 @@ interface RecipeCardProps {
 
 const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: RecipeCardProps) {
   const servings = parseInt(recipe.servings, 10) || 0
-  const servingWeight = recipe.servingWeightG ? parseFloat(recipe.servingWeightG) : null
   const itemCount = recipe.itemCount ?? recipe.items?.length ?? 0
-  const safetyMargin = parseFloat(recipe.safetyMargin) || 0
   const isPublic = recipe.isPublic ?? false
   // La API no permite eliminar recetas base: no se ofrece un botón que siempre fallaría
   const canDelete = !isPublic && !recipe.isBase && !!onDelete
@@ -70,46 +68,15 @@ const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: Recip
               </span>
             )}
             {isPublic && <span className="rc-badge is-public">Banco</span>}
-            <span className="rc-sub">
-              {itemCount} ingrediente{itemCount !== 1 ? "s" : ""}
-            </span>
           </div>
+          <p className="rc-sub" style={{ marginTop: "6px" }}>
+            {servings} porción{servings !== 1 ? "es" : ""} · {itemCount} ingrediente{itemCount !== 1 ? "s" : ""}
+          </p>
         </div>
       </div>
 
-      {recipe.description && (
-        <p
-          className="text-xs"
-          style={{
-            color: "var(--text-secondary)",
-            lineHeight: "1.5",
-            overflow: "hidden",
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-          }}
-        >
-          {recipe.description}
-        </p>
-      )}
-
-      <dl className="rc-stats" style={{ marginTop: "auto" }}>
-        <Stat label="Porciones" value={String(servings)} />
-        <Stat label="Peso / porción" value={servingWeight != null ? `${servingWeight.toFixed(0)} g` : "—"} />
-        <Stat label="Margen seg." value={`${safetyMargin.toLocaleString("es-CO", { maximumFractionDigits: 1 })} %`} />
-        <Stat label="N.°" value={recipe.recipeNumber} />
-      </dl>
     </article>
   )
 })
 
 export default RecipeCard
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rc-stat">
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </div>
-  )
-}
