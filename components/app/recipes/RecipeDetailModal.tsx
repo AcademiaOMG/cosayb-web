@@ -4,7 +4,6 @@ import { useState, useMemo } from "react"
 import useSWR from "swr"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
-import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import type { Recipe, RecipeCostResult } from "@/types/domain"
 import { getRecipeById, getRecipeCost, importarBancoRecipe } from "@/lib/api"
 import {
@@ -27,6 +26,9 @@ const COP = new Intl.NumberFormat("es-CO", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 })
+
+/** Gramos con hasta 2 decimales (antes se redondeaba a entero: 0,5 g aparecía como "1 g") */
+const gramsText = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g`
 
 export default function RecipeDetailModal({
   open,
@@ -65,7 +67,7 @@ export default function RecipeDetailModal({
     const profitPct = 1 - pct - fixedCostPct
     const profitAmount = potentialSalePrice * profitPct
     const materialCostRating: "MUY_BUENO" | "REGULAR" | "MALO" =
-      pct <= 0.30 ? "MUY_BUENO" : pct <= 0.35 ? "REGULAR" : "MALO"
+      pct < 0.32 ? "MUY_BUENO" : pct > 0.37 ? "MALO" : "REGULAR"
     return { materialCostPct: pct, fixedCostPct, fixedCostAmount, potentialSalePrice, profitPct, profitAmount, materialCostRating }
   }, [cost, materialCostPct])
 
@@ -88,7 +90,8 @@ export default function RecipeDetailModal({
 
   const isPublic = recipe?.isPublic ?? false
   const canEdit = !isPublic && !recipe?.isBase && !!onEdit
-  const canDelete = !isPublic && !!onDelete
+  // La API no permite editar ni eliminar recetas base
+  const canDelete = !isPublic && !recipe?.isBase && !!onDelete
 
   return (
     <Modal
@@ -104,6 +107,11 @@ export default function RecipeDetailModal({
               <Button variant="danger" onClick={() => onDelete!(recipe)}>
                 Eliminar
               </Button>
+            )}
+            {recipe?.isBase && !isPublic && (
+              <p className="text-xs" style={{ color: "var(--text-secondary)", maxWidth: 260 }}>
+                Las recetas base no se pueden editar ni eliminar.
+              </p>
             )}
           </div>
 
@@ -183,13 +191,13 @@ export default function RecipeDetailModal({
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                 <DetailField label="Porciones" value={String(Math.round(parseFloat(recipe.servings)))} />
-                <DetailField label="Peso porción" value={recipe.servingWeightG ? `${parseFloat(recipe.servingWeightG).toFixed(0)} g` : "—"} />
+                <DetailField label="Peso porción" value={recipe.servingWeightG ? gramsText(parseFloat(recipe.servingWeightG)) : "—"} />
                 <DetailField
                   label="Margen seguridad"
                   value={`${parseFloat(recipe.safetyMargin).toFixed(1)}%`}
                   tooltip="Porcentaje extra sobre el costo de materia prima para cubrir variaciones de precio."
                 />
-                <DetailField label="Peso total" value={`${totalWeightG.toFixed(0)} g`} />
+                <DetailField label="Peso total" value={gramsText(totalWeightG)} />
                 <DetailField
                   label="Tipo"
                   value={recipe.isBase ? "Receta base" : "Receta principal"}
@@ -248,7 +256,7 @@ export default function RecipeDetailModal({
                       </p>
                     </div>
                     <p className="text-xs text-right" style={{ color: "var(--text-secondary)" }}>
-                      {parseFloat(item.quantityG).toFixed(0)} g
+                      {gramsText(parseFloat(item.quantityG))}
                     </p>
                   </div>
                 ))}
@@ -293,6 +301,13 @@ export default function RecipeDetailModal({
                     sublabel={`${COP.format(cost.costWithMarginPerServing)} / porción`}
                     accent
                   />
+                  {cost.costPerGram != null && (
+                    <CostCard
+                      label="Costo de 1 gramo (con margen)"
+                      value={COP.format(cost.costPerGram)}
+                      colSpan
+                    />
+                  )}
                 </div>
               ) : (
                 <p className="text-xs text-center" style={{ color: "var(--text-muted)", padding: "16px 0" }}>
@@ -318,10 +333,11 @@ export default function RecipeDetailModal({
                   </h3>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <label className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  <label htmlFor="recipe-detail-pctmp" className="text-xs" style={{ color: "var(--text-muted)" }}>
                     %MP:
                   </label>
                   <input
+                    id="recipe-detail-pctmp"
                     type="number"
                     min="1"
                     max="99"
@@ -356,7 +372,7 @@ export default function RecipeDetailModal({
                     <Info size={12} style={{ color: "#0369A1", marginTop: "2px", flexShrink: 0 }} />
                     <p className="text-xs" style={{ color: "#0369A1", lineHeight: "1.4" }}>
                       El <strong>% de materia prima</strong> es el porcentaje del precio de venta destinado a ingredientes.
-                      El rango ideal es entre 30% y 32%.
+                      Menos de 32% es muy bueno, de 32% a 37% regular y más de 37% malo.
                     </p>
                   </div>
 
@@ -415,7 +431,7 @@ export default function RecipeDetailModal({
                         className="text-xs font-semibold"
                         style={{ color: profitability.profitPct > 0 ? "#166534" : "#991B1B" }}
                       >
-                        Ganancia neta
+                        Ganancia
                       </p>
                       <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                         100% - (%MP + %CostosFijos)
@@ -472,41 +488,9 @@ function DetailField({
           {label}
         </p>
         {tooltip && (
-          <div style={{ position: "relative" }} className="group">
-            <Info size={11} style={{ color: "var(--text-muted)", cursor: "help" }} />
-            <div
-              style={{
-                display: "none",
-                position: "absolute",
-                bottom: "100%",
-                left: "50%",
-                transform: "translateX(-50%)",
-                marginBottom: "6px",
-                padding: "8px 10px",
-                borderRadius: "8px",
-                background: "#1E293B",
-                color: "#fff",
-                fontSize: "11px",
-                lineHeight: "1.4",
-                width: "200px",
-                zIndex: 50,
-                pointerEvents: "none",
-              }}
-              className="group-hover:!block"
-            >
-              {tooltip}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  border: "5px solid transparent",
-                  borderTopColor: "#1E293B",
-                }}
-              />
-            </div>
-          </div>
+          <span title={tooltip} role="img" aria-label={tooltip} tabIndex={0} style={{ display: "inline-flex", cursor: "help" }}>
+            <Info size={11} style={{ color: "var(--text-muted)" }} />
+          </span>
         )}
       </div>
       <p

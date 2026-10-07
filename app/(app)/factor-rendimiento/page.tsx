@@ -7,11 +7,12 @@ import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
 import EmptyState from "@/components/ui/EmptyState"
 import YieldFactorTable from "@/components/app/factor-rendimiento/YieldFactorTable"
-import YieldFactorFormModal from "@/components/app/factor-rendimiento/YieldFactorFormModal"
+import YieldFactorCalculator, { type YieldSavedInfo, type YieldSubmitData } from "@/components/app/factor-rendimiento/YieldFactorCalculator"
 import YieldFactorDetailModal from "@/components/app/factor-rendimiento/YieldFactorDetailModal"
 import YieldFactorDeleteModal from "@/components/app/factor-rendimiento/YieldFactorDeleteModal"
 import YieldFactorSearchBar, { type YieldFactorFilter } from "@/components/app/factor-rendimiento/YieldFactorSearchBar"
 import Pagination from "@/components/app/inventario/Pagination"
+import { scrollMainToTop } from "@/components/calculator"
 import type { FactorRendimiento } from "@/types/domain"
 import {
   getFactoresRendimiento,
@@ -19,12 +20,17 @@ import {
   updateFactorRendimiento,
   deleteFactorRendimiento,
 } from "@/lib/api"
-import { Scale, Plus } from "lucide-react"
+import { Scale, Plus, CheckCircle2, X } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 
 const PAGE_SIZE = 10
+
+type PageView = "list" | "calculator"
+
+/** Compara sin importar mayúsculas ni tildes ("platano" encuentra "Plátano") */
+const normalize = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function TableSkeleton() {
@@ -116,8 +122,8 @@ export default function FactorRendimientoPage() {
 
     // Search by ingredient name
     if (search.trim()) {
-      const q = search.toLowerCase().trim()
-      result = result.filter((f) => f.ingredientName.toLowerCase().includes(q))
+      const q = normalize(search)
+      result = result.filter((f) => normalize(f.ingredientName).includes(q))
     }
 
     return result
@@ -125,10 +131,12 @@ export default function FactorRendimientoPage() {
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  // Si se borra el último de la última página, no quedarse en una página vacía
+  const currentPage = Math.min(page, Math.max(1, totalPages))
   const paginated = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE
+    const start = (currentPage - 1) * PAGE_SIZE
     return filtered.slice(start, start + PAGE_SIZE)
-  }, [filtered, page])
+  }, [filtered, currentPage])
 
   function handleSearchChange(value: string) {
     setSearch(value)
@@ -139,11 +147,14 @@ export default function FactorRendimientoPage() {
     setFilter(value)
     setPage(1)
   }
-  const [formOpen, setFormOpen] = useState(false)
+  const [view, setView] = useState<PageView>("list")
   const [editingFactor, setEditingFactor] = useState<FactorRendimiento | null>(null)
   const [detailFactor, setDetailFactor] = useState<FactorRendimiento | null>(null)
   const [deleteFactor, setDeleteFactor] = useState<FactorRendimiento | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  /** Registro recién guardado: aviso arriba de la lista y fila resaltada */
+  const [justSaved, setJustSaved] = useState<YieldSavedInfo | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
 
   useEffect(() => {
@@ -153,13 +164,7 @@ export default function FactorRendimientoPage() {
   }, [])
 
   // ── Acciones ──────────────────────────────────────────────────────────────
-  async function handleSubmit(data: {
-    variant: "bfactor" | "bfactorveg"
-    ingredientName: string
-    totalCost: string
-    totalWeightGrams: string
-    wasteItems: { name: string; weightGrams: string }[]
-  }) {
+  async function handleSubmit(data: YieldSubmitData, existingId?: string) {
     const payload = {
       variant: data.variant,
       ingredientName: data.ingredientName,
@@ -170,23 +175,36 @@ export default function FactorRendimientoPage() {
         weightGrams: parseFloat(w.weightGrams),
       })),
     }
-    if (editingFactor) {
-      await updateFactorRendimiento(editingFactor.id, payload)
+    let id: string
+    const targetId = existingId ?? editingFactor?.id
+    if (targetId) {
+      await updateFactorRendimiento(targetId, payload)
+      id = targetId
     } else {
-      await createFactorRendimiento(payload)
+      const created = await createFactorRendimiento(payload)
+      id = created.data.id
     }
-    await mutate()
+    const fresh = await mutate()
+    // Dejar la lista donde el usuario verá su registro: sin filtros y en su página
+    const idx = fresh ? fresh.findIndex((f) => f.id === id) : -1
+    setSearch("")
+    setFilter("all")
+    setPage(idx >= 0 ? Math.floor(idx / PAGE_SIZE) + 1 : 1)
+    return { id }
   }
 
   async function handleDelete() {
     if (!deleteFactor) return
     setDeleting(true)
+    setDeleteError(null)
     try {
       await deleteFactorRendimiento(deleteFactor.id)
+      if (justSaved?.id === deleteFactor.id) setJustSaved(null)
       setDeleteFactor(null)
       await mutate()
-    } catch {
-      // modal permanece abierto si falla
+    } catch (e) {
+      // el modal permanece abierto y explica qué pasó
+      setDeleteError(e instanceof Error && e.message ? e.message : "No se pudo eliminar. Revisa tu conexión e inténtalo de nuevo.")
     } finally {
       setDeleting(false)
     }
@@ -194,17 +212,110 @@ export default function FactorRendimientoPage() {
 
   function openCreate() {
     setEditingFactor(null)
-    setFormOpen(true)
+    setJustSaved(null)
+    setView("calculator")
   }
 
   function openEdit(factor: FactorRendimiento) {
     setEditingFactor(factor)
-    setFormOpen(true)
+    setDetailFactor(null)
+    setJustSaved(null)
+    setView("calculator")
   }
+
+  function closeCalculator() {
+    setView("list")
+  }
+
+  function handleSaved(info: YieldSavedInfo) {
+    setJustSaved(info)
+    setView("list")
+  }
+
+  function clearFilters() {
+    setSearch("")
+    setFilter("all")
+    setPage(1)
+  }
+
+  // Al alternar lista/calculadora, volver arriba; y mostrar el registro guardado
+  useEffect(() => {
+    scrollMainToTop()
+  }, [view])
+
+  useEffect(() => {
+    if (view !== "list" || !justSaved) return
+    const t = setTimeout(() => {
+      const el = Array.from(document.querySelectorAll<HTMLElement>(`[data-factor-id="${justSaved.id}"]`)).find(
+        (n) => n.offsetParent !== null,
+      )
+      el?.scrollIntoView({ block: "center", behavior: "smooth" })
+    }, 100)
+    return () => clearTimeout(t)
+  }, [view, justSaved])
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (!hasFeature("module_yieldFactors")) {
     return <ModuleLocked message={featureLockedMessage("module_yieldFactors")} />
+  }
+
+  // La ayuda debe abrir también dentro de la calculadora (el botón de la app sigue visible).
+  const helpModal = (
+    <Modal
+      open={helpOpen}
+      onClose={() => setHelpOpen(false)}
+      title="Factor de Rendimiento"
+    >
+      <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+        <p>Esta sección es una calculadora: te dice cuánto aprovechas de lo que compras (descontando huesos, cáscaras, grasa y agua) y cuánto cuesta realmente cada gramo útil.</p>
+
+        <div>
+          <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Cómo usarla:</p>
+          <ul className="flex flex-col gap-2 ml-1">
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Nuevo factor:</strong> se abre la calculadora en pantalla completa. Elige el tipo, escribe el nombre y, en la calculadora, el costo, el peso total y los gramos que se pierden. Pulsa Calcular y guarda. Con «← Mis factores» vuelves a la lista (si escribiste algo, te avisamos antes de salir).</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Tipos:</strong> carnes, pescados y mariscos (huesos, grasa, cueros, agua de bolsas) o verduras, frutas y hortalizas (cáscaras, pepas, agua, bolsa).</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Visualizar detalles:</strong> toca el ojo (o la fila) para ver el cálculo completo del rendimiento.</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Editar o eliminar:</strong> usa el lápiz para volver a abrir la calculadora con ese ingrediente, o el bote de basura para borrarlo.</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Filtros:</strong> busca por nombre de ingrediente o filtra por tipo (Todos, Proteína, Vegetal).</span>
+            </li>
+          </ul>
+        </div>
+
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          <strong>Nota:</strong> al guardar puedes crear el ingrediente limpio «NOMBRE (LIMPIO)» en Inventario, con el peso útil y el nuevo costo por gramo, para usarlo en tus recetas.
+        </p>
+      </div>
+    </Modal>
+  )
+
+  if (view === "calculator") {
+    return (
+      <>
+        <YieldFactorCalculator
+        // Reiniciar la calculadora al cambiar de registro (nuevo / editar)
+        key={editingFactor?.id ?? "new"}
+        editingFactor={editingFactor}
+        onSubmit={handleSubmit}
+        onDone={handleSaved}
+        onCancel={closeCalculator}
+        />
+        {helpModal}
+      </>
+    )
   }
 
   return (
@@ -223,6 +334,27 @@ export default function FactorRendimientoPage() {
         }
       />
 
+      {justSaved && (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded-xl px-4 py-3 text-sm"
+          style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#166534" }}
+        >
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <p className="flex-1 min-w-0 break-words">
+            <strong>{justSaved.name}</strong>: {justSaved.message} Lo encuentras resaltado en la lista.
+          </p>
+          <button
+            type="button"
+            onClick={() => setJustSaved(null)}
+            aria-label="Cerrar aviso"
+            className="p-1 -m-1 rounded-md hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Search + Filter */}
       {!isLoading && !error && factors.length > 0 && (
         <YieldFactorSearchBar
@@ -240,7 +372,7 @@ export default function FactorRendimientoPage() {
 
       {/* Error */}
       {!isLoading && error && (
-        <div style={{ textAlign: "center", padding: "60px 0" }}>
+        <div role="alert" className="text-center py-12 rounded-2xl" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}>
           <p className="text-sm" style={{ color: "var(--text-muted)", marginBottom: "12px" }}>
             No se pudieron cargar los factores.
           </p>
@@ -252,7 +384,7 @@ export default function FactorRendimientoPage() {
       {!isLoading && !error && factors.length === 0 && (
         <EmptyState
           icon={<Scale size={40} style={{ color: "var(--text-muted)" }} />}
-          title="Sin factores registrados"
+          title="Aún no has calculado ningún rendimiento"
           description="¿Cuánto aprovechas de una pechuga o de un kilo de zanahoria? Registra el rendimiento real de tus ingredientes (descontando huesos, cáscaras y grasa) para que el costo por gramo sea exacto en tus recetas."
           action={
             <Button variant="primary" onClick={openCreate}>
@@ -273,6 +405,7 @@ export default function FactorRendimientoPage() {
               ? `No se encontró ningún ingrediente con "${search}".`
               : "No hay factores en esta categoría."
           }
+          action={<Button variant="ghost" onClick={clearFilters}>Ver todos los factores</Button>}
         />
       )}
 
@@ -281,26 +414,23 @@ export default function FactorRendimientoPage() {
         <>
           <YieldFactorTable
             data={paginated}
+            highlightId={justSaved?.id}
             onView={(f) => setDetailFactor(f)}
-            onEdit={openEdit}
-            onDelete={(f) => setDeleteFactor(f)}
+            onEdit={can("yieldFactors", "update") ? openEdit : undefined}
+            onDelete={can("yieldFactors", "delete") ? (f) => { setDeleteError(null); setDeleteFactor(f) } : undefined}
           />
-          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
 
-      {/* Modales */}
-      <YieldFactorFormModal
-        isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleSubmit}
-        editingFactor={editingFactor}
-      />
-
+      {/* Modales (solo lectura y confirmación) */}
       <YieldFactorDetailModal
+        // Cada registro arranca sin mensajes del anterior
+        key={detailFactor?.id ?? "none"}
         isOpen={!!detailFactor}
         onClose={() => setDetailFactor(null)}
         factor={detailFactor}
+        onEdit={can("yieldFactors", "update") ? openEdit : undefined}
       />
 
       <YieldFactorDeleteModal
@@ -309,48 +439,10 @@ export default function FactorRendimientoPage() {
         onConfirm={handleDelete}
         factor={deleteFactor}
         isDeleting={deleting}
+        error={deleteError}
       />
 
-      {/* ── Modal: help ──────────────────────────────────────────────────── */}
-      <Modal
-        open={helpOpen}
-        onClose={() => setHelpOpen(false)}
-        title="Factor de Rendimiento"
-      >
-        <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-          <p>Esta seccion te permite calcular el rendimiento real de tus ingredientes, descontando huesos, cascaras, grasa y desperdicios.</p>
-
-          <div>
-            <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
-            <ul className="flex flex-col gap-2 ml-1">
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Calcular rendimiento:</strong> Registra el peso total, costo y partes desechadas para obtener el factor de aprovechamiento.</span>
-              </li>
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Variantes:</strong> Usa "bfactor" para ingredientes de origen animal y "bfactorveg" para vegetales.</span>
-              </li>
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Visualizar detalles:</strong> Haz clic en el icono de ojo para ver el calculo completo del rendimiento.</span>
-              </li>
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Editar o eliminar:</strong> Usa los iconos de accion para modificar o borrar un factor existente.</span>
-              </li>
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Filtros:</strong> Busca por nombre de ingrediente o filtra por tipo (Todos, Proteina, Vegetal).</span>
-              </li>
-            </ul>
-          </div>
-
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            <strong>Nota:</strong> El factor de rendimiento se usa automaticamente al crear recetas para calcular el costo real por gramo.
-          </p>
-        </div>
-      </Modal>
+      {helpModal}
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { memo } from "react"
 import type { Recipe } from "@/types/domain"
 import { ChefHat, BookMarked, UtensilsCrossed, Trash2 } from "lucide-react"
+import "./recipe-cards.css"
 
 interface RecipeCardProps {
   recipe: Recipe
@@ -17,132 +18,65 @@ const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: Recip
   const itemCount = recipe.itemCount ?? recipe.items?.length ?? 0
   const safetyMargin = parseFloat(recipe.safetyMargin) || 0
   const isPublic = recipe.isPublic ?? false
+  // La API no permite eliminar recetas base: no se ofrece un botón que siempre fallaría
+  const canDelete = !isPublic && !recipe.isBase && !!onDelete
 
   return (
     <article
       role="button"
       tabIndex={0}
+      aria-label={`Ver receta ${recipe.name}`}
+      className="rc-card"
       onClick={() => onClick(recipe)}
-      onKeyDown={(e) => e.key === "Enter" && onClick(recipe)}
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border-light)",
-        borderRadius: "16px",
-        padding: "18px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
-        transition: "box-shadow 0.18s ease, border-color 0.18s ease",
-        cursor: "pointer",
-        position: "relative",
-      }}
-      onMouseEnter={(e) => {
-        ;(e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(18,33,58,0.10)"
-        ;(e.currentTarget as HTMLElement).style.borderColor = "var(--border-medium)"
-      }}
-      onMouseLeave={(e) => {
-        ;(e.currentTarget as HTMLElement).style.boxShadow = ""
-        ;(e.currentTarget as HTMLElement).style.borderColor = "var(--border-light)"
+      onKeyDown={(e) => {
+        // Solo cuando el foco está en la tarjeta (no en el botón de eliminar)
+        if (e.target !== e.currentTarget) return
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onClick(recipe)
+        }
       }}
     >
-      {/* Botón eliminar — esquina superior derecha, solo recetas propias */}
-      {!isPublic && onDelete && (
+      {canDelete && (
         <button
-          onClick={(e) => { e.stopPropagation(); onDelete(recipe) }}
+          type="button"
+          className="rc-delete"
+          aria-label={`Eliminar receta ${recipe.name}`}
           title="Eliminar receta"
-          style={{
-            position: "absolute",
-            top: "12px",
-            right: "12px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "28px",
-            height: "28px",
-            borderRadius: "8px",
-            border: "none",
-            background: "transparent",
-            color: "var(--text-muted)",
-            cursor: "pointer",
-            transition: "color 0.15s, background 0.15s",
-          }}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.color = "#B42020"
-            ;(e.currentTarget as HTMLButtonElement).style.background = "#FEF2F2"
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)"
-            ;(e.currentTarget as HTMLButtonElement).style.background = "transparent"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete?.(recipe)
           }}
         >
-          <Trash2 size={13} />
+          <Trash2 size={14} />
         </button>
       )}
 
-      {/* Header: icono + nombre + badges */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", paddingRight: isPublic ? "0" : "28px" }}>
-        <div
-          style={{
-            flexShrink: 0,
-            width: 38,
-            height: 38,
-            borderRadius: "10px",
-            background: isPublic ? "#F0FDF4" : "var(--accent-light)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <ChefHat size={18} style={{ color: isPublic ? "#16A34A" : "var(--accent)" }} />
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", paddingRight: canDelete ? "28px" : 0 }}>
+        <div className={`rc-icon${isPublic ? " is-public" : ""}`} aria-hidden="true">
+          <ChefHat size={19} />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3
-            className="font-semibold text-sm"
-            style={{
-              color: "var(--text-primary)",
-              lineHeight: "1.3",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {recipe.name}
-          </h3>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "4px", flexWrap: "wrap" }}>
-            {/* Tipo de receta — alineado con el filtro: Base | Principal */}
+          <h3 className="rc-title">{recipe.name}</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
             {recipe.isBase ? (
-              <span
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "3px",
-                  fontSize: "9px", fontWeight: 600, letterSpacing: "0.5px",
-                  textTransform: "uppercase", color: "#6D28D9", background: "#EDE9FE",
-                  borderRadius: "100px", padding: "2px 7px",
-                }}
-              >
-                <BookMarked size={9} /> Base
+              <span className="rc-badge is-base">
+                <BookMarked size={10} /> Base
               </span>
             ) : (
-              <span
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "3px",
-                  fontSize: "9px", fontWeight: 600, letterSpacing: "0.5px",
-                  textTransform: "uppercase", color: "#0369A1", background: "#E0F2FE",
-                  borderRadius: "100px", padding: "2px 7px",
-                }}
-              >
-                <UtensilsCrossed size={9} /> Principal
+              <span className="rc-badge is-main">
+                <UtensilsCrossed size={10} /> Principal
               </span>
             )}
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+            {isPublic && <span className="rc-badge is-public">Banco</span>}
+            <span className="rc-sub">
               {itemCount} ingrediente{itemCount !== 1 ? "s" : ""}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Descripción breve */}
       {recipe.description && (
         <p
           className="text-xs"
@@ -159,16 +93,12 @@ const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: Recip
         </p>
       )}
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+      <dl className="rc-stats" style={{ marginTop: "auto" }}>
         <Stat label="Porciones" value={String(servings)} />
-        <Stat
-          label="Peso / porción"
-          value={servingWeight != null ? `${servingWeight.toFixed(0)} g` : "—"}
-        />
-        <Stat label="Margen seg." value={`${safetyMargin.toFixed(1)}%`} />
+        <Stat label="Peso / porción" value={servingWeight != null ? `${servingWeight.toFixed(0)} g` : "—"} />
+        <Stat label="Margen seg." value={`${safetyMargin.toLocaleString("es-CO", { maximumFractionDigits: 1 })} %`} />
         <Stat label="N.°" value={recipe.recipeNumber} />
-      </div>
+      </dl>
     </article>
   )
 })
@@ -177,9 +107,9 @@ export default RecipeCard
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ background: "var(--bg-primary)", borderRadius: "8px", padding: "6px 10px" }}>
-      <p className="text-xs" style={{ color: "var(--text-muted)", marginBottom: "1px" }}>{label}</p>
-      <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>{value}</p>
+    <div className="rc-stat">
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   )
 }

@@ -17,21 +17,32 @@ export interface PricingResult {
   indicator: ValuationIndicator
 }
 
-export function calcPricing(cost: number, pctMP: number, margin: number): PricingResult | null {
+/** Descuentos sobre la ganancia bruta (en puntos de %). Valoración usa 5 % + 5 %; el Excel de Recetas, 0. */
+export interface PricingDeductions {
+  impuestos: number
+  otros: number
+}
+
+export function calcPricing(
+  cost: number,
+  pctMP: number,
+  margin: number,
+  deductions: PricingDeductions = { impuestos: PCT_IMPUESTOS, otros: PCT_OTROS },
+): PricingResult | null {
   if (cost <= 0 || pctMP <= 0 || pctMP >= 100) return null
   const pct = pctMP / 100
   const withMargin = cost * (1 + margin / 100)
   const suggested = withMargin / pct
   const pctFixedCosts = ((1 - pct) / 1.8) * 100
   const pctProfitBruto = (1 - (1 - pct) / 1.8 - pct) * 100
-  const pctProfit = Math.max(0, pctProfitBruto - PCT_IMPUESTOS - PCT_OTROS)
+  const pctProfit = Math.max(0, pctProfitBruto - deductions.impuestos - deductions.otros)
   const indicator: ValuationIndicator = pct < 0.32 ? "MUY BUENO" : pct > 0.37 ? "MALO" : "REGULAR"
   return {
     suggested,
     pctMateriaprima: pctMP,
     pctFixedCosts,
-    pctImpuestos: PCT_IMPUESTOS,
-    pctOtros: PCT_OTROS,
+    pctImpuestos: deductions.impuestos,
+    pctOtros: deductions.otros,
     pctProfit,
     indicator,
   }
