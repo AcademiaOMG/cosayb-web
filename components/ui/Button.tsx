@@ -56,10 +56,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 borderRadius: "var(--radius-md)",
               } as React.CSSProperties)
             : ({
-                "--btn-bg": "#B42020",
-                "--btn-hover": "#8F1A1A",
+                "--btn-bg": "var(--error)",
+                "--btn-hover": "var(--error-hover)",
                 "--btn-text": "#fff",
-                "--btn-ring": "#B42020",
+                "--btn-ring": "var(--error)",
                 background: "var(--btn-bg)",
                 color: "var(--btn-text)",
                 borderRadius: "var(--radius-md)",

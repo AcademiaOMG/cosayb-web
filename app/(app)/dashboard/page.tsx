@@ -198,7 +198,7 @@ export default function DashboardPage() {
 
 function ModuleCard({ href, label, icon, style }: ModuleCardDef & { style?: CSSProperties }) {
   return (
-    <Link href={href} className="glass-card" style={style}>
+    <Link href={href} className="glass glass-card" style={style}>
       <div className="relative glass-card-icon">
         <Image src={icon} alt="" fill className="object-contain" sizes="96px" />
       </div>
