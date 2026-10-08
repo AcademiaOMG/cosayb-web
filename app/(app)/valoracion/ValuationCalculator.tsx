@@ -25,14 +25,14 @@ function isTypingTarget(el: EventTarget | null) {
   return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)
 }
 
-// El selector de recetas vive dentro del aparato: se viste como una pieza más
+// El selector de recetas vive dentro del aparato: se viste como un registro más
 // de la calculadora en vez de un campo blanco pegado encima.
 const RECIPE_TRIGGER: React.CSSProperties = {
-  height: 44,
-  background: "#34373D",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  borderRadius: 12,
-  color: "#E4E7EB",
+  height: 40,
+  background: "rgba(18, 33, 58, 0.035)",
+  border: "1.5px solid var(--border-light)",
+  borderRadius: 14,
+  color: "var(--text-primary)",
   fontSize: 13,
   padding: "0 12px",
 }
