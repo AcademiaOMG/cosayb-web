@@ -17,6 +17,7 @@ import { displayName, normalizeForSearch } from "@/components/app/inventario/for
 import { Plus } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 import { fetchAPI } from "@/lib/api"
 import type { Ingredient, IngredientForm, IngredientOriginFilter } from "@/types/ingredient"
 import ModuleLocked from "@/components/app/ModuleLocked"
@@ -41,6 +42,7 @@ export default function InventarioPage() {
 
   // ── Permisos y plan ───────────────────────────────────────────────────────
   const { can, organization, hasFeature, featureLockedMessage } = usePermissions()
+  const revalidateOnboarding = useRevalidateOnboarding()
   const plan = organization?.membership === "free" ? "free" : "pro"
   const canUpdate = can("ingredients", "update")
   const canDelete = can("ingredients", "delete")
@@ -149,6 +151,7 @@ export default function InventarioPage() {
       })
       setDeleteTarget(null)
       await mutate()
+      revalidateOnboarding()
     } catch {
       setDeleteTarget(null)
     } finally {
@@ -236,7 +239,10 @@ export default function InventarioPage() {
       <IngredientFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSaved={() => void mutate()}
+        onSaved={() => {
+          void mutate()
+          revalidateOnboarding()
+        }}
         editing={editing}
       />
 

@@ -18,6 +18,8 @@ interface SearchableSelectProps {
   ariaLabel?: string
   /** Texto del buscador dentro del desplegable (por defecto, el mismo placeholder) */
   searchPlaceholder?: string
+  /** Si se pasa, agrega bajo el buscador una opción fija que limpia la selección (ej. "Seleccionar receta") */
+  clearLabel?: string
   /** Ajustes de estilo del disparador (ej. para integrarlo en una superficie oscura) */
   triggerStyle?: React.CSSProperties
 }
@@ -37,6 +39,7 @@ export default function SearchableSelect({
   ariaLabel,
   triggerStyle,
   searchPlaceholder,
+  clearLabel,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -225,6 +228,27 @@ export default function SearchableSelect({
           </button>
         )}
       </div>
+
+      {/* Opción fija bajo el buscador: deja la selección vacía */}
+      {clearLabel && (
+        <div
+          role="option"
+          aria-selected={value === ""}
+          onClick={() => { onChange(""); closeDropdown() }}
+          style={{
+            padding: "6px 8px",
+            borderRadius: "6px",
+            fontSize: "12px",
+            cursor: "pointer",
+            fontWeight: 600,
+            color: value === "" ? "var(--accent)" : "var(--text-secondary)",
+            background: value === "" ? "var(--accent-light)" : "transparent",
+            borderBottom: "1px solid var(--border-light)",
+          }}
+        >
+          {clearLabel}
+        </div>
+      )}
 
       {/* Options list */}
       <div ref={listRef} style={{ maxHeight: "240px", overflowY: "auto", display: "flex", flexDirection: "column" }}>

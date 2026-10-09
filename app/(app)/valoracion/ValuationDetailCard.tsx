@@ -4,7 +4,9 @@ import { useEffect, useState } from "react"
 import "./calculator.css"
 import { CheckCircle2, AlertTriangle, AlertCircle } from "lucide-react"
 import type { ValuationIndicator } from "@/types/domain"
-import { IND, fmt, fmtPct, moneyFromPct, type PricingResult } from "./lib"
+import IndicatorPill from "@/components/ui/IndicatorPill"
+import { IND } from "@/lib/indicator"
+import { fmt, fmtPct, moneyFromPct, type PricingResult } from "./lib"
 
 const INDICATOR_ICON: Record<ValuationIndicator, typeof CheckCircle2> = {
   "MUY BUENO": CheckCircle2,
@@ -145,10 +147,11 @@ export default function ValuationDetailCard({
               indicator={result.indicator}
             />
             <div className="flex flex-col items-start gap-2">
-              <span className="calc-indicator-pill" style={{ background: cfg.bg, color: cfg.text }}>
-                <IndicatorIcon size={13} style={{ color: cfg.color }} />
-                {result.indicator}
-              </span>
+              <IndicatorPill
+                indicator={result.indicator}
+                icon={<IndicatorIcon size={13} style={{ color: cfg.color }} />}
+                className="calc-indicator-pill"
+              />
               <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{cfg.sublabel}</span>
             </div>
           </div>

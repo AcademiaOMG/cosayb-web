@@ -424,7 +424,20 @@ export async function exportBreakEvenExcel(): Promise<Blob> {
       ...(activeOrg ? { "X-Organization-Id": activeOrg } : {}),
     },
   })
-  if (!response.ok) throw new Error("Error al exportar el historial")
+  if (!response.ok) {
+    // Devuelve el motivo real del API (membresía, permisos, …) en vez de un
+    // error genérico: el body es JSON { error, message } igual que fetchAPI.
+    const text = await response.text().catch(() => "")
+    let message = "No se pudo exportar el historial a Excel."
+    try {
+      const body = JSON.parse(text)
+      if (body.message) message = body.message
+      else if (body.error) message = body.error
+    } catch {
+      if (text) message = text
+    }
+    throw new Error(message)
+  }
   return response.blob()
 }
 

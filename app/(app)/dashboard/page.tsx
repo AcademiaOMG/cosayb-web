@@ -7,6 +7,7 @@ import useSWR from "swr"
 import { Bell } from "lucide-react"
 import "./glass.css"
 import PageHeader from "@/components/ui/PageHeader"
+import SidebarChecklist from "@/components/app/SidebarChecklist"
 import { usePermissions } from "@/hooks/usePermissions"
 import { authClient } from "@/lib/auth"
 import { getDashboardInsights } from "@/lib/api"
@@ -154,6 +155,13 @@ export default function DashboardPage() {
           <Bell size={20} />
         </button>
       </div>
+
+      {/* Mobile/tablet (por debajo de lg): no existe Sidebar, así que Inicio
+          replica el checklist "Primeros pasos" del sidebar — mismo orden
+          numerado y progreso x/3, solo aquí (el chip flotante global se
+          retiró). En desktop lo muestra el Sidebar y este bloque se oculta;
+          si el componente retorna null no queda un item fantasma en el flex. */}
+      <SidebarChecklist variant="surface" className="lg:hidden" />
 
       <div className="hidden lg:block">
         <PageHeader

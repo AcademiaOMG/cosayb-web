@@ -368,6 +368,18 @@
 .calc-key.rt-add:hover { background: color-mix(in srgb, var(--accent) 20%, white); }
 .calc-key.rt-add:active { background: color-mix(in srgb, var(--accent) 30%, white); }
 
+/* Acción al lado de un registro, en su misma fila (Menú: "Agregar a la
+   lista" junto al de gramos): se estira al alto del registro y el ancho
+   lo da su texto. Va después de .calc-key-equals para pisar su tamaño. */
+.calc-key-inline {
+  width: auto;
+  height: auto;
+  align-self: stretch;
+  flex: none;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
 .calc-key-word {
   font-size: 12.5px;
   letter-spacing: 0.01em;
@@ -422,6 +434,7 @@
   .calc-keypad { gap: 7px; }
   .calc-key-num, .calc-key-fn { height: 48px; }
   .calc-key-equals { height: 50px; }
+  .calc-key-inline { height: auto; font-size: 13px; padding: 0 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -15,6 +15,7 @@ import type { RecipeFilter, RecipeExtraFilters } from "@/lib/api"
 import { getRecipes, deleteRecipe, getRecipeCounts } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { CheckCircle2, ChefHat, Plus, Search, SlidersHorizontal, X, AlertCircle } from "lucide-react"
 
@@ -89,6 +90,7 @@ export default function RecetasPage() {
   /** Aviso tras guardar o si algo falló (la lista es lo primero que se ve al volver) */
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null)
   const { mutate: globalMutate } = useSWRConfig()
+  const revalidateOnboarding = useRevalidateOnboarding()
   const [detailRecipeId, setDetailRecipeId] = useState<string | null>(null)
   const [helpOpen, setHelpOpen]         = useState(false)
 
@@ -103,6 +105,7 @@ export default function RecetasPage() {
     void mutate()
     void mutateCounts()
     void globalMutate((key) => Array.isArray(key) && (key[0] === "recipe-detail" || key[0] === "recipe-cost"))
+    revalidateOnboarding()
     setNotice({ tone: "ok", text: info.created ? `Receta «${info.name}» creada.` : `Receta «${info.name}» actualizada.` })
     setView("list")
   }
@@ -140,6 +143,7 @@ export default function RecetasPage() {
         { optimisticData: optimistic, rollbackOnError: true, revalidate: true }
       )
       void mutateCounts()
+      revalidateOnboarding()
       setNotice({ tone: "ok", text: `Receta «${deleteTarget.name}» eliminada.` })
     } catch (e) {
       // rollback automático: la card reaparece; ahora además se explica por qué
@@ -465,7 +469,7 @@ export default function RecetasPage() {
         onClose={() => setDetailRecipeId(null)}
         onEdit={can("recipes", "update") ? handleOpenEdit : undefined}
         onDelete={can("recipes", "delete") ? (r => { setDetailRecipeId(null); setDeleteTarget(r) }) : undefined}
-        onImported={() => { setDetailRecipeId(null); void mutate() }}
+        onImported={() => { setDetailRecipeId(null); void mutate(); revalidateOnboarding() }}
       />
 
     </div>
