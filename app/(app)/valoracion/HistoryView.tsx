@@ -1,9 +1,10 @@
 "use client"
 
 import Table from "@/components/ui/Table"
+import IndicatorPill from "@/components/ui/IndicatorPill"
 import { Calculator, Eye, Pencil, Plus } from "lucide-react"
 import type { Valuation, ValuationIndicator, ValuationRefType } from "@/types/domain"
-import { IND, fmt, fmtPct, refLabel } from "./lib"
+import { fmt, fmtPct, refLabel } from "./lib"
 
 function HistorySkeleton() {
   return (
@@ -95,16 +96,7 @@ export default function HistoryView({
         {
           key: "indicator",
           label: "Indicador",
-          render: (v) => {
-            const ind = v as ValuationIndicator
-            const c = IND[ind]
-            return (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: c.bg, color: c.text }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.color }} />
-                {ind}
-              </span>
-            )
-          },
+          render: (v) => <IndicatorPill indicator={v as ValuationIndicator} />,
         },
         {
           key: "pctMateriaprima",

@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
+import SidebarChecklist from "./SidebarChecklist"
 import type { Resource, Action } from "@/lib/api"
 
 // ─── Navegación del Restaurant Tenant Workspace ──────────────────────────────
@@ -145,6 +146,10 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
           </div>
         ))}
       </nav>
+
+      {/* Primeros pasos: orden sugerido + progreso x/3, visible desde
+          cualquier sección y oculto cuando el onboarding está completo. */}
+      <SidebarChecklist />
 
       {/* Cuenta + sesión */}
       <div

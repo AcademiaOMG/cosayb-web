@@ -426,6 +426,12 @@
 
 .calc-key svg { width: 22px; height: 22px; }
 
+/* Acción al lado de un registro, en su misma fila (Menú: "Agregar a la
+   lista" junto al de gramos): su hueco se estira al alto del registro y el
+   ancho lo da el texto. */
+.calc-slot-inline { align-self: stretch; flex: none; display: flex; }
+.calc-slot-inline .calc-key { width: auto; height: auto; padding: 0 14px; white-space: nowrap; }
+
 .calc-keypad {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -463,6 +469,7 @@
   .calc-key-num, .calc-key-fn { height: 42px; }
   .calc-key-equals { height: 46px; }
   .calc-keypad { gap: 6px 8px; }
+  .calc-slot-inline .calc-key { font-size: 13px; padding: 0 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

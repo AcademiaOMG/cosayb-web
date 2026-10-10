@@ -88,7 +88,7 @@ export default function ValoracionPage() {
   return (
     // Ancho máximo compartido por ambas pestañas: el título no salta al
     // cambiar de pestaña y, en la calculadora, queda alineado con el aparato.
-    <div className="w-full flex flex-col gap-7 pt-1 lg:gap-10 lg:pt-3">
+    <div className="w-full flex flex-col gap-7  lg:gap-10 ">
       <PageHeader
         title="Valoración de costos"
         subtitle="Calcula a cuánto vender cada plato según lo que cuestan sus ingredientes y guarda el resultado para compararlo después."

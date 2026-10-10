@@ -15,9 +15,11 @@ export interface ModalProps {
   wide?: boolean
   /** Entrada suave (fundido + leve subida) */
   animate?: boolean
+  /** Overlay con fondo desenfocado (backdrop-blur) tras el contenido */
+  blur?: boolean
 }
 
-export default function Modal({ isOpen, open, onClose, title, children, footer, wide, animate }: ModalProps) {
+export default function Modal({ isOpen, open, onClose, title, children, footer, wide, animate, blur }: ModalProps) {
   const visible = typeof open === "boolean" ? open : !!isOpen
   const panelRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
@@ -115,7 +117,12 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
       {/* Overlay */}
       <div
         className={`absolute inset-0${animate ? " modal-overlay-in" : ""}`}
-        style={{ background: "rgba(18, 33, 58, 0.5)" }}
+        style={{
+          background: "rgba(18, 33, 58, 0.5)",
+          ...(blur
+            ? { backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }
+            : {}),
+        }}
         onClick={onClose}
         aria-hidden="true"
       />
