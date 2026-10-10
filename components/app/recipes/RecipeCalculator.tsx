@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown,
 import Button from "@/components/ui/Button"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import {
+  CalcActionKey,
   CalcBreakdown,
   CalcDevice,
   CalcDisplay,
@@ -842,12 +843,12 @@ export default function RecipeCalculator({
                   )
                 }
               />
-              <button type="button" className="calc-key calc-key-fn rt-add" onMouseDown={(e) => e.preventDefault()} onClick={addLine}>
+              <CalcActionKey variant="fn" slotClassName="rt-add-slot" className="rt-add" onMouseDown={(e) => e.preventDefault()} onClick={addLine}>
                 <span className="inline-flex items-center gap-1.5">
                   <Plus size={16} /> Agregar
                 </span>
                 <small>a la lista</small>
-              </button>
+              </CalcActionKey>
             </div>
 
             {keypad}

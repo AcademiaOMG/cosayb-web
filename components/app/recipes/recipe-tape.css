@@ -197,6 +197,8 @@
   font-size: 14px;
   height: auto;
 }
+.rt-add-slot { align-self: stretch; display: flex; flex-direction: column; }
+.rt-add-slot .rt-add { flex: 1; }
 .rt-add small { font-size: 10px; font-weight: 600; opacity: 0.75; }
 
 @media (max-width: 640px) {
@@ -472,9 +474,6 @@ textarea.rw-input { height: auto; padding: 8px 12px; }
   .rw-split { grid-template-columns: minmax(340px, 390px) minmax(0, 1fr); gap: 28px; }
   .rw-col-calc { position: sticky; top: 8px; }
   .rw-split .calc-device { padding: 14px; gap: 8px; border-radius: 24px; }
-  .rw-split .calc-display { min-height: 84px; padding: 8px 14px; }
-  .rw-split .calc-display-value { font-size: 30px; }
-  .rw-split .calc-register { min-height: 60px; padding: 6px 10px 7px; }
   .rw-split .calc-keypad { gap: 6px; }
   .rw-split .calc-key-num, .rw-split .calc-key-fn { height: 42px; }
   .rw-split .calc-key-equals { height: 44px; }
@@ -552,9 +551,6 @@ textarea.rw-input { height: auto; padding: 8px 12px; }
 
 /* Aparato con medidas fijas */
 .rv-panel.is-fit .calc-device { padding: 12px; gap: 6px; border-radius: 22px; }
-.rv-panel.is-fit .calc-display { min-height: 54px; padding: 7px 14px; }
-.rv-panel.is-fit .calc-display-value { font-size: 26px; }
-.rv-panel.is-fit .calc-register { min-height: 48px; padding: 5px 10px 6px; }
 .rv-panel.is-fit .calc-keypad { gap: 6px; }
 .rv-panel.is-fit .calc-key-num, .rv-panel.is-fit .calc-key-fn { height: 34px; }
 .rv-panel.is-fit .calc-key-equals { height: 40px; }

@@ -318,9 +318,6 @@
   @media (max-height: 940px) {
     .valuation-stage .calc-key-num, .valuation-stage .calc-key-fn { height: 40px; }
     .valuation-stage .calc-key-equals { height: 44px; }
-    .valuation-stage .calc-display { min-height: 84px; }
-    .valuation-stage .calc-display-value { font-size: 31px; }
-    .valuation-stage .calc-register { min-height: 56px; }
     .valuation-workspace { row-gap: 12px; }
     .valuation-question { margin-bottom: 14px; }
     .valuation-question-hint { display: none; }
@@ -334,10 +331,6 @@
     .valuation-stage .calc-key-word { font-size: 12px; }
     .valuation-stage .calc-key-equals { height: 34px; }
     .valuation-stage .calc-keypad { gap: 6px; }
-    .valuation-stage .calc-display { min-height: 56px; padding: 7px 14px 6px; }
-    .valuation-stage .calc-display-value { font-size: 28px; }
-    .valuation-stage .calc-register { min-height: 44px; padding: 4px 11px 5px; }
-    .valuation-stage .calc-register input { font-size: 19px; }
     .calc-key-mode { min-height: 36px; }
     .valuation-workspace { row-gap: 8px; }
     .calc-receipt-row { padding: 2px 0; font-size: 13px; }

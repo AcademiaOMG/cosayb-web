@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { ArrowRight, CheckCircle2, ListChecks, Package } from "lucide-react"
 import Button from "@/components/ui/Button"
 import {
+  CalcActionKey,
   CalcBreakdown,
   CalcDevice,
   CalcDisplay,
@@ -459,9 +460,7 @@ export default function BreakEvenCalculator({
             <CalcKeypad onKey={press} onClearAll={handleClearAll} decimalEnabled={false} />
           </div>
 
-          <button type="button" className="calc-key calc-key-equals" onClick={calculate}>
-            Calcular
-          </button>
+          <CalcActionKey onClick={calculate}>Calcular</CalcActionKey>
         </CalcDevice>
 
         {step === "fixed" && (

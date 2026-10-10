@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { PencilLine } from "lucide-react"
 import SearchableSelect from "@/components/ui/SearchableSelect"
-import { CalcDevice, CalcDisplay, CalcKeypad, CalcRegister } from "@/components/calculator"
+import { CalcActionKey, CalcDevice, CalcDisplay, CalcKeypad, CalcRegister } from "@/components/calculator"
 import { entryKeyFromKeyboard, formatMoneyEntry, formatPercentEntry } from "@/lib/calculator/entry"
 import type { Recipe } from "@/types/domain"
 import { useCountUp } from "./useCountUp"
@@ -29,10 +29,11 @@ function isTypingTarget(el: EventTarget | null) {
 // de la calculadora en vez de un campo blanco pegado encima.
 const RECIPE_TRIGGER: React.CSSProperties = {
   height: 40,
-  background: "rgba(18, 33, 58, 0.035)",
-  border: "1.5px solid var(--border-light)",
-  borderRadius: 14,
-  color: "var(--text-primary)",
+  background: "#050914",
+  border: "none",
+  boxShadow: "inset 0 2px 5px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.11)",
+  borderRadius: 10,
+  color: "#cdd7f2",
   fontSize: 13,
   padding: "0 12px",
 }
@@ -182,15 +183,14 @@ export default function ValuationCalculator({
         <CalcKeypad onKey={calc.press} onClearAll={calc.clearAll} decimalEnabled={decimalEnabled} />
       </div>
 
-      <button type="button" className="calc-key calc-key-equals" onClick={calc.calculate}>
-        Calcular
-      </button>
+      <CalcActionKey onClick={calc.calculate}>Calcular</CalcActionKey>
 
       {/* Con un resultado y poco ancho, el teclado se guarda para que el
           desglose suba; tocar un dato o este botón lo vuelve a abrir. */}
-      <button
-        type="button"
-        className="calc-key calc-key-fn calc-edit-key"
+      <CalcActionKey
+        variant="fn"
+        slotClassName="calc-edit-slot"
+        className="calc-edit-key"
         onClick={() => {
           calc.activate(active)
           registerRefs.current[active]?.focus({ preventScroll: true })
@@ -198,7 +198,7 @@ export default function ValuationCalculator({
       >
         <PencilLine size={15} aria-hidden />
         Cambiar datos
-      </button>
+      </CalcActionKey>
     </CalcDevice>
   )
 }

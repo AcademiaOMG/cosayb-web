@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Barlow_Condensed, Inter, JetBrains_Mono, Manrope, Cormorant_Garamond } from "next/font/google"
+import { Barlow, Barlow_Condensed, Inter, JetBrains_Mono, Manrope, Cormorant_Garamond } from "next/font/google"
 import SWRProvider from "@/components/SWRProvider"
 import "./globals.css"
 
@@ -7,6 +7,22 @@ const barlowCondensed = Barlow_Condensed({
   weight: ["700", "800"],
   subsets: ["latin"],
   variable: "--font-barlow-condensed",
+  display: "swap",
+})
+
+// Tipografías del kit de calculadora física (números y teclas / etiquetas impresas)
+const calcBarlow = Barlow({
+  weight: ["500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-calc-barlow",
+  display: "swap",
+})
+
+const calcCondensed = Barlow_Condensed({
+  weight: ["600", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-calc-condensed",
   display: "swap",
 })
 
@@ -130,7 +146,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${barlowCondensed.variable} ${inter.variable} ${jetbrainsMono.variable} ${manrope.variable} ${cormorantGaramond.variable}`}
+      className={`${barlowCondensed.variable} ${calcBarlow.variable} ${calcCondensed.variable} ${inter.variable} ${jetbrainsMono.variable} ${manrope.variable} ${cormorantGaramond.variable}`}
     >
       <body>
         <SWRProvider>{children}</SWRProvider>

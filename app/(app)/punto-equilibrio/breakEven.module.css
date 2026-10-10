@@ -7,10 +7,6 @@
   flex-direction: column;
   gap: 8px;
 }
-.rubros :global(.calc-register.is-inline) input {
-  width: 136px;
-  max-width: 55%;
-}
 
 /* En el teléfono 9 filas + teclado no caben en la pantalla: la lista de rubros
    se desplaza por dentro, así el total (arriba) y el teclado (abajo) siguen a la mano.

@@ -1,0 +1,448 @@
+<title>Valoración de costos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;1,700&display=swap" rel="stylesheet">
+<style>
+/* Layout: una sola columna; el aparato es el protagonista, apoyado sobre una mesa clara u oscura.
+   Luz única arriba a la izquierda: todo brillo va arriba/izquierda, toda sombra abajo/derecha. */
+:root{
+  --bg:#e7ebf2; --bg-glow:#f7f9fd; --fg:#141b2d; --muted:#5a6580; --line:rgba(20,27,45,.16);
+  --accent:#2f56e0; --tab-bg:rgba(20,27,45,.07); --tab-on:#ffffff;
+  --ground:rgba(16,24,48,.42); --ground-soft:rgba(16,24,48,.22);
+  /* objeto: igual en ambos temas */
+  --body-hi:#2a3b68; --body-mid:#19254a; --body-lo:#0f1731; --body-edge:#060a19; --body-lip:#0a1230;
+  --print:rgba(208,218,242,.68); --print-hi:#eaeffc; --well:#050914; --ring:#9db6ff;
+  --k-top:#f7f4ed; --k-bot:#dbd6c9; --k-side:#aaa493; --k-side2:#7c7665; --k-ink:#1c2132;
+  --f-top:#c6d0e3; --f-bot:#9eaac4; --f-side:#69758f; --f-side2:#465069; --f-ink:#18203a;
+  --c-top:#5d88f6; --c-bot:#2a50d6; --c-side:#1c389f; --c-side2:#11236c;
+  --lcd-1:#c6d2b1; --lcd-2:#adbb98; --lcd-ink:#1a2314; --lcd-ghost:rgba(26,35,20,.075);
+  --noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/></svg>");
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#0c1017;--bg-glow:#18202e;--fg:#e4e9f4;--muted:#8d98b0;--line:rgba(228,233,244,.18);--ground:rgba(0,0,0,.75);--ground-soft:rgba(0,0,0,.5);--accent:#8fa8ff;--tab-bg:rgba(228,233,244,.08);--tab-on:#252f43;color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#0c1017;--bg-glow:#18202e;--fg:#e4e9f4;--muted:#8d98b0;--line:rgba(228,233,244,.18);--ground:rgba(0,0,0,.75);--ground-soft:rgba(0,0,0,.5);--accent:#8fa8ff;--tab-bg:rgba(228,233,244,.08);--tab-on:#252f43;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;padding-inline:16px;padding-block:28px 56px;background-color:var(--bg);
+  background-image:radial-gradient(70% 520px at 50% 420px,var(--bg-glow),transparent 70%);background-repeat:no-repeat;
+  color:var(--fg);font-family:'Barlow','Helvetica Neue',Arial,sans-serif}
+.col{width:min(100%,380px);margin-inline:auto;display:flex;flex-direction:column;gap:26px}
+.head{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+h1{margin:0;font-weight:700;font-size:28px;letter-spacing:-.01em;line-height:1.1;text-wrap:balance}
+.sub{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.4;max-width:30ch}
+.tgl{display:inline-flex;align-items:center;gap:8px;font:600 13px 'Barlow',sans-serif;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:7px 12px;cursor:pointer}
+.tgl:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.tgl[aria-pressed="true"]{color:var(--fg)}
+.tgl .off{display:none}.tgl[aria-pressed="false"] .on{display:none}.tgl[aria-pressed="false"] .off{display:inline}
+.note{margin:0;color:var(--muted);font-size:13px;line-height:1.5;text-wrap:pretty}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- carcasa ---------- */
+.device{position:relative;border-radius:28px;padding:18px clamp(14px,5vw,20px) 22px;display:flex;flex-direction:column;gap:14px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,0) 13%),
+    radial-gradient(110% 50% at 0% 0%,rgba(130,160,240,.24),transparent 60%),
+    var(--noise),
+    linear-gradient(165deg,var(--body-hi),var(--body-mid) 46%,var(--body-lo));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 0 0 1px rgba(255,255,255,.05),
+    inset 0 -3px 6px rgba(0,0,0,.5),
+    0 0 0 1px var(--body-edge),
+    0 5px 0 var(--body-lip),
+    0 6px 0 var(--body-edge),
+    0 24px 24px -8px var(--ground),
+    0 44px 60px -22px var(--ground-soft)}
+.device::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(113deg,rgba(255,255,255,.09) 0,rgba(255,255,255,.02) 32%,rgba(255,255,255,0) 33%)}
+.print{font:700 10.5px/1.15 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.15em;text-transform:uppercase;color:var(--print);text-shadow:0 -1px 0 rgba(0,0,0,.55)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{display:flex;flex-direction:column;gap:3px}
+.brand b{font:italic 700 25px/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.17em;color:var(--print-hi);text-shadow:0 -1px 0 rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.12)}
+.solar{width:118px;height:24px;border-radius:5px;position:relative;flex:none;
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.2),rgba(255,255,255,0) 40%),
+    repeating-linear-gradient(90deg,transparent 0 28px,rgba(210,190,255,.16) 28px 29px),
+    linear-gradient(180deg,#2d2840,#14101f 58%,#201c32);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.9),0 0 0 2px #070b18,0 1px 0 2px rgba(255,255,255,.14)}
+
+/* ---------- pantalla ---------- */
+.bezel{border-radius:15px;padding:9px;background:linear-gradient(180deg,#04070e,#0b1020);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.95),0 1px 0 rgba(255,255,255,.15),0 -1px 0 rgba(0,0,0,.6)}
+.glass{position:relative;border-radius:7px;padding:9px 12px 8px;overflow:hidden;color:var(--lcd-ink);
+  background:linear-gradient(180deg,var(--lcd-1),var(--lcd-2));
+  box-shadow:inset 0 8px 10px -3px rgba(16,22,10,.6),inset 6px 0 8px -4px rgba(16,22,10,.38),inset 0 -1px 0 rgba(255,255,255,.28)}
+.glass::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(112deg,rgba(255,255,255,.3) 0,rgba(255,255,255,.07) 34%,rgba(255,255,255,0) 35%)}
+.ann{display:flex;justify-content:space-between;gap:8px;min-height:14px;font:700 10.5px/1.2 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.13em;text-transform:uppercase;opacity:.88}
+.mainrow{display:flex;align-items:center;gap:6px;min-height:58px;padding:2px 0 5px}
+.unit{flex:none;font:700 26px/1 'Barlow Condensed','Arial Narrow',sans-serif;width:20px}
+#main{flex:0 1 250px;min-width:0;margin-left:auto}
+.seg{display:block;width:100%;height:auto;filter:drop-shadow(1.3px 1.9px 0 rgba(26,35,20,.2))}
+.seg .s{fill:var(--lcd-ghost)}.seg .s.on{fill:var(--lcd-ink)}
+.dim .s.on{fill-opacity:.4}
+.flash{animation:flash .22s steps(3,end)}
+@keyframes flash{0%{opacity:0}60%{opacity:0}100%{opacity:1}}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:2px}
+.fld{appearance:none;font:inherit;color:inherit;text-align:left;cursor:pointer;min-width:0;display:flex;flex-direction:column;gap:6px;
+  padding:7px 8px 8px;border-radius:7px;border:1.5px solid rgba(26,35,20,.26);background:rgba(26,35,20,.035)}
+.fld.on{border-color:var(--lcd-ink);background:rgba(26,35,20,.11);box-shadow:inset 0 0 0 1px var(--lcd-ink)}
+.fld:focus-visible{outline:2px solid var(--lcd-ink);outline-offset:2px}
+.fl{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.lb{min-width:0;font:700 11px/1.1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.1em;text-transform:uppercase}
+.pen{flex:none;width:12px;height:12px;opacity:.55}
+.fld.on .pen{display:none}
+.fv{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.u{flex:none;font:700 15px/1 'Barlow Condensed','Arial Narrow',sans-serif;text-align:center}
+.sv{flex:0 1 112px;min-width:0}
+.cur{display:none;flex:none;width:2px;height:22px;margin-left:1px;background:var(--lcd-ink);animation:blink 1.05s steps(1) infinite}
+.fld.on .cur{display:block}
+@keyframes blink{50%{opacity:0}}
+.fld.shake{animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}50%{transform:translateX(4px)}80%{transform:translateX(-2px)}}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--tab-bg)}
+.tabs button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 13px/1.2 'Barlow','Helvetica Neue',Arial,sans-serif;padding:9px 6px;border-radius:10px;cursor:pointer;text-wrap:balance}
+.tabs button[aria-selected="true"]{background:var(--tab-on);color:var(--fg);box-shadow:0 1px 3px var(--ground-soft)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ---------- teclas ---------- */
+.slot{border-radius:13px;background:var(--well);padding:2px 2px 7px;overflow:hidden;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.95),0 1px 0 rgba(255,255,255,.11)}
+.slot:has(.key:focus-visible){box-shadow:inset 0 2px 4px rgba(0,0,0,.95),0 0 0 2px var(--ring)}
+.key{--top:var(--k-top);--bot:var(--k-bot);--side:var(--k-side);--side2:var(--k-side2);--ink:var(--k-ink);
+  appearance:none;border:0;display:flex;align-items:center;justify-content:center;width:100%;height:46px;border-radius:11px;position:relative;cursor:pointer;
+  font:600 22px/1 'Barlow','Helvetica Neue',Arial,sans-serif;color:var(--ink);
+  background:radial-gradient(90% 70% at 50% 16%,rgba(255,255,255,.55),rgba(255,255,255,0) 70%),linear-gradient(180deg,var(--top),var(--bot));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -3px 4px rgba(0,0,0,.14),inset 1px 0 0 rgba(255,255,255,.3),inset -1px 0 0 rgba(0,0,0,.1),inset 0 0 0 1px rgba(0,0,0,.12),0 3px 0 var(--side),0 5px 0 var(--side2);
+  transition:transform .05s ease-out,box-shadow .05s ease-out,filter .05s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none;outline:none}
+.key:disabled{cursor:not-allowed;filter:saturate(.25) brightness(.62)}
+.key:not(:disabled).down,.key:not(:disabled):active,.key[aria-pressed="true"]{transform:translateY(3px);filter:brightness(.96);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.4),inset 0 0 0 1px rgba(0,0,0,.14),0 0 0 var(--side),0 2px 0 var(--side2)}
+.key.fn{--top:var(--f-top);--bot:var(--f-bot);--side:var(--f-side);--side2:var(--f-side2);--ink:var(--f-ink);font-size:16px;font-weight:700;letter-spacing:.01em}
+.key.calc{--top:var(--c-top);--bot:var(--c-bot);--side:var(--c-side);--side2:var(--c-side2);--ink:#fff;height:50px;font-size:22px;font-weight:700;letter-spacing:.02em;text-shadow:0 -1px 0 rgba(0,0,0,.35)}
+.key.mode{height:34px;font:700 13.5px/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.07em;text-transform:uppercase;padding-right:6px}
+.key.mode .led{position:absolute;top:6px;right:7px;width:6px;height:6px;border-radius:50%;background:#44506a;box-shadow:inset 0 1px 1px rgba(0,0,0,.5)}
+.key.mode[aria-pressed="true"] .led{background:#7bffa8;box-shadow:0 0 6px 1px rgba(123,255,168,.85)}
+.key.mini{height:34px;font-size:22px}
+.key svg{width:22px;height:22px}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 10px}
+.s2{grid-column:span 2}.s4{grid-column:span 4}
+.cap{display:flex;flex-direction:column;gap:6px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.row{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.sel{position:relative;border-radius:10px;background:var(--well);box-shadow:inset 0 2px 5px rgba(0,0,0,.95),0 1px 0 rgba(255,255,255,.11)}
+.sel:has(select:focus-visible){box-shadow:inset 0 2px 5px rgba(0,0,0,.95),0 0 0 2px var(--ring)}
+.sel select{appearance:none;-webkit-appearance:none;width:100%;height:40px;border:0;background:transparent;color:#cdd7f2;font:500 15px 'Barlow',sans-serif;padding:0 34px 0 14px;border-radius:10px;outline:none;cursor:pointer;text-overflow:ellipsis}
+.sel select:disabled{opacity:.42;cursor:not-allowed}
+.sel select option{background:#1b2440;color:#e6ecff}
+.sel::after{content:"";position:absolute;right:14px;top:50%;width:7px;height:7px;margin-top:-6px;border-right:2px solid #8e9bc0;border-bottom:2px solid #8e9bc0;transform:rotate(45deg);pointer-events:none}
+.marg{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center}
+.mini-lcd{position:relative;width:84px;border-radius:7px;padding:6px 9px;display:flex;align-items:center;justify-content:flex-end;gap:5px;color:var(--lcd-ink);
+  background:linear-gradient(180deg,var(--lcd-1),var(--lcd-2));
+  box-shadow:inset 0 5px 7px -3px rgba(16,22,10,.6),inset 4px 0 6px -3px rgba(16,22,10,.35),0 0 0 3px var(--well),0 1px 0 3px rgba(255,255,255,.12)}
+.mini-lcd .sv{flex:0 0 46px}
+.mini-lcd .u{width:auto;font-size:14px}
+.marg .slot{width:48px}
+@media (prefers-reduced-motion:reduce){.key{transition:none}.flash{animation:none}.cur{animation:none}.fld.shake{animation:none}}
+</style>
+
+<main class="col">
+  <!-- DOMINIO: título y subtítulo de la página -->
+  <header class="head">
+    <div>
+      <h1>Valoración de costos</h1>
+      <p class="sub">Calcula a cuánto vender cada plato según lo que cuestan sus ingredientes.</p>
+    </div>
+    <button type="button" id="snd" class="tgl" aria-pressed="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="on" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="off" d="m16 9 5 6m0-6-5 6"/></svg>
+      <span class="on">Sonido activado</span><span class="off">Sonido apagado</span>
+    </button>
+  </header>
+
+  <!-- DOMINIO: una pestaña por modo (data-mode debe coincidir con las claves de M) -->
+  <div class="tabs" role="tablist" aria-label="Qué quieres calcular">
+    <button type="button" role="tab" id="t-mp" data-mode="mp" aria-selected="false">Precio de materia prima</button>
+    <button type="button" role="tab" id="t-pct" data-mode="pct" aria-selected="false">% de materia prima</button>
+    <button type="button" role="tab" id="t-pv" data-mode="pv" aria-selected="true">Precio de venta</button>
+  </div>
+
+  <section class="device" id="device" aria-label="Calculadora de costeo">
+    <div class="top">
+      <div class="brand"><b>COSTEO</b><span class="print">CP-3 · Costo de platos</span></div>
+      <div class="solar" aria-hidden="true"></div>
+    </div>
+
+    <div class="bezel">
+      <div class="glass">
+        <div class="ann"><span id="annT"></span></div>
+        <div class="mainrow"><span class="unit" id="unit">$</span><div id="main"></div></div>
+        <div class="fields">
+          <button type="button" class="fld" id="line0" data-line="0" aria-pressed="true"><span class="fl"><span class="lb"></span><svg class="pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></span><span class="fv"><span class="u"></span><span class="sv"></span><i class="cur" aria-hidden="true"></i></span></button>
+          <button type="button" class="fld" id="line1" data-line="1" aria-pressed="false"><span class="fl"><span class="lb"></span><svg class="pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></span><span class="fv"><span class="u"></span><span class="sv"></span><i class="cur" aria-hidden="true"></i></span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOMINIO (opcional): selector auxiliar; quitar la fila si el cálculo no lo necesita -->
+    <div class="row">
+      <label class="print" for="receta">Receta</label>
+      <div class="sel">
+        <select id="receta" aria-label="Cargar precio desde una receta de ejemplo">
+          <option value="">Cargar precio desde una receta</option>
+          <optgroup label="Recetas de ejemplo">
+            <option value="0">Bandeja paisa · $14.200</option>
+            <option value="1">Ceviche de camarón · $18.500</option>
+            <option value="2">Arroz con pollo · $9.800</option>
+            <option value="3">Hamburguesa de la casa · $11.300</option>
+            <option value="4">Sancocho de gallina · $12.600</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+
+    <div class="marg">
+      <span class="print">Margen de<br>seguridad</span>
+      <div class="mini-lcd" aria-hidden="true"><span class="sv" id="mg"></span><span class="u">%</span></div>
+      <div class="slot"><button type="button" class="key fn mini" id="m-less" data-key="m-" aria-label="Bajar margen de seguridad">−</button></div>
+      <div class="slot"><button type="button" class="key fn mini" id="m-more" data-key="m+" aria-label="Subir margen de seguridad">+</button></div>
+    </div>
+
+    <div class="pad" id="pad"></div>
+  </section>
+
+  <p class="note">El margen de seguridad suma ese porcentaje al costo para cubrir mermas y alzas de precio. Se cargaron valores de ejemplo; Limpiar los borra. También responde al teclado: números, coma, Retroceso, Enter y las flechas ↑ ↓ para cambiar de campo.</p>
+</main>
+<p class="sr" id="sr" aria-live="polite"></p>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+
+  /* ===== DOMINIO: recetas de ejemplo, campos (F), modos (M) y estado inicial (S). Es lo que cambia entre calculadoras. ===== */
+  var RECETAS=[['Bandeja paisa',14200],['Ceviche de camarón',18500],['Arroz con pollo',9800],['Hamburguesa de la casa',11300],['Sancocho de gallina',12600]];
+  var F={costo:{lb:'Precio MP',u:'$',dec:false,max:7,name:'el precio de materia prima'},
+         pct:{lb:'% MP',u:'%',dec:true,max:6,name:'el % de materia prima'},
+         pvp:{lb:'P. venta',u:'$',dec:false,max:7,name:'el precio de venta'}};
+  var M={pv:{out:'pvp',inp:['costo','pct'],t:'Precio de venta'},
+         pct:{out:'pct',inp:['costo','pvp'],t:'% de materia prima'},
+         mp:{out:'costo',inp:['pvp','pct'],t:'Precio de materia prima'}};
+  var S={mode:'pv',line:0,margin:3,vals:{costo:'12400',pct:'32',pvp:''},result:null,resultNum:0,resultText:'',note:''};
+
+  /* ---------- 7 segmentos ---------- */
+  function hs(cy){return '3,'+cy+' 6,'+(cy-3)+' 22,'+(cy-3)+' 25,'+cy+' 22,'+(cy+3)+' 6,'+(cy+3)}
+  function vs(cx,y1,y2){return cx+','+y1+' '+(cx+3)+','+(y1+3)+' '+(cx+3)+','+(y2-3)+' '+cx+','+y2+' '+(cx-3)+','+(y2-3)+' '+(cx-3)+','+(y1+3)}
+  var P={a:hs(3.5),g:hs(24),d:hs(44.5),f:vs(2.5,5.5,22.5),b:vs(25.5,5.5,22.5),e:vs(2.5,25.5,42.5),c:vs(25.5,25.5,42.5)};
+  var ORDER=['a','b','c','d','e','f','g'];
+  var MAP={'0':'abcdef','1':'bc','2':'abdeg','3':'abcdg','4':'bcfg','5':'acdfg','6':'acdefg','7':'abc','8':'abcdefg','9':'abcdfg','-':'g','E':'adefg','r':'eg','o':'cdeg',' ':''};
+  function cell(i,ch,dp){
+    var on=ch==null?'':(MAP[ch]||''),o='<g transform="translate('+(3+i*34)+' 0)">';
+    ORDER.forEach(function(s){o+='<polygon class="s'+(on.indexOf(s)>-1?' on':'')+'" points="'+P[s]+'"/>'});
+    o+='<circle class="s'+(dp?' on':'')+'" cx="31.5" cy="45" r="2.3"/>';
+    if(dp===',')o+='<polygon class="s on" points="29.8,46 33.2,46 31,51.5"/>';
+    return o+'</g>';
+  }
+  function seg(text,cells,dim){
+    var cs=[];
+    for(var i=0;i<text.length;i++){
+      var ch=text.charAt(i);
+      if((ch==='.'||ch===',')&&cs.length)cs[cs.length-1].dp=ch;else cs.push({ch:ch,dp:null});
+    }
+    if(cs.length>cells){cs=[];'Error'.split('').forEach(function(c){cs.push({ch:c,dp:null})})}
+    while(cs.length<cells)cs.unshift({ch:null,dp:null});
+    var W=cells*34+10,o='<svg class="seg'+(dim?' dim':'')+'" viewBox="0 0 '+W+' 54" aria-hidden="true"><g transform="translate(7 0) skewX(-7)">';
+    cs.forEach(function(c,i){o+=cell(i,c.ch,c.dp)});
+    return o+'</g></svg>';
+  }
+
+  /* ---------- formato ---------- */
+  function money(n){return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,'.')}
+  function pctTxt(n){return (Math.round(n*100)/100).toString().replace('.',',')}
+  function num(s){return s?(parseFloat(s.replace(',','.'))||0):0}
+  function disp(k,v){
+    if(!v)return '0';
+    return F[k].dec?v:money(parseInt(v,10));
+  }
+  function parsed(){return {costo:num(S.vals.costo),pct:num(S.vals.pct),pvp:num(S.vals.pvp)}}
+  function problem(){
+    var p=parsed(),inp=M[S.mode].inp;
+    for(var i=0;i<inp.length;i++){if(!(p[inp[i]]>0))return 'Falta '+F[inp[i]].name}
+    return null;
+  }
+
+  /* ===== DOMINIO: fórmulas por modo y texto del resumen accesible. Lo demás de calc() es genérico. ===== */
+  function calc(){
+    if(problem()){
+      var inp=M[S.mode].inp,p0=parsed();
+      var miss=0;
+      for(var i=0;i<inp.length;i++){if(!(p0[inp[i]]>0)){miss=i;break}}
+      S.line=miss;render();
+      var f=$('#line'+miss);f.classList.remove('shake');void f.offsetWidth;f.classList.add('shake');
+      $('#sr').textContent='Falta '+F[inp[miss]].name;
+      return;
+    }
+    var p=parsed(),m=1+S.margin/100,r,txt,note,mg=S.margin?' + '+S.margin+' % de margen':'';
+    if(S.mode==='pv'){r=p.costo*m/(p.pct/100);note=money(p.costo)+mg+', entre '+pctTxt(p.pct)+' % de materia prima'}
+    else if(S.mode==='pct'){r=p.costo*m/p.pvp*100;note=money(p.costo)+mg+', entre '+money(p.pvp)+' de venta'}
+    else{r=p.pvp*(p.pct/100)/m;note=money(p.pvp)+' × '+pctTxt(p.pct)+' %'+(S.margin?', descontando el margen de '+S.margin+' %':'')}
+    if(M[S.mode].out==='pct'){txt=r.toFixed(1).replace('.',',');S.resultNum=Math.round(r*10)/10}
+    else{r=Math.round(r);txt=money(r);S.resultNum=r}
+    S.result=true;S.resultText=txt;S.note=note;
+    var el=$('#main');el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');
+    $('#sr').textContent=M[S.mode].t+': '+(M[S.mode].out==='pct'?txt+' %':'$ '+txt);
+    render();
+  }
+
+  /* ---------- entrada ---------- */
+  function edited(){S.result=null;render()}
+  function typeChar(ch){
+    var k=M[S.mode].inp[S.line],f=F[k],v=S.vals[k],nv;
+    if(f.dec){
+      if(ch==='000')return;
+      nv=(v==='0'&&ch!==','?'':v)+ch;
+      if(ch===','&&!v)nv='0,';
+      if(!/^\d{1,3}(,\d{0,2})?$/.test(nv)||num(nv)>100)return;
+    }else{
+      if(ch===',')return;
+      if(ch==='000'&&!v)return;
+      nv=(v==='0'?'':v)+ch;
+      if(nv.length>f.max)return;
+    }
+    S.vals[k]=nv;edited();
+  }
+  function setMode(m){
+    if(m===S.mode)return;
+    if(S.result){
+      var o=M[S.mode].out;
+      S.vals[o]=o==='pct'?S.resultNum.toFixed(1).replace('.',',').replace(/,0$/,''):String(S.resultNum);
+    }
+    S.mode=m;S.line=0;S.result=null;render();
+  }
+  function press(k){
+    if(/^\d$/.test(k)||k===','||k==='000')typeChar(k);
+    else if(k==='back'){var key=M[S.mode].inp[S.line];S.vals[key]=S.vals[key].slice(0,-1);edited()}
+    else if(k==='clear'){S.vals={costo:'',pct:'',pvp:''};S.line=0;$('#receta').value='';edited()}
+    else if(k==='calc')calc();
+    else if(k==='m-'){S.margin=Math.max(0,S.margin-1);edited()}
+    else if(k==='m+'){S.margin=Math.min(20,S.margin+1);edited()}
+    else if(k.indexOf('mode:')===0)setMode(k.slice(5));
+  }
+
+  /* ---------- pintar ---------- */
+  function render(){
+    var mode=M[S.mode];
+    $('#annT').textContent=mode.t;
+    $('#unit').textContent=mode.out==='pct'?'%':'$';
+    $('#main').innerHTML=S.result?seg(S.resultText,8,false):seg('0',8,true);
+    mode.inp.forEach(function(k,i){
+      var el=$('#line'+i),v=S.vals[k];
+      el.classList.toggle('on',S.line===i);
+      el.setAttribute('aria-pressed',S.line===i?'true':'false');
+      el.querySelector('.lb').textContent=F[k].lb;
+      el.querySelector('.u').textContent=F[k].u;
+      el.querySelector('.sv').innerHTML=seg(disp(k,v),7,!v);
+    });
+    ['mp','pct','pv'].forEach(function(m){var t=$('#t-'+m),on=m===S.mode;t.setAttribute('aria-selected',on?'true':'false');t.tabIndex=on?0:-1});
+    $('#mg').innerHTML=seg(String(S.margin),3,false);
+    $('#m-less').disabled=S.margin<=0;$('#m-more').disabled=S.margin>=20;
+    var f=F[mode.inp[S.line]];
+    var c=$('#k-comma'),t=$('#k-000');
+    if(c)c.disabled=!f.dec;
+    if(t)t.disabled=f.dec;
+    $('#receta').disabled=mode.inp.indexOf('costo')<0;
+  }
+
+  /* ---------- teclado físico (generado) ---------- */
+  var PAD=[['7'],['8'],['9'],['back','fn'],['4'],['5'],['6'],['clear','fn'],['1'],['2'],['3'],[',','fn'],['0','',2],['000','',2],['calc','calc',4]];
+  var BACK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 5H9l-6 7 6 7h11a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"/><path d="m16 9-5 6m0-6 5 6"/></svg>';
+  var IDS={',':'comma','back':'back','clear':'clear','calc':'calc'};
+  var pad=$('#pad');
+  PAD.forEach(function(d){
+    var k=d[0],t=d[1],span=d[2],slot=document.createElement('div'),b=document.createElement('button');
+    slot.className='slot'+(span?' s'+span:'');
+    b.type='button';b.className='key'+(t?' '+t:'');b.dataset.key=k;b.id='k-'+(IDS[k]||k);
+    if(k==='back'){b.innerHTML=BACK;b.setAttribute('aria-label','Borrar último dígito')}
+    else if(k==='clear')b.textContent='Limpiar';
+    else if(k==='calc')b.textContent='Calcular';
+    else b.textContent=k;
+    slot.appendChild(b);pad.appendChild(slot);
+  });
+
+  /* ---------- sonido sintetizado ---------- */
+  var ac=null,soundOn=true;
+  function tick(kind){
+    if(!soundOn)return;
+    try{
+      if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();
+      if(ac.state==='suspended')ac.resume();
+      var t=ac.currentTime,down=kind==='down',len=Math.floor(ac.sampleRate*0.03),buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);
+      for(var i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);
+      var src=ac.createBufferSource(),fl=ac.createBiquadFilter(),g=ac.createGain();
+      src.buffer=buf;fl.type='bandpass';fl.frequency.value=down?2300:3700;fl.Q.value=1.2;g.gain.value=down?0.5:0.2;
+      src.connect(fl);fl.connect(g);g.connect(ac.destination);src.start(t);
+      if(down){
+        var o=ac.createOscillator(),og=ac.createGain();
+        o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(70,t+0.05);
+        og.gain.setValueAtTime(0.22,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+        o.connect(og);og.connect(ac.destination);o.start(t);o.stop(t+0.07);
+      }
+    }catch(e){}
+  }
+
+  /* ---------- eventos ---------- */
+  var dev=$('#device');
+  dev.addEventListener('mousedown',function(e){if(e.target.closest('.key'))e.preventDefault()});
+  dev.addEventListener('pointerdown',function(e){var b=e.target.closest('.key');if(b&&!b.disabled)tick('down')});
+  dev.addEventListener('pointerup',function(e){var b=e.target.closest('.key');if(b&&!b.disabled)tick('up')});
+  dev.addEventListener('click',function(e){
+    var b=e.target.closest('.key');
+    if(b){if(!b.disabled)press(b.dataset.key);return}
+    var l=e.target.closest('.fld');
+    if(l){S.line=parseInt(l.dataset.line,10);render()}
+  });
+  var tabs=document.querySelectorAll('.tabs [role="tab"]');
+  Array.prototype.forEach.call(tabs,function(t,i){
+    t.addEventListener('pointerdown',function(){tick('down')});
+    t.addEventListener('click',function(){setMode(t.dataset.mode)});
+    t.addEventListener('keydown',function(e){
+      var d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;
+      if(!d)return;
+      e.preventDefault();e.stopPropagation();
+      var n=tabs[(i+d+tabs.length)%tabs.length];n.focus();setMode(n.dataset.mode);
+    });
+  });
+  $('#receta').addEventListener('change',function(e){
+    var i=e.target.value;
+    if(i==='')return;
+    S.vals.costo=String(RECETAS[parseInt(i,10)][1]);edited();
+  });
+  $('#snd').addEventListener('click',function(e){
+    soundOn=!soundOn;e.currentTarget.setAttribute('aria-pressed',soundOn?'true':'false');
+    if(soundOn)tick('down');
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.ctrlKey||e.metaKey||e.altKey)return;
+    if(e.target.closest&&e.target.closest('select'))return;
+    var k=null;
+    if(/^[0-9]$/.test(e.key))k=e.key;
+    else if(e.key===','||e.key==='.')k=',';
+    else if(e.key==='Backspace')k='back';
+    else if(e.key==='Delete'||e.key==='Escape')k='clear';
+    else if(e.key==='Enter'&&!(e.target instanceof HTMLButtonElement))k='calc';
+    else if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();S.line=1-S.line;render();return}
+    if(!k)return;
+    e.preventDefault();
+    var b=document.querySelector('.key[data-key="'+k+'"]');
+    if(!b||b.disabled||(e.repeat&&k!=='back'))return;
+    b.classList.add('down');tick('down');press(k);
+  });
+  document.addEventListener('keyup',function(){
+    var ds=document.querySelectorAll('.key.down');
+    for(var i=0;i<ds.length;i++){ds[i].classList.remove('down');tick('up')}
+  });
+
+  render();
+  calc();
+})();
+</script>
