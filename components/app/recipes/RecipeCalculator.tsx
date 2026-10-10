@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown,
 import Button from "@/components/ui/Button"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import {
+  CalcActionKey,
   CalcBreakdown,
   CalcDevice,
   CalcDisplay,
@@ -810,16 +811,17 @@ export default function RecipeCalculator({
                   Ingrediente
                 </button>
                 <button type="button" aria-pressed={pickKind === "recipe"} onClick={() => changeKind("recipe")}>
-                  Receta base
+                  Preparación base
                 </button>
               </div>
               <SearchableSelect
                 options={pickOptions}
                 value={pickId}
                 onChange={choose}
-                placeholder={pickKind === "ingredient" ? "Buscar ingrediente…" : "Buscar receta base…"}
-                emptyMessage={pickKind === "ingredient" ? "No hay ingredientes" : "Aún no hay recetas base"}
-                ariaLabel={pickKind === "ingredient" ? "Ingrediente" : "Receta base"}
+                placeholder={pickKind === "ingredient" ? "Buscar ingrediente…" : "Buscar preparación base…"}
+                emptyMessage={pickKind === "ingredient" ? "No hay ingredientes" : "Aún no hay preparaciones base"}
+                ariaLabel={pickKind === "ingredient" ? "Ingrediente" : "Preparación base"}
+                variant="calculator"
               />
             </div>
 
@@ -842,12 +844,12 @@ export default function RecipeCalculator({
                   )
                 }
               />
-              <button type="button" className="calc-key calc-key-fn rt-add" onMouseDown={(e) => e.preventDefault()} onClick={addLine}>
+              <CalcActionKey variant="fn" slotClassName="rt-add-slot" className="rt-add" onMouseDown={(e) => e.preventDefault()} onClick={addLine}>
                 <span className="inline-flex items-center gap-1.5">
                   <Plus size={16} /> Agregar
                 </span>
                 <small>a la lista</small>
-              </button>
+              </CalcActionKey>
             </div>
 
             {keypad}

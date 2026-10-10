@@ -130,7 +130,7 @@ export default function CalculatorFlow({
             <div className="calc-printer" aria-hidden>
               <div className="calc-printer-slot" />
               <div className="calc-receipt-placeholder">
-                El desglose se imprime aquí cuando pulses Calcular
+                El desglose aparecerá aquí cuando pulses Calcular
               </div>
             </div>
           )}

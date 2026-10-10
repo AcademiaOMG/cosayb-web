@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { entryKeyFromKeyboard, type EntryKey, type EntryOptions } from "@/lib/calculator/entry"
+import CalcActionKey from "./CalcActionKey"
 import CalcDevice from "./CalcDevice"
 import CalcDisplay, { type CalcDisplayTone } from "./CalcDisplay"
 import CalcKeypad from "./CalcKeypad"
@@ -78,9 +79,9 @@ export default function CalcPanel<F extends string>({
   children?: React.ReactNode
   /** Contenido bajo el botón Calcular (ej. "Usar en el formulario") */
   footer?: React.ReactNode
-  /** Encabezado del aparato (ej. "Punto de equilibrio") */
+  /** Línea impresa bajo la marca del aparato (ej. "Punto de equilibrio") */
   title?: string
-  /** Pista corta a la derecha del encabezado (ej. "Escribe y pulsa Calcular") */
+  /** Piel verde: pista corta a la derecha del encabezado (ej. "Escribe y pulsa Calcular") */
   hint?: string
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -146,14 +147,7 @@ export default function CalcPanel<F extends string>({
 
   return (
     <div ref={wrapRef}>
-      <CalcDevice label={label}>
-        {title && (
-          <div className="calc-head" aria-hidden>
-            <span className="calc-head-led" />
-            <span className="calc-head-title">{title}</span>
-            {hint && <span className="calc-head-hint">{hint}</span>}
-          </div>
-        )}
+      <CalcDevice label={label} model={title} hint={title ? (hint ?? "") : undefined}>
         <CalcDisplay
           label={display.label}
           value={display.value}
@@ -172,9 +166,7 @@ export default function CalcPanel<F extends string>({
           <CalcKeypad onKey={onKey} onClearAll={onClearAll} decimalEnabled={entry[active].decimals} />
         </div>
 
-        <button type="button" className="calc-key calc-key-equals" onClick={onCalculate}>
-          Calcular
-        </button>
+        <CalcActionKey onClick={onCalculate}>Calcular</CalcActionKey>
         {footer}
       </CalcDevice>
     </div>

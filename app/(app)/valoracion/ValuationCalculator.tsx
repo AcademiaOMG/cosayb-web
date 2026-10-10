@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { PencilLine } from "lucide-react"
 import SearchableSelect from "@/components/ui/SearchableSelect"
-import { CalcDevice, CalcDisplay, CalcKeypad, CalcRegister } from "@/components/calculator"
+import { CalcActionKey, CalcDevice, CalcDisplay, CalcKeypad, CalcRegister } from "@/components/calculator"
 import { entryKeyFromKeyboard, formatMoneyEntry, formatPercentEntry } from "@/lib/calculator/entry"
 import type { Recipe } from "@/types/domain"
 import { useCountUp } from "./useCountUp"
@@ -23,18 +23,6 @@ function formatResult(mode: CalculatorMode, n: number) {
 function isTypingTarget(el: EventTarget | null) {
   if (!(el instanceof HTMLElement)) return false
   return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)
-}
-
-// El selector de recetas vive dentro del aparato: se viste como una pieza más
-// de la calculadora en vez de un campo blanco pegado encima.
-const RECIPE_TRIGGER: React.CSSProperties = {
-  height: 44,
-  background: "#34373D",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  borderRadius: 12,
-  color: "#E4E7EB",
-  fontSize: 13,
-  padding: "0 12px",
 }
 
 /**
@@ -172,7 +160,7 @@ export default function ValuationCalculator({
           searchPlaceholder="Buscar receta"
           emptyMessage="No se encontraron recetas"
           ariaLabel="Cargar el precio de materia prima desde una receta"
-          triggerStyle={RECIPE_TRIGGER}
+          variant="calculator"
         />
       )}
 
@@ -182,15 +170,14 @@ export default function ValuationCalculator({
         <CalcKeypad onKey={calc.press} onClearAll={calc.clearAll} decimalEnabled={decimalEnabled} />
       </div>
 
-      <button type="button" className="calc-key calc-key-equals" onClick={calc.calculate}>
-        Calcular
-      </button>
+      <CalcActionKey onClick={calc.calculate}>Calcular</CalcActionKey>
 
       {/* Con un resultado y poco ancho, el teclado se guarda para que el
           desglose suba; tocar un dato o este botón lo vuelve a abrir. */}
-      <button
-        type="button"
-        className="calc-key calc-key-fn calc-edit-key"
+      <CalcActionKey
+        variant="fn"
+        slotClassName="calc-edit-slot"
+        className="calc-edit-key"
         onClick={() => {
           calc.activate(active)
           registerRefs.current[active]?.focus({ preventScroll: true })
@@ -198,7 +185,7 @@ export default function ValuationCalculator({
       >
         <PencilLine size={15} aria-hidden />
         Cambiar datos
-      </button>
+      </CalcActionKey>
     </CalcDevice>
   )
 }

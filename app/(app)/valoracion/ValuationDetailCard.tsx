@@ -4,7 +4,9 @@ import { useEffect, useState } from "react"
 import "./calculator.css"
 import { CheckCircle2, AlertTriangle, AlertCircle } from "lucide-react"
 import type { ValuationIndicator } from "@/types/domain"
-import { IND, fmt, fmtPct, moneyFromPct, type PricingResult } from "./lib"
+import IndicatorPill from "@/components/ui/IndicatorPill"
+import { IND } from "@/lib/indicator"
+import { fmt, fmtPct, moneyFromPct, type PricingResult } from "./lib"
 
 const INDICATOR_ICON: Record<ValuationIndicator, typeof CheckCircle2> = {
   "MUY BUENO": CheckCircle2,
@@ -60,7 +62,7 @@ function DonutChart({ mp, fixed, taxes, others, profit, indicator }: {
   return (
     <div className="relative shrink-0" style={{ width: 118, height: 118 }}>
       <svg viewBox="0 0 36 36" width={118} height={118}>
-        <circle cx="18" cy="18" r={r} fill="none" stroke="#E4DFD2" strokeWidth={sw} />
+        <circle cx="18" cy="18" r={r} fill="none" stroke="#E2E5EA" strokeWidth={sw} />
         <circle cx="18" cy="18" r={r} fill="none" stroke={SEGMENT_COLOR.mp} strokeWidth={sw} strokeLinecap="round"
           strokeDasharray={`${arc(mpV)} ${circ}`} strokeDashoffset={offMP}
           style={{ transition: "stroke-dasharray .6s cubic-bezier(0.22,1,0.36,1), stroke-dashoffset .6s cubic-bezier(0.22,1,0.36,1)" }} />
@@ -76,9 +78,9 @@ function DonutChart({ mp, fixed, taxes, others, profit, indicator }: {
         <circle cx="18" cy="18" r={r} fill="none" stroke={SEGMENT_COLOR.profit} strokeWidth={sw} strokeLinecap="round"
           strokeDasharray={`${arc(profitV)} ${circ}`} strokeDashoffset={offProfit}
           style={{ transition: "stroke-dasharray .6s cubic-bezier(0.22,1,0.36,1) .2s, stroke-dashoffset .6s cubic-bezier(0.22,1,0.36,1) .2s" }} />
-        <text x="18" y="16.5" textAnchor="middle" fontFamily="var(--font-jetbrains-mono), monospace"
-          fill="#6B6555" fontSize="3" fontWeight="600">GANANCIA</text>
-        <text x="18" y="22.8" textAnchor="middle" fontFamily="var(--font-barlow-condensed), var(--font-jetbrains-mono), monospace"
+        <text x="18" y="16.5" textAnchor="middle" fontFamily="var(--font-body), system-ui, sans-serif"
+          fill="#8890A0" fontSize="3" fontWeight="600">GANANCIA</text>
+        <text x="18" y="22.8" textAnchor="middle" fontFamily="var(--font-display), system-ui, sans-serif"
           fill={cfg.color} fontSize="7.5" fontWeight="700">
           {profit.toFixed(0)}%
         </text>
@@ -145,11 +147,12 @@ export default function ValuationDetailCard({
               indicator={result.indicator}
             />
             <div className="flex flex-col items-start gap-2">
-              <span className="calc-indicator-pill" style={{ background: cfg.bg, color: cfg.text }}>
-                <IndicatorIcon size={13} style={{ color: cfg.color }} />
-                {result.indicator}
-              </span>
-              <span className="text-[11px]" style={{ color: "#8B8577" }}>{cfg.sublabel}</span>
+              <IndicatorPill
+                indicator={result.indicator}
+                icon={<IndicatorIcon size={13} style={{ color: cfg.color }} />}
+                className="calc-indicator-pill"
+              />
+              <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{cfg.sublabel}</span>
             </div>
           </div>
 
@@ -182,7 +185,7 @@ export default function ValuationDetailCard({
             )
           })()}
 
-          <p className="text-center mt-3" style={{ fontSize: 10.5, color: "#8B8577" }}>
+          <p className="text-center mt-3" style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
             Costo con margen de seguridad ({fmtPct(margin)}): {fmt(cost * (1 + margin / 100))}
           </p>
         </div>

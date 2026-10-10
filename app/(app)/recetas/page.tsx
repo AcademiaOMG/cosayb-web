@@ -7,23 +7,25 @@ import Button from "@/components/ui/Button"
 import EmptyState from "@/components/ui/EmptyState"
 import Modal from "@/components/ui/Modal"
 import Pagination from "@/components/app/inventario/Pagination"
-import RecipeCard from "@/components/app/recipes/RecipeCard"
+import RecipeTable, { RecipeTableHeader } from "@/components/app/recipes/RecipeTable"
 import RecipeCalculatorView from "@/components/app/recipes/RecipeCalculatorView"
 import RecipeDetailModal from "@/components/app/recipes/RecipeDetailModal"
+import { RECIPE_ORIGIN, RECIPE_TYPE } from "@/lib/recipeLabels"
 import type { Recipe } from "@/types/domain"
 import type { RecipeFilter, RecipeExtraFilters } from "@/lib/api"
 import { getRecipes, deleteRecipe, getRecipeCounts } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { CheckCircle2, ChefHat, Plus, Search, SlidersHorizontal, X, AlertCircle } from "lucide-react"
 
 const PAGE_SIZE = 12
 
 const TAB_OPTIONS: { value: RecipeFilter; label: string }[] = [
-  { value: "all",   label: "Todos" },
-  { value: "own",   label: "Propios" },
-  { value: "banco", label: "Banco" },
+  { value: "all",   label: "Todas" },
+  { value: "own",   label: RECIPE_ORIGIN.own.label },
+  { value: "banco", label: RECIPE_ORIGIN.banco.label },
 ]
 
 const EMPTY_EXTRA: RecipeExtraFilters = {}
@@ -79,7 +81,7 @@ export default function RecetasPage() {
     extra.type, extra.weight, extra.portions, extra.empty,
   ].filter(Boolean).length
 
-  // Origen (Todos/Propios/Banco) también cuenta como filtro activo
+  // Origen (Todas/Mis recetas/Banco de recetas) también cuenta como filtro activo
   const totalActiveFilters = activeFilterCount + (filter !== "all" ? 1 : 0)
 
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
@@ -89,6 +91,7 @@ export default function RecetasPage() {
   /** Aviso tras guardar o si algo falló (la lista es lo primero que se ve al volver) */
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null)
   const { mutate: globalMutate } = useSWRConfig()
+  const revalidateOnboarding = useRevalidateOnboarding()
   const [detailRecipeId, setDetailRecipeId] = useState<string | null>(null)
   const [helpOpen, setHelpOpen]         = useState(false)
 
@@ -103,6 +106,7 @@ export default function RecetasPage() {
     void mutate()
     void mutateCounts()
     void globalMutate((key) => Array.isArray(key) && (key[0] === "recipe-detail" || key[0] === "recipe-cost"))
+    revalidateOnboarding()
     setNotice({ tone: "ok", text: info.created ? `Receta «${info.name}» creada.` : `Receta «${info.name}» actualizada.` })
     setView("list")
   }
@@ -140,6 +144,7 @@ export default function RecetasPage() {
         { optimisticData: optimistic, rollbackOnError: true, revalidate: true }
       )
       void mutateCounts()
+      revalidateOnboarding()
       setNotice({ tone: "ok", text: `Receta «${deleteTarget.name}» eliminada.` })
     } catch (e) {
       // rollback automático: la card reaparece; ahora además se explica por qué
@@ -174,15 +179,15 @@ export default function RecetasPage() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Editar o eliminar:</strong> Modifica o borra tus recetas desde la vista de detalles. Al editar, la pantalla se abre con los ingredientes que ya tenía. Las recetas base y las del banco no se pueden editar ni eliminar.</span>
+              <span><strong>Editar o eliminar:</strong> Modifica o borra tus recetas desde la vista de detalles. Al editar, la pantalla se abre con los ingredientes que ya tenía. Las preparaciones base y las del banco de recetas no se pueden editar ni eliminar.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Banco de recetas:</strong> Importa recetas base del sistema para usarlas como plantilla.</span>
+              <span><strong>Banco de recetas:</strong> Recetas de Academia OMG para usar como punto de partida; puedes copiarlas a tu negocio.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Filtros avanzados:</strong> Filtra por tipo (Base/Principal), porciones, peso y contenido.</span>
+              <span><strong>Filtros avanzados:</strong> Filtra por tipo (platos o preparaciones base), porciones, peso y contenido.</span>
             </li>
           </ul>
         </div>
@@ -321,8 +326,8 @@ export default function RecetasPage() {
                 </FilterGroup>
 
                 <FilterGroup label="Tipo de receta">
-                  <Chip active={extra.type === "base"}      onClick={() => changeExtra({ type: extra.type === "base"      ? undefined : "base" })}>     Base</Chip>
-                  <Chip active={extra.type === "principal"} onClick={() => changeExtra({ type: extra.type === "principal" ? undefined : "principal" })}> Principal</Chip>
+                  <Chip active={extra.type === "base"}      onClick={() => changeExtra({ type: extra.type === "base"      ? undefined : "base" })}>     {RECIPE_TYPE.base.plural}</Chip>
+                  <Chip active={extra.type === "principal"} onClick={() => changeExtra({ type: extra.type === "principal" ? undefined : "principal" })}> {RECIPE_TYPE.dish.plural}</Chip>
                 </FilterGroup>
 
                 <FilterGroup label="Porciones">
@@ -365,24 +370,31 @@ export default function RecetasPage() {
       {/* Chips de filtros activos */}
       {totalActiveFilters > 0 && (
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          {filter !== "all" && <ActiveChip label={filter === "own" ? "Propios" : "Banco"} onRemove={() => changeFilter("all")} />}
-          {extra.type      && <ActiveChip label={extra.type === "base" ? "Base" : "Principal"} onRemove={() => changeExtra({ type: undefined })} />}
+          {filter !== "all" && <ActiveChip label={filter === "own" ? RECIPE_ORIGIN.own.label : RECIPE_ORIGIN.banco.label} onRemove={() => changeFilter("all")} />}
+          {extra.type      && <ActiveChip label={extra.type === "base" ? RECIPE_TYPE.base.plural : RECIPE_TYPE.dish.plural} onRemove={() => changeExtra({ type: undefined })} />}
           {extra.portions  && <ActiveChip label={{ small: "≤ 4 porciones", medium: "5–10 porciones", large: "> 10 porciones" }[extra.portions]} onRemove={() => changeExtra({ portions: undefined })} />}
           {extra.weight    && <ActiveChip label={extra.weight === "yes" ? "Con peso" : "Sin peso"} onRemove={() => changeExtra({ weight: undefined })} />}
           {extra.empty     && <ActiveChip label="Sin ingredientes" onRemove={() => changeExtra({ empty: undefined })} />}
         </div>
       )}
 
-      {/* ── Grid de cards ── */}
+      {/* ── Tabla de recetas ── */}
       {isLoading && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: "16px" }} aria-busy="true">
-          {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="animate-pulse rounded-2xl p-4 flex flex-col gap-3"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}>
-              <div className="h-4 rounded" style={{ background: "var(--bg-secondary)", width: "70%" }} />
-              <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "40%" }} />
-            </div>
-          ))}
+        <div
+          className="overflow-hidden"
+          style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)" }}
+          aria-busy="true"
+          aria-label="Cargando recetas"
+        >
+          <RecipeTableHeader />
+          <ul className="animate-pulse">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <li key={i} className="flex items-center justify-between gap-4 px-4 py-4 md:px-5">
+                <div className="h-3.5 rounded-md" style={{ width: `${40 + ((i * 17) % 30)}%`, background: "var(--bg-secondary)" }} />
+                <div className="h-3.5 w-16 rounded-md md:w-80" style={{ background: "var(--bg-secondary)" }} />
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -414,17 +426,11 @@ export default function RecetasPage() {
 
       {!isLoading && !error && recipes.length > 0 && (
         <>
-          {/* Los badges Base/Principal en cada card indican el tipo de receta */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: "16px" }}>
-            {recipes.map(recipe => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                onClick={r => setDetailRecipeId(r.id)}
-                onDelete={can("recipes", "delete") ? setDeleteTarget : undefined}
-              />
-            ))}
-          </div>
+          <RecipeTable
+            recipes={recipes}
+            onOpen={r => setDetailRecipeId(r.id)}
+            onDelete={can("recipes", "delete") ? setDeleteTarget : undefined}
+          />
           <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
@@ -465,7 +471,7 @@ export default function RecetasPage() {
         onClose={() => setDetailRecipeId(null)}
         onEdit={can("recipes", "update") ? handleOpenEdit : undefined}
         onDelete={can("recipes", "delete") ? (r => { setDetailRecipeId(null); setDeleteTarget(r) }) : undefined}
-        onImported={() => { setDetailRecipeId(null); void mutate() }}
+        onImported={() => { setDetailRecipeId(null); void mutate(); revalidateOnboarding() }}
       />
 
     </div>

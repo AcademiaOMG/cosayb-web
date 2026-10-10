@@ -1,4 +1,5 @@
 import type { Valuation, ValuationIndicator, ValuationRefType } from "@/types/domain"
+import { indicatorFromPctMP } from "@/lib/indicator"
 
 // ─── Fórmulas ───────────────────────────────────────────────────────────────
 // Espejo exacto de calcularPricing() en cosayb-api/valuations.service.ts —
@@ -36,7 +37,7 @@ export function calcPricing(
   const pctFixedCosts = ((1 - pct) / 1.8) * 100
   const pctProfitBruto = (1 - (1 - pct) / 1.8 - pct) * 100
   const pctProfit = Math.max(0, pctProfitBruto - deductions.impuestos - deductions.otros)
-  const indicator: ValuationIndicator = pct < 0.32 ? "MUY BUENO" : pct > 0.37 ? "MALO" : "REGULAR"
+  const indicator: ValuationIndicator = indicatorFromPctMP(pctMP)
   return {
     suggested,
     pctMateriaprima: pctMP,
@@ -70,11 +71,7 @@ export function moneyFromPct(pct: number, total: number) {
 }
 
 // ─── Indicador ────────────────────────────────────────────────────────────────
-export const IND: Record<ValuationIndicator, { color: string; bg: string; text: string; sublabel: string }> = {
-  "MUY BUENO": { color: "#10B981", bg: "#ECFDF5", text: "#064E3B", sublabel: "Excelente rentabilidad" },
-  "REGULAR": { color: "#F59E0B", bg: "#FFFBEB", text: "#78350F", sublabel: "Margen moderado" },
-  "MALO": { color: "#EF4444", bg: "#FEF2F2", text: "#7F1D1D", sublabel: "Revisar estructura de costos" },
-}
+// Rangos y colores del semáforo viven en @/lib/indicator (fuente única).
 
 // ─── Formato ──────────────────────────────────────────────────────────────────
 export const fmt = (v: number | string) =>

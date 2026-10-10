@@ -5,7 +5,6 @@ import { CalendarDays, Undo2 } from "lucide-react"
 import { saveFactorRendimientoAsIngrediente } from "@/lib/api"
 import Button from "@/components/ui/Button"
 import { CalcBreakdown, CalcPanel, useSolverCalculator, type CalcPanelField } from "@/components/calculator"
-import CalcViewShell from "@/components/calculator/CalcViewShell"
 import { formatMoneyEntry, parseEntry, type EntryOptions } from "@/lib/calculator/entry"
 import { formatCOP, formatCOPDecimals, formatPercent } from "@/lib/calculator/format"
 import {
@@ -98,13 +97,14 @@ export default function YieldFactorCalculator({
   editingFactor,
   onSubmit,
   onDone,
-  onCancel,
+  onDirtyChange,
 }: {
   editingFactor?: FactorRendimiento | null
   /** `existingId`: el factor ya se guardó en este intento, hay que actualizarlo (no duplicarlo) */
   onSubmit: (data: YieldSubmitData, existingId?: string) => Promise<{ id: string } | void>
   onDone: (info: YieldSavedInfo) => void
-  onCancel: () => void
+  /** Avisa a la ventana si hay datos escritos sin guardar */
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const [boot] = useState(() => {
     // Al crear se recuerda el último tipo usado; al editar manda el del registro.
@@ -170,6 +170,10 @@ export default function YieldFactorCalculator({
     (ingredientName.trim() !== (editingFactor?.ingredientName ?? "").trim() ||
       (Object.keys(boot.values) as YieldField[]).some((f) => calc.values[f] !== boot.values[f]) ||
       (!!editingFactor && variant !== boot.variant))
+
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+  }, [dirty, onDirtyChange])
 
   // Cerrar la pestaña o recargar con datos sin guardar: el navegador avisa.
   useEffect(() => {
@@ -291,13 +295,7 @@ export default function YieldFactorCalculator({
   }))
 
   return (
-    <CalcViewShell
-      title={editingFactor ? `Editar: ${editingFactor.ingredientName}` : "Nuevo factor de rendimiento"}
-      subtitle="Escribe lo que pagaste, el peso y lo que se pierde. Te decimos cuánto cuesta de verdad cada gramo que aprovechas."
-      backLabel="Mis factores"
-      onBack={onCancel}
-      dirty={dirty}
-    >
+    <>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,400px)_minmax(0,1fr)] md:items-start">
         {/* Tipo y nombre primero: en el celular se ven antes que la calculadora */}
         <div className="flex flex-col gap-3 min-w-0 md:col-start-2 md:row-start-1">
@@ -458,7 +456,7 @@ export default function YieldFactorCalculator({
           )}
         </div>
       </div>
-    </CalcViewShell>
+    </>
   )
 }
 

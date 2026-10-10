@@ -7,6 +7,7 @@ import { mutate } from "swr"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
 import MobileTabBar from "./MobileTabBar"
+import CalcSkinSwitch from "@/components/calculator/CalcSkinSwitch"
 import AppContainer from "./AppContainer"
 import ImpersonationBanner from "./ImpersonationBanner"
 import SessionGuard from "@/components/SessionGuard"
@@ -82,6 +83,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             }}
           />
           <MobileTabBar />
+          {/* Único selector del diseño de las calculadoras (temporal, para mostrar las dos opciones) */}
+          <CalcSkinSwitch />
         </div>
       </div>
     </div>

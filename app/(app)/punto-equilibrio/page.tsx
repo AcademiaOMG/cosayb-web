@@ -3,15 +3,17 @@
 import useSWR from "swr"
 import { useState, useEffect } from "react"
 import {
-  BarChart2, Plus, Download, Eye, Pencil, Printer, Receipt, Wallet, CalendarDays, Layers,
+  BarChart2, Plus, Download, Eye, Pencil, Printer, CalendarDays,
+  Calculator, History, CheckCircle2, AlertCircle, X,
 } from "lucide-react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
-import { CalcViewShell } from "@/components/calculator"
+import IndicatorPill from "@/components/ui/IndicatorPill"
+import { scrollMainToTop } from "@/components/calculator/scrollMainToTop"
 import EmptyState from "@/components/ui/EmptyState"
-import { RatioRow, COLOR_FIXED, COLOR_PROFIT } from "@/components/ui/RatioDonut"
-import InfoStat from "@/components/ui/InfoStat"
+import Table from "@/components/ui/Table"
+import { indicatorFromMC } from "@/lib/indicator"
 import type { BreakEvenRecord } from "@/types/domain"
 import { createBreakEven, getBreakEvenHistory, exportBreakEvenExcel } from "@/lib/api"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
@@ -20,6 +22,7 @@ import ModuleLocked from "@/components/app/ModuleLocked"
 import { perDay } from "@/lib/calculator/breakEven"
 import { formatCOP, formatNumber } from "@/lib/calculator/format"
 import BreakEvenCalculator, { type BreakEvenSubmitData } from "./BreakEvenCalculator"
+import BreakEvenFicha from "./BreakEvenFicha"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(iso: string): string {
@@ -39,6 +42,11 @@ function dailyOf(record: BreakEvenRecord) {
     unitsPerDay: perDay(record.breakEvenUnits),
     revenuePerDay: perDay(record.breakEvenRevenue),
   }
+}
+
+/** Margen de contribución % (0–100) — base del semáforo (espejo PO 68/63). */
+function mcPctOf(record: Pick<BreakEvenRecord, "contributionMargin" | "salePrice">) {
+  return (record.contributionMargin / record.salePrice) * 100
 }
 
 function printRecord(record: BreakEvenRecord) {
@@ -109,70 +117,85 @@ function HistorySkeleton() {
   )
 }
 
-// ─── Tarjeta del historial ────────────────────────────────────────────────────
-function HistoryCard({
-  record,
+// ─── Tabla del historial (mismo patrón que el historial de Menús) ─────────────
+function HistoryTable({
+  records,
   onView,
   onReuse,
 }: {
-  record: BreakEvenRecord
-  onView: () => void
-  onReuse: () => void
+  records: BreakEvenRecord[]
+  onView: (r: BreakEvenRecord) => void
+  onReuse: (r: BreakEvenRecord) => void
 }) {
-  const { unitsPerDay } = dailyOf(record)
+  const money = (v: unknown) => (
+    <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>{formatCOP(v as number)}</span>
+  )
   return (
-    <article
-      className="rounded-2xl p-5 flex flex-col gap-4 transition-shadow hover:shadow-md"
-      style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)", boxShadow: "var(--shadow-sm)" }}
-    >
-      <button
-        type="button"
-        onClick={onView}
-        className="flex flex-col gap-1 text-left min-w-0"
-        aria-label={`Ver cálculo del ${formatDate(record.createdAt)}`}
-      >
-        <span className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
-          <CalendarDays size={12} />
-          {formatDate(record.createdAt)}
-        </span>
-        <span className="text-3xl font-bold tabular-nums leading-tight" style={{ color: "var(--accent-text)" }}>
-          {formatNumber(record.breakEvenUnits)}
-          <span className="text-sm font-medium ml-1.5" style={{ color: "var(--text-muted)" }}>unidades al mes</span>
-        </span>
-        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          {formatNumber(unitsPerDay)} al día · {formatCOP(record.breakEvenRevenue)} en ventas al mes
-        </span>
-      </button>
-
-      <dl
-        className="grid grid-cols-3 gap-2 rounded-xl p-3 text-xs"
-        style={{ background: "var(--bg-primary)" }}
-      >
-        {[
-          ["Costos fijos", record.totalFixedCosts],
-          ["Precio", record.salePrice],
-          ["Costo variable", record.variableCost],
-        ].map(([label, v]) => (
-          <div key={label as string} className="min-w-0">
-            <dt style={{ color: "var(--text-muted)" }}>{label}</dt>
-            <dd className="font-semibold tabular-nums truncate" style={{ color: "var(--text-primary)" }}>
-              {formatCOP(v as number)}
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      <div className="flex gap-2">
-        <Button variant="ghost" size="sm" onClick={onView} className="flex-1">
-          <Eye size={14} />
-          Ver
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onReuse} className="flex-1" title="Usar como base para un nuevo cálculo">
-          <Pencil size={14} />
-          Reutilizar
-        </Button>
-      </div>
-    </article>
+    <Table
+      rowKey="id"
+      data={records as unknown as Record<string, unknown>[]}
+      onRowClick={(row) => onView(row as unknown as BreakEvenRecord)}
+      columns={[
+        {
+          key: "createdAt",
+          label: "Fecha",
+          render: (v) => (
+            <div className="flex items-center gap-1.5 font-medium" style={{ color: "var(--text-primary)" }}>
+              <CalendarDays size={13} style={{ color: "var(--text-muted)" }} />
+              {formatDate(v as string)}
+            </div>
+          ),
+        },
+        {
+          key: "breakEvenUnits",
+          label: "Unidades al mes",
+          render: (v) => (
+            <span className="tabular-nums text-sm font-semibold" style={{ color: "var(--accent-text)" }}>
+              {formatNumber(v as number)}
+            </span>
+          ),
+        },
+        { key: "totalFixedCosts", label: "Costos fijos", render: money },
+        { key: "salePrice", label: "Precio de venta", render: money },
+        { key: "variableCost", label: "Costo variable", render: money },
+        {
+          key: "contributionMargin",
+          label: "Indicador",
+          render: (_v, row) => <IndicatorPill indicator={indicatorFromMC(mcPctOf(row as unknown as BreakEvenRecord))} />,
+        },
+        {
+          key: "id",
+          label: "",
+          render: (_v, row) => {
+            const record = row as unknown as BreakEvenRecord
+            return (
+              <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => onView(record)}
+                  title="Ver cálculo"
+                  aria-label={`Ver cálculo del ${formatDate(record.createdAt)}`}
+                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <Eye size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onReuse(record)}
+                  title="Usar como base para un nuevo cálculo"
+                  aria-label={`Reutilizar el cálculo del ${formatDate(record.createdAt)}`}
+                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            )
+          },
+        },
+      ]}
+    />
   )
 }
 
@@ -181,18 +204,17 @@ function HistoryCard({
 // ═══════════════════════════════════════════════════════════════════════════════
 function CalculatorView({
   initialRecord,
-  fixedOnly,
   onBack,
   onSaved,
+  onDirtyChange,
 }: {
+  /** Solo viene de "Reutilizar": un cálculo nuevo siempre arranca en blanco */
   initialRecord: BreakEvenRecord | null
-  /** Solo se parte de los costos fijos de ese registro (nuevo cálculo con costos recordados) */
-  fixedOnly: boolean
+  /** Cambio de pestaña: sin guardar → la página pide confirmación */
   onBack: () => void
   onSaved: () => Promise<void>
+  onDirtyChange: (dirty: boolean) => void
 }) {
-  const [dirty, setDirty] = useState(false)
-
   async function handleSubmit(data: BreakEvenSubmitData) {
     await createBreakEven(data)
     // Ya se guardó: si refrescar el historial falla, no se muestra como error de guardado.
@@ -203,28 +225,13 @@ function CalculatorView({
     }
   }
 
-  const when = initialRecord ? formatDate(initialRecord.createdAt) : ""
-  const subtitle = !initialRecord
-    ? "¿Cuánto debes vender para cubrir tus costos?"
-    : fixedOnly
-      ? "Tus costos fijos casi no cambian: partimos de los de tu último cálculo"
-      : `Partiendo del cálculo del ${when}: se guardará como uno nuevo`
-
   return (
-    <CalcViewShell title="Nuevo cálculo" subtitle={subtitle} backLabel="Mis cálculos" onBack={onBack} dirty={dirty}>
-      <BreakEvenCalculator
-        initialRecord={initialRecord}
-        fixedOnly={fixedOnly}
-        prefillNote={
-          initialRecord && fixedOnly
-            ? `Arrancamos con tus costos fijos del ${when}. Si algo cambió, toca el rubro y escribe el valor nuevo; luego completa tu producto en el paso 2.`
-            : null
-        }
-        onSubmit={handleSubmit}
-        onDone={onBack}
-        onDirtyChange={setDirty}
-      />
-    </CalcViewShell>
+    <BreakEvenCalculator
+      initialRecord={initialRecord}
+      onSubmit={handleSubmit}
+      onDone={onBack}
+      onDirtyChange={onDirtyChange}
+    />
   )
 }
 
@@ -235,7 +242,7 @@ type PageView = "list" | "calculator"
 
 export default function PuntoEquilibrioPage() {
   useHelpAvailable()
-  const { hasFeature, featureLockedMessage } = usePermissions()
+  const { hasFeature, featureLockedMessage, isLoading: permsLoading } = usePermissions()
 
   const { data: history = [], isLoading, error, mutate } = useSWR(
     "break-even-history",
@@ -243,14 +250,17 @@ export default function PuntoEquilibrioPage() {
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
-  const [view, setView] = useState<PageView>("list")
+  // Al abrir, la pestaña inicial es la Calculadora (en blanco); el Historial solo al elegirlo.
+  const [view, setView] = useState<PageView>("calculator")
+  // Base de "Reutilizar"; null = cálculo nuevo en blanco
   const [reuseRecord, setReuseRecord] = useState<BreakEvenRecord | null>(null)
-  // true: se parte solo de los costos fijos de reuseRecord (botón Nuevo cálculo); false: de todo (Reutilizar)
-  const [fixedOnly, setFixedOnly] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ text: string; tone: "ok" | "error" } | null>(null)
   const [viewingRecord, setViewingRecord] = useState<BreakEvenRecord | null>(null)
   const [exporting, setExporting] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  // Datos escritos sin guardar en la calculadora + confirmación de salida
+  const [calcDirty, setCalcDirty] = useState(false)
+  const [exitConfirm, setExitConfirm] = useState(false)
 
   useEffect(() => {
     function handleHelp() { setHelpOpen(true) }
@@ -258,43 +268,84 @@ export default function PuntoEquilibrioPage() {
     return () => window.removeEventListener("open-help", handleHelp)
   }, [])
 
+  /** Cambio de pestaña: salir de la calculadora con datos sin guardar pide confirmación. */
+  function switchView(next: PageView) {
+    if (next === view) return
+    if (next === "list" && calcDirty) {
+      setExitConfirm(true)
+      return
+    }
+    if (next === "calculator") setCalcDirty(false)
+    setExitConfirm(false)
+    setView(next)
+    scrollMainToTop()
+  }
+
+  /** Salida aceptada de la calculadora (tras guardar o con la confirmación visible). */
+  function backToHistory() {
+    setCalcDirty(false)
+    setExitConfirm(false)
+    setView("list")
+    scrollMainToTop()
+  }
+
   function openCreate() {
-    // Los costos fijos casi no cambian de un mes a otro: arrancamos con los del último cálculo (si hay).
-    const latest = history.reduce<BreakEvenRecord | null>(
-      (best, r) => (!best || new Date(r.createdAt) > new Date(best.createdAt) ? r : best),
-      null,
-    )
-    setReuseRecord(latest)
-    setFixedOnly(latest !== null)
+    // Un cálculo nuevo siempre empieza en blanco: nada se precarga del historial.
+    setReuseRecord(null)
     setNotice(null)
-    setView("calculator")
+    switchView("calculator")
   }
 
   function openReuse(record: BreakEvenRecord) {
     setReuseRecord(record)
-    setFixedOnly(false)
     setNotice(null)
     setViewingRecord(null)
-    setView("calculator")
+    switchView("calculator")
+  }
+
+  const handleSaved = async () => {
+    setNotice({ text: "Guardamos tu cálculo. Aparece primero en la lista.", tone: "ok" })
+    await mutate()
   }
 
   const handleExport = async () => {
-    setExporting(true)
     setNotice(null)
+    // La feature "exports" está deshabilitada en el plan free: avisar sin pedir la descarga.
+    if (!hasFeature("exports")) {
+      setNotice({
+        text: "Exportar a Excel no está incluido en tu membresía actual. Revisa tu plan en Ajustes.",
+        tone: "error",
+      })
+      return
+    }
+    setExporting(true)
     try {
       const blob = await exportBreakEvenExcel()
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `punto-equilibrio-${Date.now()}.xlsx`
+      a.download = `punto-equilibrio-${new Date().toISOString().slice(0, 10)}.xlsx`
+      document.body.appendChild(a)
       a.click()
+      a.remove()
       window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-    } catch {
-      setNotice("No se pudo exportar el historial. Revisa tu conexión e inténtalo de nuevo.")
+      setNotice({ text: "Excel descargado: revisa la carpeta de descargas de tu equipo.", tone: "ok" })
+    } catch (err) {
+      setNotice({
+        text:
+          err instanceof Error && err.message
+            ? err.message
+            : "No se pudo exportar el historial. Inténtalo de nuevo.",
+        tone: "error",
+      })
     } finally {
       setExporting(false)
     }
   }
+
+  // Mientras cargan los permisos no se sabe si el módulo está habilitado —
+  // no mostrar "módulo bloqueado" por un instante a quien sí lo tiene.
+  if (permsLoading) return null
 
   if (!hasFeature("module_breakEven")) {
     return <ModuleLocked message={featureLockedMessage("module_breakEven")} />
@@ -302,7 +353,7 @@ export default function PuntoEquilibrioPage() {
 
   // La ayuda debe abrir también dentro de la calculadora (el botón de la app sigue visible).
   const helpModal = (
-    <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="Punto de Equilibrio">
+    <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="Punto de Equilibrio" blur>
       <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
         <p>Esta sección es una calculadora que te dice cuántas unidades necesitas vender para cubrir todos tus costos.</p>
 
@@ -311,11 +362,11 @@ export default function PuntoEquilibrioPage() {
           <ul className="flex flex-col gap-2 ml-1">
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Nuevo cálculo:</strong> abre la calculadora. Si ya hiciste uno, arranca con tus costos fijos de la última vez (casi no cambian): corrige solo lo que cambió, o toca &quot;Empezar en blanco&quot;. Toca un dato y escribe con el teclado de la pantalla o el de tu computador; lo que escribas reemplaza el valor anterior. &quot;Limpiar&quot; borra todo (hay que tocarlo dos veces).</span>
+              <span><strong>Calculadora:</strong> en las pestañas del encabezado toca &quot;Calculadora&quot; para abrir la calculadora. Cada cálculo nuevo empieza en blanco; para partir de uno anterior, usa &quot;Reutilizar&quot; en el historial. Toca un dato y escribe con el teclado de la pantalla o el de tu computador; lo que escribas reemplaza el valor anterior. &quot;Limpiar&quot; borra todo (hay que tocarlo dos veces).</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Paso 1, costos fijos:</strong> arriendo, sueldos, agua, energía, gas, teléfonos, marketing digital, impuestos y otros. Déjalos en blanco si no los pagas; el total se suma solo.</span>
+              <span><strong>Paso 1, costos fijos:</strong> escribe el nombre del gasto (arriendo, sueldos, agua, energía, gas, teléfonos, marketing digital, impuestos u otros), teclea cuánto pagas al mes y pulsa &quot;Agregar a la lista&quot;. El costo aparece en la lista de la derecha y el total se suma solo.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
@@ -323,11 +374,11 @@ export default function PuntoEquilibrioPage() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Calcular:</strong> te muestra las unidades y la venta necesarias por mes y por día. Solo entonces puedes guardar el cálculo.</span>
+              <span><strong>Calcular:</strong> abre el resultado en una ventana: unidades y venta necesarias por mes y por día, y cómo se calculan. Desde ahí guardas el cálculo.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Historial:</strong> consulta tus cálculos anteriores, reutilízalos como base, imprímelos o expórtalos a Excel.</span>
+              <span><strong>Historial:</strong> en la pestaña &quot;Historial&quot; consulta tus cálculos anteriores, reutilízalos como base, imprímelos o expórtalos a Excel.</span>
             </li>
           </ul>
         </div>
@@ -339,62 +390,148 @@ export default function PuntoEquilibrioPage() {
     </Modal>
   )
 
-  // ── Vista calculadora ──
-  if (view === "calculator") {
-    return (
-      <>
-        <CalculatorView
-        // Reiniciar la calculadora al cambiar de base (nuevo / reutilizar)
-        key={`${reuseRecord?.id ?? "new"}-${fixedOnly}`}
-        initialRecord={reuseRecord}
-        fixedOnly={fixedOnly}
-        onBack={() => setView("list")}
-        onSaved={async () => {
-          setNotice("Guardamos tu cálculo. Aparece primero en la lista.")
-          await mutate()
-        }}
-        />
-        {helpModal}
-      </>
-    )
-  }
-
   const viewing = viewingRecord
   const viewingDaily = viewing ? dailyOf(viewing) : null
 
-  // ── Vista lista (historial) ──
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    borderRadius: "var(--radius-sm)",
+    ...(active
+      ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
+      : { color: "var(--text-muted)" }),
+  })
+
+  // ── Vista única: el encabezado con pestañas permanece en ambas vistas ──
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Punto de Equilibrio"
         subtitle="Calcula cuántas unidades necesitas vender para cubrir todos tus costos"
         action={
-          <div className="flex flex-wrap gap-2">
-            {history.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {view === "list" && history.length > 0 && (
               <Button variant="ghost" onClick={handleExport} loading={exporting} disabled={exporting}>
                 <Download size={15} />
                 Exportar Excel
               </Button>
             )}
-            <Button variant="primary" onClick={openCreate}>
-              <Plus size={15} />
-              Nuevo cálculo
-            </Button>
+            {/* Pestañas de vista — mismo patrón que el módulo de Valoración */}
+            <div
+              className="hidden sm:flex items-center gap-1 p-1 shrink-0"
+              style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-md)" }}
+            >
+              <button
+                type="button"
+                onClick={() => { if (view === "list") openCreate() }}
+                className="px-3 py-1.5 text-sm font-medium transition-colors"
+                style={tabStyle(view === "calculator")}
+              >
+                Calculadora
+              </button>
+              <button
+                type="button"
+                onClick={() => switchView("list")}
+                className="px-3 py-1.5 text-sm font-medium transition-colors"
+                style={tabStyle(view === "list")}
+              >
+                Historial
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => (view === "calculator" ? switchView("list") : openCreate())}
+              className="sm:hidden flex items-center gap-1.5 h-10 px-3.5 text-sm font-semibold shrink-0"
+              style={{
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                borderRadius: "var(--radius-md)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              {view === "calculator" ? (
+                <>
+                  <History size={16} style={{ color: "var(--text-muted)" }} />
+                  Historial
+                </>
+              ) : (
+                <>
+                  <Calculator size={16} style={{ color: "var(--text-muted)" }} />
+                  Calculadora
+                </>
+              )}
+            </button>
           </div>
         }
       />
 
       {notice && (
-        <p
-          className="text-sm rounded-xl px-4 py-3"
-          role="status"
-          style={{ background: "var(--accent-light)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
+        <div
+          role={notice.tone === "error" ? "alert" : "status"}
+          className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+          style={
+            notice.tone === "ok"
+              ? { background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#166534" }
+              : { background: "#FEF2F2", border: "1px solid #FECACA", color: "#B42020" }
+          }
         >
-          {notice}
-        </p>
+          {notice.tone === "ok" ? (
+            <CheckCircle2 size={16} className="shrink-0" />
+          ) : (
+            <AlertCircle size={16} className="shrink-0" />
+          )}
+          <span className="flex-1">{notice.text}</span>
+          <button
+            type="button"
+            aria-label="Cerrar aviso"
+            onClick={() => setNotice(null)}
+            className="shrink-0 rounded p-0.5 hover:opacity-70"
+          >
+            <X size={14} />
+          </button>
+        </div>
       )}
 
-      {isLoading && <HistorySkeleton />}
+      {view === "calculator" && exitConfirm && (
+        <div
+          role="alertdialog"
+          aria-label="Salir sin guardar"
+          className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center"
+          style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}
+        >
+          <p className="text-sm flex-1">Lo que escribiste no se ha guardado y se perderá si sales.</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setExitConfirm(false)}
+              className="h-9 px-3 rounded-lg text-sm font-semibold"
+              style={{ background: "var(--accent)", color: "#fff" }}
+            >
+              Seguir editando
+            </button>
+            <button
+              type="button"
+              onClick={backToHistory}
+              className="h-9 px-3 rounded-lg text-sm font-semibold"
+              style={{ background: "transparent", color: "#92400E", border: "1px solid #FDE68A" }}
+            >
+              Salir sin guardar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {view === "calculator" ? (
+        <CalculatorView
+          // Reiniciar la calculadora al cambiar de base (nuevo / reutilizar)
+          key={reuseRecord?.id ?? "new"}
+          initialRecord={reuseRecord}
+          onBack={backToHistory}
+          onSaved={handleSaved}
+          onDirtyChange={setCalcDirty}
+        />
+      ) : (
+        <>
+          {isLoading && <HistorySkeleton />}
 
       {!isLoading && error && (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
@@ -420,34 +557,33 @@ export default function PuntoEquilibrioPage() {
       )}
 
       {!isLoading && !error && history.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {history.map((record) => (
-            <HistoryCard
-              key={record.id}
-              record={record}
-              onView={() => setViewingRecord(record)}
-              onReuse={() => openReuse(record)}
-            />
-          ))}
-        </div>
+        <HistoryTable
+          records={history}
+          onView={(r) => setViewingRecord(r)}
+          onReuse={(r) => openReuse(r)}
+        />
+      )}
+        </>
       )}
 
       {helpModal}
 
-      {/* ── Modal: ver cálculo (solo lectura) ────────────────────────────── */}
+      {/* ── Modal: ver cálculo (solo lectura, mismo patrón que Ver menú) ───── */}
       <Modal
         open={!!viewing}
         onClose={() => setViewingRecord(null)}
         title="Cálculo de punto de equilibrio"
+        wide
+        blur
         footer={
-          <div className="flex flex-wrap items-center justify-between w-full gap-3">
-            <Button variant="ghost" onClick={() => viewing && printRecord(viewing)}>
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => viewing && printRecord(viewing)}>
               <Printer size={14} />
               Imprimir
             </Button>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setViewingRecord(null)}>Cerrar</Button>
-              <Button variant="primary" onClick={() => viewing && openReuse(viewing)}>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+              <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setViewingRecord(null)}>Cerrar</Button>
+              <Button variant="primary" className="w-full sm:w-auto" onClick={() => viewing && openReuse(viewing)}>
                 <Pencil size={14} />
                 Reutilizar
               </Button>
@@ -457,83 +593,23 @@ export default function PuntoEquilibrioPage() {
       >
         {viewing && viewingDaily && (
           <div className="flex flex-col gap-5">
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Calculado el {formatDate(viewing.createdAt)}
-            </p>
-
-            <div
-              className="rounded-2xl p-5"
-              style={{ background: "var(--accent-light)", border: "1px solid var(--border-light)" }}
-            >
-              <p className="text-xs font-semibold tracking-widest mb-1" style={{ color: "var(--accent-text)" }}>
-                UNIDADES PARA CUBRIR TUS COSTOS
-              </p>
-              <p className="font-display text-4xl font-bold tabular-nums mb-1" style={{ color: "var(--text-primary)", lineHeight: 1.1 }}>
-                {formatNumber(viewing.breakEvenUnits)}
-                <span className="text-base font-medium ml-2" style={{ color: "var(--text-muted)" }}>al mes</span>
-              </p>
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                {formatNumber(viewingDaily.unitsPerDay)} unidades al día
-              </p>
-
-              <div className="mt-4 pt-4 flex flex-col gap-3" style={{ borderTop: "1px solid var(--border-light)" }}>
-                <RatioRow
-                  label="Costo variable"
-                  color={COLOR_FIXED}
-                  pct={(viewing.variableCost / viewing.salePrice) * 100}
-                />
-                <RatioRow
-                  label="Margen de contribución"
-                  color={COLOR_PROFIT}
-                  pct={(viewing.contributionMargin / viewing.salePrice) * 100}
-                />
-              </div>
+            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
+              <CalendarDays size={14} />
+              <span>Calculado el <strong style={{ color: "var(--text-secondary)" }}>{formatDate(viewing.createdAt)}</strong></span>
             </div>
-
-            <div>
-              <p className="text-xs font-semibold tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>
-                VENTAS NECESARIAS
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <InfoStat icon={<Receipt size={12} style={{ color: "var(--text-muted)" }} />} label="Venta al mes" value={formatCOP(viewing.breakEvenRevenue)} mono accent />
-                <InfoStat icon={<Receipt size={12} style={{ color: "var(--text-muted)" }} />} label="Venta al día" value={formatCOP(viewingDaily.revenuePerDay)} mono />
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>
-                DATOS DEL CÁLCULO
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <InfoStat label="Precio de venta" value={formatCOP(viewing.salePrice)} mono />
-                <InfoStat label="Costo variable" value={formatCOP(viewing.variableCost)} mono />
-                <InfoStat label="Margen de contribución" value={formatCOP(viewing.contributionMargin)} mono />
-                <InfoStat icon={<Wallet size={12} style={{ color: "var(--text-muted)" }} />} label="Total costos fijos" value={formatCOP(viewing.totalFixedCosts)} mono accent />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Layers size={14} style={{ color: "var(--text-muted)" }} />
-                <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
-                  COSTOS FIJOS ({viewing.fixedCosts.length})
-                </p>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {viewing.fixedCosts.map((c, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm"
-                    style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
-                  >
-                    <span className="min-w-0 break-words" style={{ color: "var(--text-primary)" }}>{c.name}</span>
-                    <span className="tabular-nums font-mono font-medium shrink-0" style={{ color: "var(--text-secondary)" }}>
-                      {formatCOP(c.amount)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <BreakEvenFicha
+              data={{
+                unitsPerMonth: viewing.breakEvenUnits,
+                unitsPerDay: viewingDaily.unitsPerDay,
+                revenuePerMonth: viewing.breakEvenRevenue,
+                revenuePerDay: viewingDaily.revenuePerDay,
+                fixedTotal: viewing.totalFixedCosts,
+                salePrice: viewing.salePrice,
+                variableCost: viewing.variableCost,
+                contributionMargin: viewing.contributionMargin,
+                fixedCosts: viewing.fixedCosts,
+              }}
+            />
           </div>
         )}
       </Modal>

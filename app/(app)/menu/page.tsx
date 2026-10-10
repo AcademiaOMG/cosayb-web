@@ -1,21 +1,24 @@
 "use client"
 
 import useSWR from "swr"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
-import Input from "@/components/ui/Input"
 import Table from "@/components/ui/Table"
 import Modal from "@/components/ui/Modal"
-import RatioDonut, { RatioRow, COLOR_MP, COLOR_FIXED, COLOR_PROFIT } from "@/components/ui/RatioDonut"
-import InfoStat from "@/components/ui/InfoStat"
 import {
-  ArrowLeft, CheckCircle2, Plus, Trash2, UtensilsCrossed, ChefHat, Users, TrendingUp,
-  Loader2, CalendarDays, Pencil, Eye, ShoppingCart, Printer, StickyNote, ArrowLeftCircle, Percent,
+  CheckCircle2, Plus, Trash2, UtensilsCrossed, ChefHat, Users, Calculator, History,
+  Loader2, CalendarDays, Pencil, Eye, ShoppingCart, Printer, StickyNote, ArrowLeftCircle,
 } from "lucide-react"
-import type { Menu, Recipe, Ingrediente, CostoMenuResult, MenuIndicator } from "@/types/domain"
+import { scrollMainToTop } from "@/components/calculator/scrollMainToTop"
+import RecipePickerModal from "@/components/app/recipes/RecipePickerModal"
+import MenuCalculator, { type MenuCalcAdd } from "./MenuCalculator"
+import MenuFicha from "./MenuFicha"
+import { IND, fmt } from "./menuFormat"
+import { calcularCosto } from "@/lib/menuFicha"
+import type { Menu, Recipe, Ingrediente, MenuIndicator } from "@/types/domain"
 import {
   getMenus, getMenuById, getMenuCosto, createMenu, updateMenu, deleteMenu,
   getRecipes, getRecipeCost, getIngredientes, getListaCompras,
@@ -24,64 +27,17 @@ import type { CreateMenuPayload } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 
-// ─── Fórmulas (réplica exacta del backend calcularCostoMenu) ─────────────────
-interface RecetaCalculo {
-  cantidadGramos: number
-  costoGramo: number
-}
-
-function calcularCosto(
-  recetas: RecetaCalculo[],
-  numPersonas: number,
-  margenSeguridad: number,
-  pctMateriaPrima: number
-): CostoMenuResult | null {
-  if (recetas.length === 0 || numPersonas <= 0 || pctMateriaPrima <= 0) return null
-  const pctMP = pctMateriaPrima / 100
-  const margin = margenSeguridad / 100
-
-  const costoTotalPorcion = recetas.reduce(
-    (s, r) => s + r.cantidadGramos * r.costoGramo, 0
-  )
-  const costoTotalPersonas = costoTotalPorcion * numPersonas
-  const margenAplicadoPorcion = costoTotalPorcion * margin
-  const costoConMargenPorcion = costoTotalPorcion + margenAplicadoPorcion
-  const costoConMargenPersonas = costoConMargenPorcion * numPersonas
-  const precioPotencialVentaPorcion = costoConMargenPorcion / pctMP
-  const precioPotencialVentaTotal = precioPotencialVentaPorcion * numPersonas
-  const pctCostosFijos = ((1 - pctMP) / 1.8) * 100
-  const pctGanancia = (1 - (1 - pctMP) / 1.8 - pctMP) * 100
-  const indicator: MenuIndicator =
-    pctMP < 0.32 ? "MUY_BUENO" : pctMP > 0.37 ? "MALO" : "REGULAR"
-
-  return {
-    recetas: recetas.map((r) => ({
-      recipeId: "", nombre: "", ...r,
-      costoPorcionEnMenu: r.cantidadGramos * r.costoGramo,
-      costoTotalEnMenu: r.cantidadGramos * r.costoGramo * numPersonas,
-    })),
-    costoTotalPorcion, costoTotalPersonas, margenAplicadoPorcion,
-    costoConMargenPorcion, costoConMargenPersonas,
-    precioPotencialVentaPorcion, precioPotencialVentaTotal,
-    pctCostosFijos, pctGanancia, indicator,
-  }
-}
-
-// ─── Indicador ────────────────────────────────────────────────────────────────
-const IND: Record<MenuIndicator, { color: string; bg: string; text: string; label: string; sublabel: string }> = {
-  MUY_BUENO: { color: "#10B981", bg: "#ECFDF5", text: "#064E3B", label: "MUY BUENO", sublabel: "Excelente rentabilidad" },
-  REGULAR:   { color: "#F59E0B", bg: "#FFFBEB", text: "#78350F", label: "REGULAR",   sublabel: "Margen moderado" },
-  MALO:      { color: "#EF4444", bg: "#FEF2F2", text: "#7F1D1D", label: "MALO",      sublabel: "Revisar estructura de costos" },
-}
-
-// ─── Donut chart ──────────────────────────────────────────────────────────────
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const fmt = (v: number) =>
-  `$${v.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-
 const fmtDate = (d: string) =>
   new Date(d + "T12:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+
+/** Hoy en fecha local (YYYY-MM-DD): los menús nuevos se guardan con esta. */
+const hoyLocal = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
 
 // ─── % Materia Prima: persistencia local ──────────────────────────────────────
 function getStoredPctMP(fallback: string): string {
@@ -108,6 +64,9 @@ interface RecipeLineItem {
   orden: number
 }
 
+let lineItemSeq = 0
+const nextLineItemUid = () => `new-${++lineItemSeq}`
+
 function newLineItem(uid: string, orden: number, componentType: "recipe" | "ingredient" = "recipe"): RecipeLineItem {
   return {
     uid,
@@ -123,78 +82,6 @@ function newLineItem(uid: string, orden: number, componentType: "recipe" | "ingr
   }
 }
 
-// ─── Vista de panel de costos ─────────────────────────────────────────────────
-function CostoPanel({
-  costo, numPersonas, pctMP,
-}: {
-  costo: CostoMenuResult
-  numPersonas: number
-  pctMP: number
-}) {
-  const cfg = IND[costo.indicator]
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Indicador */}
-      <div className="rounded-xl px-4 py-3"
-        style={{ background: cfg.bg, border: `1px solid ${cfg.color}30`, transition: "background .4s ease" }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-2 h-2 rounded-full" style={{ background: cfg.color, transition: "background .4s ease" }} />
-            <span className="text-sm font-bold" style={{ color: cfg.text }}>{cfg.label}</span>
-          </div>
-          <span className="text-xs" style={{ color: cfg.text, opacity: 0.75 }}>{cfg.sublabel}</span>
-        </div>
-      </div>
-
-      {/* Precio sugerido */}
-      <Card>
-        <p className="text-xs font-semibold tracking-widest mb-1" style={{ color: "var(--text-muted)" }}>
-          PRECIO SUGERIDO / PORCIÓN
-        </p>
-        <p className="text-4xl font-bold tabular-nums mb-1" style={{ color: "var(--text-primary)", lineHeight: 1.1 }}>
-          {fmt(costo.precioPotencialVentaPorcion)}
-        </p>
-        {numPersonas > 1 && (
-          <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-            Total {numPersonas} personas:{" "}
-            <strong style={{ color: "var(--text-secondary)" }}>
-              {fmt(costo.precioPotencialVentaTotal)}
-            </strong>
-          </p>
-        )}
-
-        <div className="flex justify-center my-5">
-          <RatioDonut mp={pctMP} fixed={costo.pctCostosFijos} profit={costo.pctGanancia} profitColor={cfg.color} />
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <RatioRow label="Materia prima" color={COLOR_MP} pct={pctMP} />
-          <RatioRow label="Costos fijos"  color={COLOR_FIXED} pct={costo.pctCostosFijos} />
-          <RatioRow label="Ganancia"       color={COLOR_PROFIT} pct={costo.pctGanancia} />
-        </div>
-
-        <div className="mt-5 pt-4 flex flex-col gap-2"
-          style={{ borderTop: "1px solid var(--border-light)" }}>
-          <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--text-muted)" }}>Costo por porción</span>
-            <strong style={{ color: "var(--text-secondary)" }}>{fmt(costo.costoTotalPorcion)}</strong>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--text-muted)" }}>Con margen</span>
-            <strong style={{ color: "var(--text-secondary)" }}>{fmt(costo.costoConMargenPorcion)}</strong>
-          </div>
-          {numPersonas > 1 && (
-            <div className="flex justify-between text-sm">
-              <span style={{ color: "var(--text-muted)" }}>Costo total ({numPersonas} pers.)</span>
-              <strong style={{ color: "var(--text-secondary)" }}>{fmt(costo.costoTotalPersonas)}</strong>
-            </div>
-          )}
-        </div>
-      </Card>
-    </div>
-  )
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // VISTA DETALLE / CREAR
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -202,19 +89,24 @@ function DetailView({
   menu,
   availableRecipes,
   availableIngredients,
-  onBack,
   onSaved,
+  onDirtyChange,
 }: {
   menu: Menu | null
   availableRecipes: Recipe[]
   availableIngredients: Ingrediente[]
-  onBack: () => void
   onSaved: () => void
+  /** Avisa a la página si quedan datos sin guardar (guard de pestañas) */
+  onDirtyChange: (dirty: boolean) => void
 }) {
   const isNew = menu === null
 
+  // La fecha ya no se elige: los menús nuevos se guardan con la de hoy y al
+  // editar se conserva la original.
+  const [fecha] = useState(menu?.fecha ?? hoyLocal())
+  // El nombre se escribe en el modal de resultado, junto a "Guardar": un menú
+  // nuevo arranca sin nombre (se ve el placeholder) y al editar, con el original.
   const [nombre, setNombre] = useState(menu?.nombre ?? "")
-  const [fecha, setFecha] = useState(menu?.fecha ?? new Date().toISOString().slice(0, 10))
   const [numPersonas, setNumPersonas] = useState(String(menu?.numPersonas ?? 10))
   const [margenSeguridad, setMargenSeguridad] = useState(
     menu ? String(parseFloat(menu.margenSeguridad)) : "5"
@@ -253,11 +145,19 @@ function DetailView({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [shoppingOpen, setShoppingOpen] = useState(false)
+  const [resultOpen, setResultOpen] = useState(false)
 
-  const recipeOptions = useMemo(
-    () => availableRecipes.map((r) => ({ value: r.id, label: r.name })),
-    [availableRecipes],
-  )
+  // Datos escritos sin guardar: cambiar de pestaña pide confirmación. La
+  // firma excluye campos que cambian solo por cargas asíncronas (costos).
+  const sig = JSON.stringify({
+    nombre, fecha, numPersonas, margenSeguridad, pctMateriaPrima, notas,
+    items: lineItems.map((i) => [i.componentType, i.recipeId, i.ingredientId, i.cantidadGramos]),
+  })
+  const baselineRef = useRef(sig)
+  useEffect(() => {
+    onDirtyChange(sig !== baselineRef.current)
+  }, [sig, onDirtyChange])
+
   const ingredientOptions = useMemo(
     () => availableIngredients.map((i) => ({ value: i.id, label: i.name })),
     [availableIngredients],
@@ -333,13 +233,70 @@ function DetailView({
     })),
     nPers, margin, pctMP
   )
-
   const cfg = costo ? IND[costo.indicator] : null
-  const sliderThumbColor = cfg?.color ?? "#1B4FD8"
 
-  function addLineItem(componentType: "recipe" | "ingredient" = "recipe") {
-    const uid = `new-${Date.now()}`
-    setLineItems((prev) => [...prev, newLineItem(uid, prev.length, componentType)])
+  // Selector de platos con la lista de recetas del módulo Recetas
+  const [recipePickerOpen, setRecipePickerOpen] = useState(false)
+  const [recipePickerTarget, setRecipePickerTarget] = useState<string | null>(null)
+
+  // Cambios de la calculadora del menú → states del formulario
+  function handleCalcChange(field: "persons" | "margin" | "pctMP", raw: string) {
+    if (field === "persons") setNumPersonas(raw)
+    else if (field === "margin") setMargenSeguridad(raw)
+    else setPctMateriaPrima(raw)
+  }
+
+  // Valores con que abrió la vista: con ellos arranca "Limpiar" en la calculadora
+  const [calcReset] = useState(() => ({
+    persons: numPersonas,
+    margin: margenSeguridad,
+    pctMP: pctMateriaPrima,
+  }))
+
+  /** Agrega desde la calculadora: receta (con costo) o ingrediente, con sus gramos por porción */
+  function addFromCalc({ componentType, id, grams }: MenuCalcAdd) {
+    const uid = nextLineItemUid()
+    if (componentType === "recipe") {
+      const recipe = availableRecipes.find((r) => r.id === id)
+      setLineItems((prev) => [
+        ...prev,
+        { ...newLineItem(uid, prev.length, "recipe"), recipeId: id, nombre: recipe?.name ?? "", cantidadGramos: grams },
+      ])
+      void fetchRecipeCost(uid, id)
+      return
+    }
+    const ing = availableIngredients.find((i) => i.id === id)
+    setLineItems((prev) => [
+      ...prev,
+      {
+        ...newLineItem(uid, prev.length, "ingredient"),
+        ingredientId: id,
+        nombre: ing?.name ?? "",
+        // Extras: costo por UNIDAD directo del catálogo, sin fetch
+        costoGramo: ing ? parseFloat(ing.costPerUnit) : null,
+        cantidadGramos: grams,
+      },
+    ])
+  }
+
+  /** Abre la lista de recetas: targetUid = null agrega un plato nuevo, con uid cambia el de esa línea */
+  function openRecipePicker(targetUid: string | null) {
+    setRecipePickerTarget(targetUid)
+    setRecipePickerOpen(true)
+  }
+
+  function handlePickRecipe(recipe: Recipe) {
+    setRecipePickerOpen(false)
+    if (recipePickerTarget) {
+      selectRecipe(recipePickerTarget, recipe.id)
+      return
+    }
+    const uid = nextLineItemUid()
+    setLineItems((prev) => [
+      ...prev,
+      { ...newLineItem(uid, prev.length, "recipe"), recipeId: recipe.id, nombre: recipe.name },
+    ])
+    void fetchRecipeCost(uid, recipe.id)
   }
 
   function removeLineItem(uid: string) {
@@ -380,23 +337,32 @@ function DetailView({
     )
   }
 
-  function updateGrams(uid: string, value: string) {
-    setLineItems((prev) =>
-      prev.map((item) => item.uid === uid ? { ...item, cantidadGramos: value } : item)
-    )
+  function handleCalcular() {
+    if (!costo) {
+      setError(
+        "No se puede calcular: agrega al menos un plato con costo, define el número de personas y el % de materia prima."
+      )
+      return
+    }
+    setError(null)
+    setResultOpen(true)
   }
 
   async function handleSave() {
     if (!nombre.trim()) { setError("El nombre del menú es obligatorio"); return }
     if (validItems.length === 0) { setError("Agrega al menos una receta con costo calculado"); return }
+    const personas = parseInt(numPersonas)
+    if (!personas || personas < 1) { setError("Define el número de personas en la calculadora"); return }
+    const pct = parseFloat(pctMateriaPrima)
+    if (!(pct > 0)) { setError("Define el % de materia prima en la calculadora"); return }
     setSaving(true)
     setError(null)
     const payload: CreateMenuPayload = {
       nombre: nombre.trim(),
-      fecha,
-      numPersonas: parseInt(numPersonas),
-      margenSeguridad: parseFloat(margenSeguridad),
-      pctMateriaPrima: parseFloat(pctMateriaPrima),
+      fecha: isNew ? hoyLocal() : fecha,
+      numPersonas: personas,
+      margenSeguridad: parseFloat(margenSeguridad) || 0,
+      pctMateriaPrima: pct,
       notas: notas.trim() || undefined,
       recetas: validItems.map((r, i) =>
         r.componentType === "ingredient"
@@ -433,49 +399,17 @@ function DetailView({
   return (
     <div className="flex flex-col gap-0">
 
-      {/* ── Barra superior (mobile: 3 filas — volver, nombre, acciones) ── */}
-      <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:gap-4">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70 self-start md:self-center"
-          style={{ color: "var(--text-muted)" }}
-        >
-          <ArrowLeft size={14} />
-          Menús
-        </button>
-
-        <input
-          type="text"
-          placeholder="Nombre del menú..."
-          value={nombre}
-          onChange={(e) => { setNombre(e.target.value); setError(null) }}
-          className="min-w-0 w-full bg-transparent text-lg font-semibold outline-none border-none md:w-auto md:flex-1"
-          style={{ color: "var(--text-primary)" }}
-        />
-
-        <div className="flex flex-wrap items-center gap-3">
-          {error && <span className="text-sm break-words" style={{ color: "#EF4444" }}>{error}</span>}
-          {success && (
-            <span className="text-sm flex items-center gap-1.5" style={{ color: "#166534" }}>
-              <CheckCircle2 size={14} />
-              Guardado
-            </span>
-          )}
-          {!isNew && (
-            <Button variant="ghost" onClick={() => setShoppingOpen(true)}>
-              <ShoppingCart size={14} />
-              Lista de compras
-            </Button>
-          )}
-          <Button
-            variant="primary"
-            loading={saving}
-            disabled={!nombre.trim() || validItems.length === 0 || success}
-            onClick={handleSave}
-          >
-            {isNew ? "Crear menú" : "Guardar cambios"}
+      {/* ── Barra superior: acciones ── */}
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+        {error && !resultOpen && (
+          <span role="alert" className="text-sm break-words" style={{ color: "var(--error)" }}>{error}</span>
+        )}
+        {!isNew && (
+          <Button variant="ghost" onClick={() => setShoppingOpen(true)}>
+            <ShoppingCart size={14} />
+            Lista de compras
           </Button>
-        </div>
+        )}
       </div>
 
       {/* Modal: lista de compras (aquí SÍ es un modal independiente — DetailView es una página, no otro modal) */}
@@ -485,128 +419,66 @@ function DetailView({
           onClose={() => setShoppingOpen(false)}
           title={`Lista de compras — ${menu!.nombre}`}
           wide
+          blur
           footer={<ShoppingListFooter menuId={menu!.id} onBack={() => setShoppingOpen(false)} backLabel="Cerrar" />}
         >
           <ShoppingListBody menuId={menu!.id} />
         </Modal>
       )}
 
-      {/* ── Contenido ── */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1.1fr] gap-6">
+      {/* ── Contenido: calculadora (izq.) + platos, extras y notas (der.) ── */}
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-        {/* ── Columna izquierda: parámetros + recetas ── */}
-        <div className="flex flex-col gap-4">
+          {/* Columna izquierda: calculadora del menú (sin tarjeta: el aparato se ve directo) */}
+          <MenuCalculator
+            key={menu?.id ?? "new"}
+            values={{ persons: numPersonas, margin: margenSeguridad, pctMP: pctMateriaPrima }}
+            resetValues={calcReset}
+            itemCount={lineItems.length}
+            costoPorcion={costo ? costo.costoTotalPorcion : null}
+            loading={lineItems.some((i) => i.costoLoading)}
+            
+            onChange={handleCalcChange}
+            recipes={availableRecipes.map((r) => ({ id: r.id, name: r.name }))}
+            ingredients={availableIngredients.map((i) => ({ id: i.id, name: i.name }))}
+            onAddItem={addFromCalc}
+            onCalculate={handleCalcular}
+          />
 
-          {/* Parámetros */}
-          <Card>
-            <p className="text-xs font-semibold tracking-widest mb-5" style={{ color: "var(--text-muted)" }}>
-              PARÁMETROS
-            </p>
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Fecha del evento"
-                  type="date"
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
-                  hint="¿Cuándo se sirve este menú?"
-                />
-                <Input
-                  label="N° de personas"
-                  type="number"
-                  min="1"
-                  value={numPersonas}
-                  onChange={(e) => setNumPersonas(e.target.value)}
-                  hint="¿Cuántos comensales?"
-                />
-              </div>
-
-              {/* Slider % MP */}
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                    % del precio que son ingredientes
-                  </label>
-                  <div className="flex items-center gap-2">
-                    {cfg && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: cfg.bg, color: cfg.text, transition: "all 0.3s ease" }}>
-                        {cfg.label}
-                      </span>
-                    )}
-                    <span className="text-base font-bold tabular-nums"
-                      style={{ color: cfg?.color ?? "var(--text-muted)", transition: "color 0.3s ease", minWidth: 44, textAlign: "right" }}>
-                      {pctMateriaPrima}%
-                    </span>
-                  </div>
-                </div>
-                <input
-                  type="range" min="1" max="99" step="0.5"
-                  value={pctMateriaPrima}
-                  onChange={(e) => setPctMateriaPrima(e.target.value)}
-                  className="pct-slider w-full"
-                  style={{ "--slider-thumb-color": sliderThumbColor } as React.CSSProperties}
-                />
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  Menor % = más rentabilidad — Ideal &lt;32% · Aceptable 32–37% · Revisar &gt;37%
-                </p>
-              </div>
-
-              <Input
-                label="Margen de seguridad (%)"
-                type="number" min="0" max="50"
-                placeholder="5"
-                value={margenSeguridad}
-                onChange={(e) => setMargenSeguridad(e.target.value)}
-                hint="Colchón ante subidas de precio en ingredientes. Recomendado: 3–5%"
-              />
-            </div>
-          </Card>
+          {/* Columna derecha: platos, extras y notas */}
+          <div className="flex flex-col gap-4">
 
           {/* Recetas del menú */}
           <Card>
-            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+            <div className="flex items-center justify-between gap-2 mb-4">
               <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
                 PLATOS Y EXTRAS DEL MENÚ
               </p>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => addLineItem("recipe")}
-                  className="flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-70"
-                  style={{ color: "var(--text-accent, #1B4FD8)" }}
+              {lineItems.length > 0 && (
+                <span
+                  className="text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums"
+                  style={{ background: "var(--accent-light)", color: "var(--accent-text)" }}
                 >
-                  <Plus size={12} />
-                  Receta
-                </button>
-                <button
-                  onClick={() => addLineItem("ingredient")}
-                  className="flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-70"
-                  style={{ color: "var(--text-accent, #1B4FD8)" }}
-                  title="Gaseosas, jugos, platos, servilletas y otros por unidad"
-                >
-                  <Plus size={12} />
-                  Extra (bebidas, desechables…)
-                </button>
-              </div>
+                  {lineItems.length}
+                </span>
+              )}
             </div>
 
             {lineItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
+              <div
+                className="flex flex-col items-center justify-center py-8 text-center gap-3 rounded-xl"
+                style={{ border: "1.5px dashed var(--border-medium)" }}
+              >
                 <ChefHat size={28} style={{ color: "var(--text-muted)" }} />
                 {availableRecipes.length === 0 ? (
                   <p className="text-sm px-4" style={{ color: "var(--text-muted)" }}>
                     Primero crea tus recetas en la sección <strong>Recetas</strong>, luego vuelve aquí para armar el menú.
                   </p>
                 ) : (
-                  <>
-                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                      Agrega los platos que incluye este menú
-                    </p>
-                    <Button variant="primary" onClick={() => addLineItem("recipe")}>
-                      <Plus size={14} />
-                      Agregar primer plato
-                    </Button>
-                  </>
+                  <p className="text-sm px-4" style={{ color: "var(--text-muted)" }}>
+                    Agrega los platos que incluye este menú con el botón <strong>Agregar a la lista</strong> de la calculadora
+                  </p>
                 )}
               </div>
             ) : (
@@ -616,8 +488,8 @@ function DetailView({
                     ? parseFloat(item.cantidadGramos) * item.costoGramo
                     : item.rawCostPerServing
                   return (
-                    <div key={item.uid} className="flex items-center gap-2 p-2 rounded-lg"
-                      style={{ background: "var(--bg-secondary)" }}>
+                    <div key={item.uid} className="flex items-center gap-2 px-3 py-2 rounded-xl transition-shadow hover:shadow-sm"
+                      style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}>
                       {/* Selector de receta o de ingrediente extra */}
                       <div className="flex-1 min-w-0 flex items-center gap-2">
                         {item.componentType === "ingredient" && (
@@ -644,31 +516,41 @@ function DetailView({
                               No hay ingredientes. Créalos en Inventario (ej. GASEOSA, PLATO DESECHABLE).
                             </span>
                           )
-                        ) : availableRecipes.length > 0 ? (
-                          <SearchableSelect
-                            options={recipeOptions}
-                            value={item.recipeId}
-                            onChange={(val) => selectRecipe(item.uid, val)}
-                            placeholder="— Seleccionar receta —"
-                            emptyMessage="No se encontraron recetas"
-                            ariaLabel="Receta"
-                          />
+                        ) : item.recipeId ? (
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate text-sm" style={{ color: "var(--text-primary)" }}>
+                              {item.nombre}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openRecipePicker(item.uid)}
+                              className="shrink-0 transition-opacity hover:opacity-70"
+                              style={{ color: "var(--text-muted)" }}
+                              title="Cambiar receta"
+                              aria-label={`Cambiar receta ${item.nombre}`}
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                            No hay recetas. Crea una en la sección Recetas.
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openRecipePicker(item.uid)}
+                            className="text-xs font-medium transition-opacity hover:opacity-70"
+                            style={{ color: "var(--text-accent, #1B4FD8)" }}
+                          >
+                            Elegir receta
+                          </button>
                         )}
                       </div>
 
                       {/* Cantidad (g por persona para recetas, unidades por persona para extras) */}
-                      <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
-                        <input
-                          type="number" min="1" step={item.componentType === "ingredient" ? 1 : 10}
-                          value={item.cantidadGramos}
-                          onChange={(e) => updateGrams(item.uid, e.target.value)}
-                          className="text-sm tabular-nums outline-none text-right bg-transparent"
-                          style={{ width: 56, color: "var(--text-primary)" }}
-                        />
+                      <div
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-sm tabular-nums"
+                        style={{ flexShrink: 0, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+                        title="Para cambiar la cantidad, quita el ítem y agrégalo de nuevo desde la calculadora"
+                      >
+                        <span>{item.cantidadGramos}</span>
                         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
                           {item.componentType === "ingredient" ? "und" : "g"}
                         </span>
@@ -692,8 +574,11 @@ function DetailView({
 
                       {/* Borrar */}
                       <button
+                        type="button"
                         onClick={() => removeLineItem(item.uid)}
-                        className="transition-opacity hover:opacity-70"
+                        aria-label={`Quitar ${item.nombre || "ítem"} de la lista`}
+                        title="Quitar de la lista"
+                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
                         style={{ color: "var(--text-muted)", flexShrink: 0 }}
                       >
                         <Trash2 size={13} />
@@ -704,8 +589,8 @@ function DetailView({
 
                 {/* Total */}
                 {costo && (
-                  <div className="flex justify-between pt-2 mt-1 text-sm font-semibold"
-                    style={{ borderTop: "1px solid var(--border-light)", color: "var(--text-primary)" }}>
+                  <div className="flex justify-between px-3 py-2.5 mt-1 text-sm font-semibold rounded-xl"
+                    style={{ background: "var(--accent-light)", color: "var(--accent-text)" }}>
                     <span>Total por porción</span>
                     <span className="tabular-nums">{fmt(costo.costoTotalPorcion)}</span>
                   </div>
@@ -727,30 +612,95 @@ function DetailView({
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
             />
           </Card>
+          </div>
         </div>
-
-        {/* ── Columna derecha: análisis en vivo ── */}
-        {costo ? (
-          <CostoPanel costo={costo} numPersonas={nPers} pctMP={pctMP} />
-        ) : (
-          <Card>
-            <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ background: "var(--bg-secondary)" }}>
-                <TrendingUp size={24} style={{ color: "var(--text-muted)" }} />
-              </div>
-              <div>
-                <p className="font-medium" style={{ color: "var(--text-secondary)" }}>
-                  Agrega recetas con gramos y configuración
-                </p>
-                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-                  El análisis de costo aparecerá aquí en tiempo real
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
       </div>
+
+      {/* ── Modal: selector de platos (lista de recetas) ───────────────────── */}
+      <RecipePickerModal
+        open={recipePickerOpen}
+        recipes={availableRecipes}
+        onClose={() => setRecipePickerOpen(false)}
+        onSelect={handlePickRecipe}
+      />
+
+      {/* ── Modal: resultado del cálculo (fondo desenfocado) ── */}
+      <Modal
+        open={resultOpen}
+        onClose={() => setResultOpen(false)}
+        title="Resultado del cálculo"
+        wide
+        blur
+        footer={
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <div className="min-w-0 flex-1 sm:max-w-sm">
+              <input
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                maxLength={120}
+                placeholder="Nombre del menú (ej. Cumpleaños de Tuty)"
+                aria-label="Nombre del menú"
+                disabled={success}
+                className="w-full h-10 rounded-xl px-3 text-sm outline-none"
+                style={{
+                  background: "var(--bg-surface)",
+                  border: `1px solid ${error && !nombre.trim() ? "var(--error)" : "var(--border-medium)"}`,
+                  color: "var(--text-primary)",
+                }}
+              />
+              {success && (
+                <span role="status" className="text-xs mt-1 flex items-center gap-1.5" style={{ color: "#166534" }}>
+                  <CheckCircle2 size={13} />
+                  Guardado
+                </span>
+              )}
+              {error && !success && (
+                <span role="alert" className="text-xs mt-1 block break-words" style={{ color: "var(--error)" }}>{error}</span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+              <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setResultOpen(false)}>
+                Cerrar
+              </Button>
+              <Button
+                variant="primary"
+                className="w-full sm:w-auto"
+                loading={saving}
+                disabled={!nombre.trim() || validItems.length === 0 || success}
+                onClick={handleSave}
+              >
+                {isNew ? "Guardar menú" : "Guardar cambios"}
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        {costo && (
+          <div className="flex flex-col gap-5">
+            <MenuFicha
+              costo={costo}
+              numPersonas={nPers}
+              margenPct={margin}
+              pctMP={pctMP}
+              items={validItems.map((item) => {
+                const cantidad = parseFloat(item.cantidadGramos)
+                const porPorcion = item.costoGramo !== null
+                  ? cantidad * item.costoGramo
+                  : (item.rawCostPerServing ?? 0)
+                return {
+                  key: item.uid,
+                  nombre: item.nombre,
+                  extra: item.componentType === "ingredient",
+                  cantidad,
+                  unidad: item.componentType === "ingredient" ? "und" : "g",
+                  costoUnit: item.costoGramo ?? porPorcion / cantidad,
+                }
+              })}
+            />
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
@@ -792,6 +742,7 @@ function MenuViewModal({
       onClose={onClose}
       title={subview === "compras" ? `Lista de compras — ${data?.nombre ?? ""}` : (data?.nombre ?? "Ver menú")}
       wide
+      blur
       footer={
         subview === "compras" ? (
           <ShoppingListFooter menuId={menuId} onBack={() => setSubview("detalle")} />
@@ -819,7 +770,7 @@ function MenuViewModal({
       )}
 
       {error && (
-        <p className="text-sm text-center py-10" style={{ color: "#EF4444" }}>
+        <p className="text-sm text-center py-10" style={{ color: "var(--error)" }}>
           No se pudo cargar el menú.
         </p>
       )}
@@ -827,99 +778,44 @@ function MenuViewModal({
       {/* ═══ Subvista: detalle ═══ */}
       {data && subview === "detalle" && (
         <div className="flex flex-col gap-5">
-          {/* Datos generales — mini-tarjetas (el indicador de rentabilidad ya se muestra en el panel de costo, a la derecha) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <InfoStat
-              icon={<CalendarDays size={12} style={{ color: "var(--text-muted)" }} />}
-              label="Fecha del evento"
-              value={fmtDate(data.fecha)}
-            />
-            <InfoStat
-              icon={<Users size={12} style={{ color: "var(--text-muted)" }} />}
-              label="Personas"
-              value={data.numPersonas}
-            />
-            <InfoStat
-              icon={<Percent size={12} style={{ color: "var(--text-muted)" }} />}
-              label="% Materia prima"
-              value={`${pctMP.toFixed(0)}%`}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr] gap-5">
-            {/* ── Izquierda: platos y extras + notas ── */}
-            <div className="flex flex-col gap-4 min-w-0">
-              <div>
-                <div className="flex items-center gap-2 mb-2.5">
-                  <ChefHat size={15} style={{ color: "var(--accent)" }} />
-                  <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
-                    PLATOS Y EXTRAS ({items.length})
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  {items.map((item) => (
-                    <div
-                      key={item.recipeId}
-                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
-                      style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
-                    >
-                      {item.tipo === "ingredient" && (
-                        <span
-                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full tracking-wider uppercase shrink-0"
-                          style={{ background: "#FEF3C7", color: "#92400E" }}
-                        >
-                          Extra
-                        </span>
-                      )}
-                      <span className="flex-1 min-w-0 truncate text-sm" style={{ color: "var(--text-primary)" }}>
-                        {item.nombre}
-                      </span>
-                      <span className="text-xs tabular-nums font-mono shrink-0" style={{ color: "var(--text-muted)" }}>
-                        {item.cantidadGramos} {item.unidad ?? "g"}
-                      </span>
-                      <span
-                        className="text-sm font-semibold tabular-nums font-mono shrink-0"
-                        style={{ color: "var(--text-primary)", minWidth: 76, textAlign: "right" }}
-                      >
-                        {fmt(item.costoPorcionEnMenu)}
-                      </span>
-                    </div>
-                  ))}
-                  {items.length === 0 && (
-                    <p className="text-sm py-4 text-center" style={{ color: "var(--text-muted)" }}>Sin ítems.</p>
-                  )}
-                </div>
+          {data.costo ? (
+            <>
+              <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
+                <CalendarDays size={14} />
+                <span>Menú del <strong style={{ color: "var(--text-secondary)" }}>{fmtDate(data.fecha)}</strong></span>
               </div>
+              <MenuFicha
+                costo={data.costo}
+                numPersonas={data.numPersonas}
+                margenPct={parseFloat(data.margenSeguridad) || 0}
+                pctMP={pctMP}
+                items={items.map((item) => ({
+                  key: item.recipeId,
+                  nombre: item.nombre,
+                  extra: item.tipo === "ingredient",
+                  cantidad: item.cantidadGramos,
+                  unidad: item.unidad ?? "g",
+                  costoUnit: item.costoGramo,
+                }))}
+              />
+            </>
+          ) : (
+            <p className="text-sm text-center py-10" style={{ color: "var(--text-muted)" }}>
+              Sin análisis de costo disponible.
+            </p>
+          )}
 
-              {data.notas && (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <StickyNote size={14} style={{ color: "var(--text-muted)" }} />
-                    <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
-                      NOTAS
-                    </p>
-                  </div>
-                  <p
-                    className="text-sm px-3 py-2.5 rounded-xl"
-                    style={{ color: "var(--text-secondary)", background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
-                  >
-                    {data.notas}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* ── Derecha: análisis de costo ── */}
-            <div className="min-w-0">
-              {data.costo ? (
-                <CostoPanel costo={data.costo} numPersonas={data.numPersonas} pctMP={pctMP} />
-              ) : (
-                <p className="text-sm text-center py-10" style={{ color: "var(--text-muted)" }}>
-                  Sin análisis de costo disponible.
+          {data.notas && (
+            <div className="rounded-2xl px-4 py-3" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <StickyNote size={14} style={{ color: "var(--text-muted)" }} />
+                <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
+                  NOTAS
                 </p>
-              )}
+              </div>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{data.notas}</p>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -946,7 +842,7 @@ function ShoppingListBody({ menuId }: { menuId: string }) {
 
   if (error) {
     return (
-      <p className="text-sm text-center py-10" style={{ color: "#EF4444" }}>
+      <p className="text-sm text-center py-10" style={{ color: "var(--error)" }}>
         No se pudo generar la lista de compras.
       </p>
     )
@@ -1123,7 +1019,7 @@ function MenuCard({ menu, onClick, onDelete }: {
             <span className="text-xs self-center" style={{ color: "var(--text-muted)" }}>¿Eliminar?</span>
             <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
             <Button variant="ghost" size="sm" onClick={onDelete}
-              style={{ color: "#EF4444" }}>Confirmar</Button>
+              style={{ color: "var(--error)" }}>Confirmar</Button>
           </>
         ) : (
           <button
@@ -1238,7 +1134,7 @@ function MenuTable({
                     <span className="text-xs" style={{ color: "var(--text-muted)" }}>¿Eliminar?</span>
                     <Button variant="ghost" size="sm" onClick={() => setConfirmId(null)}>Cancelar</Button>
                     <Button variant="ghost" size="sm" onClick={() => { onDelete(id); setConfirmId(null) }}
-                      style={{ color: "#EF4444" }}>Confirmar</Button>
+                      style={{ color: "var(--error)" }}>Confirmar</Button>
                   </>
                 ) : (
                   <>
@@ -1262,7 +1158,7 @@ function MenuTable({
                       onClick={() => setConfirmId(id)}
                       title="Eliminar menú"
                       className="p-1.5 rounded-lg transition-colors hover:opacity-70"
-                      style={{ color: "#EF4444" }}
+                      style={{ color: "var(--error)" }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1330,7 +1226,8 @@ type PageView = "list" | "detail"
 
 export default function MenuPage() {
   useHelpAvailable()
-  const { can, hasFeature, featureLockedMessage } = usePermissions()
+  const { can, hasFeature, featureLockedMessage, isLoading: permsLoading } = usePermissions()
+  const revalidateOnboarding = useRevalidateOnboarding()
   const { data: menus = [], isLoading: menusLoading, mutate: mutateMenus } = useSWR(
     "menus",
     () => getMenus().then((r) => r.data ?? []),
@@ -1352,16 +1249,43 @@ export default function MenuPage() {
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
-  const [view, setView] = useState<PageView>("list")
+  // Al cargar, la pestaña inicial es la Calculadora (si el rol puede crear
+  // menús); el Historial solo se muestra al elegirlo o si no hay permiso.
+  const [chosenView, setView] = useState<PageView | null>(null)
+  const view: PageView = chosenView ?? (can("menus", "create") ? "detail" : "list")
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [viewingMenuId, setViewingMenuId] = useState<string | null>(null)
+  // Datos escritos sin guardar en la calculadora + confirmación de salida
+  const [calcDirty, setCalcDirty] = useState(false)
+  const [exitConfirm, setExitConfirm] = useState(false)
 
   useEffect(() => {
     function handleHelp() { setHelpOpen(true) }
     window.addEventListener("open-help", handleHelp)
     return () => window.removeEventListener("open-help", handleHelp)
   }, [])
+
+  /** Cambio de pestaña: salir de la calculadora con datos sin guardar pide confirmación. */
+  function switchView(next: PageView) {
+    if (next === view) return
+    if (next === "list" && calcDirty) {
+      setExitConfirm(true)
+      return
+    }
+    if (next === "detail") setCalcDirty(false)
+    setExitConfirm(false)
+    setView(next)
+    scrollMainToTop()
+  }
+
+  /** Salida aceptada de la calculadora (tras guardar o con la confirmación visible). */
+  function backToHistory() {
+    setCalcDirty(false)
+    setExitConfirm(false)
+    setView("list")
+    scrollMainToTop()
+  }
 
   async function openEdit(menu: Menu) {
     try {
@@ -1370,91 +1294,221 @@ export default function MenuPage() {
     } catch {
       setEditingMenu(menu)
     }
-    setView("detail")
+    switchView("detail")
   }
 
   function openCreate() {
     setEditingMenu(null)
-    setView("detail")
+    switchView("detail")
   }
 
   async function handleDelete(id: string) {
     try {
       await deleteMenu(id)
       await mutateMenus()
+      revalidateOnboarding()
     } catch {
       // silencioso
     }
   }
 
   async function handleSaved() {
+    setCalcDirty(false)
+    setExitConfirm(false)
     await mutateMenus()
+    revalidateOnboarding()
     setView("list")
+    scrollMainToTop()
   }
+
+  // Mientras cargan los permisos no se sabe si el módulo está habilitado —
+  // no mostrar "módulo bloqueado" por un instante a quien sí lo tiene.
+  if (permsLoading) return null
 
   if (!hasFeature("module_menus")) {
     return <ModuleLocked message={featureLockedMessage("module_menus")} />
   }
 
-  // ── Vista detalle ──
-  if (view === "detail") {
-    return (
-      <DetailView
-        menu={editingMenu}
-        availableRecipes={availableRecipes}
-        availableIngredients={availableIngredients}
-        onBack={() => setView("list")}
-        onSaved={handleSaved}
-      />
-    )
-  }
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    borderRadius: "var(--radius-sm)",
+    ...(active
+      ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
+      : { color: "var(--text-muted)" }),
+  })
 
-  // ── Vista lista ──
+  // La ayuda debe abrir también dentro de la calculadora (el botón de la app sigue visible).
+  const helpModal = (
+    <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="Menús" blur>
+      <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+        <p>Esta sección te permite crear y gestionar menús para eventos y servicios, agrupando platos y calculando costos.</p>
+
+        <div>
+          <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Cómo usarla:</p>
+          <ul className="flex flex-col gap-2 ml-1">
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Calculadora:</strong> en las pestañas del encabezado toca &quot;Calculadora&quot; para armar un menú nuevo. Para retomar uno guardado, ábrelo desde el historial con &quot;Editar&quot;.</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Parámetros:</strong> número de personas, margen de seguridad y % de materia prima se ajustan con el teclado de la calculadora; la fecha se pone sola al guardar el menú.</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Agregar platos:</strong> elige <strong>Recetas</strong> o <strong>Ingredientes</strong>, búscalo en el selector, escribe con el teclado los gramos (o unidades) por porción y pulsa <strong>Agregar a la lista</strong>; el producto queda en la lista de la derecha.</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Calcular:</strong> pulsa &quot;Calcular&quot; y el resultado se abre en un modal: precio sugerido, indicador de rentabilidad, reparto de precios y el desglose por plato. Desde ahí guarda el menú.</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Historial:</strong> en la pestaña &quot;Historial&quot; consulta tus menús guardados, ver su detalle y lista de compras, o elimínalos.</span>
+            </li>
+            <li className="flex gap-2">
+              <span style={{ color: "var(--accent)" }}>•</span>
+              <span><strong>Indicador de rentabilidad:</strong> MUY BUENO (&lt;32%), REGULAR (32-37%), MALO (&gt;37%).</span>
+            </li>
+          </ul>
+        </div>
+
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          <strong>Nota:</strong> El margen de seguridad protege contra subidas de precios. Recomendado: 3-5%.
+        </p>
+      </div>
+    </Modal>
+  )
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Menús"
         subtitle="Para eventos y servicios: agrupa platos, define gramos por porción y calcula el precio por persona"
         action={
-          can("menus", "create") ? (
-            <Button variant="primary" onClick={openCreate}>
-              <Plus size={15} />
-              Nuevo menú
-            </Button>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Pestañas de vista — mismo patrón que el módulo de Valoración */}
+            <div
+              className="hidden sm:flex items-center gap-1 p-1 shrink-0"
+              style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-md)" }}
+            >
+              <button
+                type="button"
+                onClick={() => { if (view === "list" && can("menus", "create")) openCreate() }}
+                className="px-3 py-1.5 text-sm font-medium transition-colors"
+                style={tabStyle(view === "detail")}
+              >
+                Calculadora
+              </button>
+              <button
+                type="button"
+                onClick={() => switchView("list")}
+                className="px-3 py-1.5 text-sm font-medium transition-colors"
+                style={tabStyle(view === "list")}
+              >
+                Historial
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => (view === "detail" ? switchView("list") : can("menus", "create") && openCreate())}
+              className="sm:hidden flex items-center gap-1.5 h-10 px-3.5 text-sm font-semibold shrink-0"
+              style={{
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                borderRadius: "var(--radius-md)",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              {view === "detail" ? (
+                <>
+                  <History size={16} style={{ color: "var(--text-muted)" }} />
+                  Historial
+                </>
+              ) : (
+                <>
+                  <Calculator size={16} style={{ color: "var(--text-muted)" }} />
+                  Calculadora
+                </>
+              )}
+            </button>
+          </div>
         }
       />
 
-      {menusLoading ? (
-        <MenuListSkeleton />
-      ) : menus.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{ background: "var(--bg-secondary)" }}>
-            <UtensilsCrossed size={28} style={{ color: "var(--text-muted)" }} />
+      {view === "detail" && exitConfirm && (
+        <div
+          role="alertdialog"
+          aria-label="Salir sin guardar"
+          className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center"
+          style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}
+        >
+          <p className="text-sm flex-1">Lo que escribiste no se ha guardado y se perderá si sales.</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              autoFocus
+              onClick={() => setExitConfirm(false)}
+              className="h-9 px-3 rounded-lg text-sm font-semibold"
+              style={{ background: "var(--accent)", color: "#fff" }}
+            >
+              Seguir editando
+            </button>
+            <button
+              type="button"
+              onClick={backToHistory}
+              className="h-9 px-3 rounded-lg text-sm font-semibold"
+              style={{ background: "transparent", color: "#92400E", border: "1px solid #FDE68A" }}
+            >
+              Salir sin guardar
+            </button>
           </div>
-          <div>
-            <p className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
-              No hay menús creados
-            </p>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              Úsalo para planear eventos o servicios: agrupa platos, define porciones y obtén el precio ideal por persona.
-            </p>
-          </div>
-          {can("menus", "create") && (
-            <Button variant="ghost" onClick={openCreate}>
-              <Plus size={14} />
-              Crear primer menú
-            </Button>
-          )}
         </div>
-      ) : (
-        <MenuTable
-          menus={menus}
-          onView={(m) => setViewingMenuId(m.id)}
-          onEdit={(m) => openEdit(m)}
-          onDelete={(id) => handleDelete(id)}
+      )}
+
+      {view === "detail" ? (
+        <DetailView
+          // Reiniciar el formulario al cambiar de menú (nuevo / editar)
+          key={editingMenu?.id ?? "new"}
+          menu={editingMenu}
+          availableRecipes={availableRecipes}
+          availableIngredients={availableIngredients}
+          onSaved={handleSaved}
+          onDirtyChange={setCalcDirty}
         />
+      ) : (
+        <>
+          {menusLoading ? (
+            <MenuListSkeleton />
+          ) : menus.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: "var(--bg-secondary)" }}>
+                <UtensilsCrossed size={28} style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div>
+                <p className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                  No hay menús creados
+                </p>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  Úsalo para planear eventos o servicios: agrupa platos, define porciones y obtén el precio ideal por persona.
+                </p>
+              </div>
+              {can("menus", "create") && (
+                <Button variant="ghost" onClick={openCreate}>
+                  <Plus size={14} />
+                  Crear primer menú
+                </Button>
+              )}
+            </div>
+          ) : (
+            <MenuTable
+              menus={menus}
+              onView={(m) => setViewingMenuId(m.id)}
+              onEdit={(m) => openEdit(m)}
+              onDelete={(id) => handleDelete(id)}
+            />
+          )}
+        </>
       )}
 
       {/* ── Modal: ver menú ──────────────────────────────────────────────── */}
@@ -1469,46 +1523,7 @@ export default function MenuPage() {
         }}
       />
 
-      {/* ── Modal: help ──────────────────────────────────────────────────── */}
-      <Modal
-        open={helpOpen}
-        onClose={() => setHelpOpen(false)}
-        title="Menús"
-      >
-        <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-          <p>Esta seccion te permite crear y gestionar menus para eventos y servicios, agrupando platos y calculando costos.</p>
-
-          <div>
-            <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
-            <ul className="flex flex-col gap-2 ml-1">
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Crear menu:</strong> Haz clic en Nuevo menu para agregar recetas, porciones y configurar costos.</span>
-              </li>
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Definir parametros:</strong> Establece fecha, numero de personas, margen de seguridad y porcentaje de materia prima.</span>
-              </li>
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Agregar recetas:</strong> Selecciona recetas existentes y define los gramos por porcion.</span>
-              </li>
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Analisis en tiempo real:</strong> Visualiza el costo total, precio sugerido e indicador de rentabilidad.</span>
-              </li>
-              <li className="flex gap-2">
-                <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Indicador de rentabilidad:</strong> MUY BUENO (&lt;32%), REGULAR (32-37%), MALO (&gt;37%).</span>
-              </li>
-            </ul>
-          </div>
-
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            <strong>Nota:</strong> El margen de seguridad protege contra subidas de precios. Recomendado: 3-5%.
-          </p>
-        </div>
-      </Modal>
+      {helpModal}
     </div>
   )
 }

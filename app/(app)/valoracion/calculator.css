@@ -121,200 +121,159 @@
   .valuation-question-title { font-size: 28px; }
 }
 
-/* ── Selector de modo — mismo lenguaje visual que las teclas del aparato
-   (tecla física de 3D, no un segmented control plano), adaptado a 3 textos
-   completos en vez de un solo glifo. El seleccionado es la misma tecla azul
-   claro, más oscura y "enganchada" (hundida a medias), como una tecla de
-   función que queda trabada. El azul de acento se reserva para acciones
-   (Calcular, Guardar): un modo elegido no es una acción. ─────────────── */
+/* ── Selector de modo — control segmentado: una pista suave y la opción
+   elegida como una "píldora" blanca elevada. El azul de acento se reserva
+   para acciones (Calcular, Guardar): un modo elegido no es una acción. ─── */
+.calc-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  border-radius: 18px;
+  background: rgba(18, 33, 58, 0.06);
+  box-shadow: inset 0 1px 2px rgba(18, 33, 58, 0.08);
+}
+
 .calc-key-mode {
   position: relative;
-  min-height: 56px;
-  padding: 8px 6px;
+  min-height: 46px;
+  padding: 6px 8px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-weight: 700;
-  font-size: 12.5px;
+  font-family: var(--font-body), var(--font-inter), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
   line-height: 1.25;
   text-align: center;
-  color: #1B2540;
-  background: linear-gradient(180deg, #DCE4F7 0%, #BCCBF0 100%);
-  box-shadow: 0 3px 0 #7C93CC, 0 7px 10px -2px rgba(0, 0, 0, 0.35);
-  transition: transform 0.06s ease, box-shadow 0.06s ease;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.calc-key-mode:hover {
-  filter: brightness(1.03);
-}
-
-.calc-key-mode:active {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 #7C93CC, 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-}
+.calc-key-mode:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.55); }
 
 .calc-key-mode:focus-visible {
-  outline: 2px solid #1B4FD8;
-  outline-offset: 2px;
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
-.calc-key-mode-active {
-  color: #0E1A3A;
-  background: linear-gradient(180deg, #AFC0EA 0%, #93A9E0 100%);
-  transform: translateY(2px);
+.calc-key-mode-active,
+.calc-key-mode-active:hover {
+  color: var(--accent-text);
+  background: #fff;
   box-shadow:
-    0 1px 0 #5E76B8,
-    0 3px 6px -2px rgba(0, 0, 0, 0.3),
-    inset 0 1px 2px rgba(14, 26, 58, 0.18);
+    0 1px 2px rgba(18, 33, 58, 0.08),
+    0 6px 14px -6px rgba(18, 33, 58, 0.25);
   cursor: default;
 }
 
-.calc-key-mode-active:hover { filter: none; }
-
-.calc-key-mode-active:active {
-  transform: translateY(2px);
-  box-shadow:
-    0 1px 0 #5E76B8,
-    0 3px 6px -2px rgba(0, 0, 0, 0.3),
-    inset 0 1px 2px rgba(14, 26, 58, 0.18);
-}
-
 @media (max-width: 640px) {
-  .calc-key-mode {
-    min-height: 52px;
-    font-size: 12px;
-  }
+  .calc-key-mode { min-height: 46px; font-size: 12px; }
 }
 
-/* Impresora vacía — antes de calcular, la columna de la respuesta muestra
-   dónde va a salir el recibo en vez de quedar en blanco. */
+/* Resultado vacío — antes de calcular, la columna de la respuesta muestra
+   dónde va a aparecer el desglose en vez de quedar en blanco. */
 .calc-receipt-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  margin: 0 14px;
-  padding: 36px 24px 24px;
-  border: 1.5px dashed #C3CAD8;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 12px;
+  padding: 28px 24px;
+  border: 1.5px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
   line-height: 1.6;
   text-align: center;
   color: var(--text-muted);
   text-wrap: balance;
 }
 
-/* ── Impresora — el recibo sale de la ranura, con movimiento real ─────────── */
-.calc-printer {
-  position: relative;
-}
-
-.calc-printer-slot {
-  position: relative;
-  z-index: 2;
-  height: 20px;
-  margin: 0 14px -12px;
-  border-radius: 12px;
-  background: linear-gradient(160deg, #4A4E56 0%, #1C1E22 100%);
-  box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.4);
-}
-
-.calc-printer-mask {
-  overflow: hidden;
-  border-radius: 4px;
-}
+/* ── Resultado — una tarjeta que aparece suave (sin impresora) ─────────── */
+.calc-printer { position: relative; }
+.calc-printer-slot { display: none; }
+.calc-printer-mask { overflow: visible; }
 
 @keyframes calc-print-out {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .calc-receipt-print {
-  animation: calc-print-out 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.1s;
+  animation: calc-print-out 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .calc-receipt-print { animation: none; }
 }
 
-/* ── Recibo impreso ──────────────────────────────────────────────────────── */
+/* ── Desglose ─────────────────────────────────────────────────────────── */
 .calc-receipt {
-  background: #FBFAF5;
-  border-radius: 4px;
-  padding: 22px 20px 18px;
-  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.3);
-  font-family: var(--font-jetbrains-mono), monospace;
-  color: #2A2A26;
+  background:
+    radial-gradient(90% 60% at 100% 0%, rgba(27, 79, 216, 0.06) 0%, transparent 70%),
+    #fff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 22px 22px 18px;
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-body), var(--font-inter), system-ui, sans-serif;
+  color: var(--text-primary);
 }
 
-.calc-receipt-torn {
-  height: 8px;
-  margin: -22px -20px 14px;
-  background: linear-gradient(-45deg, #FBFAF5 8px, transparent 0) 0 0 / 12px 12px repeat-x,
-    linear-gradient(45deg, #FBFAF5 8px, transparent 0) 0 0 / 12px 12px repeat-x;
-  background-color: transparent;
-}
+.calc-receipt-torn { display: none; }
 
 .calc-indicator-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: system-ui, sans-serif;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
   padding: 5px 12px 5px 10px;
   border-radius: 999px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .calc-receipt-title {
-  font-family: var(--font-barlow-condensed), var(--font-jetbrains-mono), monospace;
-  font-size: 15px;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-align: center;
-  color: #201F1C;
-  margin-bottom: 12px;
+  text-align: left;
+  color: var(--text-muted);
+  margin-bottom: 10px;
 }
 
 .calc-receipt-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  font-size: 13px;
-  padding: 3px 0;
+  gap: 8px;
+  font-size: 14px;
+  padding: 6px 0;
 }
 
 .calc-receipt-row-label {
   white-space: nowrap;
-  color: #4A473F;
+  color: var(--text-secondary);
 }
 
 .calc-receipt-row-leader {
   flex: 1;
   min-width: 8px;
-  border-bottom: 1px dotted #B7B1A2;
+  border-bottom: 1px dashed var(--border-light);
   transform: translateY(-3px);
 }
 
 .calc-receipt-row-value {
   white-space: nowrap;
-  font-weight: 700;
-  color: #201F1C;
+  font-weight: 600;
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .calc-receipt-divider {
   border: none;
-  border-top: 1px dashed #B7B1A2;
-  margin: 8px 0;
+  border-top: 1px solid var(--border-light);
+  margin: 10px 0;
 }
 
 .calc-receipt-total {
@@ -325,29 +284,59 @@
 }
 
 .calc-receipt-total-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: #6B6555;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .calc-receipt-total-value {
-  font-family: var(--font-barlow-condensed), var(--font-jetbrains-mono), monospace;
-  font-size: 22px;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: 0.01em;
-  color: #201F1C;
+  letter-spacing: -0.01em;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .calc-receipt-pct {
-  font-size: 10.5px;
-  color: #8B8577;
+  font-size: 11px;
+  color: var(--text-muted);
   margin-left: 6px;
 }
 
 @media (max-width: 640px) {
-  .calc-receipt { padding: 20px 14px 16px; }
-  .calc-receipt-torn { margin: -20px -14px 12px; }
-  .calc-receipt-row { font-size: 12px; }
+  .calc-receipt { padding: 18px 16px 14px; }
+  .calc-receipt-row { font-size: 13px; }
   .calc-receipt-pct { margin-left: 4px; }
+}
+
+/* ── Sin scroll en pantallas bajas: todo escala con el alto de la ventana ──
+   (solo en la vista de dos columnas; en móvil se desplaza con normalidad) */
+@container calc-stage (min-width: 720px) {
+  @media (max-height: 940px) {
+    .valuation-stage .calc-key-num, .valuation-stage .calc-key-fn { height: 40px; }
+    .valuation-stage .calc-key-equals { height: 44px; }
+    .valuation-workspace { row-gap: 12px; }
+    .valuation-question { margin-bottom: 14px; }
+    .valuation-question-hint { display: none; }
+    .valuation-question-title { font-size: 24px; }
+    .calc-receipt { padding: 16px 20px 12px; }
+    .calc-receipt-row { padding: 4px 0; }
+  }
+  @media (max-height: 800px) {
+    .valuation-stage .calc-device { padding: 10px; gap: 5px; border-radius: 22px; }
+    .valuation-stage .calc-key-num, .valuation-stage .calc-key-fn { height: 30px; font-size: 16px; }
+    .valuation-stage .calc-key-word { font-size: 12px; }
+    .valuation-stage .calc-key-equals { height: 34px; }
+    .valuation-stage .calc-keypad { gap: 6px; }
+    .calc-key-mode { min-height: 36px; }
+    .valuation-workspace { row-gap: 8px; }
+    .calc-receipt-row { padding: 2px 0; font-size: 13px; }
+    .calc-receipt-divider { margin: 6px 0; }
+    .calc-receipt-total-value { font-size: 22px; }
+    .calc-receipt { padding: 12px 18px 8px; }
+    .valuation-question { margin-bottom: 8px; }
+  }
 }

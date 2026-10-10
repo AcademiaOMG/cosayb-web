@@ -6,32 +6,27 @@ import useSWR from "swr"
 import { AlertCircle } from "lucide-react"
 import Button from "@/components/ui/Button"
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
-import { CalcViewShell } from "@/components/calculator"
+import { CalcModal } from "@/components/calculator"
 import RecipeCalculator, { type RecipeSavedInfo } from "./RecipeCalculator"
 import { TENANT_SOURCE, type RecipeFormDataSource } from "./recipeSource"
 
 /**
- * Vista completa para crear o editar una receta (misma idea que Punto de
- * equilibrio y Factor de rendimiento): carga el catálogo y la receta a editar,
- * y monta el asistente dentro del esqueleto común con "← volver".
+ * Ventana para crear o editar una receta: el Modal común de la app (se cierra
+ * con la X, con Esc o tocando fuera, y avisa si hay datos sin guardar). Carga el
+ * catálogo y la receta a editar, y monta el asistente dentro.
  * Al montarse arranca limpia; quien la usa debe darle un `key` por receta.
  */
-/** Tamaño de diseño de la ventana en escritorio (px); se escala para caber en pantalla */
-const PANEL_W = 1040
-const PANEL_H = 666
-
 export default function RecipeCalculatorView({
   editRecipeId,
   dataSource = TENANT_SOURCE,
-  backLabel = "Mis recetas",
   onBack,
   onSaved,
 }: {
   editRecipeId?: string | null
   dataSource?: RecipeFormDataSource
-  backLabel?: string
+  /** Cerrar la ventana sin guardar */
   onBack: () => void
-  /** La receta ya se guardó: quien usa la vista refresca su lista y vuelve a ella */
+  /** La receta ya se guardó: quien usa la vista refresca su lista y cierra */
   onSaved: (info: RecipeSavedInfo) => void
 }) {
   const [dirty, setDirty] = useState(false)
@@ -45,22 +40,6 @@ export default function RecipeCalculatorView({
     window.addEventListener("beforeunload", warn)
     return () => window.removeEventListener("beforeunload", warn)
   }, [dirty])
-
-  // Ventana flotante: en escritorio se escala el tamaño de diseño para que siempre quepa entera
-  const [vp, setVp] = useState<{ w: number; h: number } | null>(null)
-  useEffect(() => {
-    const measure = () => setVp({ w: window.innerWidth, h: window.innerHeight })
-    measure()
-    window.addEventListener("resize", measure)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      window.removeEventListener("resize", measure)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [])
-  const fit = !!vp && vp.w >= 900 && vp.h >= 520
-  const scale = vp ? Math.min(1.15, (vp.h - 32) / PANEL_H, (vp.w - 32) / PANEL_W) : 1
 
   const catalog = useSWR(["recipes-catalog", dataSource.sourceKey], () => dataSource.loadCatalog(), {
     revalidateOnFocus: false,
@@ -76,19 +55,7 @@ export default function RecipeCalculatorView({
   const ready = !!catalog.data && (!editRecipeId || (!!recipe.data && !recipe.isValidating))
 
   return (
-    <div className="rv-overlay" role="dialog" aria-modal="true" aria-label={editRecipeId ? "Editar receta" : "Nueva receta"}>
-      <div
-        className={`rv-panel ${fit ? "is-fit" : "is-sheet"}`}
-        style={fit ? ({ "--rv-scale": scale } as React.CSSProperties) : undefined}
-      >
-        <div className="rv-rise">
-    <CalcViewShell
-      title={editRecipeId ? "Editar receta" : "Nueva receta"}
-      backLabel={backLabel}
-      onBack={onBack}
-      dirty={dirty}
-      asModal
-    >
+    <CalcModal title={editRecipeId ? "Editar receta" : "Nueva receta"} dirty={dirty} onClose={onBack}>
       {failed ? (
         <div
           role="alert"
@@ -123,9 +90,6 @@ export default function RecipeCalculatorView({
           onDirtyChange={setDirty}
         />
       )}
-    </CalcViewShell>
-        </div>
-      </div>
-    </div>
+    </CalcModal>
   )
 }

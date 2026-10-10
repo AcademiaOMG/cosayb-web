@@ -1,7 +1,10 @@
 "use client"
 
 import { forwardRef } from "react"
+import { Pencil } from "lucide-react"
+import { useCalcSkin } from "@/lib/calculator/skin"
 import { entryKeyFromKeyboard, type EntryKey } from "@/lib/calculator/entry"
+import SegText, { splitUnit } from "./SegText"
 import "./calculator.css"
 
 export interface CalcRegisterProps {
@@ -87,6 +90,10 @@ const CalcRegister = forwardRef<HTMLInputElement, CalcRegisterProps>(function Ca
     .filter(Boolean)
     .join(" ")
 
+  const blue = useCalcSkin() === "blue"
+  const valueParts = splitUnit(display === "" ? placeholder : display)
+  const unit = valueParts.unitSide && valueParts.unit ? <span className="calc-unit">{valueParts.unit}</span> : null
+
   return (
     <div
       className={classes}
@@ -102,8 +109,22 @@ const CalcRegister = forwardRef<HTMLInputElement, CalcRegisterProps>(function Ca
         <label className="calc-register-label" htmlFor={id}>
           {label}
         </label>
+        {blue && !active && <Pencil className="calc-pen" size={12} aria-hidden />}
         {accessory}
       </div>
+      {blue && (
+        <div className="calc-register-value" aria-hidden>
+          {valueParts.unitSide === "left" && unit}
+          <SegText
+            number={valueParts.number}
+            cells={variant === "inline" ? 4 : 7}
+            dim={display === ""}
+            className="calc-field-seg"
+          />
+          {valueParts.unitSide === "right" && unit}
+          <i className="calc-cursor" />
+        </div>
+      )}
       <input
         ref={ref}
         id={id}

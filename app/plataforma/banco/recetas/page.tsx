@@ -40,8 +40,8 @@ const BANCO_SOURCE: RecipeFormDataSource = {
 
 const TYPE_TABS: { value: BancoRecipeType; label: string }[] = [
   { value: "all", label: "Todas" },
-  { value: "base", label: "Base" },
-  { value: "principal", label: "Principales" },
+  { value: "base", label: "Preparaciones base" },
+  { value: "principal", label: "Platos" },
 ]
 
 export default function BancoRecetasPage() {
@@ -124,7 +124,6 @@ export default function BancoRecetasPage() {
         key={editId ?? "new"}
         editRecipeId={editId}
         dataSource={BANCO_SOURCE}
-        backLabel="Recetas del banco"
         onBack={() => setView("list")}
         onSaved={handleSaved}
       />
@@ -319,7 +318,7 @@ function BancoRecipeCard({
                 className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full tracking-wider uppercase"
                 style={{ background: "#EDE9FE", color: "#6D28D9" }}
               >
-                <BookMarked size={8} /> Base
+                <BookMarked size={8} /> Preparación base
               </span>
             )}
             <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
