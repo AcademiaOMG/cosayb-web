@@ -80,7 +80,7 @@ export default function CalcKeypad({
       <button
         type="button"
         data-k={d}
-        className="calc-key calc-key-num"
+        className={`calc-key calc-key-num${span2 ? " calc-key-span-2" : ""}`}
         onMouseDown={keep}
         onClick={() => onKey({ type: "digit", digit: d })}
         {...keySoundProps}
@@ -97,6 +97,7 @@ export default function CalcKeypad({
         <button
           type="button"
           data-k={k}
+          aria-disabled={rest.disabled || undefined}
           className={`calc-key calc-key-fn${word ? " calc-key-word" : ""}${className ? ` ${className}` : ""}`}
           onMouseDown={keep}
           {...keySoundProps}

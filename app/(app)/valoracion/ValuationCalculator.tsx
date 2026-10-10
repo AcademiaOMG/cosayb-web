@@ -25,19 +25,6 @@ function isTypingTarget(el: EventTarget | null) {
   return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)
 }
 
-// El selector de recetas vive dentro del aparato: se viste como un registro más
-// de la calculadora en vez de un campo blanco pegado encima.
-const RECIPE_TRIGGER: React.CSSProperties = {
-  height: 40,
-  background: "#050914",
-  border: "none",
-  boxShadow: "inset 0 2px 5px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.11)",
-  borderRadius: 10,
-  color: "#cdd7f2",
-  fontSize: 13,
-  padding: "0 12px",
-}
-
 /**
  * La calculadora de valoración: pantalla de resultado, los dos datos que el
  * modo necesita, el margen y el teclado. Recibe el estado de
@@ -173,7 +160,7 @@ export default function ValuationCalculator({
           searchPlaceholder="Buscar receta"
           emptyMessage="No se encontraron recetas"
           ariaLabel="Cargar el precio de materia prima desde una receta"
-          triggerStyle={RECIPE_TRIGGER}
+          variant="calculator"
         />
       )}
 

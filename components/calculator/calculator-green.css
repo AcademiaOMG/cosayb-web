@@ -1,0 +1,441 @@
+/* ─── Piel verde del kit de calculadora ─────────────────────────────────
+   La calculadora de producción: cuerpo gunmetal, LCD verde, teclas 3D.
+   Generado por prefijo de selectores: todo vive bajo .calc-skin-green
+   (la clase la pone CalcDevice / CalcDisplay según la piel elegida, ver
+   lib/calculator/skin.ts). */
+
+/* ─── Kit de calculadora física ───────────────────────────────────────────
+   Piel deliberadamente fuera del sistema de tokens de la app (aprobada así:
+   "que parezca una calculadora de verdad"): cuerpo gunmetal, LCD verde,
+   teclas 3D. Todo namespaced bajo .calc-* para no chocar con el resto.
+
+   Piezas: .calc-device (cuerpo) → .calc-display (pantalla principal, el
+   resultado) → .calc-register (pantallas pequeñas: los datos de entrada)
+   → .calc-keypad (teclado) → .calc-key-equals (Calcular). */
+
+.calc-device.calc-skin-green {
+  --calc-ink: #1E2B18;
+  --calc-ink-soft: #3B4A34;
+  --calc-lcd: #C7D6B9;
+  --calc-lcd-off: #21241E;
+  --calc-bezel: #14150F;
+  --calc-error: #8A1C12;
+  --calc-error-ring: #F0625A;
+  --calc-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  background: linear-gradient(160deg, #4A4E56 0%, #2B2D33 55%, #1C1E22 100%);
+  border-radius: 28px;
+  padding: 18px;
+  box-shadow:
+    0 24px 48px -16px rgba(0, 0, 0, 0.4),
+    0 2px 0 rgba(255, 255, 255, 0.05) inset,
+    0 -3px 0 rgba(0, 0, 0, 0.5) inset;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Pantalla principal (resultado) ───────────────────────────────────── */
+.calc-display.calc-skin-green, .calc-skin-green .calc-display {
+  background: linear-gradient(178deg, #CDDCC0 0%, #B7C9A6 100%);
+  border: 3px solid var(--calc-bezel, #14150F);
+  border-radius: 12px;
+  padding: 12px 16px 12px;
+  box-shadow:
+    inset 0 3px 10px rgba(0, 0, 0, 0.38),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.35);
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
+  color: var(--calc-ink, #1E2B18);
+}
+
+.calc-display.calc-skin-green-label, .calc-skin-green .calc-display-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--calc-ink-soft, #3B4A34);
+}
+
+.calc-display.calc-skin-green-value, .calc-skin-green .calc-display-value {
+  display: block;
+  margin-top: auto;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: right;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  overflow-wrap: anywhere;
+}
+
+/* Siempre reserva dos líneas: el mensaje cambia mientras se escribe
+   ("Falta X y Y" → "Falta Y" → resultado) y si el alto variara, todo el
+   teclado saltaría bajo el dedo a mitad de la entrada. */
+.calc-display.calc-skin-green-sub, .calc-skin-green .calc-display-sub {
+  min-height: calc(2 * 1.35em);
+  font-size: 11.5px;
+  line-height: 1.35;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  text-align: right;
+  color: var(--calc-ink-soft, #3B4A34);
+}
+
+/* Sin resultado todavía: el 0 "apagado" de una calculadora en reposo */
+.calc-display.calc-skin-green.is-idle .calc-display-value,
+.calc-skin-green .calc-display.is-idle .calc-display-value,
+.calc-display.calc-skin-green.is-error .calc-display-value,
+.calc-skin-green .calc-display.is-error .calc-display-value {
+  opacity: 0.28;
+}
+
+.calc-display.calc-skin-green.is-error .calc-display-sub, .calc-skin-green .calc-display.is-error .calc-display-sub {
+  color: var(--calc-error, #8A1C12);
+  font-weight: 700;
+}
+
+/* Revelado del resultado — un solo momento coreografiado */
+@keyframes calc-reveal {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.calc-display.calc-skin-green.is-result .calc-display-value, .calc-skin-green .calc-display.is-result .calc-display-value {
+  animation: calc-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Tamaño compacto (ej. dentro de un modal) */
+.calc-display.calc-skin-green.is-sm, .calc-skin-green .calc-display.is-sm {
+  min-height: 0;
+  padding: 10px 14px;
+}
+.calc-display.calc-skin-green.is-sm .calc-display-value, .calc-skin-green .calc-display.is-sm .calc-display-value {
+  font-size: 28px;
+}
+
+/* ── Registros (datos de entrada) ─────────────────────────────────────── */
+.calc-skin-green .calc-registers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.calc-skin-green .calc-register {
+  position: relative;
+  border: 3px solid var(--calc-bezel, #14150F);
+  border-radius: 12px;
+  padding: 9px 12px 10px;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: text;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
+  min-width: 0;
+}
+
+.calc-skin-green .calc-register-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.calc-skin-green .calc-register-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+  cursor: inherit;
+}
+
+.calc-skin-green .calc-register input {
+  width: 100%;
+  margin-top: auto;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  padding: 0;
+  min-width: 0;
+}
+
+/* Encendida — el registro que recibe el teclado */
+.calc-skin-green .calc-register.is-on {
+  background: var(--calc-lcd, #C7D6B9);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2), 0 0 0 2px #7CE07C;
+}
+.calc-skin-green .calc-register.is-on .calc-register-label { color: var(--calc-ink-soft, #3B4A34); }
+.calc-skin-green .calc-register.is-on input {
+  color: var(--calc-ink, #1E2B18) !important;
+  color-scheme: light;
+  caret-color: transparent;
+}
+.calc-skin-green .calc-register.is-on input::placeholder { color: #5C6B52; opacity: 0.6; }
+
+/* Recién seleccionada con un valor previo: se ve "fantasma" porque la
+   primera tecla lo reemplaza (como en una calculadora real). */
+.calc-skin-green .calc-register.is-on.is-fresh input { opacity: 0.5; }
+
+/* Apagada — pantalla en reposo */
+.calc-skin-green .calc-register.is-off {
+  background: var(--calc-lcd-off, #21241E);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+.calc-skin-green .calc-register.is-off .calc-register-label { color: #6E7864; }
+.calc-skin-green .calc-register.is-off input {
+  color: #A3AD96 !important;
+  color-scheme: dark;
+  caret-color: transparent;
+}
+.calc-skin-green .calc-register.is-off input::placeholder { color: #4D5346; opacity: 1; }
+
+.calc-skin-green .calc-register.is-error { box-shadow: 0 0 0 2px var(--calc-error-ring, #F0625A); }
+.calc-skin-green .calc-register.is-on.is-error { box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2), 0 0 0 2px var(--calc-error-ring, #F0625A); }
+.calc-skin-green .calc-register.is-error .calc-register-label { color: var(--calc-error-ring, #F0625A); }
+.calc-skin-green .calc-register.is-on.is-error .calc-register-label { color: var(--calc-error, #8A1C12); }
+
+.calc-skin-green .calc-register:focus-within {
+  outline: 2px solid #7CE07C;
+  outline-offset: 2px;
+}
+.calc-skin-green .calc-register.is-on:focus-within { outline: none; }
+
+/* Variante en línea: etiqueta a la izquierda, valor a la derecha (ajustes) */
+.calc-skin-green .calc-register.is-inline {
+  flex-direction: row;
+  align-items: center;
+  min-height: 42px;
+  padding: 5px 12px;
+  border-width: 2px;
+  border-radius: 10px;
+}
+.calc-skin-green .calc-register.is-inline .calc-register-head { flex: 1; min-height: 0; }
+.calc-skin-green .calc-register.is-inline input {
+  width: 96px;
+  flex: none;
+  margin-top: 0;
+  font-size: 16px;
+}
+
+/* Acción secundaria dentro del registro (ej. "Receta") */
+.calc-skin-green .calc-register-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.calc-skin-green .calc-register.is-off .calc-register-action { background: rgba(255, 255, 255, 0.08); color: #B5C2A6; }
+.calc-skin-green .calc-register.is-off .calc-register-action:hover { background: rgba(255, 255, 255, 0.14); }
+.calc-skin-green .calc-register.is-on .calc-register-action { background: rgba(30, 43, 24, 0.12); color: var(--calc-ink, #1E2B18); }
+.calc-skin-green .calc-register.is-on .calc-register-action:hover { background: rgba(30, 43, 24, 0.2); }
+.calc-skin-green .calc-register-action:focus-visible { outline: 2px solid #7CE07C; outline-offset: 1px; }
+
+/* Nota bajo el valor (ej. de qué receta viene) */
+.calc-skin-green .calc-register-note {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: 10.5px;
+  line-height: 1.2;
+  min-width: 0;
+}
+.calc-skin-green .calc-register-note > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calc-skin-green .calc-register.is-on .calc-register-note { color: var(--calc-ink-soft, #3B4A34); }
+.calc-skin-green .calc-register.is-off .calc-register-note { color: #8C9780; }
+
+/* ── Teclas — botones 3D ─────────────────────────────────────────────── */
+.calc-skin-green .calc-key {
+  position: relative;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
+  font-weight: 700;
+  color: #2A2C30;
+  background: linear-gradient(180deg, #F6F4F0 0%, #E1DED6 100%);
+  box-shadow:
+    0 3px 0 #ADA99E,
+    0 7px 10px -2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calc-skin-green .calc-key:hover { filter: brightness(1.03); }
+
+.calc-skin-green .calc-key:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 0 0 #ADA99E,
+    0 2px 4px -1px rgba(0, 0, 0, 0.3);
+}
+
+.calc-skin-green .calc-key:focus-visible {
+  outline: 2px solid #7CE07C;
+  outline-offset: 2px;
+}
+
+.calc-skin-green .calc-key[aria-disabled="true"] {
+  opacity: 0.35;
+  cursor: default;
+}
+.calc-skin-green .calc-key[aria-disabled="true"]:active {
+  transform: none;
+}
+
+.calc-skin-green .calc-key-num {
+  height: 46px;
+  font-size: 18px;
+}
+
+.calc-skin-green .calc-key-fn {
+  height: 46px;
+  font-size: 14px;
+  color: #46403A;
+  background: linear-gradient(180deg, #E7DFC9 0%, #D2C7A8 100%);
+  box-shadow: 0 3px 0 #A99A6E, 0 7px 10px -2px rgba(0, 0, 0, 0.35);
+}
+
+.calc-skin-green .calc-key-equals {
+  height: 52px;
+  width: 100%;
+  gap: 10px;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: linear-gradient(180deg, #3E6CF0 0%, #1B4FD8 100%);
+  box-shadow: 0 4px 0 #123896, 0 9px 14px -2px rgba(0, 0, 0, 0.4);
+}
+.calc-skin-green .calc-key-equals .calc-key-glyph {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.calc-skin-green .calc-key-word {
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+
+.calc-skin-green .calc-keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calc-skin-green .calc-key-span-2 { grid-column: span 2; }
+
+/* ── Aparato "en reposo": ya mostró un resultado ─────────────────────────
+   Si el contenedor `calc-stage` es angosto, el resultado se lee DEBAJO del
+   aparato: el teclado se guarda y deja subir el desglose; "Cambiar datos"
+   (o tocar un dato) lo vuelve a abrir. Con espacio al lado, el teclado
+   queda siempre visible. Depende del ancho disponible, no de la pantalla
+   (con o sin barra lateral cambia todo). */
+.calc-skin-green .calc-edit-key {
+  display: none;
+  height: 46px;
+  gap: 8px;
+  font-size: 13px;
+}
+/* 719px: mismo corte en que .valuation-workspace pasa a dos columnas */
+@container calc-stage (max-width: 719px) {
+  .calc-device.calc-skin-green.is-resting .calc-keypad-slot,
+  .calc-device.calc-skin-green.is-resting .calc-key-equals {
+    display: none;
+  }
+  .calc-device.calc-skin-green.is-resting .calc-edit-key {
+    display: flex;
+  }
+}
+
+/* ── Mobile: todo el aparato (hasta "Calcular") entra en la pantalla de un
+   teléfono; teclas de 48px siguen siendo cómodas para el pulgar. */
+@media (max-width: 640px) {
+  .calc-device.calc-skin-green {
+    border-radius: 22px;
+    padding: 12px;
+    gap: 8px;
+  }
+  .calc-display.calc-skin-green, .calc-skin-green .calc-display { min-height: 84px; padding: 8px 12px; }
+  .calc-display.calc-skin-green-value, .calc-skin-green .calc-display-value { font-size: 30px; }
+  .calc-display.calc-skin-green-sub, .calc-skin-green .calc-display-sub { font-size: 11px; }
+  .calc-skin-green .calc-register { min-height: 62px; padding: 7px 10px 8px; }
+  .calc-skin-green .calc-register input { font-size: 19px; }
+  .calc-skin-green .calc-register-label { font-size: 10px; letter-spacing: 0.04em; }
+  .calc-skin-green .calc-register.is-inline { min-height: 38px; }
+  .calc-skin-green .calc-keypad { gap: 7px; }
+  .calc-skin-green .calc-key-num, .calc-skin-green .calc-key-fn { height: 48px; }
+  .calc-skin-green .calc-key-equals { height: 50px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calc-display.calc-skin-green.is-result .calc-display-value, .calc-skin-green .calc-display.is-result .calc-display-value { animation: none; }
+  .calc-skin-green .calc-key, .calc-skin-green .calc-key:active { transition: none; }
+}
+
+/* ── Encabezado opcional del aparato (CalcPanel title/hint) ─────────────── */
+.calc-skin-green .calc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 2px;
+  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
+  color: #D5DBC9;
+}
+.calc-skin-green .calc-head-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7CE07C;
+  box-shadow: 0 0 8px 1px rgba(124, 224, 124, 0.7);
+}
+.calc-skin-green .calc-head-title { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.calc-skin-green .calc-head-hint { margin-left: auto; font-size: 11px; color: #9AA58D; text-align: right; }
+
+
+/* Acción al lado de un registro, en su misma fila (Menú: "Agregar a la
+   lista" junto al de gramos): se estira al alto del registro y el ancho
+   lo da su texto. */
+.calc-skin-green .calc-key-inline {
+  width: auto;
+  height: auto;
+  align-self: stretch;
+  flex: none;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+/* Los huecos de tecla son solo del diseño azul: aquí no dibujan nada */
+.calc-skin-green .calc-slot { display: contents; }
+@media (max-width: 640px) {
+  .calc-skin-green .calc-key-inline { height: auto; font-size: 13px; padding: 0 10px; }
+}

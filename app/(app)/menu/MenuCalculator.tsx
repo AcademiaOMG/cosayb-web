@@ -342,18 +342,13 @@ export default function MenuCalculator({
             clearLabel={isRecipes ? "Seleccionar receta" : "Seleccionar ingrediente"}
             emptyMessage={isRecipes ? "No se encontraron recetas" : "No se encontraron ingredientes"}
             ariaLabel={isRecipes ? "Seleccionar receta para agregar" : "Seleccionar ingrediente para agregar"}
-            triggerStyle={{
-              background: "#1C1E22",
-              border: "1px solid #14150F",
-              color: "#E8ECE4",
-              fontFamily: "var(--calc-mono, ui-monospace, monospace)",
-            }}
+            variant="calculator"
           />
 
           {/* Gramos + agregar: misma fila (el botón saca el teclado el hueco de la coma) */}
           <div className="flex items-stretch gap-2">
             <div className="flex-1 min-w-0">{renderRegister("grams")}</div>
-            <CalcActionKey slotClassName="calc-slot-inline" onClick={handleAdd}>
+            <CalcActionKey slotClassName="calc-slot-inline" className="calc-key-inline" onClick={handleAdd}>
               Agregar a la lista
             </CalcActionKey>
           </div>

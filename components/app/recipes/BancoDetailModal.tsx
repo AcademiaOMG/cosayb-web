@@ -77,7 +77,7 @@ export default function BancoDetailModal({
               }}
             >
               <BookMarked size={10} />
-              Receta base
+              Preparación base
             </span>
           )}
           <span

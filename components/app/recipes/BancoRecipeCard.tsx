@@ -49,7 +49,7 @@ export default function BancoRecipeCard({
           <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
             {recipe.isBase && (
               <span className="rc-badge is-base">
-                <BookMarked size={10} /> Base
+                <BookMarked size={10} /> Preparación base
               </span>
             )}
             <span className="rc-sub">

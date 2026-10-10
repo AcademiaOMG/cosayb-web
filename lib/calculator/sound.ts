@@ -4,6 +4,8 @@
 // El AudioContext se crea en el primer gesto del usuario. La preferencia se
 // guarda en localStorage (si está bloqueado, simplemente no persiste).
 
+import { getCalcSkin } from "./skin"
+
 const STORAGE_KEY = "calc-sound"
 
 let enabled = true
@@ -74,7 +76,7 @@ function noise(c: AudioContext, duration: number, freq: number, gain: number) {
 
 export function playKeyDown() {
   load()
-  if (!enabled) return
+  if (!enabled || getCalcSkin() !== "blue") return
   const c = audio()
   if (!c) return
   noise(c, 0.03, 2300, 0.35)
@@ -91,7 +93,7 @@ export function playKeyDown() {
 
 export function playKeyUp() {
   load()
-  if (!enabled) return
+  if (!enabled || getCalcSkin() !== "blue") return
   const c = audio()
   if (!c) return
   noise(c, 0.02, 3700, 0.16)

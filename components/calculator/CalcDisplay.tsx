@@ -1,3 +1,4 @@
+import { useCalcSkin } from "@/lib/calculator/skin"
 import SegText, { splitUnit } from "./SegText"
 import "./calculator.css"
 
@@ -29,12 +30,36 @@ export default function CalcDisplay({
   /** Cambiarlo reinicia el parpadeo de revelado */
   revealKey?: string | number
 }) {
+  const blue = useCalcSkin() === "blue"
+  const skinClass = blue ? "calc-skin-blue" : "calc-skin-green"
   const isText = typeof value === "string" || typeof value === "number"
   const parts = isText ? splitUnit(String(value)) : null
   const unit = parts?.unit ? <span className="calc-unit">{parts.unit}</span> : null
 
+  if (!blue) {
+    // Piel verde (producción): pantalla con el número en texto y la línea de qué falta
+    return (
+      <div className={`calc-display ${skinClass} is-${tone}${size === "sm" ? " is-sm" : ""}`}>
+        <span className="calc-display-label">{label}</span>
+        <span key={revealKey} className="calc-display-value" aria-hidden={announce ? true : undefined}>
+          {value}
+        </span>
+        {sub !== undefined && (
+          <span className="calc-display-sub" id={subId} role={tone === "error" ? "alert" : undefined}>
+            {sub}
+          </span>
+        )}
+        {announce !== undefined && (
+          <span className="sr-only" aria-live="polite">
+            {announce}
+          </span>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className={`calc-display is-${tone}${size === "sm" ? " is-sm" : ""}`}>
+    <div className={`calc-display ${skinClass} is-${tone}${size === "sm" ? " is-sm" : ""}`}>
       <div className="calc-bezel">
         <div className="calc-glass">
           <div className="calc-ann">

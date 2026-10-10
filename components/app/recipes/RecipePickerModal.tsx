@@ -4,14 +4,15 @@ import { useState } from "react"
 import { Search, X, ChefHat } from "lucide-react"
 import Modal from "@/components/ui/Modal"
 import RecipeCard from "./RecipeCard"
+import { RECIPE_TYPE } from "@/lib/recipeLabels"
 import type { Recipe } from "@/types/domain"
 
 type TypeFilter = "all" | "base" | "principal"
 
 const TYPE_CHIPS: { value: TypeFilter; label: string }[] = [
   { value: "all", label: "Todas" },
-  { value: "base", label: "Base" },
-  { value: "principal", label: "Principal" },
+  { value: "base", label: RECIPE_TYPE.base.plural },
+  { value: "principal", label: RECIPE_TYPE.dish.plural },
 ]
 
 /**

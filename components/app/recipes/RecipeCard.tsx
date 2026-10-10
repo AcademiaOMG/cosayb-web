@@ -1,6 +1,7 @@
 "use client"
 
 import { memo } from "react"
+import { RECIPE_ORIGIN, RECIPE_TYPE } from "@/lib/recipeLabels"
 import type { Recipe } from "@/types/domain"
 import { ChefHat, BookMarked, UtensilsCrossed, Trash2 } from "lucide-react"
 import "./recipe-cards.css"
@@ -60,14 +61,14 @@ const RecipeCard = memo(function RecipeCard({ recipe, onClick, onDelete }: Recip
           <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
             {recipe.isBase ? (
               <span className="rc-badge is-base">
-                <BookMarked size={10} /> Base
+                <BookMarked size={10} /> {RECIPE_TYPE.base.label}
               </span>
             ) : (
               <span className="rc-badge is-main">
-                <UtensilsCrossed size={10} /> Principal
+                <UtensilsCrossed size={10} /> {RECIPE_TYPE.dish.label}
               </span>
             )}
-            {isPublic && <span className="rc-badge is-public">Banco</span>}
+            {isPublic && <span className="rc-badge is-public">{RECIPE_ORIGIN.banco.tag}</span>}
           </div>
           <p className="rc-sub" style={{ marginTop: "6px" }}>
             {servings} porción{servings !== 1 ? "es" : ""} · {itemCount} ingrediente{itemCount !== 1 ? "s" : ""}

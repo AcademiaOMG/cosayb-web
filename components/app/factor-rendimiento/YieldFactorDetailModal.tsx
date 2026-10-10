@@ -25,9 +25,11 @@ interface YieldFactorDetailModalProps {
   factor: FactorRendimiento | null
   /** Abre la calculadora con este registro (no se pasa si no hay permiso de editar) */
   onEdit?: (factor: FactorRendimiento) => void
+  /** Sin permiso de borrar no se pasa y el botón no aparece (en el celular la fila no trae el bote de basura) */
+  onDelete?: (factor: FactorRendimiento) => void
 }
 
-export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit }: YieldFactorDetailModalProps) {
+export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit, onDelete }: YieldFactorDetailModalProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
@@ -61,6 +63,9 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cerrar</Button>
+          {onDelete && (
+            <Button variant="ghost" onClick={() => onDelete(factor)}>Eliminar</Button>
+          )}
           {onEdit && (
             <Button variant="primary" onClick={() => onEdit(factor)}>Editar en la calculadora</Button>
           )}

@@ -5,6 +5,7 @@ import useSWR from "swr"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import type { Recipe, RecipeCostResult } from "@/types/domain"
+import { recipeTypeLabel } from "@/lib/recipeLabels"
 import { getRecipeById, getRecipeCost, importarBancoRecipe } from "@/lib/api"
 import "./recipe-detail.css"
 import {
@@ -202,7 +203,7 @@ export default function RecipeDetailModal({
                     {item.componentType === "recipe"
                       ? (item.subRecipeName ?? "Sub-receta")
                       : (item.ingredientName ?? "Ingrediente")}
-                    {item.componentType === "recipe" && <span className="rd-tag">Base</span>}
+                    {item.componentType === "recipe" && <span className="rd-tag">Preparación base</span>}
                   </span>
                   <span className="text-sm" style={{ color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                     {gramsText(parseFloat(item.quantityG))}
@@ -237,7 +238,7 @@ export default function RecipeDetailModal({
                     tooltip="Porcentaje extra sobre el costo de materia prima para cubrir variaciones de precio."
                   />
                   <DetailField label="Peso total" value={gramsText(totalWeightG)} />
-                  <DetailField label="Tipo" value={recipe.isBase ? "Receta base" : "Receta principal"} highlight={recipe.isBase} />
+                  <DetailField label="Tipo" value={recipeTypeLabel(recipe.isBase)} highlight={recipe.isBase} />
                   <DetailField label="N.° de receta" value={recipe.recipeNumber} />
                 </div>
               </section>

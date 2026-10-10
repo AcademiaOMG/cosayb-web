@@ -12,7 +12,7 @@ import YieldFactorDetailModal from "@/components/app/factor-rendimiento/YieldFac
 import YieldFactorDeleteModal from "@/components/app/factor-rendimiento/YieldFactorDeleteModal"
 import YieldFactorSearchBar, { type YieldFactorFilter } from "@/components/app/factor-rendimiento/YieldFactorSearchBar"
 import Pagination from "@/components/app/inventario/Pagination"
-import { scrollMainToTop } from "@/components/calculator"
+import { CalcModal } from "@/components/calculator"
 import type { FactorRendimiento } from "@/types/domain"
 import {
   getFactoresRendimiento,
@@ -156,6 +156,8 @@ export default function FactorRendimientoPage() {
   /** Registro recién guardado: aviso arriba de la lista y fila resaltada */
   const [justSaved, setJustSaved] = useState<YieldSavedInfo | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
+  /** La calculadora tiene datos escritos sin guardar (la ventana avisa antes de cerrar) */
+  const [calcDirty, setCalcDirty] = useState(false)
 
   useEffect(() => {
     function handleHelp() { setHelpOpen(true) }
@@ -224,11 +226,13 @@ export default function FactorRendimientoPage() {
   }
 
   function closeCalculator() {
+    setCalcDirty(false)
     setView("list")
   }
 
   function handleSaved(info: YieldSavedInfo) {
     setJustSaved(info)
+    setCalcDirty(false)
     setView("list")
   }
 
@@ -238,11 +242,7 @@ export default function FactorRendimientoPage() {
     setPage(1)
   }
 
-  // Al alternar lista/calculadora, volver arriba; y mostrar el registro guardado
-  useEffect(() => {
-    scrollMainToTop()
-  }, [view])
-
+  // Mostrar el registro guardado
   useEffect(() => {
     if (view !== "list" || !justSaved) return
     const t = setTimeout(() => {
@@ -274,7 +274,7 @@ export default function FactorRendimientoPage() {
           <ul className="flex flex-col gap-2 ml-1">
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Nuevo factor:</strong> se abre la calculadora en pantalla completa. Elige el tipo, escribe el nombre y, en la calculadora, el costo, el peso total y los gramos que se pierden. Pulsa Calcular y guarda. Con «← Mis factores» vuelves a la lista (si escribiste algo, te avisamos antes de salir).</span>
+              <span><strong>Nuevo factor:</strong> se abre la calculadora en una ventana. Elige el tipo, escribe el nombre y, en la calculadora, el costo, el peso total y los gramos que se pierden. Pulsa Calcular y guarda. La cierras con la X (o con Esc); si escribiste algo, te avisamos antes de cerrar.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
@@ -301,22 +301,6 @@ export default function FactorRendimientoPage() {
       </div>
     </Modal>
   )
-
-  if (view === "calculator") {
-    return (
-      <>
-        <YieldFactorCalculator
-        // Reiniciar la calculadora al cambiar de registro (nuevo / editar)
-        key={editingFactor?.id ?? "new"}
-        editingFactor={editingFactor}
-        onSubmit={handleSubmit}
-        onDone={handleSaved}
-        onCancel={closeCalculator}
-        />
-        {helpModal}
-      </>
-    )
-  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -431,6 +415,7 @@ export default function FactorRendimientoPage() {
         onClose={() => setDetailFactor(null)}
         factor={detailFactor}
         onEdit={can("yieldFactors", "update") ? openEdit : undefined}
+        onDelete={can("yieldFactors", "delete") ? (f) => { setDetailFactor(null); setDeleteError(null); setDeleteFactor(f) } : undefined}
       />
 
       <YieldFactorDeleteModal
@@ -441,6 +426,25 @@ export default function FactorRendimientoPage() {
         isDeleting={deleting}
         error={deleteError}
       />
+
+      {/* Calculadora: ventana común de la app */}
+      {view === "calculator" && (
+        <CalcModal
+          title={editingFactor ? `Editar: ${editingFactor.ingredientName}` : "Nuevo factor de rendimiento"}
+          subtitle="Escribe lo que pagaste, el peso y lo que se pierde. Te decimos cuánto cuesta de verdad cada gramo que aprovechas."
+          dirty={calcDirty}
+          onClose={closeCalculator}
+        >
+          <YieldFactorCalculator
+            // Reiniciar la calculadora al cambiar de registro (nuevo / editar)
+            key={editingFactor?.id ?? "new"}
+            editingFactor={editingFactor}
+            onSubmit={handleSubmit}
+            onDone={handleSaved}
+            onDirtyChange={setCalcDirty}
+          />
+        </CalcModal>
+      )}
 
       {helpModal}
     </div>

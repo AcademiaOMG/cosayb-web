@@ -20,8 +20,26 @@ interface SearchableSelectProps {
   searchPlaceholder?: string
   /** Si se pasa, agrega bajo el buscador una opción fija que limpia la selección (ej. "Seleccionar receta") */
   clearLabel?: string
-  /** Ajustes de estilo del disparador (ej. para integrarlo en una superficie oscura) */
+  /** "calculator" = el disparador estándar de las calculadoras (hueco oscuro) */
+  variant?: "default" | "calculator"
+  /** Ajustes de estilo del disparador sobre el de su variante */
   triggerStyle?: React.CSSProperties
+}
+
+/**
+ * Disparador de las listas dentro de una calculadora: un hueco oscuro, igual en
+ * todas (valoración, menú, recetas…) y con cualquiera de los dos diseños.
+ */
+const CALCULATOR_TRIGGER: React.CSSProperties = {
+  height: "40px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#0B0F1A",
+  boxShadow: "inset 0 2px 5px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.1)",
+  color: "#E6ECFF",
+  fontSize: "13px",
+  fontWeight: 500,
+  padding: "0 12px",
 }
 
 interface DropdownRect {
@@ -37,7 +55,8 @@ export default function SearchableSelect({
   placeholder = "Buscar...",
   emptyMessage = "No se encontraron resultados",
   ariaLabel,
-  triggerStyle,
+  variant = "default",
+  triggerStyle: triggerOverride,
   searchPlaceholder,
   clearLabel,
 }: SearchableSelectProps) {
@@ -50,6 +69,7 @@ export default function SearchableSelect({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
+  const triggerStyle = variant === "calculator" ? { ...CALCULATOR_TRIGGER, ...triggerOverride } : triggerOverride
   const selectedOption = options.find((opt) => opt.value === value)
 
   const filteredOptions = options.filter((opt) =>

@@ -811,16 +811,17 @@ export default function RecipeCalculator({
                   Ingrediente
                 </button>
                 <button type="button" aria-pressed={pickKind === "recipe"} onClick={() => changeKind("recipe")}>
-                  Receta base
+                  Preparación base
                 </button>
               </div>
               <SearchableSelect
                 options={pickOptions}
                 value={pickId}
                 onChange={choose}
-                placeholder={pickKind === "ingredient" ? "Buscar ingrediente…" : "Buscar receta base…"}
-                emptyMessage={pickKind === "ingredient" ? "No hay ingredientes" : "Aún no hay recetas base"}
-                ariaLabel={pickKind === "ingredient" ? "Ingrediente" : "Receta base"}
+                placeholder={pickKind === "ingredient" ? "Buscar ingrediente…" : "Buscar preparación base…"}
+                emptyMessage={pickKind === "ingredient" ? "No hay ingredientes" : "Aún no hay preparaciones base"}
+                ariaLabel={pickKind === "ingredient" ? "Ingrediente" : "Preparación base"}
+                variant="calculator"
               />
             </div>
 

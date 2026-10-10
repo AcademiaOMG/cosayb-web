@@ -13,13 +13,15 @@ export interface ModalProps {
   footer?: React.ReactNode
   /** Modal más ancho (max-w-3xl) para formularios complejos */
   wide?: boolean
+  /** Ventana de trabajo (calculadoras con dos columnas): max-w-5xl y más alta */
+  xwide?: boolean
   /** Entrada suave (fundido + leve subida) */
   animate?: boolean
   /** Overlay con fondo desenfocado (backdrop-blur) tras el contenido */
   blur?: boolean
 }
 
-export default function Modal({ isOpen, open, onClose, title, children, footer, wide, animate, blur }: ModalProps) {
+export default function Modal({ isOpen, open, onClose, title, children, footer, wide, xwide, animate, blur }: ModalProps) {
   const visible = typeof open === "boolean" ? open : !!isOpen
   const panelRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
@@ -131,7 +133,7 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative z-10 w-full flex flex-col max-h-[85vh] overflow-hidden outline-none${animate ? " modal-panel-in" : ""} ${wide ? "max-w-3xl" : "max-w-lg"}`}
+        className={`relative z-10 w-full flex flex-col ${xwide ? "max-h-[92vh]" : "max-h-[85vh]"} overflow-hidden outline-none${animate ? " modal-panel-in" : ""} ${xwide ? "max-w-5xl" : wide ? "max-w-3xl" : "max-w-lg"}`}
         style={{
           background: "var(--bg-surface)",
           borderRadius: "var(--radius-lg)",

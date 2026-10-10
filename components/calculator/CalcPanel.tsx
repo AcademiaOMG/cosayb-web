@@ -51,6 +51,7 @@ export default function CalcPanel<F extends string>({
   children,
   footer,
   title,
+  hint,
 }: {
   /** Nombre accesible del aparato */
   label: string
@@ -80,6 +81,8 @@ export default function CalcPanel<F extends string>({
   footer?: React.ReactNode
   /** Línea impresa bajo la marca del aparato (ej. "Punto de equilibrio") */
   title?: string
+  /** Piel verde: pista corta a la derecha del encabezado (ej. "Escribe y pulsa Calcular") */
+  hint?: string
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const registerRefs = useRef<Partial<Record<F, HTMLInputElement | null>>>({})
@@ -144,7 +147,7 @@ export default function CalcPanel<F extends string>({
 
   return (
     <div ref={wrapRef}>
-      <CalcDevice label={label} model={title}>
+      <CalcDevice label={label} model={title} hint={title ? (hint ?? "") : undefined}>
         <CalcDisplay
           label={display.label}
           value={display.value}
