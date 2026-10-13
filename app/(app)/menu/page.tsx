@@ -17,6 +17,7 @@ import RecipePickerModal from "@/components/app/recipes/RecipePickerModal"
 import MenuCalculator, { type MenuCalcAdd } from "./MenuCalculator"
 import MenuFicha from "./MenuFicha"
 import { IND, fmt } from "./menuFormat"
+import { menuUnitCost, menuUnitOf, unitShort } from "@/lib/menuExtras"
 import { calcularCosto } from "@/lib/menuFicha"
 import type { Menu, Recipe, Ingrediente, MenuIndicator } from "@/types/domain"
 import {
@@ -89,12 +90,15 @@ function DetailView({
   menu,
   availableRecipes,
   availableIngredients,
+  onExtraCreated,
   onSaved,
   onDirtyChange,
 }: {
   menu: Menu | null
   availableRecipes: Recipe[]
   availableIngredients: Ingrediente[]
+  /** Un extra nuevo se guardó en el inventario: actualiza el catálogo compartido */
+  onExtraCreated: (extra: Ingrediente) => void
   onSaved: () => void
   /** Avisa a la página si quedan datos sin guardar (guard de pestañas) */
   onDirtyChange: (dirty: boolean) => void
@@ -173,11 +177,18 @@ function DetailView({
         }
         const ing = availableIngredients.find((i) => i.id === item.ingredientId)
         return ing
-          ? { ...item, nombre: ing.name, costoGramo: parseFloat(ing.costPerUnit), costoLoading: false }
+          ? { ...item, nombre: ing.name, costoGramo: menuUnitCost(ing), costoLoading: false }
           : { ...item, costoLoading: false }
       })
     )
   }, [availableIngredients])
+
+  /** Unidad en que se cuenta un ítem: recetas en g; extras en la unidad del inventario */
+  const unitOfItem = (item: RecipeLineItem): string => {
+    if (item.componentType !== "ingredient") return "g"
+    const ing = availableIngredients.find((i) => i.id === item.ingredientId)
+    return ing ? unitShort(menuUnitOf(ing)) : "und"
+  }
 
   const pctMP   = parseFloat(pctMateriaPrima) || 0
   const nPers   = parseInt(numPersonas) || 0
@@ -273,7 +284,7 @@ function DetailView({
         ingredientId: id,
         nombre: ing?.name ?? "",
         // Extras: costo por UNIDAD directo del catálogo, sin fetch
-        costoGramo: ing ? parseFloat(ing.costPerUnit) : null,
+        costoGramo: ing ? menuUnitCost(ing) : null,
         cantidadGramos: grams,
       },
     ])
@@ -330,7 +341,7 @@ function DetailView({
           ingredientId,
           nombre: ing?.name ?? "",
           // Extras: costo por UNIDAD directo del catálogo, sin fetch
-          costoGramo: ing ? parseFloat(ing.costPerUnit) : null,
+          costoGramo: ing ? menuUnitCost(ing) : null,
           costoLoading: false,
         }
       })
@@ -441,7 +452,9 @@ function DetailView({
             
             onChange={handleCalcChange}
             recipes={availableRecipes.map((r) => ({ id: r.id, name: r.name }))}
-            ingredients={availableIngredients.map((i) => ({ id: i.id, name: i.name }))}
+            extras={availableIngredients.map((i) => ({ id: i.id, name: i.name, unit: menuUnitOf(i) }))}
+            catalog={availableIngredients}
+            onExtraCreated={onExtraCreated}
             onAddItem={addFromCalc}
             onCalculate={handleCalcular}
           />
@@ -496,7 +509,7 @@ function DetailView({
                           <span
                             className="text-[9px] font-bold px-1.5 py-0.5 rounded-full tracking-wider uppercase shrink-0"
                             style={{ background: "#FEF3C7", color: "#92400E" }}
-                            title="Extra por unidad (bebidas, desechables…)"
+                            title="Extra (bebidas, desechables, acompañamientos…)"
                           >
                             Extra
                           </span>
@@ -507,13 +520,13 @@ function DetailView({
                               options={ingredientOptions}
                               value={item.ingredientId}
                               onChange={(val) => selectIngredient(item.uid, val)}
-                              placeholder="— Seleccionar ingrediente —"
-                              emptyMessage="No se encontraron ingredientes"
-                              ariaLabel="Ingrediente extra"
+                              placeholder="— Seleccionar extra —"
+                              emptyMessage="No se encontraron extras"
+                              ariaLabel="Extra del menú"
                             />
                           ) : (
                             <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                              No hay ingredientes. Créalos en Inventario (ej. GASEOSA, PLATO DESECHABLE).
+                              No hay extras. Créalos desde la calculadora con «Crear nuevo» (ej. GASEOSA, VASO PLÁSTICO).
                             </span>
                           )
                         ) : item.recipeId ? (
@@ -552,7 +565,7 @@ function DetailView({
                       >
                         <span>{item.cantidadGramos}</span>
                         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                          {item.componentType === "ingredient" ? "und" : "g"}
+                          {unitOfItem(item)}
                         </span>
                       </div>
 
@@ -693,7 +706,11 @@ function DetailView({
                   nombre: item.nombre,
                   extra: item.componentType === "ingredient",
                   cantidad,
-                  unidad: item.componentType === "ingredient" ? "und" : "g",
+                  unidad: (item.componentType === "ingredient"
+                    ? (availableIngredients.find((i) => i.id === item.ingredientId)
+                        ? menuUnitOf(availableIngredients.find((i) => i.id === item.ingredientId)!)
+                        : "und")
+                    : "g") as "g" | "ml" | "und" | "porcion",
                   costoUnit: item.costoGramo ?? porPorcion / cantidad,
                 }
               })}
@@ -884,7 +901,7 @@ function ShoppingListBody({ menuId }: { menuId: string }) {
               className="text-sm tabular-nums font-mono shrink-0"
               style={{ color: "var(--text-secondary)", width: 90, textAlign: "right" }}
             >
-              {item.unidad === "g" ? `${item.cantidad.toLocaleString("es-CO")} g` : `${item.cantidad} und`}
+              {`${item.cantidad.toLocaleString("es-CO")} ${unitShort(item.unidad)}`}
             </span>
             <span
               className="text-sm tabular-nums font-mono font-medium shrink-0"
@@ -926,7 +943,7 @@ function ShoppingListFooter({
     const rows = data.items
       .map((i) =>
         `<tr><td>${i.nombre}</td><td style="text-align:right">${
-          i.unidad === "g" ? `${i.cantidad.toLocaleString("es-CO")} g` : `${i.cantidad} und`
+          `${i.cantidad.toLocaleString("es-CO")} ${unitShort(i.unidad)}`
         }</td><td style="text-align:right">${fmt(i.costo)}</td></tr>`
       )
       .join("")
@@ -1243,7 +1260,7 @@ export default function MenuPage() {
   )
 
   // Ingredientes para extras del menú (gaseosas, jugos, desechables…)
-  const { data: availableIngredients = [] } = useSWR(
+  const { data: availableIngredients = [], mutate: mutateIngredients } = useSWR(
     "ingredients-catalog-menu",
     () => getIngredientes().then((r) => r.data ?? []),
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
@@ -1355,7 +1372,7 @@ export default function MenuPage() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Agregar platos:</strong> elige <strong>Recetas</strong> o <strong>Ingredientes</strong>, búscalo en el selector, escribe con el teclado los gramos (o unidades) por porción y pulsa <strong>Agregar a la lista</strong>; el producto queda en la lista de la derecha.</span>
+              <span><strong>Agregar platos:</strong> elige <strong>Recetas</strong> o <strong>Extras</strong> (bebidas, vasos, platos, acompañamientos…), búscalo en el selector, escribe con el teclado la cantidad por porción (gramos, o la unidad del extra) y pulsa <strong>Agregar a la lista</strong>. Si no existe, usa <strong>Crear nuevo</strong> sin salir de la calculadora.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
@@ -1472,6 +1489,10 @@ export default function MenuPage() {
           menu={editingMenu}
           availableRecipes={availableRecipes}
           availableIngredients={availableIngredients}
+          onExtraCreated={(extra) => {
+            // Disponible de inmediato en el selector, sin esperar a revalidar
+            void mutateIngredients((cur) => [...(cur ?? []).filter((x) => x.id !== extra.id), extra], { revalidate: false })
+          }}
           onSaved={handleSaved}
           onDirtyChange={setCalcDirty}
         />
