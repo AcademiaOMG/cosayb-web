@@ -109,7 +109,10 @@ export default function DashboardPage() {
     return () => cancelAnimationFrame(frame)
   }, [])
 
-  const { can, hasFeature, isLoading } = usePermissions()
+  const { can, hasFeature, isLoading, hasOrganization, identityType } = usePermissions()
+  // Usuario autenticado sin negocio aún: ya no se le fuerza el onboarding al entrar;
+  // se le invita (sin bloquear) a crear su negocio desde Inicio.
+  const needsBusiness = !isLoading && !hasOrganization && identityType !== "platform"
   const { data: session } = authClient.useSession()
   const { data: insights } = useSWR(
     "dashboard-insights",
@@ -162,6 +165,22 @@ export default function DashboardPage() {
           retiró). En desktop lo muestra el Sidebar y este bloque se oculta;
           si el componente retorna null no queda un item fantasma en el flex. */}
       <SidebarChecklist variant="surface" className="lg:hidden" />
+
+      {needsBusiness && (
+        <div className="glass-grid-wrap glass-grid-wrap-wide">
+          <div className="glass flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold" style={{ color: "var(--text-primary)" }}>Aún no tienes un negocio</p>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Créalo en un minuto para empezar a costear tus recetas.
+              </p>
+            </div>
+            <Link href="/onboarding" className="btn-spx btn-spx-accent self-start sm:self-auto">
+              Crear mi negocio
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="hidden lg:block">
         <PageHeader

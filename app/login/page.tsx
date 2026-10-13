@@ -6,41 +6,61 @@ import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, BarChart3, ChefHat, TrendingUp } from "lucide-react"
 import { getPendingCheckout, pendingToPath, pendingContextLine } from "@/lib/commerce/pending"
+import { resolvePostLoginPath, checkServerSession } from "@/lib/authRedirect"
+import { toast } from "@/lib/toast"
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   // Intención de compra pendiente (planes → login → checkout). Se conserva el
   // soporte del viejo ?redirect= y se añade ?returnTo=.
-  const redirectTo = useMemo(() => {
-    const rt = searchParams.get("returnTo") || searchParams.get("redirect")
-    return rt && rt.startsWith("/") ? rt : null
-  }, [searchParams])
+  const returnTo = searchParams.get("returnTo") || searchParams.get("redirect")
   const pending = useMemo(
     () => (typeof window !== "undefined" ? getPendingCheckout() : null),
     []
   )
+  // Tras autenticarse: ruta pedida > compra pendiente > dashboard (sin pasar por onboarding)
   const destination = useMemo(
-    () => redirectTo ?? (pending ? pendingToPath(pending) : "/onboarding"),
-    [redirectTo, pending]
+    () => resolvePostLoginPath({ returnTo, pendingPath: pending ? pendingToPath(pending) : null }),
+    [returnTo, pending]
   )
 
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // true mientras se verifica si ya hay sesión: evita el parpadeo del formulario antes de redirigir
+  const [checking, setChecking] = useState(true)
   const callbackURL = useMemo(() => {
     if (typeof window === "undefined") return ""
     return `${window.location.origin}${destination}`
   }, [destination])
 
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
-      if (data?.session) router.replace(destination)
-    })
-  }, [router, destination])
+    let cancelled = false
+    async function verify() {
+      // Misma autoridad que SessionGuard (el API, no la cookie caché de Better Auth):
+      // si no, una cookie obsoleta provoca el bucle login → dashboard → 401 → login.
+      const state = await checkServerSession(API)
+      if (cancelled) return
+      if (state === "valid") {
+        router.replace(destination)
+        return // se mantiene el estado de carga hasta que la navegación ocurra
+      }
+      if (state === "invalid") {
+        // Cookie huérfana (sesión borrada en servidor): limpiarla para no rebotar
+        try { await authClient.signOut() } catch { /* sin sesión que cerrar */ }
+        if (!cancelled && searchParams.get("expired")) {
+          toast.info("Tu sesión expiró. Inicia sesión de nuevo para continuar.")
+        }
+      }
+      if (!cancelled) setChecking(false)
+    }
+    void verify()
+    return () => { cancelled = true }
+  }, [router, destination, searchParams])
 
   const handleGoogleLogin = async () => {
     setLoading(true)
-    setError(null)
     try {
       const res = await fetch(`/api/auth/sign-in/social`, {
         method: "POST",
@@ -55,10 +75,12 @@ function LoginForm() {
         throw new Error("No se recibió URL de redirección")
       }
     } catch {
-      setError("No se pudo iniciar sesión con Google. Intenta de nuevo.")
+      toast.error("No se pudo iniciar sesión con Google. Intenta de nuevo.")
       setLoading(false)
     }
   }
+
+  if (checking) return <LoginSpinner />
 
   return (
     <div className="min-h-dvh flex" style={{ background: "var(--bg-primary)" }}>
@@ -210,21 +232,6 @@ function LoginForm() {
             }}
           >
             <div className="px-6 py-7 flex flex-col gap-5 sm:px-8">
-              {/* Error */}
-              {error && (
-                <div
-                  className="px-4 py-3 rounded-xl text-sm flex items-start gap-2.5"
-                  style={{
-                    background: "#FEF2F2",
-                    border: "1px solid #FECACA",
-                    color: "#991B1B",
-                  }}
-                >
-                  <span className="text-sm mt-0.5">⚠</span>
-                  {error}
-                </div>
-              )}
-
               {/* Google button */}
               <button
                 onClick={handleGoogleLogin}
@@ -279,18 +286,20 @@ function LoginForm() {
   )
 }
 
+function LoginSpinner() {
+  return (
+    <div className="min-h-dvh flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
+      <div
+        className="w-8 h-8 rounded-full border-2 animate-spin"
+        style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
+      />
+    </div>
+  )
+}
+
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-dvh flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
-          <div
-            className="w-8 h-8 rounded-full border-2 animate-spin"
-            style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
-          />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoginSpinner />}>
       <LoginForm />
     </Suspense>
   )
