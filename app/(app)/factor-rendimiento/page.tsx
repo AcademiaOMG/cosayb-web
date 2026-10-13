@@ -9,7 +9,6 @@ import EmptyState from "@/components/ui/EmptyState"
 import YieldFactorTable from "@/components/app/factor-rendimiento/YieldFactorTable"
 import YieldFactorCalculator, { type YieldSavedInfo, type YieldSubmitData } from "@/components/app/factor-rendimiento/YieldFactorCalculator"
 import YieldFactorDetailModal from "@/components/app/factor-rendimiento/YieldFactorDetailModal"
-import YieldFactorDeleteModal from "@/components/app/factor-rendimiento/YieldFactorDeleteModal"
 import YieldFactorSearchBar, { type YieldFactorFilter } from "@/components/app/factor-rendimiento/YieldFactorSearchBar"
 import Pagination from "@/components/app/inventario/Pagination"
 import { CalcModal } from "@/components/calculator"
@@ -20,7 +19,10 @@ import {
   updateFactorRendimiento,
   deleteFactorRendimiento,
 } from "@/lib/api"
-import { Scale, Plus, CheckCircle2, X } from "lucide-react"
+import { Scale, Plus } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { usePermissions } from "@/hooks/usePermissions"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
@@ -150,10 +152,8 @@ export default function FactorRendimientoPage() {
   const [view, setView] = useState<PageView>("list")
   const [editingFactor, setEditingFactor] = useState<FactorRendimiento | null>(null)
   const [detailFactor, setDetailFactor] = useState<FactorRendimiento | null>(null)
-  const [deleteFactor, setDeleteFactor] = useState<FactorRendimiento | null>(null)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  /** Registro recién guardado: aviso arriba de la lista y fila resaltada */
+  const confirm = useConfirm()
+  /** Registro recién guardado: fila resaltada en la lista (el aviso es un toast) */
   const [justSaved, setJustSaved] = useState<YieldSavedInfo | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   /** La calculadora tiene datos escritos sin guardar (la ventana avisa antes de cerrar) */
@@ -195,20 +195,24 @@ export default function FactorRendimientoPage() {
     return { id }
   }
 
-  async function handleDelete() {
-    if (!deleteFactor) return
-    setDeleting(true)
-    setDeleteError(null)
+  async function handleDelete(target: FactorRendimiento) {
+    const ok = await confirm({
+      title: "Eliminar factor de rendimiento",
+      itemName: target.ingredientName,
+      description: "Se borra el cálculo con todo lo que se pierde (huesos, cáscaras, grasa…). Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
     try {
-      await deleteFactorRendimiento(deleteFactor.id)
-      if (justSaved?.id === deleteFactor.id) setJustSaved(null)
-      setDeleteFactor(null)
+      await deleteFactorRendimiento(target.id)
+      if (justSaved?.id === target.id) setJustSaved(null)
       await mutate()
+      toast.success("Factor de rendimiento eliminado", { description: target.ingredientName })
     } catch (e) {
-      // el modal permanece abierto y explica qué pasó
-      setDeleteError(e instanceof Error && e.message ? e.message : "No se pudo eliminar. Revisa tu conexión e inténtalo de nuevo.")
-    } finally {
-      setDeleting(false)
+      toast.error("No se pudo eliminar el factor de rendimiento", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     }
   }
 
@@ -232,6 +236,9 @@ export default function FactorRendimientoPage() {
 
   function handleSaved(info: YieldSavedInfo) {
     setJustSaved(info)
+    toast.success(info.message.replace(/.$/, ""), {
+      description: `${info.name}. Lo encuentras resaltado en la lista.`,
+    })
     setCalcDirty(false)
     setView("list")
   }
@@ -318,27 +325,6 @@ export default function FactorRendimientoPage() {
         }
       />
 
-      {justSaved && (
-        <div
-          role="status"
-          className="flex items-start gap-2 rounded-xl px-4 py-3 text-sm"
-          style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#166534" }}
-        >
-          <CheckCircle2 size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <p className="flex-1 min-w-0 break-words">
-            <strong>{justSaved.name}</strong>: {justSaved.message} Lo encuentras resaltado en la lista.
-          </p>
-          <button
-            type="button"
-            onClick={() => setJustSaved(null)}
-            aria-label="Cerrar aviso"
-            className="p-1 -m-1 rounded-md hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
       {/* Search + Filter */}
       {!isLoading && !error && factors.length > 0 && (
         <YieldFactorSearchBar
@@ -401,13 +387,13 @@ export default function FactorRendimientoPage() {
             highlightId={justSaved?.id}
             onView={(f) => setDetailFactor(f)}
             onEdit={can("yieldFactors", "update") ? openEdit : undefined}
-            onDelete={can("yieldFactors", "delete") ? (f) => { setDeleteError(null); setDeleteFactor(f) } : undefined}
+            onDelete={can("yieldFactors", "delete") ? (f) => { void handleDelete(f) } : undefined}
           />
           <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
 
-      {/* Modales (solo lectura y confirmación) */}
+      {/* Modales (solo lectura) */}
       <YieldFactorDetailModal
         // Cada registro arranca sin mensajes del anterior
         key={detailFactor?.id ?? "none"}
@@ -415,16 +401,7 @@ export default function FactorRendimientoPage() {
         onClose={() => setDetailFactor(null)}
         factor={detailFactor}
         onEdit={can("yieldFactors", "update") ? openEdit : undefined}
-        onDelete={can("yieldFactors", "delete") ? (f) => { setDetailFactor(null); setDeleteError(null); setDeleteFactor(f) } : undefined}
-      />
-
-      <YieldFactorDeleteModal
-        isOpen={!!deleteFactor}
-        onClose={() => setDeleteFactor(null)}
-        onConfirm={handleDelete}
-        factor={deleteFactor}
-        isDeleting={deleting}
-        error={deleteError}
+        onDelete={can("yieldFactors", "delete") ? (f) => { setDetailFactor(null); void handleDelete(f) } : undefined}
       />
 
       {/* Calculadora: ventana común de la app */}

@@ -15,6 +15,9 @@ import IngredientFormModal from "@/components/app/inventario/IngredientFormModal
 import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
 import { displayName, normalizeForSearch } from "@/components/app/inventario/format"
 import { Plus } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
@@ -59,9 +62,8 @@ export default function InventarioPage() {
   // ── Modal: detail ─────────────────────────────────────────────────────────
   const [detail, setDetail] = useState<Ingredient | null>(null)
 
-  // ── Modal: delete ─────────────────────────────────────────────────────────
-  const [deleteTarget, setDeleteTarget] = useState<Ingredient | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  // ── Eliminar (confirmación global) ────────────────────────────────────────
+  const confirm = useConfirm()
 
   // ── Modal: help ──────────────────────────────────────────────────────────
   const [helpOpen, setHelpOpen] = useState(false)
@@ -142,20 +144,27 @@ export default function InventarioPage() {
     await mutate()
   }
 
-  async function handleDelete() {
-    if (!deleteTarget) return
-    setDeleting(true)
+  async function handleDelete(target: Ingredient) {
+    const name = displayName(target.name)
+    const ok = await confirm({
+      title: "Eliminar ingrediente",
+      itemName: name,
+      description: "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
     try {
-      await fetchAPI(`/api/v1/ingredients/${deleteTarget.id}`, {
+      await fetchAPI(`/api/v1/ingredients/${target.id}`, {
         method: "DELETE",
       })
-      setDeleteTarget(null)
       await mutate()
       revalidateOnboarding()
-    } catch {
-      setDeleteTarget(null)
-    } finally {
-      setDeleting(false)
+      toast.success("Ingrediente eliminado", { description: name })
+    } catch (e) {
+      toast.error("No se pudo eliminar el ingrediente", {
+        description: friendlyError(e, "Inténtalo de nuevo en unos segundos."),
+      })
     }
   }
 
@@ -223,7 +232,7 @@ export default function InventarioPage() {
           onPageChange={handlePageChange}
           onOpen={setDetail}
           onEdit={canUpdate ? openEdit : undefined}
-          onDelete={canDelete ? setDeleteTarget : undefined}
+          onDelete={canDelete ? handleDelete : undefined}
           onRetry={() => void mutate()}
           onClearFilters={clearFilters}
         />
@@ -233,7 +242,7 @@ export default function InventarioPage() {
         ingredient={detail}
         onClose={() => setDetail(null)}
         onEdit={canUpdate ? openEdit : undefined}
-        onDelete={canDelete ? setDeleteTarget : undefined}
+        onDelete={canDelete ? handleDelete : undefined}
       />
 
       <IngredientFormModal
@@ -245,29 +254,6 @@ export default function InventarioPage() {
         }}
         editing={editing}
       />
-
-      {/* ── Modal: delete ────────────────────────────────────────────────── */}
-      <Modal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="Eliminar ingrediente"
-        footer={
-          <div className="flex gap-3 justify-end">
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
-              Cancelar
-            </Button>
-            <Button variant="danger" loading={deleting} onClick={handleDelete}>
-              Eliminar
-            </Button>
-          </div>
-        }
-      >
-        <p style={{ color: "var(--text-secondary)" }}>
-          ¿Estás seguro de que quieres eliminar{" "}
-          <strong style={{ color: "var(--text-primary)" }}>{deleteTarget ? displayName(deleteTarget.name) : ""}</strong>
-          ? Esta acción no se puede deshacer.
-        </p>
-      </Modal>
 
       {/* ── Modal: help ──────────────────────────────────────────────────── */}
       <Modal

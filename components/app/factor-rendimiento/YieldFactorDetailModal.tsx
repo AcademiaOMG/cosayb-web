@@ -5,6 +5,8 @@ import Button from "@/components/ui/Button"
 import Badge from "@/components/ui/Badge"
 import { saveFactorRendimientoAsIngrediente } from "@/lib/api"
 import { useState } from "react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
 import type { FactorRendimiento } from "@/types/domain"
 
 const grams = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g`
@@ -31,7 +33,6 @@ interface YieldFactorDetailModalProps {
 
 export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit, onDelete }: YieldFactorDetailModalProps) {
   const [isSaving, setIsSaving] = useState(false)
-  const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   if (!factor) return null
 
@@ -45,11 +46,12 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit
   const handleSaveAsIngredient = async () => {
     try {
       setIsSaving(true)
-      setSaveMsg(null)
       const result = await saveFactorRendimientoAsIngrediente(factor.id)
-      setSaveMsg({ text: result.message ?? "Ingrediente guardado correctamente", ok: true })
+      toast.success("Ingrediente creado en Inventario", { description: result.message ?? factor.ingredientName })
     } catch (err) {
-      setSaveMsg({ text: err instanceof Error ? err.message : "No se pudo guardar como ingrediente", ok: false })
+      toast.error("No se pudo crear el ingrediente en Inventario", {
+        description: friendlyError(err, "Inténtalo de nuevo en unos segundos."),
+      })
     } finally {
       setIsSaving(false)
     }
@@ -166,9 +168,6 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit
               {isSaving ? "Guardando..." : "Crear en Inventario"}
             </Button>
           </div>
-          {saveMsg && (
-            <p className="text-xs mt-2" role="status" style={{ color: saveMsg.ok ? "#166534" : "#B42020" }}>{saveMsg.text}</p>
-          )}
         </div>
       </div>
     </Modal>

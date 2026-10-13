@@ -8,6 +8,8 @@ import Input from "@/components/ui/Input"
 import Modal from "@/components/ui/Modal"
 import { getCurrentOrganization, updateOrganization } from "@/lib/api"
 import { Building2, Palette } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
 
 /**
  * Marca — identidad del negocio.
@@ -23,7 +25,6 @@ export default function MarcaPage() {
 
   const [orgName, setOrgName] = useState("")
   const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingName, setPendingName] = useState("")
 
@@ -42,15 +43,16 @@ export default function MarcaPage() {
   async function confirmSave() {
     if (!orgData) return
     setSaving(true)
-    setMsg(null)
     try {
       await updateOrganization(orgData.id, { name: pendingName })
       await mutateOrg()
-      setMsg("Nombre actualizado")
+      toast.success("Nombre del negocio actualizado", { description: pendingName })
       setConfirmOpen(false)
-      setTimeout(() => setMsg(null), 3000)
-    } catch {
-      setMsg("Error al guardar")
+    } catch (err) {
+      setConfirmOpen(false)
+      toast.error("No se pudo guardar el nombre del negocio", {
+        description: friendlyError(err, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setSaving(false)
     }
@@ -72,7 +74,7 @@ export default function MarcaPage() {
               <Input
                 label="Nombre del negocio"
                 value={orgName}
-                onChange={(e) => { setOrgName(e.target.value); setMsg(null) }}
+                onChange={(e) => setOrgName(e.target.value)}
                 placeholder="Mi restaurante"
               />
             </div>
@@ -85,11 +87,6 @@ export default function MarcaPage() {
               {saving ? "Guardando..." : "Guardar"}
             </Button>
           </div>
-          {msg && (
-            <p className="text-xs" style={{ color: msg.includes("Error") ? "#EF4444" : "#16A34A" }}>
-              {msg}
-            </p>
-          )}
         </div>
       </Card>
 

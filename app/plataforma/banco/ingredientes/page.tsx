@@ -13,6 +13,9 @@ import {
   bancoUpdateIngredient, bancoDeleteIngredient,
 } from "@/lib/api"
 import { Search, Plus, Pencil, Trash2, Carrot, Scale, DollarSign } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 
 const PAGE_SIZE = 24
 
@@ -80,28 +83,41 @@ export default function BancoIngredientesPage() {
       }
       setFormOpen(false)
       await mutate()
+      toast.success(editing ? "Ingrediente actualizado" : "Ingrediente creado en el banco", { description: name.trim() })
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Error al guardar.")
+      setFormError(friendlyError(err, "No se pudo guardar el ingrediente. Revisa tu conexión e inténtalo de nuevo."))
     } finally {
       setSaving(false)
     }
   }
 
   // ── Eliminar ──
-  const [deleteTarget, setDeleteTarget] = useState<Ingrediente | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const confirm = useConfirm()
 
-  async function handleDelete() {
-    if (!deleteTarget || !data) return
-    const id = deleteTarget.id
-    setDeleteTarget(null) // cerrar de inmediato — la card desaparece al instante
+  async function handleDelete(target: Ingrediente) {
+    if (!data) return
+    const ok = await confirm({
+      title: "Eliminar ingrediente del banco",
+      itemName: target.name,
+      description: "Las recetas del banco que lo usan quedarán sin este componente. La acción queda auditada.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
+    const id = target.id
     const optimistic = { ...data, data: data.data.filter((i) => i.id !== id), total: data.total - 1 }
     try {
       await mutate(
         async () => { await bancoDeleteIngredient(id); return optimistic },
         { optimisticData: optimistic, rollbackOnError: true, revalidate: true }
       )
-    } catch { /* rollback automático si la API falla */ }
+      toast.success("Ingrediente eliminado del banco", { description: target.name })
+    } catch (e) {
+      // rollback automático: la card reaparece
+      toast.error("No se pudo eliminar el ingrediente", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
+    }
   }
 
   return (
@@ -165,7 +181,7 @@ export default function BancoIngredientesPage() {
                 key={ing.id}
                 ingredient={ing}
                 onEdit={canUpdate ? () => openEdit(ing) : undefined}
-                onDelete={canDelete ? () => setDeleteTarget(ing) : undefined}
+                onDelete={canDelete ? () => void handleDelete(ing) : undefined}
               />
             ))}
           </div>
@@ -222,23 +238,6 @@ export default function BancoIngredientesPage() {
         </div>
       </Modal>
 
-      {/* Confirmar eliminación */}
-      <Modal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="Eliminar ingrediente del banco"
-        footer={
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
-            <Button variant="danger" loading={deleting} onClick={handleDelete}>Eliminar</Button>
-          </div>
-        }
-      >
-        <p style={{ color: "var(--text-secondary)" }}>
-          ¿Eliminar <strong style={{ color: "var(--text-primary)" }}>{deleteTarget?.name}</strong> del banco público?
-          Las recetas del banco que lo usan quedarán sin este componente. La acción queda auditada.
-        </p>
-      </Modal>
     </div>
   )
 }

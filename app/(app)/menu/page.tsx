@@ -9,7 +9,7 @@ import Card from "@/components/ui/Card"
 import Table from "@/components/ui/Table"
 import Modal from "@/components/ui/Modal"
 import {
-  CheckCircle2, Plus, Trash2, UtensilsCrossed, ChefHat, Users, Calculator, History,
+  Plus, Trash2, UtensilsCrossed, ChefHat, Users, Calculator, History,
   Loader2, CalendarDays, Pencil, Eye, ShoppingCart, Printer, StickyNote, ArrowLeftCircle,
 } from "lucide-react"
 import { scrollMainToTop } from "@/components/calculator/scrollMainToTop"
@@ -28,6 +28,9 @@ import type { CreateMenuPayload } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -399,9 +402,12 @@ function DetailView({
       }
       savePctMP(pctMateriaPrima)
       setSuccess(true)
-      setTimeout(() => onSaved(), 1000)
+      toast.success(isNew ? "Menú creado" : "Cambios guardados", { description: payload.nombre })
+      setTimeout(() => onSaved(), 600)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error al guardar")
+      toast.error("No se pudo guardar el menú", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setSaving(false)
     }
@@ -662,12 +668,6 @@ function DetailView({
                   color: "var(--text-primary)",
                 }}
               />
-              {success && (
-                <span role="status" className="text-xs mt-1 flex items-center gap-1.5" style={{ color: "#166534" }}>
-                  <CheckCircle2 size={13} />
-                  Guardado
-                </span>
-              )}
               {error && !success && (
                 <span role="alert" className="text-xs mt-1 block break-words" style={{ color: "var(--error)" }}>{error}</span>
               )}
@@ -995,8 +995,6 @@ function MenuCard({ menu, onClick, onDelete }: {
   const pctMP = parseFloat(menu.pctMateriaPrima)
   const ind: MenuIndicator = pctMP < 32 ? "MUY_BUENO" : pctMP > 37 ? "MALO" : "REGULAR"
   const cfg = IND[ind]
-  const [confirmDelete, setConfirmDelete] = useState(false)
-
   return (
     <div
       className="rounded-2xl p-4 cursor-pointer transition-shadow hover:shadow-md flex flex-col gap-3"
@@ -1031,22 +1029,15 @@ function MenuCard({ menu, onClick, onDelete }: {
       </div>
 
       <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-        {confirmDelete ? (
-          <>
-            <span className="text-xs self-center" style={{ color: "var(--text-muted)" }}>¿Eliminar?</span>
-            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
-            <Button variant="ghost" size="sm" onClick={onDelete}
-              style={{ color: "var(--error)" }}>Confirmar</Button>
-          </>
-        ) : (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="text-xs transition-opacity hover:opacity-70"
-            style={{ color: "var(--text-muted)" }}
-          >
-            <Trash2 size={13} />
-          </button>
-        )}
+        <button
+          onClick={onDelete}
+          title="Eliminar menú"
+          aria-label={`Eliminar ${menu.nombre}`}
+          className="text-xs transition-opacity hover:opacity-70"
+          style={{ color: "var(--text-muted)" }}
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
     </div>
   )
@@ -1062,10 +1053,8 @@ function MenuTable({
   menus: Menu[]
   onView: (m: Menu) => void
   onEdit: (m: Menu) => void
-  onDelete: (id: string) => void
+  onDelete: (menu: Menu) => void
 }) {
-  const [confirmId, setConfirmId] = useState<string | null>(null)
-
   return (
     <Table
       rowKey="id"
@@ -1141,46 +1130,34 @@ function MenuTable({
         {
           key: "id",
           label: "",
-          render: (v, row) => {
+          render: (_v, row) => {
             const menu = row as unknown as Menu
-            const id = v as string
             return (
               <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
-                {confirmId === id ? (
-                  <>
-                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>¿Eliminar?</span>
-                    <Button variant="ghost" size="sm" onClick={() => setConfirmId(null)}>Cancelar</Button>
-                    <Button variant="ghost" size="sm" onClick={() => { onDelete(id); setConfirmId(null) }}
-                      style={{ color: "var(--error)" }}>Confirmar</Button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => onView(menu)}
-                      title="Ver menú"
-                      className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
-                      style={{ color: "var(--text-muted)" }}
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button
-                      onClick={() => onEdit(menu)}
-                      title="Editar menú"
-                      className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
-                      style={{ color: "var(--text-muted)" }}
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      onClick={() => setConfirmId(id)}
-                      title="Eliminar menú"
-                      className="p-1.5 rounded-lg transition-colors hover:opacity-70"
-                      style={{ color: "var(--error)" }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </>
-                )}
+                <button
+                  onClick={() => onView(menu)}
+                  title="Ver menú"
+                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <Eye size={14} />
+                </button>
+                <button
+                  onClick={() => onEdit(menu)}
+                  title="Editar menú"
+                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  onClick={() => onDelete(menu)}
+                  title="Eliminar menú"
+                  className="p-1.5 rounded-lg transition-colors hover:opacity-70"
+                  style={{ color: "var(--error)" }}
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             )
           },
@@ -1275,7 +1252,7 @@ export default function MenuPage() {
   const [viewingMenuId, setViewingMenuId] = useState<string | null>(null)
   // Datos escritos sin guardar en la calculadora + confirmación de salida
   const [calcDirty, setCalcDirty] = useState(false)
-  const [exitConfirm, setExitConfirm] = useState(false)
+  const confirm = useConfirm()
 
   useEffect(() => {
     function handleHelp() { setHelpOpen(true) }
@@ -1284,23 +1261,21 @@ export default function MenuPage() {
   }, [])
 
   /** Cambio de pestaña: salir de la calculadora con datos sin guardar pide confirmación. */
-  function switchView(next: PageView) {
+  async function switchView(next: PageView) {
     if (next === view) return
     if (next === "list" && calcDirty) {
-      setExitConfirm(true)
-      return
+      const ok = await confirm({
+        title: "Salir sin guardar",
+        description: "Lo que escribiste no se ha guardado y se perderá si sales.",
+        confirmLabel: "Salir sin guardar",
+        cancelLabel: "Seguir editando",
+        variant: "danger",
+      })
+      if (!ok) return
+      setCalcDirty(false)
     }
     if (next === "detail") setCalcDirty(false)
-    setExitConfirm(false)
     setView(next)
-    scrollMainToTop()
-  }
-
-  /** Salida aceptada de la calculadora (tras guardar o con la confirmación visible). */
-  function backToHistory() {
-    setCalcDirty(false)
-    setExitConfirm(false)
-    setView("list")
     scrollMainToTop()
   }
 
@@ -1319,19 +1294,29 @@ export default function MenuPage() {
     switchView("detail")
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(menu: Menu) {
+    const ok = await confirm({
+      title: "Eliminar menú",
+      itemName: menu.nombre,
+      description: "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
     try {
-      await deleteMenu(id)
+      await deleteMenu(menu.id)
       await mutateMenus()
       revalidateOnboarding()
-    } catch {
-      // silencioso
+      toast.success("Menú eliminado", { description: menu.nombre })
+    } catch (e) {
+      toast.error("No se pudo eliminar el menú", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     }
   }
 
   async function handleSaved() {
     setCalcDirty(false)
-    setExitConfirm(false)
     await mutateMenus()
     revalidateOnboarding()
     setView("list")
@@ -1452,36 +1437,6 @@ export default function MenuPage() {
         }
       />
 
-      {view === "detail" && exitConfirm && (
-        <div
-          role="alertdialog"
-          aria-label="Salir sin guardar"
-          className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center"
-          style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}
-        >
-          <p className="text-sm flex-1">Lo que escribiste no se ha guardado y se perderá si sales.</p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              autoFocus
-              onClick={() => setExitConfirm(false)}
-              className="h-9 px-3 rounded-lg text-sm font-semibold"
-              style={{ background: "var(--accent)", color: "#fff" }}
-            >
-              Seguir editando
-            </button>
-            <button
-              type="button"
-              onClick={backToHistory}
-              className="h-9 px-3 rounded-lg text-sm font-semibold"
-              style={{ background: "transparent", color: "#92400E", border: "1px solid #FDE68A" }}
-            >
-              Salir sin guardar
-            </button>
-          </div>
-        </div>
-      )}
-
       {view === "detail" ? (
         <DetailView
           // Reiniciar el formulario al cambiar de menú (nuevo / editar)
@@ -1526,7 +1481,7 @@ export default function MenuPage() {
               menus={menus}
               onView={(m) => setViewingMenuId(m.id)}
               onEdit={(m) => openEdit(m)}
-              onDelete={(id) => handleDelete(id)}
+              onDelete={(m) => void handleDelete(m)}
             />
           )}
         </>

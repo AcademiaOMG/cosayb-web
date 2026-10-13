@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ArrowRight, CheckCircle2, Check, ListChecks, Wallet, X } from "lucide-react"
+import { ArrowRight, Check, ListChecks, Wallet, X } from "lucide-react"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
 import {
@@ -23,6 +23,8 @@ import { formatCOP, formatNumber } from "@/lib/calculator/format"
 import { BREAK_EVEN_RUBROS, contributionMarginOf, solveBreakEven, type BreakEvenOutcome } from "@/lib/calculator/breakEven"
 import type { BreakEvenRecord } from "@/types/domain"
 import BreakEvenFicha from "./BreakEvenFicha"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
 import styles from "./breakEven.module.css"
 
 type Field = "amount" | "salePrice" | "variableCost"
@@ -156,7 +158,6 @@ export default function BreakEvenCalculator({
   const calc = useSolverCalculator<Field, Outcome>({ entry: ENTRY, initial: boot, first: "amount", solve })
   const [step, setStep] = useState<Step>("fixed")
   const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [note, setNote] = useState(prefillNote)
   const [clearArmed, setClearArmed] = useState(false)
   const [resultOpen, setResultOpen] = useState(false)
@@ -436,7 +437,6 @@ export default function BreakEvenCalculator({
     savingRef.current = true
     const savingSig = sig
     setSaving(true)
-    setSaveError(null)
     try {
       await onSubmit({
         fixedCosts: fixedItems.map((c) => ({ ...c })),
@@ -446,11 +446,9 @@ export default function BreakEvenCalculator({
       setSavedSig(savingSig)
       setBaseline(savingSig)
     } catch (e) {
-      setSaveError(
-        e instanceof Error && e.message
-          ? `${e.message}. Tus datos siguen aquí: intenta guardar de nuevo.`
-          : "No se pudo guardar el cálculo. Tus datos siguen aquí: intenta guardar de nuevo.",
-      )
+      toast.error("No se pudo guardar el cálculo", {
+        description: `${friendlyError(e, "Revisa tu conexión.")} Tus datos siguen aquí: intenta guardar de nuevo.`,
+      })
     } finally {
       savingRef.current = false
       setSaving(false)
@@ -684,15 +682,6 @@ export default function BreakEvenCalculator({
         footer={
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div className="min-w-0">
-              {saved && (
-                <span role="status" className="text-sm flex items-center gap-1.5" style={{ color: "#166534" }}>
-                  <CheckCircle2 size={14} />
-                  Guardado: ya aparece primero en tu historial
-                </span>
-              )}
-              {saveError && !saved && (
-                <span role="alert" className="text-xs break-words" style={{ color: "var(--error)" }}>{saveError}</span>
-              )}
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
               <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setResultOpen(false)}>

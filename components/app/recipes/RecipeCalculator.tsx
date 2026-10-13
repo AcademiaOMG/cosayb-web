@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react"
 import Button from "@/components/ui/Button"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import {
@@ -22,6 +22,8 @@ import {
   type EntryOptions,
 } from "@/lib/calculator/entry"
 import { formatCOP, formatCOPDecimals, formatNumber, formatPercent } from "@/lib/calculator/format"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
 import {
   defaultServingWeight,
   moveLine,
@@ -580,7 +582,9 @@ export default function RecipeCalculator({
       onSaved({ name: payload.name, created: !isEditing })
     } catch (e) {
       savingRef.current = false
-      setSaveError(e instanceof Error ? e.message : "No se pudo guardar la receta.")
+      toast.error(isEditing ? "No se pudo actualizar la receta" : "No se pudo crear la receta", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo. Tus datos siguen aquí."),
+      })
     } finally {
       setSaving(false)
     }
@@ -1176,11 +1180,6 @@ export default function RecipeCalculator({
           {saveError && (
             <p className="text-sm" role="alert" style={{ color: "#B42020" }}>
               {saveError}
-            </p>
-          )}
-          {saved && (
-            <p className="text-sm flex items-center gap-1.5" role="status" style={{ color: "#166534" }}>
-              <CheckCircle2 size={14} /> {isEditing ? "Receta actualizada" : "Receta creada"}
             </p>
           )}
           <Button id="btn-save-recipe" variant="primary" onClick={handleSave} loading={saving} disabled={saved} className="w-full">

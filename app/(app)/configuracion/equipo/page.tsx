@@ -7,6 +7,9 @@ import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import Modal from "@/components/ui/Modal"
 import { usePermissions } from "@/hooks/usePermissions"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import {
   getMembers, updateMemberRole, removeMember,
   getInvitations, sendInvitation, revokeInvitation,
@@ -68,25 +71,37 @@ export default function EquipoPage() {
     try {
       await updateMemberRole(roleTarget.userId, newRole)
       await mutateMembers()
+      toast.success("Rol actualizado", { description: roleTarget.name })
       setRoleTarget(null)
+    } catch (err) {
+      toast.error("No se pudo cambiar el rol", {
+        description: friendlyError(err, "Inténtalo de nuevo en unos segundos."),
+      })
     } finally {
       setRoleSaving(false)
     }
   }
 
   // ── Expulsar ──
-  const [removeTarget, setRemoveTarget] = useState<OrgMember | null>(null)
-  const [removeSaving, setRemoveSaving] = useState(false)
+  const confirm = useConfirm()
 
-  async function handleRemove() {
-    if (!removeTarget) return
-    setRemoveSaving(true)
+  async function handleRemove(member: OrgMember) {
+    const ok = await confirm({
+      title: "Expulsar miembro",
+      itemName: member.name,
+      description: "Esta persona perderá acceso a todos los datos de la organización.",
+      confirmLabel: "Expulsar",
+      variant: "danger",
+    })
+    if (!ok) return
     try {
-      await removeMember(removeTarget.userId)
+      await removeMember(member.userId)
       await mutateMembers()
-      setRemoveTarget(null)
-    } finally {
-      setRemoveSaving(false)
+      toast.success("Miembro expulsado", { description: member.name })
+    } catch (err) {
+      toast.error("No se pudo expulsar al miembro", {
+        description: friendlyError(err, "Inténtalo de nuevo en unos segundos."),
+      })
     }
   }
 
@@ -94,9 +109,6 @@ export default function EquipoPage() {
   const [email, setEmail] = useState("")
   const [role, setRole] = useState("")
   const [sending, setSending] = useState(false)
-  const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null)
-  const [revokeTarget, setRevokeTarget] = useState<Invitation | null>(null)
-  const [revoking, setRevoking] = useState(false)
   const [now] = useState(() => Date.now())
 
   const effectiveRole = role || availableRoles[0]?.slug || ""
@@ -113,33 +125,38 @@ export default function EquipoPage() {
   async function handleInvite() {
     if (!email.trim() || !email.includes("@") || !effectiveRole) return
     setSending(true)
-    setMsg(null)
     try {
-      await sendInvitation(email.trim(), effectiveRole)
+      const sentTo = email.trim()
+      await sendInvitation(sentTo, effectiveRole)
       await mutateInvitations()
       setEmail("")
-      setMsg({ type: "ok", text: "Invitación enviada" })
-      setTimeout(() => setMsg(null), 4000)
+      toast.success("Invitación enviada", { description: sentTo })
     } catch (err) {
-      const text =
-        err instanceof Error && err.message && !err.message.startsWith("HTTP")
-          ? err.message
-          : "Error al enviar la invitación."
-      setMsg({ type: "error", text })
+      toast.error("No se pudo enviar la invitación", {
+        description: friendlyError(err, "Revisa el correo e inténtalo de nuevo."),
+      })
     } finally {
       setSending(false)
     }
   }
 
-  async function handleRevoke() {
-    if (!revokeTarget) return
-    setRevoking(true)
+  async function handleRevoke(inv: Invitation) {
+    const ok = await confirm({
+      title: "Revocar invitación",
+      itemName: inv.email,
+      description: "La persona ya no podrá usar esta invitación para unirse.",
+      confirmLabel: "Revocar",
+      variant: "danger",
+    })
+    if (!ok) return
     try {
-      await revokeInvitation(revokeTarget.id)
+      await revokeInvitation(inv.id)
       await mutateInvitations()
-      setRevokeTarget(null)
-    } finally {
-      setRevoking(false)
+      toast.success("Invitación revocada", { description: inv.email })
+    } catch (err) {
+      toast.error("No se pudo revocar la invitación", {
+        description: friendlyError(err, "Inténtalo de nuevo en unos segundos."),
+      })
     }
   }
 
@@ -194,7 +211,7 @@ export default function EquipoPage() {
                 label="Correo electrónico"
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setMsg(null) }}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="correo@ejemplo.com"
               />
             </div>
@@ -223,11 +240,6 @@ export default function EquipoPage() {
             </Button>
           </div>
 
-          {msg && (
-            <p className="text-xs mt-3" style={{ color: msg.type === "error" ? "#EF4444" : "#16A34A" }}>
-              {msg.text}
-            </p>
-          )}
         </Card>
       )}
 
@@ -283,7 +295,7 @@ export default function EquipoPage() {
                       <MoreVertical size={14} />
                     </button>
                     <button
-                      onClick={() => setRemoveTarget(m)}
+                      onClick={() => void handleRemove(m)}
                       className="p-1.5 rounded-lg transition-colors"
                       style={{ color: "#EF4444", border: "none", background: "transparent", cursor: "pointer" }}
                       title="Expulsar"
@@ -339,7 +351,7 @@ export default function EquipoPage() {
                     {roleInfo.label}
                   </span>
                   <button
-                    onClick={() => setRevokeTarget(inv)}
+                    onClick={() => void handleRevoke(inv)}
                     className="p-1.5 rounded-lg shrink-0"
                     style={{ color: "#EF4444", border: "none", background: "transparent", cursor: "pointer" }}
                     title="Revocar"
@@ -435,48 +447,6 @@ export default function EquipoPage() {
         </div>
       </Modal>
 
-      {/* Modal: expulsar */}
-      <Modal
-        open={!!removeTarget}
-        onClose={() => setRemoveTarget(null)}
-        title="Expulsar miembro"
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setRemoveTarget(null)} disabled={removeSaving}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={handleRemove} disabled={removeSaving}>
-              {removeSaving ? "Expulsando..." : "Expulsar"}
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          ¿Expulsar a <strong style={{ color: "var(--text-primary)" }}>{removeTarget?.name}</strong> de la organización?
-          Esta persona perderá acceso a todos los datos.
-        </p>
-      </Modal>
-
-      {/* Modal: revocar invitación */}
-      <Modal
-        open={!!revokeTarget}
-        onClose={() => setRevokeTarget(null)}
-        title="Revocar invitación"
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setRevokeTarget(null)} disabled={revoking}>
-              Cancelar
-            </Button>
-            <Button variant="danger" onClick={handleRevoke} disabled={revoking}>
-              {revoking ? "Revocando..." : "Revocar"}
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          ¿Revocar la invitación a <strong style={{ color: "var(--text-primary)" }}>{revokeTarget?.email}</strong>?
-        </p>
-      </Modal>
     </div>
   )
 }

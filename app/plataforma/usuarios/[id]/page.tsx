@@ -6,6 +6,9 @@ import Link from "next/link"
 import { usePermissions } from "@/hooks/usePermissions"
 import { platformGetUser, platformSetUserPlatformRoles, platformSetUserOrgRole, platformRemoveUserOrgMembership, platformAddUserOrgMembership, platformListOrgs } from "@/lib/api"
 import { ArrowLeft, Shield, Building2, Mail, Users, UserPlus } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 
 // Roles de plataforma visibles (sin Auditor ni Facturación — demasiado granulares)
 const PLATFORM_ROLES = [
@@ -53,6 +56,7 @@ function AddOrgMembership({
       await platformAddUserOrgMembership(userId, selectedOrgId, selectedRole)
       setOpen(false); setSearch(""); setSelectedOrgId(""); setSelectedRole("org_owner")
       onAdded()
+      toast.success("Usuario agregado al negocio")
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Error al agregar")
     } finally {
@@ -174,7 +178,7 @@ function OrgRoleCard({
 }) {
   const [pending, setPending] = useState<string | null | undefined>(undefined)
   const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
+  const confirm = useConfirm()
 
   const dirty = pending !== undefined
   const displayed = dirty ? pending : currentSlug
@@ -183,18 +187,25 @@ function OrgRoleCard({
     if (!canUpdate) return
     // Clic en el activo → deseleccionar (null = sin rol)
     setPending(slug === displayed ? null : slug)
-    setMsg(null)
   }
 
   function discard() {
     setPending(undefined)
-    setMsg(null)
   }
 
   async function save() {
     if (!dirty) return
+    if (pending === null) {
+      const ok = await confirm({
+        title: "Quitar usuario del negocio",
+        itemName: membership.organizationName,
+        description: "El usuario perderá el acceso a este negocio.",
+        confirmLabel: "Quitar",
+        variant: "danger",
+      })
+      if (!ok) return
+    }
     setSaving(true)
-    setMsg(null)
     try {
       if (pending === null) {
         await platformRemoveUserOrgMembership(userId, membership.organizationId)
@@ -203,10 +214,11 @@ function OrgRoleCard({
       }
       await onChanged()
       setPending(undefined)
-      setMsg(pending === null ? "Usuario quitado del negocio" : "Rol actualizado")
-      setTimeout(() => setMsg(null), 3000)
+      toast.success(pending === null ? "Usuario quitado del negocio" : "Rol actualizado", { description: membership.organizationName })
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Error al guardar")
+      toast.error("No se pudo guardar el cambio", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setSaving(false)
     }
@@ -260,12 +272,6 @@ function OrgRoleCard({
         </p>
       )}
 
-      {msg && (
-        <p className="text-xs mt-3" style={{ color: msg.includes("Error") ? "#B91C1C" : "#16A34A" }}>
-          {msg}
-        </p>
-      )}
-
       {canUpdate && dirty && (
         <div className="flex gap-2 mt-4">
           <button
@@ -314,28 +320,26 @@ export default function UsuarioDetallePage({
   const canUpdate = platformCan("platform_users", "update")
   const [selected, setSelected] = useState<string[] | null>(null)
   const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
 
   const currentPlatformRoles = selected ?? user?.platformRoles ?? []
 
   function toggleRole(slug: string) {
     const base = selected ?? user?.platformRoles ?? []
     setSelected(base.includes(slug) ? base.filter((r) => r !== slug) : [...base, slug])
-    setMsg(null)
   }
 
   async function savePlatformRoles() {
     if (selected == null) return
     setSaving(true)
-    setMsg(null)
     try {
       await platformSetUserPlatformRoles(id, selected)
       await mutate()
       setSelected(null)
-      setMsg("Roles actualizados")
-      setTimeout(() => setMsg(null), 3000)
+      toast.success("Roles actualizados")
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Error al actualizar roles")
+      toast.error("No se pudieron actualizar los roles", {
+        description: friendlyError(err, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setSaving(false)
     }
@@ -455,21 +459,10 @@ export default function UsuarioDetallePage({
           })}
         </div>
 
-        {msg && (
-          <p
-            className="text-xs mt-3"
-            style={{
-              color: msg.includes("Error") || msg.includes("puedes") ? "#B91C1C" : "#16A34A",
-            }}
-          >
-            {msg}
-          </p>
-        )}
-
         {canUpdate && dirty && (
           <div className="flex gap-2 mt-4">
             <button
-              onClick={() => { setSelected(null); setMsg(null) }}
+              onClick={() => { setSelected(null) }}
               disabled={saving}
               className="px-4 py-2 rounded-lg text-sm console-muted"
               style={{

@@ -19,7 +19,9 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 import ModuleLocked from "@/components/app/ModuleLocked"
-import { CheckCircle2, ChefHat, Plus, Search, SlidersHorizontal, X, AlertCircle } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
+import { ChefHat, Plus, Search, SlidersHorizontal, X } from "lucide-react"
 
 const PAGE_SIZE = 12
 
@@ -88,12 +90,9 @@ export default function RecetasPage() {
   // Origen (Todas/Mis recetas/Banco de recetas) también cuenta como filtro activo
   const totalActiveFilters = activeFilterCount + (filter !== "all" ? 1 : 0)
 
-  const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
-  const [deleting] = useState(false)
+  const confirm = useConfirm()
   const [view, setView]                 = useState<PageView>("list")
   const [editRecipeId, setEditRecipeId] = useState<string | null>(null)
-  /** Aviso tras guardar o si algo falló (la lista es lo primero que se ve al volver) */
-  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null)
   const { mutate: globalMutate } = useSWRConfig()
   const revalidateOnboarding = useRevalidateOnboarding()
   const [detailRecipeId, setDetailRecipeId] = useState<string | null>(null)
@@ -111,12 +110,11 @@ export default function RecetasPage() {
     void mutateCounts()
     void globalMutate((key) => Array.isArray(key) && (key[0] === "recipe-detail" || key[0] === "recipe-cost"))
     revalidateOnboarding()
-    setNotice({ tone: "ok", text: info.created ? `Receta «${info.name}» creada.` : `Receta «${info.name}» actualizada.` })
+    toast.success(info.created ? "Receta creada" : "Receta actualizada", { description: info.name })
     setView("list")
   }
 
   function openCreate() {
-    setNotice(null)
     setEditRecipeId(null)
     setView("calculator")
   }
@@ -134,12 +132,18 @@ export default function RecetasPage() {
     searchRef.current?.focus()
   }
 
-  async function handleDelete() {
-    if (!deleteTarget || !data) return
-    const id = deleteTarget.id
-    setDeleteTarget(null) // cerrar de inmediato — la card desaparece al instante
+  async function handleDelete(target: Recipe) {
+    if (!data) return
+    const ok = await confirm({
+      title: "Eliminar receta",
+      itemName: target.name,
+      description: "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
+    const id = target.id
     const optimistic = { ...data, data: data.data.filter((r) => r.id !== id), total: data.total - 1 }
-    setNotice(null)
     // Si era la última receta de esta página, retroceder en vez de dejar "Sin resultados"
     if (optimistic.data.length === 0 && page > 1) setPage(page - 1)
     try {
@@ -149,15 +153,17 @@ export default function RecetasPage() {
       )
       void mutateCounts()
       revalidateOnboarding()
-      setNotice({ tone: "ok", text: `Receta «${deleteTarget.name}» eliminada.` })
+      toast.success("Receta eliminada", { description: target.name })
     } catch (e) {
       // rollback automático: la card reaparece; ahora además se explica por qué
-      setNotice({ tone: "error", text: e instanceof Error && e.message ? e.message : "No se pudo eliminar la receta." })
+      toast.error("No se pudo eliminar la receta", {
+        description: e instanceof Error && e.message ? e.message : "Revisa tu conexión e inténtalo de nuevo.",
+      })
     }
   }
 
   function handleOpenEdit(id: string) {
-    setDetailRecipeId(null); setNotice(null); setEditRecipeId(id); setView("calculator")
+    setDetailRecipeId(null); setEditRecipeId(id); setView("calculator")
   }
 
   // Ayuda: se muestra tanto en la lista como en la vista de calculadora
@@ -220,24 +226,6 @@ export default function RecetasPage() {
           ) : undefined
         }
       />
-
-      {notice && (
-        <div
-          role={notice.tone === "error" ? "alert" : "status"}
-          className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-          style={
-            notice.tone === "ok"
-              ? { background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#166534" }
-              : { background: "#FEF2F2", border: "1px solid #FECACA", color: "#B42020" }
-          }
-        >
-          {notice.tone === "ok" ? <CheckCircle2 size={16} className="shrink-0" /> : <AlertCircle size={16} className="shrink-0" />}
-          <span className="flex-1">{notice.text}</span>
-          <button type="button" aria-label="Cerrar aviso" onClick={() => setNotice(null)} className="shrink-0 rounded p-0.5 hover:opacity-70">
-            <X size={14} />
-          </button>
-        </div>
-      )}
 
       {/* ── Barra de controles ── */}
       <div className="flex flex-col gap-3">
@@ -416,7 +404,7 @@ export default function RecetasPage() {
           <RecipeTable
             recipes={recipes}
             onOpen={r => setDetailRecipeId(r.id)}
-            onDelete={can("recipes", "delete") ? setDeleteTarget : undefined}
+            onDelete={can("recipes", "delete") ? handleDelete : undefined}
             canModify={canModify}
           />
           <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
@@ -424,22 +412,6 @@ export default function RecetasPage() {
       )}
 
       {/* ── Modales ── */}
-      <Modal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="Eliminar receta"
-        footer={
-          <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
-            <Button variant="danger" loading={deleting} onClick={handleDelete}>Eliminar</Button>
-          </div>
-        }
-      >
-        <p style={{ color: "var(--text-secondary)" }}>
-          ¿Eliminar <strong style={{ color: "var(--text-primary)" }}>{deleteTarget?.name}</strong>? Esta acción no se puede deshacer.
-        </p>
-      </Modal>
-
       {helpModal}
 
       {/* Crear / editar: ventana flotante sobre la lista */}
@@ -459,7 +431,7 @@ export default function RecetasPage() {
         onClose={() => setDetailRecipeId(null)}
         canModify={canModify}
         onEdit={can("recipes", "update") ? handleOpenEdit : undefined}
-        onDelete={can("recipes", "delete") ? (r => { setDetailRecipeId(null); setDeleteTarget(r) }) : undefined}
+        onDelete={can("recipes", "delete") ? (r => { setDetailRecipeId(null); void handleDelete(r) }) : undefined}
         onImported={() => { setDetailRecipeId(null); void mutate(); revalidateOnboarding() }}
       />
 

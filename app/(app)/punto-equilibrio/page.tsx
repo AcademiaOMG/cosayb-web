@@ -4,7 +4,7 @@ import useSWR from "swr"
 import { useState, useEffect } from "react"
 import {
   BarChart2, Plus, Download, Eye, Pencil, Printer, CalendarDays,
-  Calculator, History, CheckCircle2, AlertCircle, X,
+  Calculator, History,
 } from "lucide-react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
@@ -17,6 +17,9 @@ import { indicatorFromMC } from "@/lib/indicator"
 import type { BreakEvenRecord } from "@/types/domain"
 import { createBreakEven, getBreakEvenHistory, exportBreakEvenExcel } from "@/lib/api"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { usePermissions } from "@/hooks/usePermissions"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { perDay } from "@/lib/calculator/breakEven"
@@ -56,7 +59,9 @@ function printRecord(record: BreakEvenRecord) {
     .join("")
   const w = window.open("", "_blank")
   if (!w) {
-    alert("Tu navegador bloqueó la ventana de impresión. Permite las ventanas emergentes para este sitio e inténtalo de nuevo.")
+    toast.warning("Tu navegador bloqueó la ventana de impresión", {
+      description: "Permite las ventanas emergentes para este sitio e inténtalo de nuevo.",
+    })
     return
   }
   w.document.write(`
@@ -254,13 +259,12 @@ export default function PuntoEquilibrioPage() {
   const [view, setView] = useState<PageView>("calculator")
   // Base de "Reutilizar"; null = cálculo nuevo en blanco
   const [reuseRecord, setReuseRecord] = useState<BreakEvenRecord | null>(null)
-  const [notice, setNotice] = useState<{ text: string; tone: "ok" | "error" } | null>(null)
   const [viewingRecord, setViewingRecord] = useState<BreakEvenRecord | null>(null)
   const [exporting, setExporting] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   // Datos escritos sin guardar en la calculadora + confirmación de salida
   const [calcDirty, setCalcDirty] = useState(false)
-  const [exitConfirm, setExitConfirm] = useState(false)
+  const confirm = useConfirm()
 
   useEffect(() => {
     function handleHelp() { setHelpOpen(true) }
@@ -269,14 +273,20 @@ export default function PuntoEquilibrioPage() {
   }, [])
 
   /** Cambio de pestaña: salir de la calculadora con datos sin guardar pide confirmación. */
-  function switchView(next: PageView) {
+  async function switchView(next: PageView) {
     if (next === view) return
     if (next === "list" && calcDirty) {
-      setExitConfirm(true)
-      return
+      const ok = await confirm({
+        title: "Salir sin guardar",
+        description: "Lo que escribiste no se ha guardado y se perderá si sales.",
+        confirmLabel: "Salir sin guardar",
+        cancelLabel: "Seguir editando",
+        variant: "danger",
+      })
+      if (!ok) return
+      setCalcDirty(false)
     }
     if (next === "calculator") setCalcDirty(false)
-    setExitConfirm(false)
     setView(next)
     scrollMainToTop()
   }
@@ -284,7 +294,6 @@ export default function PuntoEquilibrioPage() {
   /** Salida aceptada de la calculadora (tras guardar o con la confirmación visible). */
   function backToHistory() {
     setCalcDirty(false)
-    setExitConfirm(false)
     setView("list")
     scrollMainToTop()
   }
@@ -292,29 +301,25 @@ export default function PuntoEquilibrioPage() {
   function openCreate() {
     // Un cálculo nuevo siempre empieza en blanco: nada se precarga del historial.
     setReuseRecord(null)
-    setNotice(null)
     switchView("calculator")
   }
 
   function openReuse(record: BreakEvenRecord) {
     setReuseRecord(record)
-    setNotice(null)
     setViewingRecord(null)
     switchView("calculator")
   }
 
   const handleSaved = async () => {
-    setNotice({ text: "Guardamos tu cálculo. Aparece primero en la lista.", tone: "ok" })
+    toast.success("Cálculo guardado", { description: "Aparece primero en la lista." })
     await mutate()
   }
 
   const handleExport = async () => {
-    setNotice(null)
     // La feature "exports" está deshabilitada en el plan free: avisar sin pedir la descarga.
     if (!hasFeature("exports")) {
-      setNotice({
-        text: "Exportar a Excel no está incluido en tu membresía actual. Revisa tu plan en Ajustes.",
-        tone: "error",
+      toast.warning("Exportar a Excel no está incluido en tu membresía", {
+        description: "Revisa tu plan en Ajustes para activarlo.",
       })
       return
     }
@@ -329,14 +334,10 @@ export default function PuntoEquilibrioPage() {
       a.click()
       a.remove()
       window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-      setNotice({ text: "Excel descargado: revisa la carpeta de descargas de tu equipo.", tone: "ok" })
+      toast.success("Excel descargado", { description: "Revisa la carpeta de descargas de tu equipo." })
     } catch (err) {
-      setNotice({
-        text:
-          err instanceof Error && err.message
-            ? err.message
-            : "No se pudo exportar el historial. Inténtalo de nuevo.",
-        tone: "error",
+      toast.error("No se pudo exportar el historial", {
+        description: friendlyError(err, "Inténtalo de nuevo en unos segundos."),
       })
     } finally {
       setExporting(false)
@@ -457,63 +458,6 @@ export default function PuntoEquilibrioPage() {
           </div>
         }
       />
-
-      {notice && (
-        <div
-          role={notice.tone === "error" ? "alert" : "status"}
-          className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-          style={
-            notice.tone === "ok"
-              ? { background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#166534" }
-              : { background: "#FEF2F2", border: "1px solid #FECACA", color: "#B42020" }
-          }
-        >
-          {notice.tone === "ok" ? (
-            <CheckCircle2 size={16} className="shrink-0" />
-          ) : (
-            <AlertCircle size={16} className="shrink-0" />
-          )}
-          <span className="flex-1">{notice.text}</span>
-          <button
-            type="button"
-            aria-label="Cerrar aviso"
-            onClick={() => setNotice(null)}
-            className="shrink-0 rounded p-0.5 hover:opacity-70"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      {view === "calculator" && exitConfirm && (
-        <div
-          role="alertdialog"
-          aria-label="Salir sin guardar"
-          className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center"
-          style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}
-        >
-          <p className="text-sm flex-1">Lo que escribiste no se ha guardado y se perderá si sales.</p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              autoFocus
-              onClick={() => setExitConfirm(false)}
-              className="h-9 px-3 rounded-lg text-sm font-semibold"
-              style={{ background: "var(--accent)", color: "#fff" }}
-            >
-              Seguir editando
-            </button>
-            <button
-              type="button"
-              onClick={backToHistory}
-              className="h-9 px-3 rounded-lg text-sm font-semibold"
-              style={{ background: "transparent", color: "#92400E", border: "1px solid #FDE68A" }}
-            >
-              Salir sin guardar
-            </button>
-          </div>
-        </div>
-      )}
 
       {view === "calculator" ? (
         <CalculatorView

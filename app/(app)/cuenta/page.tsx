@@ -278,15 +278,22 @@ function PasswordCard() {
         revokeOtherSessions: true,
       })
       if (error) {
-        setMsg(error.message ?? "No se pudo cambiar la contraseña.")
+        const wrongPassword = /invalid.?password|incorrect|wrong/i.test(`${error.code ?? ""} ${error.message ?? ""}`)
+        toast.error("No se pudo cambiar la contraseña", {
+          description: wrongPassword
+            ? "La contraseña actual no es correcta. Revísala e inténtalo de nuevo."
+            : "Inténtalo de nuevo en unos segundos.",
+        })
       } else {
-        setMsg("Contraseña actualizada")
+        toast.success("Contraseña actualizada", { description: "Cerramos tus otras sesiones por seguridad." })
         setCurrentPassword("")
         setNewPassword("")
         setConfirmPassword("")
       }
     } catch {
-      setMsg("No se pudo cambiar la contraseña.")
+      toast.error("No se pudo cambiar la contraseña", {
+        description: "Revisa tu conexión e inténtalo de nuevo.",
+      })
     } finally {
       setSaving(false)
     }
@@ -328,7 +335,7 @@ function PasswordCard() {
           </div>
 
           {msg && (
-            <p className="text-xs" style={{ color: msg.includes("actualizada") ? "#16A34A" : "#EF4444" }}>
+            <p className="text-xs" role="alert" style={{ color: "#EF4444" }}>
               {msg}
             </p>
           )}

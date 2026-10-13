@@ -12,6 +12,9 @@ import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import { Drama, Plus, Trash2, Building2 } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 
 const SCOPE_LABEL: Record<string, string> = {
   platform: "Plataforma",
@@ -57,6 +60,7 @@ export default function RolesPage() {
   )
 
   const [pending, setPending] = useState<Set<string> | null>(null)
+  const confirm = useConfirm()
   const [saving, setSaving] = useState(false)
   const canEdit = platformCan("platform_permissions", "update")
   const canCreateRole = platformCan("platform_roles", "create")
@@ -68,14 +72,47 @@ export default function RolesPage() {
   )
   const [deletingOrgRoleId, setDeletingOrgRoleId] = useState<string | null>(null)
 
-  async function handleDeleteOrgRole(id: string) {
-    setDeletingOrgRoleId(id)
+  async function handleDeleteOrgRole(role: { id: string; name: string; memberCount: number }) {
+    const ok = await confirm({
+      title: "Eliminar rol",
+      itemName: role.name,
+      description:
+        role.memberCount > 0
+          ? `Hay ${role.memberCount} ${role.memberCount === 1 ? "miembro" : "miembros"} con este rol. Esta acción no se puede deshacer.`
+          : "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
+    setDeletingOrgRoleId(role.id)
     try {
-      await platformDeleteOrganizationRole(id)
+      await platformDeleteOrganizationRole(role.id)
       await mutateOrgRoles()
+      toast.success("Rol eliminado", { description: role.name })
+    } catch (e) {
+      toast.error("No se pudo eliminar el rol", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setDeletingOrgRoleId(null)
     }
+  }
+
+  /** Cambiar de rol con permisos editados sin guardar pide confirmación */
+  async function selectRole(id: string) {
+    if (id === selectedRoleId) return
+    if (pending) {
+      const ok = await confirm({
+        title: "Descartar cambios",
+        description: "Tienes cambios de permisos sin guardar. Si cambias de rol, se perderán.",
+        confirmLabel: "Descartar",
+        cancelLabel: "Seguir editando",
+        variant: "danger",
+      })
+      if (!ok) return
+    }
+    setSelectedRoleId(id)
+    setPending(null)
   }
 
   // ─── Crear rol de sistema ───────────────────────────────────────────────────
@@ -128,8 +165,14 @@ export default function RolesPage() {
         tiers: newScope === "organization" ? [...newTiers] : [],
       })
       setCreateOpen(false)
+      const createdName = newName.trim()
       resetCreateForm()
       await Promise.all([mutateOrgRoles(), mutateRoles()])
+      toast.success("Rol creado", { description: createdName })
+    } catch (e) {
+      toast.error("No se pudo crear el rol", {
+        description: friendlyError(e, "Revisa los datos e inténtalo de nuevo."),
+      })
     } finally {
       setCreatingRole(false)
     }
@@ -153,6 +196,11 @@ export default function RolesPage() {
       await platformSetRolePermissions(selectedRoleId, [...pending])
       await mutateRolePerms()
       setPending(null)
+      toast.success("Cambios guardados", { description: "Permisos del rol actualizados" })
+    } catch (e) {
+      toast.error("No se pudieron guardar los permisos", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setSaving(false)
     }
@@ -220,7 +268,7 @@ export default function RolesPage() {
                   return (
                     <button
                       key={role.id}
-                      onClick={() => { setSelectedRoleId(role.id); setPending(null) }}
+                      onClick={() => void selectRole(role.id)}
                       className="text-left px-3 py-2 rounded-lg text-sm transition-colors"
                       style={{
                         background: active ? "var(--accent-light)" : "transparent",
@@ -255,7 +303,7 @@ export default function RolesPage() {
                     return (
                       <button
                         key={role.id}
-                        onClick={() => { setSelectedRoleId(role.id); setPending(null) }}
+                        onClick={() => void selectRole(role.id)}
                         className="text-left px-3 py-2 rounded-lg text-sm transition-colors"
                         style={{
                           background: active ? "var(--accent-light)" : "transparent",
@@ -369,7 +417,7 @@ export default function RolesPage() {
                 </div>
                 {canDeleteOrgRole && (
                   <button
-                    onClick={() => handleDeleteOrgRole(r.id)}
+                    onClick={() => void handleDeleteOrgRole(r)}
                     disabled={deletingOrgRoleId === r.id}
                     className="p-2 rounded-lg"
                     style={{ color: "#DC2626", background: "transparent", border: "none", cursor: "pointer" }}

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
-import { CheckCircle2 } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
 import { createValuation } from "@/lib/api"
 import type { CreateValuationPayload } from "@/lib/api"
 import type { SaveFormState } from "./lib"
@@ -64,9 +65,12 @@ export default function SavePanel({
     try {
       await createValuation(payload)
       setSuccess(true)
-      setTimeout(() => onSaved(), 800)
+      toast.success("Valoración guardada en el historial", { description: payload.name })
+      setTimeout(() => onSaved(), 500)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e))
+      toast.error("No se pudo guardar la valoración", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setSaving(false)
     }
@@ -112,12 +116,6 @@ export default function SavePanel({
         </div>
 
         {error && <p className="text-sm" role="alert" style={{ color: "#DC2626" }}>{error}</p>}
-        {success && (
-          <p className="text-sm flex items-center gap-1.5" role="status" style={{ color: "#166534" }}>
-            <CheckCircle2 size={14} />
-            Guardado en el historial
-          </p>
-        )}
 
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
           <Button type="button" variant="ghost" onClick={onCancel} disabled={saving || success}>
