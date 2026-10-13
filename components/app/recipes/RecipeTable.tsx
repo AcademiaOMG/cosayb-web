@@ -81,19 +81,21 @@ interface RecipeRowProps {
   onOpen: (recipe: Recipe) => void
   /** Sin handler = usuario sin permiso → la acción no se renderiza */
   onDelete?: (recipe: Recipe) => void
+  /** ¿La receta es del negocio activo? Solo entonces se ofrece eliminar (la API lo valida también). */
+  canModify: (recipe: Recipe) => boolean
 }
 
-const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete }: RecipeRowProps) {
+const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete, canModify }: RecipeRowProps) {
   const servings = parseInt(recipe.servings, 10) || 0
   const itemCount = recipe.itemCount ?? recipe.items?.length ?? 0
   const { cost, price, loading } = useRecipeMoney(recipe.id, itemCount > 0)
   const isPublic = recipe.isPublic ?? false
-  // La API no permite eliminar recetas base: no se ofrece un botón que siempre fallaría
-  const canDelete = !isPublic && !recipe.isBase && !!onDelete
+  // Propiedad real: la receta es de mi negocio (el tipo "preparación base" no bloquea)
+  const canDelete = canModify(recipe) && !!onDelete
 
   const typeLabel = recipeTypeLabel(recipe.isBase)
   const typeHint = recipe.isBase ? RECIPE_TYPE.base.hint : RECIPE_TYPE.dish.hint
-  const lockedReason = isPublic ? RECIPE_CANT_DELETE.banco : recipe.isBase ? RECIPE_CANT_DELETE.base : null
+  const lockedReason = canDelete ? null : isPublic ? RECIPE_CANT_DELETE.banco : RECIPE_CANT_DELETE.ajena
   // Móvil: el tipo y el origen van en la línea de detalle; en escritorio el tipo tiene su columna.
   const origin = isPublic ? <Tag title={RECIPE_ORIGIN.banco.hint}>{RECIPE_ORIGIN.banco.tag}</Tag> : null
 
@@ -188,7 +190,7 @@ const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete }: RecipeRo
   )
 })
 
-export default function RecipeTable({ recipes, onOpen, onDelete }: { recipes: Recipe[] } & Omit<RecipeRowProps, "recipe">) {
+export default function RecipeTable({ recipes, onOpen, onDelete, canModify }: { recipes: Recipe[] } & Omit<RecipeRowProps, "recipe">) {
   return (
     <div
       className="overflow-hidden"
@@ -197,7 +199,54 @@ export default function RecipeTable({ recipes, onOpen, onDelete }: { recipes: Re
       <RecipeTableHeader />
       <ul aria-label="Recetas">
         {recipes.map((recipe) => (
-          <RecipeRow key={recipe.id} recipe={recipe} onOpen={onOpen} onDelete={onDelete} />
+          <RecipeRow key={recipe.id} recipe={recipe} onOpen={onOpen} onDelete={onDelete} canModify={canModify} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
+ * Esqueleto con la estructura real de la tabla: misma cabecera, mismas columnas
+ * (RECIPE_COLUMNS), misma altura de fila (52 px) y, en móvil, las dos líneas de
+ * nombre/detalle + precio. Así no hay salto de layout al llegar los datos.
+ */
+export function RecipeTableSkeleton({ rows = 8 }: { rows?: number }) {
+  const bar = "rounded-md"
+  const fill = { background: "var(--bg-secondary)" } as const
+  return (
+    <div
+      className="overflow-hidden"
+      style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)" }}
+      aria-busy="true"
+      aria-label="Cargando recetas"
+    >
+      <RecipeTableHeader />
+      <ul className="animate-pulse">
+        {Array.from({ length: rows }).map((_, i) => (
+          <li key={i} className="list-none even:bg-[var(--bg-primary)]/60">
+            {/* Móvil */}
+            <div className="flex items-center gap-3 px-4 py-3 md:hidden">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className={`h-4 ${bar}`} style={{ ...fill, width: `${55 + ((i * 13) % 30)}%` }} />
+                <div className={`h-3 w-2/3 ${bar}`} style={fill} />
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <div className={`h-4 w-16 ${bar}`} style={fill} />
+                <div className={`h-3 w-12 ${bar}`} style={fill} />
+              </div>
+            </div>
+            {/* Escritorio */}
+            <div className={`hidden items-center gap-4 px-5 md:grid ${RECIPE_COLUMNS}`} style={{ minHeight: 52 }}>
+              <div className={`h-3.5 ${bar}`} style={{ ...fill, width: `${40 + ((i * 17) % 35)}%` }} />
+              <div className={`h-3.5 w-20 ${bar}`} style={fill} />
+              <div className={`ml-auto h-3.5 w-6 ${bar}`} style={fill} />
+              <div className={`ml-auto h-3.5 w-6 ${bar}`} style={fill} />
+              <div className={`ml-auto h-3.5 w-16 ${bar}`} style={fill} />
+              <div className={`ml-auto h-3.5 w-20 ${bar}`} style={fill} />
+              <span />
+            </div>
+          </li>
         ))}
       </ul>
     </div>
