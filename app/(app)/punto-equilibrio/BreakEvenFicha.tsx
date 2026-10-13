@@ -39,8 +39,8 @@ export default function BreakEvenFicha({ data }: { data: BreakEvenFichaData }) {
       hint: `Precio ${formatCOP(data.salePrice)} − costo variable ${formatCOP(data.variableCost)}`,
       value: formatCOP(data.contributionMargin),
     },
-    { label: "= Unidades al mes", hint: "Desde aquí empiezas a ganar", value: formatNumber(data.unitsPerMonth), strong: true },
-    { label: "Unidades al día", hint: "Unidades al mes ÷ 30 días", value: formatNumber(data.unitsPerDay) },
+    { label: "= Unidades al mes", hint: "Desde aquí empiezas a ganar", value: formatNumber(data.unitsPerMonth, 2), strong: true },
+    { label: "Unidades al día", hint: "Unidades al mes ÷ 30 días", value: formatNumber(data.unitsPerDay, 2) },
     { label: "Venta al mes", hint: "Unidades al mes × precio de venta", value: formatCOP(data.revenuePerMonth), strong: true },
     { label: "Venta al día", hint: "Venta al mes ÷ 30 días", value: formatCOP(data.revenuePerDay) },
   ]
@@ -63,11 +63,11 @@ export default function BreakEvenFicha({ data }: { data: BreakEvenFichaData }) {
             UNIDADES PARA CUBRIR TUS COSTOS
           </p>
           <p className="text-4xl font-bold tabular-nums" style={{ color: cfg.text, lineHeight: 1.1 }}>
-            {formatNumber(data.unitsPerMonth)}
+            {formatNumber(data.unitsPerMonth, 2)}
             <span className="text-base font-medium ml-2" style={{ opacity: 0.8 }}>al mes</span>
           </p>
           <p className="text-sm mt-2" style={{ color: cfg.text, opacity: 0.85 }}>
-            {formatNumber(data.unitsPerDay)} unidades al día · <strong>{formatCOP(data.revenuePerMonth)}</strong> en ventas al mes
+            {formatNumber(data.unitsPerDay, 2)} unidades al día · <strong>{formatCOP(data.revenuePerMonth)}</strong> en ventas al mes
           </p>
         </div>
 

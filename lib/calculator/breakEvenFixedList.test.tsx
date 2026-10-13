@@ -54,4 +54,34 @@ describe("BreakEvenCalculator — paso 1 con lista libre de costos fijos", () =>
     expect(html).toMatch(/25[.,]000/)
     expect(html).not.toContain("(pesos al mes)")
   })
+
+  it("en blanco ofrece los rubros del Excel y la fórmula sin cifras inventadas", () => {
+    const html = render()
+    for (const n of ["Arriendo", "Sueldos", "Agua", "Energía", "Gas", "Teléfonos", "Marketing digital", "Impuestos", "Otros"]) {
+      expect(html).toContain(`>${n}</button>`)
+    }
+    expect(html).toContain("Tu cálculo")
+    expect(html).toContain("Agrega al menos un costo fijo")
+    // Sin datos no hay margen ni unidades: guiones, nunca ceros ni NaN
+    expect(html).toContain("—")
+    expect(html).not.toContain("NaN")
+    expect(html).not.toContain("Infinity")
+  })
+
+  it("con los datos del Excel muestra margen 19.500 y 337,69 unidades; si el precio no supera el costo variable, ninguna cifra", () => {
+    const base = {
+      id: "be_x", organizationId: "org_1",
+      fixedCosts: [{ name: "Costos del mes", amount: 6585000 }],
+      totalFixedCosts: 6585000, salePrice: 28500, variableCost: 9000,
+      contributionMargin: 19500, breakEvenUnits: 337.6923, breakEvenRevenue: 9624230.77,
+      createdAt: "2026-01-01T00:00:00.000Z",
+    } as BreakEvenRecord
+    const ok = render(base)
+    expect(ok).toMatch(/19[.,]500/)
+    expect(ok).toContain("337,69")
+    const bad = render({ ...base, salePrice: 9000 })
+    expect(bad).toContain("debe ser mayor al costo variable")
+    expect(bad).not.toContain("337,69")
+    expect(bad).not.toContain("NaN")
+  })
 })

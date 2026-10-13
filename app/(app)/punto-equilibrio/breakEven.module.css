@@ -154,3 +154,29 @@
   gap: 6px;
   margin-top: 12px;
 }
+
+/* Costos fijos frecuentes (rubros del Excel): toque rápido para nombrar el costo */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.chip {
+  border: 1px solid var(--calc-bezel, #14150F);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--calc-lcd-off, #21241E);
+  color: var(--calc-lcd, #C7D6B9);
+  cursor: pointer;
+}
+.chip:hover {
+  background: var(--calc-lcd, #C7D6B9);
+  color: var(--calc-ink, #1E2B18);
+}
+.chip:focus-visible {
+  outline: 2px solid #7CE07C;
+  outline-offset: 1px;
+}

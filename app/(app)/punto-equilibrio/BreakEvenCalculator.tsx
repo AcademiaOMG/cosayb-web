@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ArrowRight, CheckCircle2, ListChecks, Wallet, X } from "lucide-react"
+import { ArrowRight, CheckCircle2, Check, ListChecks, Wallet, X } from "lucide-react"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
 import {
@@ -20,7 +20,7 @@ import {
   type EntryOptions,
 } from "@/lib/calculator/entry"
 import { formatCOP, formatNumber } from "@/lib/calculator/format"
-import { solveBreakEven, type BreakEvenOutcome } from "@/lib/calculator/breakEven"
+import { BREAK_EVEN_RUBROS, contributionMarginOf, solveBreakEven, type BreakEvenOutcome } from "@/lib/calculator/breakEven"
 import type { BreakEvenRecord } from "@/types/domain"
 import BreakEvenFicha from "./BreakEvenFicha"
 import styles from "./breakEven.module.css"
@@ -54,6 +54,35 @@ const toRaw = (n: number | null | undefined) => (n != null && Number.isFinite(n)
 /** Huella de los datos escritos (lista incluida): dice si hay algo sin guardar y si ya se guardó. */
 const signature = (items: FixedItem[], v: Record<Field, number | null>) =>
   FIELD_ORDER.map((k) => v[k] ?? "").join("|") + "#" + JSON.stringify(items)
+
+function FormulaRow({
+  label,
+  hint,
+  value,
+  strong = false,
+  bad = false,
+}: {
+  label: string
+  hint: string
+  value: string | null
+  strong?: boolean
+  bad?: boolean
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-sm" style={{ color: "var(--text-primary)", fontWeight: strong ? 600 : 400 }}>{label}</p>
+        <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{hint}</p>
+      </div>
+      <p
+        className="text-sm tabular-nums font-mono shrink-0"
+        style={{ color: bad ? "var(--error)" : strong ? "var(--accent-text)" : "var(--text-secondary)", fontWeight: strong ? 700 : 500 }}
+      >
+        {value ?? "—"}
+      </p>
+    </div>
+  )
+}
 
 function isTypingTarget(el: EventTarget | null) {
   if (!(el instanceof HTMLElement)) return false
@@ -263,6 +292,14 @@ export default function BreakEvenCalculator({
     nameRef.current?.focus()
   }
 
+  /** Nombre sugerido (rubros del Excel): lo escribe en el campo y pasa al monto. */
+  function pickName(name: string) {
+    setClearArmed(false)
+    setAddError(null)
+    setItemName(name)
+    focusField("amount")
+  }
+
   /** Quita un costo de la lista; un resultado previo deja de valer. */
   function removeItem(index: number) {
     setClearArmed(false)
@@ -346,6 +383,17 @@ export default function BreakEvenCalculator({
     )
   }
 
+  // Rubros frecuentes (los del Excel) que aún no están en la lista.
+  const taken = new Set(fixedItems.map((c) => c.name.trim().toLowerCase()))
+  const suggestions = BREAK_EVEN_RUBROS.map((r) => r.name).filter((n) => !taken.has(n.toLowerCase()))
+
+  // Vista previa de la fórmula con los datos de ahora: nunca una cifra si no se puede calcular.
+  const preview = calc.preview
+  const margin = contributionMarginOf(calc.inputs.salePrice, calc.inputs.variableCost)
+  const marginBad = margin !== null && margin <= 0
+  const fixedDone = fixedTotal > 0
+  const productDone = (calc.inputs.salePrice ?? 0) > 0 && calc.inputs.variableCost != null
+
   // Pantalla: total de la lista mientras se llena; unidades al calcular.
   const missingProduct = [
     (calc.inputs.salePrice ?? 0) <= 0 && "el precio de venta",
@@ -373,7 +421,7 @@ export default function BreakEvenCalculator({
   } else if (result) {
     tone = "result"
     label = "UNIDADES AL MES"
-    value = formatNumber(result.unitsPerMonth)
+    value = formatNumber(result.unitsPerMonth, 2)
     sub = "para cubrir tus costos"
     announce = `Punto de equilibrio: ${value} unidades al mes`
   } else if (error) {
@@ -409,7 +457,7 @@ export default function BreakEvenCalculator({
     }
   }
 
-  const stepBtn = (s: Step, n: number, title: string, detail: string) => {
+  const stepBtn = (s: Step, n: number, title: string, detail: string, done: boolean) => {
     const on = step === s
     return (
       <button
@@ -432,7 +480,7 @@ export default function BreakEvenCalculator({
             color: on ? "#fff" : "var(--text-muted)",
           }}
         >
-          {n}
+          {done && !on ? <Check size={14} aria-label="completo" /> : n}
         </span>
         <span className="min-w-0">
           <span className="block text-sm font-semibold truncate">{title}</span>
@@ -460,12 +508,13 @@ export default function BreakEvenCalculator({
         )}
 
         <div className="flex gap-2" role="group" aria-label="Pasos del cálculo">
-          {stepBtn("fixed", 1, "Costos fijos", fixedTotal > 0 ? formatCOP(fixedTotal) : "Lo que pagas al mes")}
+          {stepBtn("fixed", 1, "Costos fijos", fixedTotal > 0 ? formatCOP(fixedTotal) : "Lo que pagas al mes", fixedDone)}
           {stepBtn(
             "product",
             2,
             "Tu producto",
             (calc.inputs.salePrice ?? 0) > 0 ? `Vende a ${formatCOP(calc.inputs.salePrice ?? 0)}` : "Precio y costo",
+            productDone,
           )}
         </div>
 
@@ -510,6 +559,15 @@ export default function BreakEvenCalculator({
                   }}
                 />
               </div>
+              {suggestions.length > 0 && (
+                <div className={styles.chips} role="group" aria-label="Costos fijos frecuentes">
+                  {suggestions.map((name) => (
+                    <button key={name} type="button" className={styles.chip} onClick={() => pickName(name)}>
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
               {renderRegister("amount", "block")}
             </section>
           ) : (
@@ -582,46 +640,36 @@ export default function BreakEvenCalculator({
             </div>
 
             <div
-              className="rounded-2xl p-5 flex flex-col gap-4"
+              className="rounded-2xl p-5 flex flex-col gap-3"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
+              aria-label="Fórmula con tus datos"
             >
-            <div className="flex items-center gap-2">
-              <ListChecks size={18} style={{ color: "var(--accent)" }} />
-              <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                Cómo se calcula
-              </h2>
-            </div>
-            <ol className="flex flex-col gap-3 text-sm" style={{ color: "var(--text-secondary)" }}>
-              <li className="flex gap-3">
-                <span className="font-bold" style={{ color: "var(--accent)" }}>1.</span>
-                <span>
-                  <strong style={{ color: "var(--text-primary)" }}>Costos fijos.</strong> Escribe el nombre del gasto
-                  (arriendo, sueldos, agua, energía, gas, teléfonos, marketing digital, impuestos u otros), teclea el
-                  monto del mes con el teclado y pulsa{" "}
-                  <strong style={{ color: "var(--text-primary)" }}>Agregar a la lista</strong>. El costo aparece en la
-                  lista de la derecha y el total se suma solo.
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold" style={{ color: "var(--accent)" }}>2.</span>
-                <span>
-                  <strong style={{ color: "var(--text-primary)" }}>Tu producto.</strong> El precio al que vendes una
-                  unidad y lo que te cuestan sus insumos (costo variable).
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold" style={{ color: "var(--accent)" }}>3.</span>
-                <span>
-                  Pulsa <strong style={{ color: "var(--text-primary)" }}>Calcular</strong> (o Enter en el último dato).
-                  Verás cuánto vender por mes y por día, y podrás guardarlo.
-                </span>
-              </li>
-            </ol>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Con el teclado del computador también puedes escribir: en el paso 1, Enter agrega el costo a la lista y en
-              el paso 2 pasa al siguiente dato. Al tocar un dato que ya tiene valor, lo primero que escribas lo
-              reemplaza.
-            </p>
+              <div className="flex items-center gap-2">
+                <ListChecks size={18} style={{ color: "var(--accent)" }} />
+                <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Tu cálculo
+                </h2>
+              </div>
+              <FormulaRow label="Costos fijos del mes" hint="Suma de tu lista" value={fixedDone ? formatCOP(fixedTotal) : null} />
+              <FormulaRow
+                label="÷ Margen por unidad"
+                hint="Precio de venta − costo variable"
+                value={margin !== null ? formatCOP(margin) : null}
+                bad={marginBad}
+              />
+              <FormulaRow
+                label="= Unidades para cubrir costos"
+                hint="Por mes; al día se divide en 30"
+                value={preview.ok ? formatNumber(preview.unitsPerMonth, 2) : null}
+                strong
+              />
+              <p
+                role={marginBad ? "alert" : undefined}
+                className="text-xs"
+                style={{ color: marginBad ? "var(--error)" : "var(--text-muted)" }}
+              >
+                {preview.ok ? "Pulsa Calcular para ver el detalle y guardarlo." : preview.message}
+              </p>
             </div>
           </>
       </div>
