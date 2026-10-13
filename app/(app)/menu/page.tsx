@@ -427,8 +427,8 @@ function DetailView({
       )}
 
       {/* ── Contenido: calculadora (izq.) + platos, extras y notas (der.) ── */}
-      <div className="w-full max-w-5xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[var(--calc-device-w)_minmax(0,1fr)] gap-6 items-start">
 
           {/* Columna izquierda: calculadora del menú (sin tarjeta: el aparato se ve directo) */}
           <MenuCalculator

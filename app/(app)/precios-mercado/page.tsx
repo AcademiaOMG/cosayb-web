@@ -329,12 +329,7 @@ export default function PreciosMercadoPage() {
         <select
           value={source}
           onChange={(e) => handleFilter("source", e.target.value)}
-          className="rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-light)",
-            color: source ? "var(--text-primary)" : "var(--text-muted)",
-          }}
+          className={`ui-native-select sm:w-auto${source ? "" : " is-placeholder"}`}
         >
           <option value="">Todos los supermercados</option>
           <option value="exito">Éxito</option>
@@ -345,12 +340,7 @@ export default function PreciosMercadoPage() {
         <select
           value={city}
           onChange={(e) => handleFilter("city", e.target.value)}
-          className="rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-light)",
-            color: city ? "var(--text-primary)" : "var(--text-muted)",
-          }}
+          className={`ui-native-select sm:w-auto${city ? "" : " is-placeholder"}`}
         >
           <option value="">Todas las ciudades</option>
           <option value="bogota">Bogotá</option>

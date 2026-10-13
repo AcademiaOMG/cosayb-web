@@ -1,6 +1,5 @@
 "use client"
 
-import { keySoundProps } from "./useKeySound"
 import "./calculator.css"
 
 /**
@@ -24,7 +23,6 @@ export default function CalcActionKey({
         type="button"
         data-k={variant === "calc" ? "enter" : undefined}
         className={`calc-key ${variant === "calc" ? "calc-key-equals" : "calc-key-fn"}${className ? ` ${className}` : ""}`}
-        {...keySoundProps}
         {...rest}
       >
         {children}

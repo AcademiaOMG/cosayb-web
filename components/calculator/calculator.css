@@ -1,7 +1,10 @@
-/* Kit de calculadora: dos pieles que conviven (verde = producción, azul = nueva).
-   Cada una vive bajo su clase .calc-skin-*; ver lib/calculator/skin.ts. */
-@import "./calculator-green.css";
+/* Kit de calculadora: una sola piel (azul), bajo la clase .calc-skin-blue. */
 @import "./calculator-blue.css";
+
+/* Ancho ÚNICO del aparato en todas las vistas (valoración, menú, punto de
+   equilibrio, factor de rendimiento, recetas). Cada vista usa esta variable en
+   la columna que lo aloja; la altura es libre. */
+:root { --calc-device-w: 420px; }
 
 /* ── Desglose bajo el aparato (CalcBreakdown) ────────────────────────────── */
 .calc-breakdown {
@@ -33,40 +36,3 @@
 .calc-breakdown-row dt { color: var(--text-secondary); }
 .calc-breakdown-row dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; color: var(--text-primary); }
 .calc-breakdown-row.is-strong dd { color: var(--accent-text); font-weight: 700; }
-
-/* ── Selector temporal de diseño (verde / azul) ──────────────────────────── */
-.calc-skin-switch {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 40;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-light);
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--bg-surface);
-  font-size: 12px;
-}
-/* Móvil: por encima de la barra de pestañas flotante */
-@media (max-width: 1023px) {
-  .calc-skin-switch { bottom: 96px; }
-}
-.calc-skin-switch-label { padding: 0 8px 0 10px; color: var(--text-muted); font-weight: 600; }
-.calc-skin-switch-opt {
-  border: 0;
-  border-radius: 999px;
-  padding: 4px 12px;
-  font: inherit;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: transparent;
-  cursor: pointer;
-}
-.calc-skin-switch-opt[aria-pressed="true"] {
-  color: var(--accent-text);
-  background: var(--accent-light);
-}
-.calc-skin-switch-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
