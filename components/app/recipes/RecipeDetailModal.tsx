@@ -19,6 +19,8 @@ interface RecipeDetailModalProps {
   recipeId: string | null
   onEdit?: (id: string) => void
   onDelete?: (recipe: Recipe) => void
+  /** ¿La receta es del negocio activo? Sin esto no se ofrece editar/eliminar. */
+  canModify?: (recipe: Recipe) => boolean
   onImported?: () => void
 }
 
@@ -38,6 +40,7 @@ export default function RecipeDetailModal({
   recipeId,
   onEdit,
   onDelete,
+  canModify,
   onImported,
 }: RecipeDetailModalProps) {
   const [materialCostPct, setMaterialCostPct] = useState("30")
@@ -91,9 +94,10 @@ export default function RecipeDetailModal({
   }
 
   const isPublic = recipe?.isPublic ?? false
-  const canEdit = !isPublic && !recipe?.isBase && !!onEdit
-  // La API no permite editar ni eliminar recetas base
-  const canDelete = !isPublic && !recipe?.isBase && !!onDelete
+  // Propiedad real: solo las recetas de mi negocio (el tipo "preparación base" no bloquea)
+  const owned = recipe && canModify ? canModify(recipe) : false
+  const canEdit = owned && !!onEdit
+  const canDelete = owned && !!onDelete
 
   return (
     <Modal
@@ -109,11 +113,6 @@ export default function RecipeDetailModal({
               <Button variant="danger" onClick={() => onDelete!(recipe)}>
                 Eliminar
               </Button>
-            )}
-            {recipe?.isBase && !isPublic && (
-              <p className="text-xs" style={{ color: "var(--text-secondary)", maxWidth: 260 }}>
-                Las recetas base no se pueden editar ni eliminar.
-              </p>
             )}
           </div>
 

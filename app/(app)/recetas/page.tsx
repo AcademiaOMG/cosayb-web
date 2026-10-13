@@ -1,16 +1,17 @@
 "use client"
 
 import useSWR, { useSWRConfig } from "swr"
-import { useState, useMemo, useRef, useEffect } from "react"
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import EmptyState from "@/components/ui/EmptyState"
 import Modal from "@/components/ui/Modal"
 import Pagination from "@/components/app/inventario/Pagination"
-import RecipeTable, { RecipeTableHeader } from "@/components/app/recipes/RecipeTable"
+import RecipeTable, { RecipeTableSkeleton } from "@/components/app/recipes/RecipeTable"
 import RecipeCalculatorView from "@/components/app/recipes/RecipeCalculatorView"
 import RecipeDetailModal from "@/components/app/recipes/RecipeDetailModal"
 import { RECIPE_ORIGIN, RECIPE_TYPE } from "@/lib/recipeLabels"
+import { ownsRecipe } from "@/lib/recipeOwnership"
 import type { Recipe } from "@/types/domain"
 import type { RecipeFilter, RecipeExtraFilters } from "@/lib/api"
 import { getRecipes, deleteRecipe, getRecipeCounts } from "@/lib/api"
@@ -34,7 +35,10 @@ type PageView = "list" | "calculator"
 
 export default function RecetasPage() {
   useHelpAvailable()
-  const { can, hasFeature, featureLockedMessage } = usePermissions()
+  const { can, hasFeature, featureLockedMessage, organization, impersonation } = usePermissions()
+  // Propiedad real: la org activa (o la impersonada) decide qué recetas son editables
+  const activeOrgId = organization?.id ?? impersonation?.organizationId
+  const canModify = useCallback((r: Recipe) => ownsRecipe(r, activeOrgId), [activeOrgId])
   const [filter, setFilter]   = useState<RecipeFilter>("all")
   const [search, setSearch]   = useState("")
   const [page, setPage]       = useState(1)
@@ -379,24 +383,7 @@ export default function RecetasPage() {
       )}
 
       {/* ── Tabla de recetas ── */}
-      {isLoading && (
-        <div
-          className="overflow-hidden"
-          style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)" }}
-          aria-busy="true"
-          aria-label="Cargando recetas"
-        >
-          <RecipeTableHeader />
-          <ul className="animate-pulse">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <li key={i} className="flex items-center justify-between gap-4 px-4 py-4 md:px-5">
-                <div className="h-3.5 rounded-md" style={{ width: `${40 + ((i * 17) % 30)}%`, background: "var(--bg-secondary)" }} />
-                <div className="h-3.5 w-16 rounded-md md:w-80" style={{ background: "var(--bg-secondary)" }} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {isLoading && <RecipeTableSkeleton />}
 
       {!isLoading && error && (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
@@ -430,6 +417,7 @@ export default function RecetasPage() {
             recipes={recipes}
             onOpen={r => setDetailRecipeId(r.id)}
             onDelete={can("recipes", "delete") ? setDeleteTarget : undefined}
+            canModify={canModify}
           />
           <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </>
@@ -469,6 +457,7 @@ export default function RecetasPage() {
         open={!!detailRecipeId}
         recipeId={detailRecipeId}
         onClose={() => setDetailRecipeId(null)}
+        canModify={canModify}
         onEdit={can("recipes", "update") ? handleOpenEdit : undefined}
         onDelete={can("recipes", "delete") ? (r => { setDetailRecipeId(null); setDeleteTarget(r) }) : undefined}
         onImported={() => { setDetailRecipeId(null); void mutate(); revalidateOnboarding() }}

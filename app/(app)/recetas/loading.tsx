@@ -1,21 +1,25 @@
+import { RecipeTableSkeleton } from "@/components/app/recipes/RecipeTable"
+
+/**
+ * Esqueleto de la ruta: reproduce la página real (cabecera con título y botón,
+ * barra de búsqueda + filtros y la tabla de recetas) con las mismas medidas.
+ */
 export default function RecetasLoading() {
+  const fill = { background: "var(--bg-secondary)" }
   return (
-    <div className="flex flex-col gap-6">
-      <div className="h-8 w-48 rounded-lg animate-pulse" style={{ background: "var(--bg-secondary)" }} />
-      <div className="flex gap-2">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-8 w-24 rounded-lg animate-pulse" style={{ background: "var(--bg-secondary)" }} />
-        ))}
+    <div className="flex flex-col gap-6" aria-busy="true">
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-1.5">
+          <div className="h-9 w-40 animate-pulse rounded-lg" style={fill} />
+          <div className="h-4 w-56 animate-pulse rounded-md" style={fill} />
+        </div>
+        <div className="h-10 w-36 shrink-0 animate-pulse rounded-xl" style={fill} />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div
-            key={i}
-            className="animate-pulse rounded-2xl h-48"
-            style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
-          />
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="h-10 min-w-0 flex-1 animate-pulse rounded-xl" style={fill} />
+        <div className="h-10 w-11 shrink-0 animate-pulse rounded-xl" style={fill} />
       </div>
+      <RecipeTableSkeleton />
     </div>
   )
 }
