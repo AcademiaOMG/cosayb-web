@@ -2,68 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {
-  Home,
-  Package,
-  Scale,
-  ChefHat,
-  UtensilsCrossed,
-  TrendingUp,
-  BarChart2,
-  Settings,
-  LogOut,
-  UserCircle,
-} from "lucide-react"
+import { LogOut } from "lucide-react"
 import type { Plan } from "@/types/domain"
-import { usePermissions } from "@/hooks/usePermissions"
+import { useNavItems } from "@/hooks/useNavItems"
+import { ACCOUNT_ITEM, CONFIG_ITEM } from "@/lib/navigation"
 import SidebarChecklist from "./SidebarChecklist"
-import type { Resource, Action } from "@/lib/api"
 
 // ─── Navegación del Restaurant Tenant Workspace ──────────────────────────────
-// Solo existe en desktop (lg+) — en mobile la navegación es MobileTabBar
-// (barra flotante) + la grilla de Inicio, sin drawer ni overlay. Esta
-// superficie NUNCA contiene ítems de Platform Console.
-
-interface NavItem {
-  href: string
-  label: string
-  icon: typeof Package
-  resource: Resource
-  action: Action
-  /** Feature key de membresía que gatea este módulo, si aplica (ver membership_features) */
-  feature?: string
-}
-
-interface NavGroup {
-  label: string | null
-  items: NavItem[]
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: null,
-    items: [
-      // El dashboard es visible para cualquier miembro de la organización
-      { href: "/dashboard", label: "Inicio", icon: Home, resource: "organization", action: "read" },
-    ],
-  },
-  {
-    label: "Operación",
-    items: [
-      { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list", feature: "module_ingredients" },
-      { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: Scale, resource: "yieldFactors", action: "list", feature: "module_yieldFactors" },
-      { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list", feature: "module_recipes" },
-      { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list", feature: "module_menus" },
-    ],
-  },
-  {
-    label: "Finanzas",
-    items: [
-      { href: "/valoracion", label: "Valoración A&B", icon: TrendingUp, resource: "valuations", action: "list", feature: "module_valuations" },
-      { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: BarChart2, resource: "breakEven", action: "list", feature: "module_breakEven" },
-    ],
-  },
-]
+// Solo existe en desktop (lg+). Los ítems vienen de lib/navigation.ts (fuente
+// única compartida con MobileTabBar). NUNCA contiene ítems de Platform Console.
 
 export interface SidebarProps {
   userPlan?: Plan
@@ -72,20 +19,7 @@ export interface SidebarProps {
 
 export default function Sidebar({ onSignOut }: SidebarProps) {
   const pathname = usePathname()
-  const { can, hasFeature, isLoading } = usePermissions()
-
-  // Grupos con solo los ítems permitidos; si un grupo queda vacío no se
-  // renderiza (ni su etiqueta) — la estructura varía por rol, no se "esconde".
-  // Un módulo requiere permiso de rol Y feature de membresía habilitada.
-  const visibleGroups = NAV_GROUPS.map((group) => ({
-    ...group,
-    items: isLoading
-      ? group.items
-      : group.items.filter((i) => can(i.resource, i.action) && (!i.feature || hasFeature(i.feature))),
-  })).filter((group) => group.items.length > 0)
-
-  // Configuración: visible para quien gestiona el negocio o al menos ve el equipo
-  const showConfig = !isLoading && (can("organization", "update") || can("members", "list"))
+  const { groups: visibleGroups, showConfig } = useNavItems()
 
   return (
     <aside
@@ -160,9 +94,9 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
           {(
             [
               showConfig
-                ? { type: "link" as const, href: "/configuracion", label: "Configuración", icon: Settings }
+                ? { type: "link" as const, href: CONFIG_ITEM.href, label: CONFIG_ITEM.label, icon: CONFIG_ITEM.icon }
                 : null,
-              { type: "link" as const, href: "/cuenta", label: "Mi cuenta", icon: UserCircle },
+              { type: "link" as const, href: ACCOUNT_ITEM.href, label: ACCOUNT_ITEM.label, icon: ACCOUNT_ITEM.icon },
               { type: "button" as const, label: "Cerrar sesión", icon: LogOut },
             ]
           )

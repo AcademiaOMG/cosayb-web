@@ -70,18 +70,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             userPlan={plan}
             userInitial={userName.charAt(0).toUpperCase()}
           />
-          <main className="flex-1 min-w-0 overflow-y-auto pb-32 lg:pb-6 animate-page-in" style={{ background: "var(--bg-primary)" }}>
+          <main className="flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-6 min-w-0 overflow-x-hidden overflow-y-auto animate-page-in" style={{ background: "var(--bg-primary)" }}>
             <AppContainer>{children}</AppContainer>
           </main>
-          {/* Degradé de desvanecimiento detrás de la barra flotante — así el
-              contenido se apaga suavemente en vez de chocar contra ella. */}
-          <div
-            className="fixed bottom-0 left-0 right-0 h-28 lg:hidden pointer-events-none"
-            style={{
-              background: "linear-gradient(to top, var(--bg-primary) 20%, transparent)",
-              zIndex: 15,
-            }}
-          />
           <MobileTabBar />
           {/* Único selector del diseño de las calculadoras (temporal, para mostrar las dos opciones) */}
           <CalcSkinSwitch />
