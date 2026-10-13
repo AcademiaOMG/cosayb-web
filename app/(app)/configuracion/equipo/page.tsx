@@ -224,6 +224,7 @@ export default function EquipoPage() {
                   value={effectiveRole}
                   onChange={(e) => setRole(e.target.value)}
                   className="ui-native-select"
+                  aria-label="Rol"
                 >
                   {availableRoles.map((r) => (
                     <option key={r.slug} value={r.slug}>{r.name}</option>

@@ -122,7 +122,7 @@ export default function MembresiasPage() {
                       <input
                         type="number"
                         defaultValue={f.limitValue ?? ""}
-                        placeholder="∞"
+                        placeholder="∞" aria-label={`Límite de ${f.featureKey}`}
                         disabled={!canEdit}
                         onBlur={(e) => canEdit && changeLimit(tier, f.featureKey, e.target.value)}
                         className="console-input text-xs text-right"
@@ -134,7 +134,7 @@ export default function MembresiasPage() {
                     <input
                       type="text"
                       defaultValue={f.lockedMessage ?? ""}
-                      placeholder="Mensaje de bloqueo (opcional)"
+                      placeholder="Mensaje de bloqueo (opcional)" aria-label={`Mensaje de bloqueo de ${f.featureKey} (opcional)`}
                       disabled={!canEdit}
                       onBlur={(e) => canEdit && changeLockedMessage(tier, f.featureKey, e.target.value)}
                       className="console-input text-[11px] ml-6"
@@ -164,7 +164,7 @@ export default function MembresiasPage() {
                       <input
                         type="number"
                         defaultValue={assignment?.maxUsers ?? ""}
-                        placeholder="∞"
+                        placeholder="∞" aria-label={`Máximo de usuarios para ${role.name}`}
                         disabled={!canEdit}
                         onBlur={(e) => canEdit && changeRoleMaxUsers(tier, role.id, e.target.value)}
                         className="console-input text-xs text-right"

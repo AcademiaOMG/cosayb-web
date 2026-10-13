@@ -624,10 +624,10 @@ function DetailView({
               NOTAS
             </p>
             <textarea
-              rows={2} placeholder="Observaciones del menú..."
+              rows={2} placeholder="Observaciones del menú..." aria-label="Observaciones del menú"
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
-              className="w-full rounded-xl px-3 py-2.5 text-sm outline-none resize-none"
+              className="w-full rounded-xl px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] resize-none"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
             />
           </Card>
@@ -661,7 +661,7 @@ function DetailView({
                 placeholder="Nombre del menú (ej. Cumpleaños de Tuty)"
                 aria-label="Nombre del menú"
                 disabled={success}
-                className="w-full h-10 rounded-xl px-3 text-sm outline-none"
+                className="w-full h-10 rounded-xl px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 style={{
                   background: "var(--bg-surface)",
                   border: `1px solid ${error && !nombre.trim() ? "var(--error)" : "var(--border-medium)"}`,

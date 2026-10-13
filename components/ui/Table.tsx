@@ -137,7 +137,7 @@ export default function Table({ columns, data, emptyState, rowKey, onRowClick, r
     <>
       {/* Desktop: tabla original, sin cambios funcionales */}
       <div
-        className="hidden md:block w-full overflow-hidden"
+        className="hidden md:block w-full overflow-x-auto"
         style={SURFACE}
       >
         <table className="w-full border-collapse">
@@ -146,6 +146,7 @@ export default function Table({ columns, data, emptyState, rowKey, onRowClick, r
               {columns.map((col) => (
                 <th
                   key={col.key}
+                  scope="col"
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
                   style={{ color: "var(--text-muted)" }}
                 >
@@ -172,6 +173,20 @@ export default function Table({ columns, data, emptyState, rowKey, onRowClick, r
                 <tr
                   key={rowId}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  // Teclado: la fila clicable es alcanzable con Tab y se abre con Enter/Espacio
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.target !== e.currentTarget) return
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            onRowClick(row)
+                          }
+                        }
+                      : undefined
+                  }
+                  className={onRowClick ? "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent)]" : undefined}
                   style={{
                     background:
                       rowIndex % 2 === 0 ? "var(--bg-surface)" : "var(--bg-primary)",

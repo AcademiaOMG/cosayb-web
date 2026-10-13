@@ -140,7 +140,7 @@ export default function BancoIngredientesPage() {
         <Search size={14} className="console-muted" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
         <input
           type="search"
-          placeholder="Buscar ingrediente…"
+          placeholder="Buscar ingrediente…" aria-label="Buscar ingrediente"
           value={search}
           onChange={(e) => changeSearch(e.target.value)}
           className="console-input w-full text-sm"

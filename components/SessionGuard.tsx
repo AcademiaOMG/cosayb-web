@@ -169,20 +169,24 @@ export default function SessionGuard() {
   if (revokedElsewhere) {
     return (
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="session-guard-title-1"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-6 overflow-y-auto"
         style={{ background: "rgba(10,21,32,0.92)" }}
       >
         <div
           className="max-w-sm w-full rounded-2xl p-8 text-center"
           style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
         >
-          <h2 className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+          <h2 id="session-guard-title-1" className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>
             Tu sesión se cerró
           </h2>
           <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
             Iniciaste sesión en otro lugar, así que cerramos esta sesión por seguridad.
           </p>
           <button
+            autoFocus
             onClick={() => void leaveToLogin(false)}
             className="btn-spx btn-spx-accent"
           >
@@ -196,20 +200,23 @@ export default function SessionGuard() {
   if (otherTabActive) {
     return (
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="session-guard-title-2"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-6 overflow-y-auto"
         style={{ background: "rgba(10,21,32,0.92)" }}
       >
         <div
           className="max-w-sm w-full rounded-2xl p-8 text-center"
           style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
         >
-          <h2 className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+          <h2 id="session-guard-title-2" className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>
             CO$AYB está abierto en otra pestaña
           </h2>
           <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
             Para evitar conflictos, solo una pestaña puede estar activa a la vez.
           </p>
-          <button onClick={reclaimTab} className="btn-spx btn-spx-accent">
+          <button autoFocus onClick={reclaimTab} className="btn-spx btn-spx-accent">
             Usar la app en esta pestaña
           </button>
         </div>

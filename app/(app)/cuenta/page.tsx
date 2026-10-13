@@ -758,7 +758,7 @@ function DeleteAccountSection() {
           <p className="text-sm" style={{ color: "#7F1D1D" }}>
             Escribe <strong>ELIMINAR</strong> para confirmar. Esta acción no se puede deshacer.
           </p>
-          <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="ELIMINAR" />
+          <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="ELIMINAR" aria-label="Escribe ELIMINAR para confirmar" />
           {error && <p className="text-xs" style={{ color: "#EF4444" }}>{error}</p>}
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <Button variant="ghost" className="w-full sm:w-auto" onClick={() => { setConfirming(false); setConfirmText(""); setError(null) }}>

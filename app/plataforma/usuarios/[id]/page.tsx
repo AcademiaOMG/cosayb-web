@@ -87,7 +87,7 @@ function AddOrgMembership({
           <label className="text-xs console-muted">Buscar organización</label>
           <input
             type="text"
-            placeholder="Nombre del negocio…"
+            placeholder="Nombre del negocio…" aria-label="Nombre del negocio"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setSelectedOrgId("") }}
             className="console-input text-sm px-3"

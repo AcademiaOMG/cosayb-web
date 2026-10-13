@@ -233,10 +233,10 @@ export default function OnboardingPage() {
               onKeyDown={(e) => e.key === "Enter" && handleStep1()}
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+              <label htmlFor="onboarding-city" className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
                 Ciudad principal
               </label>
-              <select
+              <select id="onboarding-city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className={`ui-native-select${city ? "" : " is-placeholder"}`}

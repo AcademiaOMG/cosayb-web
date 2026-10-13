@@ -11,7 +11,7 @@
   /* Text */
   --text-primary: #12213A;
   --text-secondary: #4A4438;
-  --text-muted: #7A6E60;
+  --text-muted: #6B6052; /* AA sobre bg-primary y bg-secondary (antes #7A6E60: 4.38 / 4.03) */
 
   /* Accent */
   --accent: #1B4FD8;
@@ -62,7 +62,7 @@
   --bg-secondary: #E8EBF0;
   --bg-surface: #FFFFFF;
   --text-secondary: #4B5563;
-  --text-muted: #8890A0;
+  --text-muted: #5F6A7A; /* AA (antes #8890A0: 2.9:1 sobre bg-primary) */
   --border-light: #E2E5EA;
   --border-medium: #CBD2DA;
 
@@ -667,5 +667,25 @@ html { scroll-behavior: smooth; }
   @media (max-width: 640px) {
     .ui-select-search input { font-size: 16px; }
     .ui-select-option { min-height: 44px; font-size: 14px; }
+  }
+}
+
+/* ─── Accesibilidad / móvil (auditoría a11y) ─────────────────────────────
+   1) Foco visible de base para controles sin estilo propio. Va en @layer base:
+      cualquier utilidad (focus-visible:outline-none + ring) o regla propia lo
+      reemplaza sin duplicar anillos.
+   2) iOS Safari hace zoom al enfocar campos de menos de 16px: en pantallas
+      táctiles los campos de texto, selects y textareas suben a 16px. */
+@layer base {
+  :where(a[href], button, summary, [role="button"], [role="tab"], [role="menuitem"], [role="menuitemradio"], [role="option"]):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
   }
 }

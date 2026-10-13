@@ -79,7 +79,7 @@ function DonutChart({ mp, fixed, taxes, others, profit, indicator }: {
           strokeDasharray={`${arc(profitV)} ${circ}`} strokeDashoffset={offProfit}
           style={{ transition: "stroke-dasharray .6s cubic-bezier(0.22,1,0.36,1) .2s, stroke-dashoffset .6s cubic-bezier(0.22,1,0.36,1) .2s" }} />
         <text x="18" y="16.5" textAnchor="middle" fontFamily="var(--font-body), system-ui, sans-serif"
-          fill="#8890A0" fontSize="3" fontWeight="600">GANANCIA</text>
+          fill="#5F6A7A" fontSize="3" fontWeight="600">GANANCIA</text>
         <text x="18" y="22.8" textAnchor="middle" fontFamily="var(--font-display), system-ui, sans-serif"
           fill={cfg.color} fontSize="7.5" fontWeight="700">
           {profit.toFixed(0)}%

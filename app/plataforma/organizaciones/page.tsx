@@ -35,7 +35,7 @@ export default function OrganizacionesPage() {
         <Search size={14} className="console-muted" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
         <input
           type="search"
-          placeholder="Buscar organización…"
+          placeholder="Buscar organización…" aria-label="Buscar organización"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="console-input w-full text-sm"

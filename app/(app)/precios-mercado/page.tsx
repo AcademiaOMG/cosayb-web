@@ -313,10 +313,10 @@ export default function PreciosMercadoPage() {
           />
           <input
             type="search"
-            placeholder="Buscar ingrediente…"
+            placeholder="Buscar ingrediente…" aria-label="Buscar ingrediente"
             value={search}
             onChange={handleSearch}
-            className="w-full rounded-xl py-2.5 pl-9 pr-4 text-sm outline-none"
+            className="w-full rounded-xl py-2.5 pl-9 pr-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             style={{
               background: "var(--bg-surface)",
               border: "1px solid var(--border-light)",
@@ -329,6 +329,7 @@ export default function PreciosMercadoPage() {
         <select
           value={source}
           onChange={(e) => handleFilter("source", e.target.value)}
+          aria-label="Filtrar por supermercado"
           className={`ui-native-select sm:w-auto${source ? "" : " is-placeholder"}`}
         >
           <option value="">Todos los supermercados</option>
@@ -340,6 +341,7 @@ export default function PreciosMercadoPage() {
         <select
           value={city}
           onChange={(e) => handleFilter("city", e.target.value)}
+          aria-label="Filtrar por ciudad"
           className={`ui-native-select sm:w-auto${city ? "" : " is-placeholder"}`}
         >
           <option value="">Todas las ciudades</option>

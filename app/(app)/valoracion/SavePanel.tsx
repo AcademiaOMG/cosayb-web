@@ -105,7 +105,7 @@ export default function SavePanel({
             rows={2} placeholder="Observaciones... (opcional)"
             value={form.notes}
             onChange={(e) => f("notes", e.target.value)}
-            className="w-full px-3 py-2.5 text-sm outline-none resize-none"
+            className="w-full px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] resize-none"
             style={{
               background: "var(--bg-surface)",
               border: "1px solid var(--border-light)",

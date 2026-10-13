@@ -242,7 +242,7 @@ export default function RecetasPage() {
             <input
               ref={searchRef}
               type="search"
-              placeholder="Buscar por nombre…"
+              placeholder="Buscar por nombre…" aria-label="Buscar por nombre"
               value={search}
               onChange={e => changeSearch(e.target.value)}
               className="h-10 w-full rounded-xl pl-9 pr-10 text-sm outline-none transition-all duration-200"
