@@ -1,13 +1,17 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useId, useMemo } from "react"
 import { createPortal } from "react-dom"
-import { ChevronDown, Search, X } from "lucide-react"
+import { Check, ChevronDown, Search, X } from "lucide-react"
+import {
+  filterOptions,
+  moveHighlight,
+  placeDropdown,
+  type DropdownPlacement,
+  type SelectOption,
+} from "@/lib/ui/searchableSelect"
 
-export interface Option {
-  value: string
-  label: string
-}
+export type Option = SelectOption
 
 interface SearchableSelectProps {
   options: Option[]
@@ -22,31 +26,21 @@ interface SearchableSelectProps {
   clearLabel?: string
   /** "calculator" = el disparador estándar de las calculadoras (hueco oscuro) */
   variant?: "default" | "calculator"
-  /** Ajustes de estilo del disparador sobre el de su variante */
+  /** Ajustes puntuales del disparador sobre el de su variante */
   triggerStyle?: React.CSSProperties
+  disabled?: boolean
+  /** Las opciones se están cargando */
+  loading?: boolean
 }
 
-/**
- * Disparador de las listas dentro de una calculadora: un hueco oscuro, igual en
- * todas (valoración, menú, recetas…) y con cualquiera de los dos diseños.
- */
-const CALCULATOR_TRIGGER: React.CSSProperties = {
-  height: "40px",
-  borderRadius: "10px",
-  border: "none",
-  background: "#0B0F1A",
-  boxShadow: "inset 0 2px 5px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.1)",
-  color: "#E6ECFF",
-  fontSize: "13px",
-  fontWeight: 500,
-  padding: "0 12px",
+interface Item {
+  value: string
+  label: string
+  isClear: boolean
 }
 
-interface DropdownRect {
-  top: number
-  left: number
-  width: number
-}
+// Los estilos viven en app/globals.css (.ui-select-*): tokens compartidos y
+// estados hover / foco / seleccionado / deshabilitado en un solo lugar.
 
 export default function SearchableSelect({
   options,
@@ -56,298 +50,259 @@ export default function SearchableSelect({
   emptyMessage = "No se encontraron resultados",
   ariaLabel,
   variant = "default",
-  triggerStyle: triggerOverride,
+  triggerStyle,
   searchPlaceholder,
   clearLabel,
+  disabled = false,
+  loading = false,
 }: SearchableSelectProps) {
+  const uid = useId()
+  const listId = `${uid}-list`
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [highlightIndex, setHighlightIndex] = useState(-1)
-  const [dropdownRect, setDropdownRect] = useState<DropdownRect | null>(null)
+  const [placement, setPlacement] = useState<DropdownPlacement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  const triggerStyle = variant === "calculator" ? { ...CALCULATOR_TRIGGER, ...triggerOverride } : triggerOverride
   const selectedOption = options.find((opt) => opt.value === value)
+  const filteredOptions = useMemo(() => filterOptions(options, search), [options, search])
+  // Lista navegable con teclado: la opción fija de "limpiar" (si existe) va primero
+  const items = useMemo<Item[]>(() => {
+    const real = filteredOptions.map((o) => ({ ...o, isClear: false }))
+    return clearLabel ? [{ value: "", label: clearLabel, isClear: true }, ...real] : real
+  }, [clearLabel, filteredOptions])
+  const firstReal = clearLabel ? 1 : 0
 
-  const filteredOptions = options.filter((opt) =>
-    opt.label.toLowerCase().includes(search.toLowerCase())
-  )
-
-  const computeRect = useCallback((): DropdownRect | null => {
+  const computePlacement = useCallback((): DropdownPlacement | null => {
     if (!containerRef.current) return null
-    const rect = containerRef.current.getBoundingClientRect()
-    return {
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: rect.width,
-    }
+    return placeDropdown(containerRef.current.getBoundingClientRect(), {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    })
   }, [])
 
-  // Close when clicking outside either the trigger or the portal dropdown
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node
-      const inContainer = containerRef.current?.contains(target)
-      const inDropdown = dropdownRef.current?.contains(target)
-      if (!inContainer && !inDropdown) {
-        setIsOpen(false)
-        setSearch("")
-        setHighlightIndex(-1)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  // Close and recompute position on scroll/resize while open
-  useEffect(() => {
-    if (!isOpen) return
-    function handleScrollOrResize() {
-      const rect = computeRect()
-      if (rect) setDropdownRect(rect)
-    }
-    window.addEventListener("scroll", handleScrollOrResize, true)
-    window.addEventListener("resize", handleScrollOrResize)
-    return () => {
-      window.removeEventListener("scroll", handleScrollOrResize, true)
-      window.removeEventListener("resize", handleScrollOrResize)
-    }
-  }, [isOpen, computeRect])
-
-  const openDropdown = useCallback(() => {
-    const rect = computeRect()
-    setDropdownRect(rect)
-    setIsOpen(true)
-    setSearch("")
-    setHighlightIndex(-1)
-    setTimeout(() => inputRef.current?.focus(), 0)
-  }, [computeRect])
-
-  const closeDropdown = useCallback(() => {
+  const closeDropdown = useCallback((returnFocus = false) => {
     setIsOpen(false)
     setSearch("")
     setHighlightIndex(-1)
+    if (returnFocus) triggerRef.current?.focus({ preventScroll: true })
   }, [])
 
-  const selectOption = useCallback((opt: Option) => {
-    onChange(opt.value)
-    closeDropdown()
-  }, [onChange, closeDropdown])
-
-  const handleTriggerKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
-      e.preventDefault()
-      openDropdown()
-    } else if (e.key === "Escape") {
-      closeDropdown()
-    }
-  }, [openDropdown, closeDropdown])
-
-  const handleInputKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault()
-      setHighlightIndex((prev) =>
-        prev < filteredOptions.length - 1 ? prev + 1 : 0
-      )
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault()
-      setHighlightIndex((prev) =>
-        prev > 0 ? prev - 1 : filteredOptions.length - 1
-      )
-    } else if (e.key === "Enter") {
-      e.preventDefault()
-      if (highlightIndex >= 0 && highlightIndex < filteredOptions.length) {
-        selectOption(filteredOptions[highlightIndex])
-      }
-    } else if (e.key === "Escape") {
-      e.preventDefault()
-      closeDropdown()
-    }
-  }, [filteredOptions, highlightIndex, selectOption, closeDropdown])
-
-  // Scroll highlighted item into view
+  // Cerrar al hacer clic fuera del disparador y de la lista
   useEffect(() => {
-    if (highlightIndex >= 0 && listRef.current) {
-      const el = listRef.current.children[highlightIndex] as HTMLElement
-      el?.scrollIntoView({ block: "nearest" })
+    if (!isOpen) return
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node
+      if (!containerRef.current?.contains(target) && !dropdownRef.current?.contains(target)) closeDropdown()
     }
+    document.addEventListener("mousedown", handleClickOutside)
+    document.addEventListener("touchstart", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("touchstart", handleClickOutside)
+    }
+  }, [isOpen, closeDropdown])
+
+  // Reubicar al desplazar/redimensionar (no cierra: en móvil el teclado virtual redimensiona)
+  useEffect(() => {
+    if (!isOpen) return
+    function reposition(e?: Event) {
+      if (e && dropdownRef.current?.contains(e.target as Node)) return
+      const next = computePlacement()
+      if (next) setPlacement(next)
+    }
+    window.addEventListener("scroll", reposition, true)
+    window.addEventListener("resize", reposition)
+    window.visualViewport?.addEventListener("resize", reposition)
+    return () => {
+      window.removeEventListener("scroll", reposition, true)
+      window.removeEventListener("resize", reposition)
+      window.visualViewport?.removeEventListener("resize", reposition)
+    }
+  }, [isOpen, computePlacement])
+
+  const openDropdown = useCallback(() => {
+    if (disabled) return
+    setPlacement(computePlacement())
+    setIsOpen(true)
+    setSearch("")
+    const selectedIdx = options.findIndex((o) => o.value === value)
+    setHighlightIndex(selectedIdx >= 0 ? selectedIdx + firstReal : options.length > 0 ? firstReal : -1)
+    setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0)
+  }, [disabled, computePlacement, options, value, firstReal])
+
+  const choose = useCallback(
+    (item: { value: string }) => {
+      onChange(item.value)
+      closeDropdown(true)
+    },
+    [onChange, closeDropdown],
+  )
+
+  const handleTriggerKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault()
+        openDropdown()
+      } else if (e.key === "Escape" && isOpen) {
+        e.preventDefault()
+        closeDropdown()
+      }
+    },
+    [openDropdown, closeDropdown, isOpen],
+  )
+
+  const handleInputKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault()
+        setHighlightIndex((prev) => moveHighlight(prev, 1, items.length))
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault()
+        setHighlightIndex((prev) => moveHighlight(prev, -1, items.length))
+      } else if (e.key === "Home" && items.length) {
+        e.preventDefault()
+        setHighlightIndex(0)
+      } else if (e.key === "End" && items.length) {
+        e.preventDefault()
+        setHighlightIndex(items.length - 1)
+      } else if (e.key === "Enter") {
+        e.preventDefault()
+        if (highlightIndex >= 0 && highlightIndex < items.length) choose(items[highlightIndex])
+      } else if (e.key === "Escape") {
+        e.preventDefault()
+        e.stopPropagation() // no cierra la ventana que lo contiene
+        closeDropdown(true)
+      } else if (e.key === "Tab") {
+        closeDropdown()
+      }
+    },
+    [items, highlightIndex, choose, closeDropdown],
+  )
+
+  // Mantener visible la opción resaltada
+  useEffect(() => {
+    if (highlightIndex < 0 || !listRef.current) return
+    listRef.current.querySelector<HTMLElement>(`[data-idx="${highlightIndex}"]`)?.scrollIntoView({ block: "nearest" })
   }, [highlightIndex])
 
-  const dropdownPanel = isOpen && dropdownRect ? (
-    <div
-      ref={dropdownRef}
-      id="searchable-select-listbox"
-      role="listbox"
-      style={{
-        position: "fixed",
-        top: dropdownRect.top,
-        left: dropdownRect.left,
-        width: dropdownRect.width,
-        zIndex: 9999,
-        background: "var(--bg-surface)",
-        borderRadius: "var(--radius-md)",
-        boxShadow: "var(--shadow-md)",
-        padding: "4px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "4px",
-      }}
-    >
-      {/* Search box */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "0 8px",
-          height: "32px",
-          borderRadius: "6px",
-          background: "var(--bg-primary)",
-          border: "1px solid var(--border-light)",
-        }}
-      >
-        <Search size={14} style={{ color: "var(--text-muted)" }} />
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder={searchPlaceholder ?? placeholder}
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setHighlightIndex(-1) }}
-          onKeyDown={handleInputKeyDown}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            border: "none",
-            background: "transparent",
-            color: "var(--text-primary)",
-            fontSize: "12px",
-            outline: "none",
-            width: "100%",
-          }}
-        />
-        {search && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setSearch("")
-            }}
-            style={{
-              border: "none",
-              background: "transparent",
-              color: "var(--text-muted)",
-              cursor: "pointer",
-              padding: 0,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <X size={12} />
-          </button>
-        )}
-      </div>
+  const optionId = (i: number) => `${uid}-opt-${i}`
 
-      {/* Opción fija bajo el buscador: deja la selección vacía */}
-      {clearLabel && (
-        <div
-          role="option"
-          aria-selected={value === ""}
-          onClick={() => { onChange(""); closeDropdown() }}
-          style={{
-            padding: "6px 8px",
-            borderRadius: "6px",
-            fontSize: "12px",
-            cursor: "pointer",
-            fontWeight: 600,
-            color: value === "" ? "var(--accent)" : "var(--text-secondary)",
-            background: value === "" ? "var(--accent-light)" : "transparent",
-            borderBottom: "1px solid var(--border-light)",
-          }}
-        >
-          {clearLabel}
+  const panelStyle: React.CSSProperties | undefined = placement
+    ? { left: placement.left, width: placement.width, maxHeight: placement.maxHeight, top: placement.top, bottom: placement.bottom }
+    : undefined
+
+  const dropdownPanel =
+    isOpen && panelStyle ? (
+      // app-theme-neutral: el portal cuelga de <body>, fuera del wrapper de la app,
+      // y sin esto heredaba los tokens beige del sitio de marketing.
+      <div ref={dropdownRef} className="app-theme-neutral ui-select-panel" style={panelStyle}>
+        <div className="ui-select-search">
+          <Search size={14} aria-hidden style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+          <input
+            ref={inputRef}
+            type="text"
+            role="combobox"
+            aria-expanded
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={highlightIndex >= 0 ? optionId(highlightIndex) : undefined}
+            aria-label={searchPlaceholder ?? placeholder}
+            autoComplete="off"
+            placeholder={searchPlaceholder ?? placeholder}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setHighlightIndex(firstReal)
+            }}
+            onKeyDown={handleInputKeyDown}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {search && (
+            <button
+              type="button"
+              aria-label="Limpiar búsqueda"
+              onClick={(e) => {
+                e.stopPropagation()
+                setSearch("")
+                inputRef.current?.focus()
+              }}
+              className="ui-select-search-clear"
+            >
+              <X size={12} aria-hidden />
+            </button>
+          )}
         </div>
-      )}
 
-      {/* Options list */}
-      <div ref={listRef} style={{ maxHeight: "240px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
-        {filteredOptions.length > 0 ? (
-          filteredOptions.map((opt, idx) => {
-            const isSelected = opt.value === value
-            const isHighlighted = idx === highlightIndex
-            return (
-              <div
-                key={opt.value}
-                role="option"
-                aria-selected={isSelected}
-                onClick={() => selectOption(opt)}
-                onMouseEnter={() => setHighlightIndex(idx)}
-                style={{
-                  padding: "6px 8px",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  background: isSelected ? "var(--accent-light)" : isHighlighted ? "var(--bg-secondary)" : "transparent",
-                  color: isSelected ? "var(--accent)" : "var(--text-primary)",
-                  fontWeight: isSelected ? 500 : 400,
-                  transition: "background 0.1s ease",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  lineHeight: "1.5",
-                  flexShrink: 0,
-                }}
-              >
-                {opt.label}
-              </div>
-            )
-          })
-        ) : (
-          <div style={{ padding: "8px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>
-            {emptyMessage}
-          </div>
-        )}
+        <div
+          ref={listRef}
+          id={listId}
+          role="listbox"
+          aria-label={ariaLabel ?? placeholder}
+          aria-busy={loading || undefined}
+          className="ui-select-list"
+        >
+          {loading ? (
+            <div className="ui-select-empty" role="status">
+              Cargando…
+            </div>
+          ) : (
+            <>
+              {items.map((item, idx) => {
+                const isSelected = item.isClear ? value === "" : item.value === value
+                return (
+                  <div
+                    key={item.isClear ? "__clear" : item.value}
+                    id={optionId(idx)}
+                    data-idx={idx}
+                    role="option"
+                    aria-selected={isSelected}
+                    data-active={idx === highlightIndex || undefined}
+                    data-clear={item.isClear || undefined}
+                    className="ui-select-option"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => choose(item)}
+                    onMouseEnter={() => setHighlightIndex(idx)}
+                  >
+                    <span className="ui-select-option-label">{item.label}</span>
+                    {isSelected && !item.isClear && <Check size={14} aria-hidden className="ui-select-check" />}
+                  </div>
+                )
+              })}
+              {filteredOptions.length === 0 && <div className="ui-select-empty">{emptyMessage}</div>}
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  ) : null
+    ) : null
 
   return (
-    <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
-      {/* Trigger */}
-      <div
-        onClick={isOpen ? closeDropdown : openDropdown}
+    <div ref={containerRef} className="ui-select">
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        onClick={isOpen ? () => closeDropdown() : openDropdown}
         onKeyDown={handleTriggerKeyDown}
-        tabIndex={0}
         role="combobox"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        aria-controls="searchable-select-listbox"
+        aria-controls={isOpen ? listId : undefined}
         aria-label={ariaLabel}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          height: "36px",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border-light)",
-          background: "var(--bg-surface)",
-          color: selectedOption ? "var(--text-primary)" : "var(--text-muted)",
-          fontSize: "13px",
-          padding: "0 10px",
-          cursor: "pointer",
-          userSelect: "none",
-          outline: "none",
-          ...triggerStyle,
-        }}
+        data-variant={variant}
+        data-empty={selectedOption ? undefined : true}
+        className="ui-select-trigger"
+        style={triggerStyle}
       >
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <ChevronDown size={14} style={{ color: triggerStyle?.color ?? "var(--text-muted)", marginLeft: "4px", flexShrink: 0 }} />
-      </div>
+        <span className="ui-select-value">{selectedOption ? selectedOption.label : placeholder}</span>
+        <ChevronDown size={14} aria-hidden className="ui-select-chevron" />
+      </button>
 
-      {/* Dropdown rendered via portal to escape overflow clipping */}
+      {/* Se dibuja en <body> para escapar de overflow/z-index de la ventana que lo contiene */}
       {typeof document !== "undefined" && createPortal(dropdownPanel, document.body)}
     </div>
   )

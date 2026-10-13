@@ -14,7 +14,7 @@ import {
 } from "@/lib/api"
 import type { OrgMember, Invitation } from "@/lib/api"
 import {
-  Shield, UserMinus, Send, XCircle, MoreVertical, ChevronDown,
+  Shield, UserMinus, Send, XCircle, MoreVertical,
   Mail, Clock, CheckCircle2, Users,
 } from "lucide-react"
 
@@ -202,30 +202,16 @@ export default function EquipoPage() {
               <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>
                 Rol
               </label>
-              <div className="relative">
+              <div>
                 <select
                   value={effectiveRole}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full appearance-none"
-                  style={{
-                    height: "40px", paddingLeft: "12px", paddingRight: "32px",
-                    borderRadius: "10px", border: "1px solid var(--border-light)",
-                    background: "var(--bg-surface)", color: "var(--text-primary)",
-                    fontSize: "14px", outline: "none", cursor: "pointer",
-                  }}
+                  className="ui-native-select"
                 >
                   {availableRoles.map((r) => (
                     <option key={r.slug} value={r.slug}>{r.name}</option>
                   ))}
                 </select>
-                <ChevronDown
-                  size={14}
-                  style={{
-                    position: "absolute", right: "10px", top: "50%",
-                    transform: "translateY(-50%)", color: "var(--text-muted)",
-                    pointerEvents: "none",
-                  }}
-                />
               </div>
             </div>
             <Button

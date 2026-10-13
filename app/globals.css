@@ -491,3 +491,168 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   .modal-overlay-in, .modal-panel-in { animation: none; }
 }
+
+/* ─── Selectores desplegables ────────────────────────────────────────────
+   UNA sola definición para SearchableSelect (.ui-select-*) y para los <select>
+   nativos (.ui-native-select). Todo sale de tokens (--bg-surface, --border-*,
+   --accent*, --radius-*, --shadow-*): nada de colores sueltos, así el beige del
+   sitio de marketing no se cuela en la app. La lista flotante se pinta en un
+   portal bajo <body>, por eso lleva .app-theme-neutral (ver SearchableSelect). */
+@layer components {
+  .ui-select { position: relative; width: 100%; }
+
+  .ui-select-trigger,
+  .ui-native-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.25;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+  }
+  .ui-select-trigger:hover:not(:disabled),
+  .ui-native-select:hover:not(:disabled) { border-color: var(--border-medium); }
+  .ui-select-trigger:focus-visible,
+  .ui-native-select:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  .ui-select-trigger[aria-expanded="true"] { border-color: var(--accent); }
+  .ui-select-trigger[data-empty="true"] { color: var(--text-muted); }
+  .ui-select-trigger:disabled,
+  .ui-native-select:disabled { opacity: 0.55; cursor: not-allowed; background: var(--bg-secondary); }
+  .ui-native-select[aria-invalid="true"] { border-color: var(--error); }
+
+  .ui-select-value { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ui-select-chevron { flex-shrink: 0; color: var(--text-muted); transition: transform 0.15s ease; }
+  .ui-select-trigger[aria-expanded="true"] .ui-select-chevron { transform: rotate(180deg); }
+
+  /* <select> nativo: misma caja, con la flecha dibujada como fondo */
+  .ui-native-select {
+    display: block;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 34px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238890A0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+  }
+  .ui-native-select option { color: var(--text-primary); background: var(--bg-surface); }
+  .ui-native-select.is-placeholder { color: var(--text-muted); }
+
+  /* Variante de calculadora: el mismo hueco oscuro del aparato, en azul */
+  .ui-select-trigger[data-variant="calculator"] {
+    border: none;
+    border-radius: 10px;
+    background: #0b0f1a;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: #e6ecff;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .ui-select-trigger[data-variant="calculator"]:hover:not(:disabled) { background: #101626; }
+  .ui-select-trigger[data-variant="calculator"][data-empty="true"] { color: #b4c0e4; }
+  .ui-select-trigger[data-variant="calculator"] .ui-select-chevron { color: #b4c0e4; }
+  .ui-select-trigger[data-variant="calculator"]:focus-visible,
+  .ui-select-trigger[data-variant="calculator"][aria-expanded="true"] {
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.9), 0 0 0 2px #9db6ff;
+  }
+  .ui-select-trigger[data-variant="calculator"]:disabled { background: #0b0f1a; }
+
+  /* Lista flotante */
+  .ui-select-panel {
+    position: fixed;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    overflow: hidden;
+    font-family: var(--font-body), var(--font-inter), system-ui, sans-serif;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+  }
+  .ui-select-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+  }
+  .ui-select-search:focus-within { border-color: var(--accent); }
+  .ui-select-search input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .ui-select-search input::placeholder { color: var(--text-muted); }
+  .ui-select-search-clear {
+    display: flex;
+    align-items: center;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+  }
+  .ui-select-search-clear:hover { color: var(--text-primary); }
+  .ui-select-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; }
+
+  .ui-select-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+    min-height: 36px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .ui-select-option-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ui-select-option[data-active] { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+  .ui-select-option[aria-selected="true"] { background: var(--accent-light); color: var(--accent-text); font-weight: 600; }
+  .ui-select-option[data-clear] {
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--border-light);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .ui-select-option[data-clear][aria-selected="true"] { color: var(--accent-text); }
+  .ui-select-check { flex-shrink: 0; color: var(--accent); }
+  .ui-select-empty { padding: 10px; font-size: 13px; color: var(--text-muted); text-align: center; }
+
+  /* iOS hace zoom al enfocar campos de menos de 16px */
+  @media (max-width: 640px) {
+    .ui-select-search input { font-size: 16px; }
+    .ui-select-option { min-height: 44px; font-size: 14px; }
+  }
+}

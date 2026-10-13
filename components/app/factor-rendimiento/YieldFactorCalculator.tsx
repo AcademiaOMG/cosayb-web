@@ -296,7 +296,7 @@ export default function YieldFactorCalculator({
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,400px)_minmax(0,1fr)] md:items-start">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,var(--calc-device-w))_minmax(0,1fr)] md:items-start">
         {/* Tipo y nombre primero: en el celular se ven antes que la calculadora */}
         <div className="flex flex-col gap-3 min-w-0 md:col-start-2 md:row-start-1">
           <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>

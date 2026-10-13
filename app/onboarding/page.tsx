@@ -239,12 +239,7 @@ export default function OnboardingPage() {
               <select
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-all"
-                style={{
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-light)",
-                  color: city ? "var(--text-primary)" : "var(--text-muted)",
-                }}
+                className={`ui-native-select${city ? "" : " is-placeholder"}`}
               >
                 <option value="">Selecciona tu ciudad</option>
                 {CITIES.map((c) => (
