@@ -83,11 +83,11 @@ function printRecord(record: BreakEvenRecord) {
     <p>Precio de venta: <strong>${formatCOP(record.salePrice)}</strong> · Costo variable: <strong>${formatCOP(record.variableCost)}</strong></p>
     <div class="result">
       <p style="margin:0 0 4px">Necesitas vender</p>
-      <strong>${formatNumber(record.breakEvenUnits)} unidades al mes</strong>
+      <strong>${formatNumber(record.breakEvenUnits, 2)} unidades al mes</strong>
       <p style="margin:8px 0 0">Equivalen a ${formatCOP(record.breakEvenRevenue)} en ventas al mes.</p>
       <div class="grid">
-        <div>Unidades al mes<b>${formatNumber(record.breakEvenUnits)}</b></div>
-        <div>Unidades al día<b>${formatNumber(unitsPerDay)}</b></div>
+        <div>Unidades al mes<b>${formatNumber(record.breakEvenUnits, 2)}</b></div>
+        <div>Unidades al día<b>${formatNumber(unitsPerDay, 2)}</b></div>
         <div>Venta al mes<b>${formatCOP(record.breakEvenRevenue)}</b></div>
         <div>Venta al día<b>${formatCOP(revenuePerDay)}</b></div>
       </div>
@@ -151,7 +151,7 @@ function HistoryTable({
           label: "Unidades al mes",
           render: (v) => (
             <span className="tabular-nums text-sm font-semibold" style={{ color: "var(--accent-text)" }}>
-              {formatNumber(v as number)}
+              {formatNumber(v as number, 2)}
             </span>
           ),
         },
@@ -358,33 +358,28 @@ export default function PuntoEquilibrioPage() {
         <p>Esta sección es una calculadora que te dice cuántas unidades necesitas vender para cubrir todos tus costos.</p>
 
         <div>
-          <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Cómo usarla:</p>
           <ul className="flex flex-col gap-2 ml-1">
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Calculadora:</strong> en las pestañas del encabezado toca &quot;Calculadora&quot; para abrir la calculadora. Cada cálculo nuevo empieza en blanco; para partir de uno anterior, usa &quot;Reutilizar&quot; en el historial. Toca un dato y escribe con el teclado de la pantalla o el de tu computador; lo que escribas reemplaza el valor anterior. &quot;Limpiar&quot; borra todo (hay que tocarlo dos veces).</span>
+              <span><strong>Costos fijos:</strong> lo que pagas cada mes aunque no vendas. Toca uno frecuente (Arriendo, Sueldos…) o escribe su nombre, teclea el monto y agrégalo; el total se suma solo.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Paso 1, costos fijos:</strong> escribe el nombre del gasto (arriendo, sueldos, agua, energía, gas, teléfonos, marketing digital, impuestos u otros), teclea cuánto pagas al mes y pulsa &quot;Agregar a la lista&quot;. El costo aparece en la lista de la derecha y el total se suma solo.</span>
+              <span><strong>Tu producto:</strong> el precio de venta de una unidad y su costo variable (lo que cuestan sus insumos; 0 si no tiene).</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Paso 2, tu producto:</strong> el precio de venta y el costo variable (lo que cuestan sus insumos) de una unidad.</span>
+              <span><strong>Resultado:</strong> costos fijos ÷ (precio − costo variable) = unidades al mes. Mientras escribes ves la fórmula en vivo; &quot;Calcular&quot; abre el detalle por mes y por día y ahí lo guardas.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Calcular:</strong> abre el resultado en una ventana: unidades y venta necesarias por mes y por día, y cómo se calculan. Desde ahí guardas el cálculo.</span>
-            </li>
-            <li className="flex gap-2">
-              <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Historial:</strong> en la pestaña &quot;Historial&quot; consulta tus cálculos anteriores, reutilízalos como base, imprímelos o expórtalos a Excel.</span>
+              <span><strong>Historial:</strong> consulta, reutiliza, imprime o exporta tus cálculos a Excel.</span>
             </li>
           </ul>
         </div>
 
         <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-          <strong>Nota:</strong> el punto de equilibrio es la cantidad desde la cual dejas de perder y empiezas a ganar. Los cálculos por día usan 30 días al mes.
+          <strong>Nota:</strong> el punto de equilibrio es la cantidad desde la cual dejas de perder y empiezas a ganar. Por día = por mes ÷ 30. Si el precio no supera el costo variable no hay punto de equilibrio y no se muestra resultado.
         </p>
       </div>
     </Modal>
