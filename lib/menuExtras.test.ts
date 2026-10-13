@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest"
 import { calcularCosto } from "@/lib/menuFicha"
 import {
   costPerBaseUnit,
+  extraFormFromIngredient,
+  extraUnitLabel,
+  onlyRecipeIngredients,
   findDuplicateByName,
   menuUnitCost,
   menuUnitOf,
@@ -72,5 +75,27 @@ describe("costo con extras", () => {
     )
     expect(r?.costoTotalPorcion).toBe(1900)
     expect(r?.costoTotalPersonas).toBe(19000)
+  })
+})
+
+describe("edición de extras", () => {
+  const vaso = { ...base, id: "v1", name: "Vaso 9 oz", unit: "und" as const, costPerUnit: "15000.00", weightGrams: "50.00" }
+
+  it("extraFormFromIngredient reproduce la semántica de creación (costo del empaque + contenido)", () => {
+    expect(extraFormFromIngredient(vaso)).toEqual({ name: "Vaso 9 oz", unit: "und", cost: "15000", content: "50" })
+  })
+
+  it("validateExtraForm no cuenta al propio extra como duplicado al editar, pero sí a otro", () => {
+    const input = extraFormFromIngredient(vaso)
+    expect(validateExtraForm(input, [vaso]).ok).toBe(false)
+    expect(validateExtraForm(input, [vaso], "v1").ok).toBe(true)
+    expect(validateExtraForm(input, [{ ...vaso, id: "v2" }], "v1").ok).toBe(false)
+  })
+
+  it("extraUnitLabel solo identifica extras; onlyRecipeIngredients los excluye de recetas", () => {
+    expect(extraUnitLabel({ kind: "extra", unit: "porcion" })).toBe("porc.")
+    expect(extraUnitLabel({ kind: "ingredient", unit: "g" })).toBeNull()
+    const list = [{ kind: "extra" as const }, { kind: "ingredient" as const }, { kind: undefined }]
+    expect(onlyRecipeIngredients(list)).toHaveLength(2)
   })
 })

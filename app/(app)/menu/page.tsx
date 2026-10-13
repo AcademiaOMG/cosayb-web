@@ -1,6 +1,6 @@
 "use client"
 
-import useSWR from "swr"
+import useSWR, { useSWRConfig } from "swr"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import PageHeader from "@/components/ui/PageHeader"
@@ -94,6 +94,7 @@ function DetailView({
   availableRecipes,
   availableIngredients,
   onExtraCreated,
+  onExtraUpdated,
   onSaved,
   onDirtyChange,
 }: {
@@ -102,6 +103,8 @@ function DetailView({
   availableIngredients: Ingrediente[]
   /** Un extra nuevo se guardó en el inventario: actualiza el catálogo compartido */
   onExtraCreated: (extra: Ingrediente) => void
+  /** Un extra se editó: refresca catálogo y costos */
+  onExtraUpdated: (extra: Ingrediente) => void
   onSaved: () => void
   /** Avisa a la página si quedan datos sin guardar (guard de pestañas) */
   onDirtyChange: (dirty: boolean) => void
@@ -461,6 +464,7 @@ function DetailView({
             extras={availableIngredients.map((i) => ({ id: i.id, name: i.name, unit: menuUnitOf(i) }))}
             catalog={availableIngredients}
             onExtraCreated={onExtraCreated}
+            onExtraUpdated={onExtraUpdated}
             onAddItem={addFromCalc}
             onCalculate={handleCalcular}
           />
@@ -1222,6 +1226,7 @@ export default function MenuPage() {
   useHelpAvailable()
   const { can, hasFeature, featureLockedMessage, isLoading: permsLoading } = usePermissions()
   const revalidateOnboarding = useRevalidateOnboarding()
+  const { mutate: globalMutate } = useSWRConfig()
   const { data: menus = [], isLoading: menusLoading, mutate: mutateMenus } = useSWR(
     "menus",
     () => getMenus().then((r) => r.data ?? []),
@@ -1447,6 +1452,12 @@ export default function MenuPage() {
           onExtraCreated={(extra) => {
             // Disponible de inmediato en el selector, sin esperar a revalidar
             void mutateIngredients((cur) => [...(cur ?? []).filter((x) => x.id !== extra.id), extra], { revalidate: false })
+          }}
+          onExtraUpdated={(extra) => {
+            // El catálogo cambia al instante (recalcula líneas) y se revalida el costo de menús / inventario
+            void mutateIngredients((cur) => (cur ?? []).map((x) => (x.id === extra.id ? { ...x, ...extra } : x)), { revalidate: true })
+            void mutateMenus()
+            void globalMutate("ingredients")
           }}
           onSaved={handleSaved}
           onDirtyChange={setCalcDirty}

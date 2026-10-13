@@ -71,6 +71,7 @@ export default function MenuCalculator({
   extras,
   catalog,
   onExtraCreated,
+  onExtraUpdated,
   onChange,
   onAddItem,
   onCalculate,
@@ -95,6 +96,8 @@ export default function MenuCalculator({
   catalog: Ingrediente[]
   /** Un extra nuevo ya quedó guardado en el inventario: el padre lo agrega al catálogo */
   onExtraCreated: (extra: Ingrediente) => void
+  /** Un extra se editó: el padre refresca catálogo y costos del menú */
+  onExtraUpdated?: (extra: Ingrediente) => void
   onChange: (field: "persons" | "margin" | "pctMP", raw: string) => void
   onAddItem: (item: MenuCalcAdd) => void
   /** Abre el modal con el resultado del cálculo del menú */
@@ -106,6 +109,7 @@ export default function MenuCalculator({
   const [selected, setSelected] = useState("")
   const [addError, setAddError] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   const wrapRef = useRef<HTMLDivElement>(null)
   const registerRefs = useRef<Partial<Record<MenuCalcField, HTMLInputElement | null>>>({})
@@ -246,6 +250,9 @@ export default function MenuCalculator({
   const isRecipes = mode === "recipes"
   const selectedExtra = !isRecipes ? extras.find((x) => x.id === selected) : undefined
   const extraUnit = unitShort(selectedExtra?.unit ?? "und")
+  // Solo los extras propios (kind='extra') se editan; el banco/ingredientes legados no
+  const selectedIng = selectedExtra ? catalog.find((c) => c.id === selectedExtra.id) : undefined
+  const editableExtra = selectedIng && selectedIng.kind === "extra" && selectedIng.userId !== null ? selectedIng : undefined
   const registerMeta: Record<
     MenuCalcField,
     { label: string; aria: string; display: string; placeholder: string; note?: React.ReactNode }
@@ -369,17 +376,33 @@ export default function MenuCalculator({
           />
 
           {!isRecipes && (
-            <button
-              type="button"
-              onClick={() => {
-                setClearArmed(false)
-                setCreateOpen(true)
-              }}
-              className="self-start text-xs font-medium underline-offset-2 hover:underline"
-              style={{ color: "var(--accent-text, #1434A4)" }}
-            >
-              No encontramos este extra. Crear nuevo
-            </button>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setClearArmed(false)
+                  setCreateOpen(true)
+                }}
+                className="self-start text-xs font-medium underline-offset-2 hover:underline"
+                style={{ color: "var(--accent-text, #1434A4)" }}
+              >
+                No encontramos este extra. Crear nuevo
+              </button>
+              {editableExtra && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClearArmed(false)
+                    setEditOpen(true)
+                  }}
+                  className="self-start text-xs font-medium underline-offset-2 hover:underline"
+                  style={{ color: "var(--accent-text, #1434A4)" }}
+                  aria-label={`Editar el extra ${editableExtra.name}`}
+                >
+                  Editar «{editableExtra.name}»
+                </button>
+              )}
+            </div>
           )}
 
           {/* Gramos + agregar: misma fila (el botón saca el teclado el hueco de la coma) */}
@@ -402,6 +425,18 @@ export default function MenuCalculator({
         {/* Calcular integrado al aparato, al pie del teclado (como en Punto de equilibrio) */}
         <CalcActionKey onClick={onCalculate}>Calcular</CalcActionKey>
       </CalcDevice>
+
+      <ExtraCreateModal
+        open={editOpen && !!editableExtra}
+        editing={editableExtra ?? null}
+        existing={catalog}
+        onClose={() => setEditOpen(false)}
+        onUpdated={(extra) => {
+          onExtraUpdated?.(extra)
+          setAddError(null)
+          setEditOpen(false)
+        }}
+      />
 
       <ExtraCreateModal
         open={createOpen}

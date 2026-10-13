@@ -4,11 +4,14 @@ import { useRef, useState } from "react"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
-import { createExtra } from "@/lib/api"
+import { createExtra, updateExtra } from "@/lib/api"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
 import type { Ingrediente } from "@/types/domain"
 import {
   EXTRA_UNITS,
   costPerBaseUnit,
+  extraFormFromIngredient,
   findDuplicateByName,
   unitShort,
   validateExtraForm,
@@ -19,8 +22,9 @@ import {
 const fmtCOP = (v: number) => `$${v.toLocaleString("es-CO", { maximumFractionDigits: 2 })}`
 
 /**
- * Formulario compacto para crear un extra (vaso, plato, bebida, acompañamiento…)
+ * Formulario compacto para crear o EDITAR un extra (vaso, plato, bebida, acompañamiento…)
  * sin salir del flujo del menú. Se guarda en el inventario (ingredients, kind='extra').
+ * Con `editing` funciona en modo edición (misma semántica: costo del empaque + contenido).
  */
 export default function ExtraCreateModal(props: ExtraCreateModalProps) {
   // Se monta solo mientras está abierto: cada apertura arranca con el formulario limpio.
@@ -32,31 +36,40 @@ interface ExtraCreateModalProps {
   initialName?: string
   /** Catálogo actual (propios + banco) para evitar duplicados */
   existing: Ingrediente[]
+  /** Extra a editar (modo edición) */
+  editing?: Ingrediente | null
   onClose: () => void
   /** El extra quedó guardado en el inventario */
-  onCreated: (extra: Ingrediente) => void
+  onCreated?: (extra: Ingrediente) => void
+  /** Modo edición: el extra se actualizó */
+  onUpdated?: (extra: Ingrediente) => void
   /** El nombre ya existía: se reutiliza el existente en vez de duplicarlo */
-  onUseExisting: (extra: Ingrediente) => void
+  onUseExisting?: (extra: Ingrediente) => void
 }
 
 function ExtraCreateForm({
   open,
   initialName = "",
   existing,
+  editing = null,
   onClose,
   onCreated,
+  onUpdated,
   onUseExisting,
 }: ExtraCreateModalProps) {
-  const [name, setName] = useState(initialName)
-  const [unit, setUnit] = useState<ExtraUnit>("und")
-  const [cost, setCost] = useState("")
-  const [content, setContent] = useState("1")
+  const initial = editing ? extraFormFromIngredient(editing) : null
+  const isEditing = !!editing
+  const [name, setName] = useState(initial?.name ?? initialName)
+  const [unit, setUnit] = useState<ExtraUnit>(initial?.unit ?? "und")
+  const [cost, setCost] = useState(initial?.cost ?? "")
+  const [content, setContent] = useState(initial?.content ?? "1")
   const [errors, setErrors] = useState<ExtraFormErrors>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const lock = useRef(false) // doble submit
 
-  const duplicate = name.trim() ? findDuplicateByName(name, existing) : undefined
+  const others = editing ? existing.filter((x) => x.id !== editing.id) : existing
+  const duplicate = name.trim() ? findDuplicateByName(name, others) : undefined
   const costNum = parseFloat(cost.replace(",", "."))
   const contentNum = content.trim() === "" ? 1 : parseFloat(content.replace(",", "."))
   const perUnit = costNum > 0 && contentNum > 0 ? costPerBaseUnit(costNum, contentNum) : null
@@ -71,7 +84,7 @@ function ExtraCreateForm({
     e.preventDefault()
     if (lock.current) return
     setServerError(null)
-    const v = validateExtraForm({ name, unit, cost, content }, existing)
+    const v = validateExtraForm({ name, unit, cost, content }, existing, editing?.id)
     if (!v.ok) {
       setErrors(v.errors)
       return
@@ -80,16 +93,24 @@ function ExtraCreateForm({
     lock.current = true
     setSaving(true)
     try {
-      const res = await createExtra({
+      const body = {
         name: v.payload.name,
         unit: v.payload.unit,
         costPerUnit: v.payload.costPerUnit,
         weightGrams: v.payload.weightGrams,
-      })
-      onCreated(res.data)
+      }
+      if (editing) {
+        const res = await updateExtra(editing.id, body)
+        toast.success("Extra actualizado", { description: body.name })
+        onUpdated?.(res.data)
+      } else {
+        const res = await createExtra(body)
+        onCreated?.(res.data)
+      }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "No se pudo guardar el extra"
+      const msg = friendlyError(err, isEditing ? "No se pudo actualizar el extra" : "No se pudo guardar el extra")
       setServerError(msg)
+      if (isEditing) toast.error("No se pudo actualizar el extra", { description: msg })
       lock.current = false
       setSaving(false)
     }
@@ -99,7 +120,7 @@ function ExtraCreateForm({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Crear nuevo extra"
+      title={isEditing ? "Editar extra" : "Crear nuevo extra"}
       blur
       footer={
         <>
@@ -107,14 +128,16 @@ function ExtraCreateForm({
             Cancelar
           </Button>
           <Button type="submit" form="extra-create-form" loading={saving}>
-            {saving ? "Guardando…" : "Guardar extra"}
+            {saving ? "Guardando…" : isEditing ? "Guardar cambios" : "Guardar extra"}
           </Button>
         </>
       }
     >
       <form id="extra-create-form" onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          Bebidas, vasos, platos, cucharas, acompañamientos… Se guarda en tu inventario y queda seleccionado.
+          {isEditing
+            ? "Los cambios se aplican a los menús que usan este extra."
+            : "Bebidas, vasos, platos, cucharas, acompañamientos… Se guarda en tu inventario y queda seleccionado."}
         </p>
 
         <Input
@@ -127,7 +150,7 @@ function ExtraCreateForm({
           error={errors.name}
           disabled={saving}
         />
-        {duplicate && (
+        {duplicate && !isEditing && onUseExisting && (
           <div
             className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm"
             style={{ background: "var(--accent-light)", color: "var(--accent-text)" }}

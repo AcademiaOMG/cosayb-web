@@ -2,6 +2,7 @@
 
 import { ChevronRight, Pencil, Trash2 } from "lucide-react"
 import type { Ingredient } from "@/types/ingredient"
+import { extraUnitLabel } from "@/lib/menuExtras"
 import {
   displayName,
   formatCOP,
@@ -43,6 +44,19 @@ function OwnTag() {
   )
 }
 
+/** Identifica los extras del menú (vasos, bebidas…) y su unidad */
+function ExtraTag({ unit }: { unit: string }) {
+  return (
+    <span
+      className="shrink-0 px-1.5 py-px text-[11px] font-semibold leading-4"
+      style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", borderRadius: "6px" }}
+      title="Extra del menú"
+    >
+      Extra · {unit}
+    </span>
+  )
+}
+
 function StaleDot() {
   return (
     <span
@@ -68,7 +82,9 @@ export default function IngredientRow({
   const name = displayName(ingredient.name)
   const perGram = formatPerGram(ingredient.costPerGram)
   const unitCost = formatCOP(ingredient.costPerUnit)
-  const weight = formatGrams(ingredient.weightGrams)
+  const extraUnit = extraUnitLabel(ingredient)
+  const weight = extraUnit ? `${formatGrams(ingredient.weightGrams).replace(/ g$/, "")} ${extraUnit}` : formatGrams(ingredient.weightGrams)
+  const perUnitSuffix = extraUnit ? `/${extraUnit}` : "/g"
   const canEdit = own && !!onEdit
   const canDelete = own && !!onDelete
 
@@ -101,6 +117,14 @@ export default function IngredientRow({
                 </span>
               </>
             )}
+            {extraUnit && (
+              <>
+                {" "}
+                <span className="relative -top-px inline-block align-middle">
+                  <ExtraTag unit={extraUnit} />
+                </span>
+              </>
+            )}
           </span>
           <span
             className="text-[13px] tabular-nums"
@@ -116,7 +140,7 @@ export default function IngredientRow({
             style={{ color: "var(--text-primary)" }}
           >
             {perGram}
-            <span className="font-medium" style={{ color: "var(--text-muted)" }}>/g</span>
+            <span className="font-medium" style={{ color: "var(--text-muted)" }}>{perUnitSuffix}</span>
           </span>
           <ChevronRight size={16} aria-hidden="true" style={{ color: "var(--border-medium)" }} />
         </div>
@@ -136,6 +160,7 @@ export default function IngredientRow({
             {name}
           </span>
           {tagged && <OwnTag />}
+          {extraUnit && <ExtraTag unit={extraUnit} />}
         </div>
         <span
           className="flex items-center justify-end gap-2 text-sm font-bold tabular-nums"
