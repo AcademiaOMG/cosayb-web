@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, startTransition } from "react"
+import { useState, useEffect, useCallback, useRef, startTransition } from "react"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
@@ -30,6 +30,10 @@ export default function IngredientFormModal({
     weightGrams: "",
   })
   const [saving, setSaving] = useState(false)
+  // Guard síncrono contra doble envío (el estado `saving` se actualiza en el
+  // siguiente render; dos clics seguidos podían crear el ingrediente dos veces).
+  // Tras un guardado exitoso queda bloqueado hasta que el modal se reabra.
+  const submitLock = useRef(false)
   const [formError, setFormError] = useState<string | null>(null)
   const handlePriceAccept = useCallback((pricePerUnit: number, weightGrams: number, source: string) => {
     setForm((f) => ({
@@ -43,6 +47,7 @@ export default function IngredientFormModal({
 
   useEffect(() => {
     if (!open) return
+    submitLock.current = false
     if (editing) {
       startTransition(() => {
         setForm({
@@ -61,10 +66,12 @@ export default function IngredientFormModal({
   }, [open, editing])
 
   async function handleSave() {
+    if (submitLock.current) return
     if (!form.name.trim() || !form.costPerUnit || !form.weightGrams) {
       setFormError("Todos los campos son obligatorios")
       return
     }
+    submitLock.current = true
     setSaving(true)
     setFormError(null)
 
@@ -89,6 +96,7 @@ export default function IngredientFormModal({
       onSaved()
       setTimeout(() => onClose(), 350)
     } catch (err: unknown) {
+      submitLock.current = false
       setFormError(err instanceof Error ? err.message : String(err))
     } finally {
       setSaving(false)
