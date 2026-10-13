@@ -1,0 +1,91 @@
+import { describe, it, expect, vi } from "vitest"
+import {
+  buildOnboardingUrl,
+  needsOnboarding,
+  resolveAuthenticatedDestination,
+  decideOnboardingPage,
+  resolveOnboardingFinishPath,
+  fetchOrgState,
+  type OrgState,
+} from "./authRedirect"
+
+const noOrg: OrgState = { identityType: "tenant", hasOrganization: false, impersonationActive: false }
+const withOrg: OrgState = { identityType: "tenant", hasOrganization: true, impersonationActive: false }
+const platform: OrgState = { identityType: "platform", hasOrganization: false, impersonationActive: false }
+const impersonating: OrgState = { identityType: "platform", hasOrganization: true, impersonationActive: true }
+
+describe("buildOnboardingUrl", () => {
+  it("conserva returnTo interno y descarta el resto", () => {
+    expect(buildOnboardingUrl("/recetas?a=1")).toBe("/onboarding?returnTo=%2Frecetas%3Fa%3D1")
+    expect(buildOnboardingUrl("/dashboard")).toBe("/onboarding?returnTo=%2Fdashboard")
+    expect(buildOnboardingUrl(null)).toBe("/onboarding")
+    expect(buildOnboardingUrl("//evil.com")).toBe("/onboarding")
+    expect(buildOnboardingUrl("/onboarding?new=1")).toBe("/onboarding")
+    expect(buildOnboardingUrl("/login")).toBe("/onboarding")
+  })
+})
+
+describe("needsOnboarding", () => {
+  it("fuerza solo a tenants sin organización", () => {
+    expect(needsOnboarding(noOrg)).toBe(true)
+    expect(needsOnboarding(withOrg)).toBe(false)
+    expect(needsOnboarding(platform)).toBe(false)
+    expect(needsOnboarding(impersonating)).toBe(false)
+    expect(needsOnboarding({ ...noOrg, impersonationActive: true })).toBe(false)
+  })
+})
+
+describe("resolveAuthenticatedDestination", () => {
+  it("sin org → onboarding con returnTo (compra pendiente incluida)", () => {
+    expect(resolveAuthenticatedDestination(noOrg, "/dashboard")).toBe("/onboarding?returnTo=%2Fdashboard")
+    expect(resolveAuthenticatedDestination(noOrg, "/checkout?plan=pro")).toBe(
+      "/onboarding?returnTo=%2Fcheckout%3Fplan%3Dpro",
+    )
+  })
+  it("con org o plataforma → destino intacto", () => {
+    expect(resolveAuthenticatedDestination(withOrg, "/recetas")).toBe("/recetas")
+    expect(resolveAuthenticatedDestination(platform, "/plataforma")).toBe("/plataforma")
+  })
+})
+
+describe("decideOnboardingPage", () => {
+  it("?new=1 siempre muestra el formulario", () => {
+    expect(decideOnboardingPage(withOrg, true)).toBe("show")
+  })
+  it("con org y sin ?new=1 va al destino", () => {
+    expect(decideOnboardingPage(withOrg, false)).toBe("dashboard")
+  })
+  it("sin org muestra el formulario", () => {
+    expect(decideOnboardingPage(noOrg, false)).toBe("show")
+  })
+  it("plataforma va a la consola salvo impersonación", () => {
+    expect(decideOnboardingPage(platform, false)).toBe("platform")
+    expect(decideOnboardingPage(impersonating, false)).toBe("dashboard")
+  })
+})
+
+describe("resolveOnboardingFinishPath", () => {
+  it("returnTo seguro o dashboard", () => {
+    expect(resolveOnboardingFinishPath("/recetas")).toBe("/recetas")
+    expect(resolveOnboardingFinishPath(null)).toBe("/dashboard")
+    expect(resolveOnboardingFinishPath("https://evil.com")).toBe("/dashboard")
+    expect(resolveOnboardingFinishPath("/onboarding")).toBe("/dashboard")
+  })
+})
+
+describe("fetchOrgState", () => {
+  const mk = (status: number, body?: unknown) =>
+    vi.fn().mockResolvedValue({ ok: status >= 200 && status < 300, status, json: async () => body }) as unknown as typeof fetch
+  it("interpreta el contexto", async () => {
+    const r = await fetchOrgState("http://api", mk(200, { data: { identityType: "tenant", organization: null, impersonation: null } }))
+    expect(r).toEqual({ status: "ok", state: { identityType: "tenant", hasOrganization: false, impersonationActive: false } })
+    const r2 = await fetchOrgState("http://api", mk(200, { data: { identityType: "tenant", organization: { id: "1" }, impersonation: { active: true } } }))
+    expect(r2).toMatchObject({ status: "ok", state: { hasOrganization: true, impersonationActive: true } })
+  })
+  it("401 → invalid; 500/red → unknown", async () => {
+    expect(await fetchOrgState("http://api", mk(401))).toEqual({ status: "invalid" })
+    expect(await fetchOrgState("http://api", mk(500))).toEqual({ status: "unknown" })
+    const boom = vi.fn().mockRejectedValue(new Error("x")) as unknown as typeof fetch
+    expect(await fetchOrgState("http://api", boom)).toEqual({ status: "unknown" })
+  })
+})

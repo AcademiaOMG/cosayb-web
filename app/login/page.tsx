@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, BarChart3, ChefHat, TrendingUp } from "lucide-react"
 import { getPendingCheckout, pendingToPath, pendingContextLine } from "@/lib/commerce/pending"
-import { resolvePostLoginPath, checkServerSession } from "@/lib/authRedirect"
+import { resolvePostLoginPath, checkServerSession, fetchOrgState, resolveAuthenticatedDestination } from "@/lib/authRedirect"
 import { toast } from "@/lib/toast"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
@@ -43,7 +43,12 @@ function LoginForm() {
       const state = await checkServerSession(API)
       if (cancelled) return
       if (state === "valid") {
-        router.replace(destination)
+        // Sin organización → onboarding (conserva returnTo); si el contexto falla, destino normal
+        const org = await fetchOrgState(API)
+        if (cancelled) return
+        router.replace(
+          org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination) : destination,
+        )
         return // se mantiene el estado de carga hasta que la navegación ocurra
       }
       if (state === "invalid") {

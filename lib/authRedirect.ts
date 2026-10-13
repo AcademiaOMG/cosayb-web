@@ -65,3 +65,95 @@ export async function checkServerSession(
     return "unknown"
   }
 }
+
+// ─── Onboarding obligatorio para usuarios sin organización ────────────────
+
+/** Ruta de creación del primer negocio. */
+export const ONBOARDING_PATH = "/onboarding"
+
+/** Lo mínimo de GET /api/v1/me/context que necesita la decisión de destino. */
+export interface OrgState {
+  identityType: "platform" | "tenant" | undefined
+  hasOrganization: boolean
+  impersonationActive: boolean
+}
+
+/** URL de onboarding que conserva el destino al que se quería llegar. */
+export function buildOnboardingUrl(returnTo?: string | null): string {
+  const target = safeReturnTo(returnTo)
+  if (!target || target === "/" || target.startsWith(ONBOARDING_PATH) || target.startsWith("/login")) {
+    return ONBOARDING_PATH
+  }
+  return `${ONBOARDING_PATH}?returnTo=${encodeURIComponent(target)}`
+}
+
+/** Una identidad de plataforma sin impersonación nunca se fuerza al onboarding. */
+function isForcedTenant(s: OrgState): boolean {
+  if (s.impersonationActive) return false
+  return s.identityType !== "platform"
+}
+
+/**
+ * ¿Debe el usuario crear su negocio antes de usar el área interna (app)?
+ * Solo tenants autenticados sin organización. Plataforma/super admin e
+ * impersonación quedan exentos.
+ */
+export function needsOnboarding(s: OrgState): boolean {
+  return !s.hasOrganization && isForcedTenant(s)
+}
+
+/** Destino tras autenticarse: onboarding (conservando returnTo) o el destino normal. */
+export function resolveAuthenticatedDestination(s: OrgState, destination: string): string {
+  return needsOnboarding(s) ? buildOnboardingUrl(destination) : destination
+}
+
+export type OnboardingPageDecision = "show" | "dashboard" | "platform"
+
+/**
+ * Qué hace la página /onboarding. ?new=1 (negocio adicional) siempre muestra
+ * el formulario. Sin ?new=1, quien ya tiene organización va al destino.
+ */
+export function decideOnboardingPage(s: OrgState, isNewOrgFlow: boolean): OnboardingPageDecision {
+  if (isNewOrgFlow) return "show"
+  if (s.identityType === "platform" && !s.impersonationActive) return "platform"
+  return s.hasOrganization ? "dashboard" : "show"
+}
+
+/** Destino al terminar de crear el negocio: returnTo seguro o dashboard. */
+export function resolveOnboardingFinishPath(returnTo: string | null | undefined): string {
+  const t = safeReturnTo(returnTo)
+  return t && !t.startsWith(ONBOARDING_PATH) && !t.startsWith("/login") ? t : DEFAULT_POST_LOGIN_PATH
+}
+
+export type OrgStateResult =
+  | { status: "ok"; state: OrgState }
+  | { status: "invalid" }
+  | { status: "unknown" }
+
+/** Lee el estado de organización desde /api/v1/me/context (misma fuente que usePermissions). */
+export async function fetchOrgState(
+  apiBase: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<OrgStateResult> {
+  try {
+    const res = await fetchImpl(`${apiBase}/api/v1/me/context`, {
+      credentials: "include",
+      cache: "no-store",
+    })
+    if (res.status === 401 || res.status === 403) return { status: "invalid" }
+    if (!res.ok) return { status: "unknown" }
+    const body = await res.json()
+    const d = body?.data
+    if (!d) return { status: "unknown" }
+    return {
+      status: "ok",
+      state: {
+        identityType: d.identityType,
+        hasOrganization: !!d.organization,
+        impersonationActive: !!d.impersonation?.active,
+      },
+    }
+  } catch {
+    return { status: "unknown" }
+  }
+}

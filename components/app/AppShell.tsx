@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import useSWR from "swr"
 import { mutate } from "swr"
 import Sidebar from "./Sidebar"
@@ -16,12 +16,26 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { setActiveOrgId } from "@/lib/activeOrg"
 import { clearSWRCache } from "@/components/SWRProvider"
 import { toast } from "@/lib/toast"
+import { needsOnboarding, buildOnboardingUrl } from "@/lib/authRedirect"
 import type { Plan } from "@/types/domain"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { data: session } = authClient.useSession()
-  const { identityType, impersonation, isLoading: permsLoading } = usePermissions()
+  const pathname = usePathname()
+  const { identityType, impersonation, isLoading: permsLoading, hasOrganization, error: permsError } = usePermissions()
+
+  // Usuario sin organización → debe crear su negocio primero (una sola redirección).
+  // Si el contexto falló (error de red) no se fuerza nada.
+  const mustOnboard =
+    !permsLoading && !permsError && needsOnboarding({
+      identityType,
+      hasOrganization,
+      impersonationActive: !!impersonation?.active,
+    })
+  useEffect(() => {
+    if (mustOnboard) router.replace(buildOnboardingUrl(pathname + window.location.search))
+  }, [mustOnboard, pathname, router])
 
   // Excepción: una identidad platform SÍ puede estar en el workspace tenant
   // mientras tenga una sesión de impersonación activa.
@@ -62,6 +76,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const userName = session?.user?.name ?? "Usuario"
+
+  // Mientras se redirige a onboarding no se pinta la app (evita parpadeo de contenido sin org)
+  if (mustOnboard) {
+    return <div className="h-screen" style={{ background: "var(--bg-primary)" }} aria-busy="true" />
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
