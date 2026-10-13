@@ -56,7 +56,7 @@ export interface FichaItemInput {
   extra: boolean
   /** Cantidad por persona: gramos (recetas) o unidades (extras) */
   cantidad: number
-  unidad: "g" | "und"
+  unidad: "g" | "ml" | "und" | "porcion"
   /** $ por gramo (recetas) o $ por unidad (extras) */
   costoUnit: number
 }

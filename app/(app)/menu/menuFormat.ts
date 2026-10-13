@@ -17,5 +17,5 @@ export const fmtDec = (v: number) =>
   `$${v.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 /** Cantidad con su unidad: "1.000 g" · "20 und" */
-export const fmtQty = (v: number, unidad: "g" | "und") =>
+export const fmtQty = (v: number, unidad: "g" | "ml" | "und" | "porcion") =>
   `${v.toLocaleString("es-CO", { maximumFractionDigits: 2 })} ${unidad}`

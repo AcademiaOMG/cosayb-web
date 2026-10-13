@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react"
 import SearchableSelect from "@/components/ui/SearchableSelect"
+import ExtraCreateModal from "./ExtraCreateModal"
+import { unitShort, type ExtraUnit } from "@/lib/menuExtras"
+import type { Ingrediente } from "@/types/domain"
 import { CalcActionKey, CalcDevice, CalcDisplay, CalcKeypad, CalcRegister, useCalcRegisters } from "@/components/calculator"
 import {
   applyEntryKey,
@@ -22,7 +25,14 @@ export interface MenuCalcAdd {
   grams: string
 }
 
-type Mode = "recipes" | "ingredients"
+type Mode = "recipes" | "extras"
+
+/** Extra seleccionable: del inventario, con la unidad en que se cuenta por persona */
+export interface MenuExtraOption {
+  id: string
+  name: string
+  unit: ExtraUnit
+}
 
 const ENTRY: Record<MenuCalcField, EntryOptions> = {
   persons: { decimals: false, maxDigits: 4 },
@@ -45,7 +55,7 @@ function isTypingTarget(el: EventTarget | null) {
  * Calculadora del módulo Menú: mismo aparato, pantalla, registros y teclado
  * que la calculadora de punto de equilibrio, con la funcionalidad del menú —
  * personas, margen de seguridad y % de materia prima. Para agregar platos se
- * elige Recetas o Ingredientes, se busca en el select, se escriben los gramos
+ * elige Recetas o Extras (bebidas, vasos, platos, acompañamientos…), se busca en el select, se escriben los gramos
  * (o unidades) por porción con el teclado y se pulsa "Agregar a la lista",
  * que comparte fila con los gramos; el producto queda en la
  * lista de la derecha y "Calcular" muestra el resultado en su modal.
@@ -58,7 +68,9 @@ export default function MenuCalculator({
   loading = false,
   pctNote,
   recipes,
-  ingredients,
+  extras,
+  catalog,
+  onExtraCreated,
   onChange,
   onAddItem,
   onCalculate,
@@ -77,8 +89,12 @@ export default function MenuCalculator({
   pctNote?: React.ReactNode
   /** Recetas disponibles (selector en modo Recetas) */
   recipes: { id: string; name: string }[]
-  /** Ingredientes disponibles (selector en modo Ingredientes) */
-  ingredients: { id: string; name: string }[]
+  /** Extras disponibles del inventario (selector en modo Extras) */
+  extras: MenuExtraOption[]
+  /** Catálogo completo del inventario (para detectar duplicados al crear un extra) */
+  catalog: Ingrediente[]
+  /** Un extra nuevo ya quedó guardado en el inventario: el padre lo agrega al catálogo */
+  onExtraCreated: (extra: Ingrediente) => void
   onChange: (field: "persons" | "margin" | "pctMP", raw: string) => void
   onAddItem: (item: MenuCalcAdd) => void
   /** Abre el modal con el resultado del cálculo del menú */
@@ -89,6 +105,7 @@ export default function MenuCalculator({
   const [mode, setMode] = useState<Mode>("recipes")
   const [selected, setSelected] = useState("")
   const [addError, setAddError] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const wrapRef = useRef<HTMLDivElement>(null)
   const registerRefs = useRef<Partial<Record<MenuCalcField, HTMLInputElement | null>>>({})
@@ -159,14 +176,14 @@ export default function MenuCalculator({
     setClearArmed(false)
     const grams = parseEntry(regs.values.grams)
     if (!selected) {
-      setAddError(mode === "recipes" ? "Selecciona una receta en el buscador" : "Selecciona un ingrediente en el buscador")
+      setAddError(mode === "recipes" ? "Selecciona una receta en el buscador" : "Selecciona un extra en el buscador")
       return
     }
     if (!(grams && grams > 0)) {
       setAddError(
         mode === "recipes"
           ? "Escribe los gramos por porción con el teclado"
-          : "Escribe las unidades por porción con el teclado",
+          : "Escribe la cantidad por porción con el teclado",
       )
       regs.activate("grams")
       focusField("grams")
@@ -227,6 +244,8 @@ export default function MenuCalculator({
   if (clearArmed) sub = "Toca Limpiar otra vez para restaurar los valores"
 
   const isRecipes = mode === "recipes"
+  const selectedExtra = !isRecipes ? extras.find((x) => x.id === selected) : undefined
+  const extraUnit = unitShort(selectedExtra?.unit ?? "und")
   const registerMeta: Record<
     MenuCalcField,
     { label: string; aria: string; display: string; placeholder: string; note?: React.ReactNode }
@@ -251,8 +270,8 @@ export default function MenuCalculator({
       note: pctNote,
     },
     grams: {
-      label: isRecipes ? "GRAMOS POR PORCIÓN" : "UNIDADES POR PORCIÓN",
-      aria: isRecipes ? "Gramos por porción" : "Unidades por porción",
+      label: isRecipes ? "GRAMOS POR PORCIÓN" : `CANTIDAD POR PORCIÓN (${extraUnit.toUpperCase()})`,
+      aria: isRecipes ? "Gramos por porción" : `Cantidad por porción en ${extraUnit}`,
       display: regs.values.grams,
       placeholder: isRecipes ? "200" : "1",
     },
@@ -326,24 +345,42 @@ export default function MenuCalculator({
         <div className="flex flex-col gap-2.5" aria-label="Producto a agregar a la lista">
           <div className="flex gap-2" role="group" aria-label="Tipo de producto">
             {modeBtn("recipes", "Recetas")}
-            {modeBtn("ingredients", "Ingredientes")}
+            {modeBtn("extras", "Extras")}
           </div>
 
           <SearchableSelect
-            options={(isRecipes ? recipes : ingredients).map((x) => ({ value: x.id, label: x.name }))}
+            options={
+              isRecipes
+                ? recipes.map((x) => ({ value: x.id, label: x.name }))
+                : extras.map((x) => ({ value: x.id, label: `${x.name} · ${unitShort(x.unit)}` }))
+            }
             value={selected}
             onChange={(v) => {
               setClearArmed(false)
               setAddError(null)
               setSelected(v)
             }}
-            placeholder={isRecipes ? "Buscar receta…" : "Buscar ingrediente…"}
-            searchPlaceholder={isRecipes ? "Buscar receta…" : "Buscar ingrediente…"}
-            clearLabel={isRecipes ? "Seleccionar receta" : "Seleccionar ingrediente"}
-            emptyMessage={isRecipes ? "No se encontraron recetas" : "No se encontraron ingredientes"}
-            ariaLabel={isRecipes ? "Seleccionar receta para agregar" : "Seleccionar ingrediente para agregar"}
+            placeholder={isRecipes ? "Buscar receta…" : "Buscar extra…"}
+            searchPlaceholder={isRecipes ? "Buscar receta…" : "Buscar extra…"}
+            clearLabel={isRecipes ? "Seleccionar receta" : "Seleccionar extra"}
+            emptyMessage={isRecipes ? "No se encontraron recetas" : "No encontramos este extra. Usa «Crear nuevo»"}
+            ariaLabel={isRecipes ? "Seleccionar receta para agregar" : "Seleccionar extra para agregar"}
             variant="calculator"
           />
+
+          {!isRecipes && (
+            <button
+              type="button"
+              onClick={() => {
+                setClearArmed(false)
+                setCreateOpen(true)
+              }}
+              className="self-start text-xs font-medium underline-offset-2 hover:underline"
+              style={{ color: "var(--accent-text, #1434A4)" }}
+            >
+              No encontramos este extra. Crear nuevo
+            </button>
+          )}
 
           {/* Gramos + agregar: misma fila (el botón saca el teclado el hueco de la coma) */}
           <div className="flex items-stretch gap-2">
@@ -365,6 +402,23 @@ export default function MenuCalculator({
         {/* Calcular integrado al aparato, al pie del teclado (como en Punto de equilibrio) */}
         <CalcActionKey onClick={onCalculate}>Calcular</CalcActionKey>
       </CalcDevice>
+
+      <ExtraCreateModal
+        open={createOpen}
+        existing={catalog}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(extra) => {
+          onExtraCreated(extra)
+          setSelected(extra.id)
+          setAddError(null)
+          setCreateOpen(false)
+        }}
+        onUseExisting={(extra) => {
+          setSelected(extra.id)
+          setAddError(null)
+          setCreateOpen(false)
+        }}
+      />
     </div>
   )
 }
