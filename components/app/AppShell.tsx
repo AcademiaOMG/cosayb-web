@@ -16,6 +16,7 @@ import { getCurrentOrganization } from "@/lib/api"
 import { usePermissions } from "@/hooks/usePermissions"
 import { setActiveOrgId } from "@/lib/activeOrg"
 import { clearSWRCache } from "@/components/SWRProvider"
+import { toast } from "@/lib/toast"
 import type { Plan } from "@/types/domain"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -50,7 +51,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     clearSWRCache()
     setActiveOrgId(null)
     void mutate(() => true, undefined, { revalidate: false })
-    await authClient.signOut()
+    try {
+      await authClient.signOut()
+    } catch {
+      // Sin red el cierre en servidor puede fallar: igual se sale (caché ya limpia),
+      // pero se avisa para que el usuario sepa que la sesión pudo quedar abierta.
+      toast.warning("No pudimos confirmar el cierre de sesión en el servidor.")
+    }
     // replace: la página autenticada no queda como entrada "adelante" del historial
     window.location.replace("/login")
   }

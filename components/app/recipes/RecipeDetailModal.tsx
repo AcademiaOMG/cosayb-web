@@ -101,7 +101,6 @@ export default function RecipeDetailModal({
       onClose={onClose}
       title={recipe ? recipe.name : "Detalle de receta"}
       wide
-      animate
       footer={
         <div style={{ display: "flex", gap: "10px", justifyContent: "space-between", alignItems: "center" }}>
           {/* Acciones destructivas a la izquierda */}

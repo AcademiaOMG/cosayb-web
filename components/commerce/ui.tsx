@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ChevronDown, ShieldCheck } from "lucide-react"
+import Modal from "@/components/ui/Modal"
 
 export function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null
@@ -175,14 +176,16 @@ export function ExitConfirmModal({
   onStay: () => void
   onLeave: () => void
 }) {
-  if (!open) return null
+  // Modal compartido: animación, Esc (= seguir en la compra), trap de foco y foco inicial seguro
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 text-[#12213A] shadow-xl">
-        <h2 className="text-xl font-bold">¿Quieres salir del proceso?</h2>
-        <p className="mt-2 text-sm text-[#4A4438]">Tu progreso se perderá.</p>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
+    <Modal
+      open={open}
+      onClose={onStay}
+      title="¿Quieres salir del proceso?"
+      footer={
+        <div className="flex flex-col gap-3 sm:flex-row-reverse">
           <button
+            data-autofocus
             onClick={onStay}
             className="rounded-xl bg-[#1B4FD8] px-5 py-3 text-sm font-semibold text-white"
           >
@@ -195,8 +198,10 @@ export function ExitConfirmModal({
             Salir
           </button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <p className="text-sm text-[#4A4438]">Tu progreso se perderá.</p>
+    </Modal>
   )
 }
 

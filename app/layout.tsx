@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Barlow, Barlow_Condensed, Inter, JetBrains_Mono, Manrope, Cormorant_Garamond } from "next/font/google"
 import SWRProvider from "@/components/SWRProvider"
+import FeedbackProvider from "@/components/FeedbackProvider"
 import "./globals.css"
 
 const barlowCondensed = Barlow_Condensed({
@@ -150,6 +151,8 @@ export default function RootLayout({
     >
       <body>
         <SWRProvider>{children}</SWRProvider>
+        {/* Notificaciones y confirmaciones globales (único punto de montaje) */}
+        <FeedbackProvider />
       </body>
     </html>
   )

@@ -476,18 +476,31 @@ html { scroll-behavior: smooth; }
   transform-origin: left;
 }
 
-/* Modal con entrada animada (opt-in con la prop `animate`): crece desde la tarjeta pulsada */
-@keyframes modal-overlay-in {
-  from { opacity: 0; backdrop-filter: blur(0); }
-  to   { opacity: 1; backdrop-filter: blur(4px); }
-}
+/* Modales: entrada y salida estándar para TODOS (fundido + leve subida/escala).
+   Entrada 220ms, salida 160ms (EXIT_MS en components/ui/Modal.tsx). */
+@keyframes modal-overlay-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-overlay-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes modal-panel-in {
-  0%   { opacity: 0; transform: translate(var(--mo-dx, 0px), var(--mo-dy, 24px)) scale(0.55); }
-  60%  { opacity: 1; }
-  100% { opacity: 1; transform: translate(0, 0) scale(1); }
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.modal-overlay-in { animation: modal-overlay-in 0.35s ease-out both; }
-.modal-panel-in   { animation: modal-panel-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes modal-panel-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+.modal-overlay-in  { animation: modal-overlay-in 0.22s ease-out both; }
+.modal-overlay-out { animation: modal-overlay-out 0.16s ease-in both; }
+.modal-panel-in    { animation: modal-panel-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.modal-panel-out   { animation: modal-panel-out 0.16s ease-in both; }
 @media (prefers-reduced-motion: reduce) {
-  .modal-overlay-in, .modal-panel-in { animation: none; }
+  .modal-overlay-in, .modal-overlay-out, .modal-panel-in, .modal-panel-out { animation: none; }
+}
+
+/* Notificaciones (toast) */
+@keyframes toast-in  { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(4px) scale(0.98); } }
+.toast-in  { animation: toast-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.toast-out { animation: toast-out 0.16s ease-in both; }
+@media (prefers-reduced-motion: reduce) {
+  .toast-in, .toast-out { animation: none; }
 }

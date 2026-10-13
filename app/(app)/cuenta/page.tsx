@@ -15,6 +15,8 @@ import { authClient } from "@/lib/auth"
 import { setActiveOrgId } from "@/lib/activeOrg"
 import { clearSWRCache } from "@/components/SWRProvider"
 import { mutate } from "swr"
+import { toast } from "@/lib/toast"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import {
   User, Mail, Clock, ShieldCheck, KeyRound, Globe, Building2,
   AlertTriangle, Monitor, LogOut, ExternalLink, Trash2, Check,
@@ -102,7 +104,6 @@ function PerfilTab() {
 
   const [name, setName] = useState("")
   const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
     if (!profile?.name) return
@@ -113,14 +114,12 @@ function PerfilTab() {
   async function handleSave() {
     if (!name.trim() || name === profile?.name) return
     setSaving(true)
-    setMsg(null)
     try {
       await updateMyProfile({ name: name.trim() })
       await mutateProfile()
-      setMsg("Nombre actualizado")
-      setTimeout(() => setMsg(null), 3000)
+      toast.success("Nombre actualizado")
     } catch {
-      setMsg("Error al guardar")
+      toast.error("No se pudo guardar el nombre. Intenta de nuevo.")
     } finally {
       setSaving(false)
     }
@@ -190,15 +189,9 @@ function PerfilTab() {
           <Input
             label="Nombre"
             value={name}
-            onChange={(e) => { setName(e.target.value); setMsg(null) }}
+            onChange={(e) => setName(e.target.value)}
             placeholder="Tu nombre"
           />
-
-          {msg && (
-            <p className="text-xs" style={{ color: msg.includes("Error") ? "#EF4444" : "#16A34A" }}>
-              {msg}
-            </p>
-          )}
 
           <div className="flex justify-end">
             <Button
@@ -607,6 +600,7 @@ function OrganizacionTab() {
 function CuentaTab() {
   const [signingOut, setSigningOut] = useState(false)
   const [signingOutEverywhere, setSigningOutEverywhere] = useState(false)
+  const confirm = useConfirm()
 
   async function handleSignOut() {
     setSigningOut(true)
@@ -620,12 +614,21 @@ function CuentaTab() {
   }
 
   async function handleSignOutEverywhere() {
+    // Acción sensible: expulsa todos los dispositivos → pide confirmación
+    const ok = await confirm({
+      title: "Cerrar sesión en todos los dispositivos",
+      description: "Se cerrará tu sesión en todos los dispositivos, incluido este. Tendrás que volver a iniciar sesión.",
+      confirmLabel: "Cerrar todas las sesiones",
+      variant: "danger",
+    })
+    if (!ok) return
     setSigningOutEverywhere(true)
     try {
       await authClient.revokeSessions()
       window.location.replace("/login")
     } catch {
       setSigningOutEverywhere(false)
+      toast.error("No se pudieron cerrar las sesiones. Intenta de nuevo.")
     }
   }
 

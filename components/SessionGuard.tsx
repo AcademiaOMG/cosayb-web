@@ -1,9 +1,24 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { authClient } from "@/lib/auth"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 const TAB_LOCK_CHANNEL = "cosayb-tab-lock"
+
+/**
+ * Sale hacia /login limpiando ANTES la cookie de sesión huérfana. Sin esto,
+ * la cookie obsoleta seguía pareciendo "válida" (cookieCache de Better Auth)
+ * y /login devolvía al usuario al dashboard → bucle (ver lib/authRedirect.ts).
+ */
+async function leaveToLogin(expired: boolean) {
+  try {
+    await authClient.signOut()
+  } catch {
+    // ya no hay sesión que cerrar
+  }
+  window.location.replace(expired ? "/login?expired=1" : "/login")
+}
 
 /**
  * Guard de sesión, con tres responsabilidades independientes:
@@ -52,7 +67,7 @@ export default function SessionGuard() {
           cache: "no-store",
         })
         if (res.status === 401) {
-          window.location.replace("/login")
+          await leaveToLogin(true)
         }
       } catch {
         // Red caída — no expulsar al usuario por un fallo transitorio
@@ -168,7 +183,7 @@ export default function SessionGuard() {
             Iniciaste sesión en otro lugar, así que cerramos esta sesión por seguridad.
           </p>
           <button
-            onClick={() => window.location.replace("/login")}
+            onClick={() => void leaveToLogin(false)}
             className="btn-spx btn-spx-accent"
           >
             Ir a iniciar sesión
