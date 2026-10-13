@@ -222,7 +222,7 @@ export default function YieldFactorCalculator({
 
   let tone: "idle" | "error" | "result" = "idle"
   let value = formatCOPDecimals(0)
-  let sub: string = missing.length > 0 ? describeYieldMissing(missing) : "Pulsa Calcular"
+  let sub: string = missing.length > 0 ? describeYieldMissing(missing) : "Listo para calcular"
   let announce = ""
   if (result) {
     tone = "result"
@@ -299,11 +299,6 @@ export default function YieldFactorCalculator({
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,400px)_minmax(0,1fr)] md:items-start">
         {/* Tipo y nombre primero: en el celular se ven antes que la calculadora */}
         <div className="flex flex-col gap-3 min-w-0 md:col-start-2 md:row-start-1">
-          <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
-            <CalendarDays size={13} aria-hidden="true" />
-            Fecha de entrada: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{entryDate}</span>
-          </p>
-
           <Step n={1} title="¿Qué tipo de ingrediente es?">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="group" aria-label="Tipo de ingrediente">
               {VARIANTS.map((v) => {
@@ -326,6 +321,9 @@ export default function YieldFactorCalculator({
                 )
               })}
             </div>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Bajas de este tipo: {wasteNames.join(", ").toLowerCase()}.
+            </p>
             {cleared && wastesEmpty && (
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" role="status" style={{ color: "var(--text-muted)" }}>
                 Al cambiar el tipo se borraron los gramos que se pierden.
@@ -342,7 +340,18 @@ export default function YieldFactorCalculator({
             )}
           </Step>
 
-          <Step n={2} title="Nombre del ingrediente" htmlFor="yield-name">
+          <Step
+            n={2}
+            title="Nombre del ingrediente"
+            htmlFor="yield-name"
+            aside={
+              <span className="inline-flex items-center gap-1 text-xs font-normal whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
+                <CalendarDays size={13} aria-hidden="true" />
+                <span className="sr-only">Fecha de entrada: </span>
+                {entryDate}
+              </span>
+            }
+          >
             <input
               ref={nameRef}
               id="yield-name"
@@ -392,15 +401,8 @@ export default function YieldFactorCalculator({
         </div>
 
         <div className="flex flex-col gap-3 min-w-0 md:col-start-2 md:row-start-2">
-          <Step n={3} title="Calcula">
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              En la calculadora escribe lo que pagaste, el peso y lo que se pierde ({wasteNames.join(", ").toLowerCase()}). Luego pulsa{" "}
-              <strong>Calcular</strong>.
-            </p>
-          </Step>
-
           {result ? (
-            <Step n={4} title="Revisa y guarda">
+            <Step n={3} title="Revisa y guarda">
               <div className="flex flex-col gap-3">
                 <CalcBreakdown
                   rows={[
@@ -444,14 +446,13 @@ export default function YieldFactorCalculator({
                   </button>
                 )}
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  «Guardar como ingrediente» crea además en Inventario el ingrediente «{ingredientName.trim() || "nombre"} (LIMPIO)», con el peso útil y el nuevo
-                  costo por gramo, listo para usar en recetas.
+                  «Guardar como ingrediente» crea en Inventario «{ingredientName.trim() || "nombre"} (LIMPIO)», con el peso útil y el nuevo costo por gramo.
                 </p>
               </div>
             </Step>
           ) : (
             <p className="text-xs px-1" style={{ color: "var(--text-muted)" }}>
-              Cuando calcules, aquí verás el desglose y podrás guardar el ingrediente.
+              El desglose y el guardado aparecen al calcular.
             </p>
           )}
         </div>
@@ -461,7 +462,7 @@ export default function YieldFactorCalculator({
 }
 
 /** Paso numerado: tarjeta con el número en un círculo y su título. */
-function Step({ n, title, htmlFor, children }: { n: number; title: string; htmlFor?: string; children: ReactNode }) {
+function Step({ n, title, htmlFor, aside, children }: { n: number; title: string; htmlFor?: string; aside?: ReactNode; children: ReactNode }) {
   const heading = (
     <>
       <span
@@ -474,21 +475,24 @@ function Step({ n, title, htmlFor, children }: { n: number; title: string; htmlF
       {title}
     </>
   )
-  const cls = "flex items-center gap-2 text-sm font-semibold"
+  const cls = "flex items-center gap-2 text-sm font-semibold min-w-0"
   return (
     <section
       className="rounded-2xl p-3.5 flex flex-col gap-2.5"
       style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
     >
-      {htmlFor ? (
-        <label htmlFor={htmlFor} className={cls} style={{ color: "var(--text-primary)" }}>
-          {heading}
-        </label>
-      ) : (
-        <p className={cls} style={{ color: "var(--text-primary)" }}>
-          {heading}
-        </p>
-      )}
+      <div className="flex items-center justify-between gap-3">
+        {htmlFor ? (
+          <label htmlFor={htmlFor} className={cls} style={{ color: "var(--text-primary)" }}>
+            {heading}
+          </label>
+        ) : (
+          <p className={cls} style={{ color: "var(--text-primary)" }}>
+            {heading}
+          </p>
+        )}
+        {aside}
+      </div>
       {children}
     </section>
   )
