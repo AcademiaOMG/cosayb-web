@@ -100,6 +100,20 @@ export async function createExtra(
   })
 }
 
+/**
+ * PUT /api/v1/ingredients/:id para un extra (kind inmutable). Cambiar `unit` de un extra
+ * usado en menús responde 409 EXTRA_UNIT_IN_USE (el mensaje del API viene en español).
+ */
+export async function updateExtra(
+  id: string,
+  data: { name: string; unit: "g" | "ml" | "und" | "porcion"; costPerUnit: number; weightGrams: number }
+): Promise<ApiResponse<Ingrediente>> {
+  return fetchAPI(`/api/v1/ingredients/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
 /** PUT /api/v1/ingredients/:id — requiere sesión; solo campos propios */
 export async function updateIngrediente(
   id: string,

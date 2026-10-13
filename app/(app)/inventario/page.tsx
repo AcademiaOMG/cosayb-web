@@ -1,6 +1,6 @@
 "use client"
 
-import useSWR from "swr"
+import useSWR, { useSWRConfig } from "swr"
 import { useState, useMemo, useEffect } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
@@ -21,6 +21,7 @@ import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
+import ExtraCreateModal from "../menu/ExtraCreateModal"
 import { fetchAPI } from "@/lib/api"
 import type { Ingredient, IngredientForm, IngredientOriginFilter } from "@/types/ingredient"
 import ModuleLocked from "@/components/app/ModuleLocked"
@@ -46,6 +47,7 @@ export default function InventarioPage() {
   // ── Permisos y plan ───────────────────────────────────────────────────────
   const { can, organization, hasFeature, featureLockedMessage } = usePermissions()
   const revalidateOnboarding = useRevalidateOnboarding()
+  const { mutate: globalMutate } = useSWRConfig()
   const plan = organization?.membership === "free" ? "free" : "pro"
   const canUpdate = can("ingredients", "update")
   const canDelete = can("ingredients", "delete")
@@ -58,6 +60,7 @@ export default function InventarioPage() {
   // ── Modal: create / edit ──────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Ingredient | null>(null)
+  const [editingExtra, setEditingExtra] = useState<Ingredient | null>(null)
 
   // ── Modal: detail ─────────────────────────────────────────────────────────
   const [detail, setDetail] = useState<Ingredient | null>(null)
@@ -135,6 +138,12 @@ export default function InventarioPage() {
   }
 
   function openEdit(ingredient: Ingredient) {
+    // Los extras se editan con el formulario de extras (nombre, unidad, costo del empaque y contenido)
+    if (ingredient.kind === "extra") {
+      setEditingExtra(ingredient)
+      setDetail(null)
+      return
+    }
     setEditing(ingredient)
     setModalOpen(true)
   }
@@ -253,6 +262,20 @@ export default function InventarioPage() {
           revalidateOnboarding()
         }}
         editing={editing}
+      />
+
+      <ExtraCreateModal
+        open={!!editingExtra}
+        editing={editingExtra}
+        existing={items}
+        onClose={() => setEditingExtra(null)}
+        onUpdated={() => {
+          setEditingExtra(null)
+          void mutate()
+          // Los costos del menú dependen del extra: refresca su catálogo y la lista de menús
+          void globalMutate("ingredients-catalog-menu")
+          void globalMutate("menus")
+        }}
       />
 
       {/* ── Modal: help ──────────────────────────────────────────────────── */}

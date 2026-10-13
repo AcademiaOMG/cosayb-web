@@ -62,6 +62,29 @@ export function menuUnitCost(ing: Pick<Ingrediente, "kind" | "costPerUnit" | "co
   return ing.kind === "extra" ? parseFloat(ing.costPerGram) : parseFloat(ing.costPerUnit)
 }
 
+/** Valores iniciales del formulario de extras al editar uno existente (misma semántica que al crear). */
+export function extraFormFromIngredient(
+  ing: Pick<Ingrediente, "name" | "unit" | "costPerUnit" | "weightGrams">,
+): ExtraFormInput {
+  const unit = (ing.unit as ExtraUnit | undefined) ?? "und"
+  return {
+    name: ing.name,
+    unit,
+    cost: String(parseFloat(ing.costPerUnit)),
+    content: String(parseFloat(ing.weightGrams)),
+  }
+}
+
+/** Texto compacto "unidad" para mostrar en listados (p. ej. "und", "ml", "porc."). */
+export function extraUnitLabel(ing: Pick<Ingrediente, "kind" | "unit">): string | null {
+  return ing.kind === "extra" ? unitShort(menuUnitOf(ing)) : null
+}
+
+/** Para selectores de RECETAS: los extras (vasos, bebidas…) no son ingredientes de receta. */
+export function onlyRecipeIngredients<T extends Pick<Ingrediente, "kind">>(list: T[]): T[] {
+  return list.filter((i) => i.kind !== "extra")
+}
+
 export interface ExtraFormInput {
   name: string
   unit: ExtraUnit
@@ -85,6 +108,8 @@ export interface ExtraPayload {
 export function validateExtraForm(
   input: ExtraFormInput,
   existing: Pick<Ingrediente, "id" | "name">[],
+  /** Al editar: id del extra que se edita (no cuenta como duplicado de sí mismo) */
+  editingId?: string,
 ): { ok: true; payload: ExtraPayload } | { ok: false; errors: ExtraFormErrors; duplicate?: Pick<Ingrediente, "id" | "name"> } {
   const errors: ExtraFormErrors = {}
   const name = input.name.trim().replace(/\s+/g, " ")
@@ -93,7 +118,7 @@ export function validateExtraForm(
 
   if (!name) errors.name = "Escribe el nombre del extra"
   else if (name.length > 120) errors.name = "El nombre es demasiado largo"
-  const duplicate = name ? findDuplicateByName(name, existing) : undefined
+  const duplicate = name ? findDuplicateByName(name, editingId ? existing.filter((x) => x.id !== editingId) : existing) : undefined
   if (duplicate) errors.name = `Ya existe «${duplicate.name}» en tu inventario`
   if (!(cost > 0)) errors.cost = "El costo debe ser mayor a 0"
   if (!(content > 0)) errors.content = "El contenido debe ser mayor a 0"
