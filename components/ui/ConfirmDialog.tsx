@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useSyncExternalStore } from "react"
+import { useId, useState, useSyncExternalStore } from "react"
 import Modal from "./Modal"
 import Button from "./Button"
 import {
@@ -36,6 +36,7 @@ export default function ConfirmProvider() {
   if (active && active !== shown) setShown(active)
 
   const danger = shown?.variant === "danger"
+  const descId = `confirm-desc-${useId()}`
 
   return (
     <div className="app-theme-neutral" style={{ background: "transparent" }}>
@@ -43,6 +44,7 @@ export default function ConfirmProvider() {
         open={!!active}
         onClose={() => settleConfirm(false)}
         title={shown?.title}
+        describedBy={shown?.description ? descId : undefined}
         footer={
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="ghost" data-autofocus onClick={() => settleConfirm(false)}>
@@ -63,7 +65,7 @@ export default function ConfirmProvider() {
               {shown.itemName}
             </p>
           )}
-          {shown?.description && <p>{shown.description}</p>}
+          {shown?.description && <p id={descId}>{shown.description}</p>}
         </div>
       </Modal>
     </div>

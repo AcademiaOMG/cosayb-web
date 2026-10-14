@@ -117,7 +117,7 @@ export default function ToastProvider() {
 
   return (
     <div
-      className="app-theme-neutral pointer-events-none fixed inset-x-4 top-4 z-[70] flex flex-col gap-2 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:w-[380px]"
+      className="app-theme-neutral pointer-events-none fixed inset-x-4 top-4 z-[70] flex flex-col gap-2 sm:inset-x-auto sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom))] sm:right-6 sm:top-auto sm:w-[380px] lg:bottom-6"
       style={{ background: "transparent" }}
     >
       {items.map((item) => (

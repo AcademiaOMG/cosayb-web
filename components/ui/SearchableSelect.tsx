@@ -30,6 +30,8 @@ interface SearchableSelectProps {
   /** Ajustes puntuales del disparador sobre el de su variante */
   triggerStyle?: React.CSSProperties
   disabled?: boolean
+  /** Marca el disparador como inválido (aria-invalid + borde de error), p. ej. obligatorio sin elegir */
+  invalid?: boolean
   /** Las opciones se están cargando */
   loading?: boolean
   /** Si se pasa, al buscar sin coincidencia exacta aparece al final «Crear «texto»» y se llama con el texto */
@@ -58,6 +60,7 @@ export default function SearchableSelect({
   searchPlaceholder,
   clearLabel,
   disabled = false,
+  invalid = false,
   loading = false,
   onCreate,
 }: SearchableSelectProps) {
@@ -147,7 +150,7 @@ export default function SearchableSelect({
     (item: { value: string; isCreate?: boolean }) => {
       if (item.isCreate) {
         const q = search.trim()
-        closeDropdown()
+        closeDropdown(true)
         onCreate?.(q)
         return
       }
@@ -192,7 +195,8 @@ export default function SearchableSelect({
         e.stopPropagation() // no cierra la ventana que lo contiene
         closeDropdown(true)
       } else if (e.key === "Tab") {
-        closeDropdown()
+        // Devuelve el foco al disparador (sin preventDefault) para no perderlo en el portal
+        closeDropdown(true)
       }
     },
     [items, highlightIndex, choose, closeDropdown],
@@ -309,6 +313,7 @@ export default function SearchableSelect({
         aria-haspopup="listbox"
         aria-controls={isOpen ? listId : undefined}
         aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
         data-variant={variant}
         data-empty={selectedOption ? undefined : true}
         className="ui-select-trigger"

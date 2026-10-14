@@ -23,6 +23,8 @@ export interface ModalProps {
   animate?: boolean
   /** Overlay con fondo desenfocado (backdrop-blur) tras el contenido */
   blur?: boolean
+  /** id del elemento que describe el diálogo (aria-describedby) */
+  describedBy?: string
 }
 
 /** Duración de la animación de salida (debe coincidir con .modal-*-out en globals.css). */
@@ -36,7 +38,7 @@ function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
 }
 
-export default function Modal({ isOpen, open, onClose, title, children, footer, wide, xwide, animate = true, blur }: ModalProps) {
+export default function Modal({ isOpen, open, onClose, title, children, footer, wide, xwide, animate = true, blur, describedBy }: ModalProps) {
   const visible = typeof open === "boolean" ? open : !!isOpen
   const uid = useId()
   const titleId = `modal-title-${uid}`
@@ -67,6 +69,9 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
     const timer = setTimeout(() => {
       const panel = panelRef.current
       if (!panel) return
+      // Si un control del panel ya tomó el foco (p. ej. un input con autoFocus), no se lo quitamos
+      const active = document.activeElement
+      if (active && active !== panel && panel.contains(active)) return
       // Prioridad: [data-autofocus] (p. ej. "Cancelar" en confirmaciones) → botón Cerrar → panel
       const target =
         panel.querySelector<HTMLElement>("[data-autofocus]") ??
@@ -124,11 +129,18 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
     modalStack.push(uid)
     document.addEventListener("keydown", handleKeyDown)
     document.body.style.overflow = "hidden"
+    // Bloquea también el scroll de <main> (el contenedor que realmente se desplaza en AppShell)
+    const mainEl = document.querySelector<HTMLElement>("main")
+    if (mainEl) mainEl.style.overflowY = "hidden"
     return () => {
       document.removeEventListener("keydown", handleKeyDown)
       const i = modalStack.indexOf(uid)
       if (i >= 0) modalStack.splice(i, 1)
-      if (modalStack.length === 0) document.body.style.overflow = ""
+      if (modalStack.length === 0) {
+        document.body.style.overflow = ""
+        const m = document.querySelector<HTMLElement>("main")
+        if (m) m.style.overflowY = ""
+      }
       // Devolver el foco al elemento que lo tenía antes de abrir
       previousFocusRef.current?.focus()
     }
@@ -144,6 +156,7 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? titleId : undefined}
+      aria-describedby={describedBy}
       aria-hidden={closing ? true : undefined}
       inert={closing ? true : undefined}
     >
@@ -193,7 +206,7 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4">
           {children}
         </div>
 
