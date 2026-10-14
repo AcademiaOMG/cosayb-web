@@ -165,7 +165,14 @@ function MoreSheet({ items, pathname, onClose }: { items: LinkEntry[]; pathname:
       }
     }
     document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
+    // Bloquea el scroll del fondo (<main> es el contenedor que se desplaza) mientras la hoja está abierta
+    const mainEl = document.querySelector<HTMLElement>("main")
+    const prevOverflowY = mainEl?.style.overflowY ?? ""
+    if (mainEl) mainEl.style.overflowY = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      if (mainEl) mainEl.style.overflowY = prevOverflowY
+    }
   }, [onClose])
 
   return (
@@ -182,7 +189,7 @@ function MoreSheet({ items, pathname, onClose }: { items: LinkEntry[]; pathname:
         role="dialog"
         aria-modal="true"
         aria-label="Más secciones"
-        className="mtb-sheet-panel absolute left-0 right-0 bottom-0 overflow-y-auto"
+        className="mtb-sheet-panel absolute left-0 right-0 bottom-0 overflow-y-auto overscroll-contain"
         style={{
           background: "var(--bg-surface)",
           borderTopLeftRadius: 24,

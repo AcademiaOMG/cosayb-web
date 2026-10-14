@@ -79,11 +79,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Mientras se redirige a onboarding no se pinta la app (evita parpadeo de contenido sin org)
   if (mustOnboard) {
-    return <div className="h-screen" style={{ background: "var(--bg-primary)" }} aria-busy="true" />
+    return <div className="h-screen supports-[height:100dvh]:h-dvh" style={{ background: "var(--bg-primary)" }} aria-busy="true" />
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
+    <div className="flex flex-col h-screen supports-[height:100dvh]:h-dvh overflow-hidden" style={{ background: "var(--bg-primary)" }}>
       <ImpersonationBanner />
       <div className="flex flex-1 min-h-0">
         <SessionGuard />
