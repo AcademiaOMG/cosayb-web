@@ -87,8 +87,8 @@ function isTypingTarget(el: EventTarget | null) {
 }
 
 /**
- * "Nuevo cálculo": la calculadora del kit en una sola columna (un campo LCD por
- * costo, más precio y costo variable) y, al lado, el boleto de resultados. El
+ * "Nuevo cálculo": la calculadora del kit en dos columnas (costos fijos a la izquierda;
+ * precio, costo variable, teclado y Guardar a la derecha) y, al lado o debajo, el boleto de resultados. El
  * resultado se recalcula al escribir; solo se pide Guardar.
  */
 export default function BreakEvenCalculator({
@@ -353,6 +353,9 @@ export default function BreakEvenCalculator({
         <div className={styles.workspace}>
           <div className={styles.device} data-break-even-device>
             <CalcDevice label="Calculadora de punto de equilibrio">
+              {/* Dos columnas (costos | producto + teclado) cuando la carcasa es ancha; una sola si no */}
+              <div className={styles.cols}>
+              <div className={styles.colLeft}>
               <CalcDisplay
                 label="COSTOS FIJOS DEL MES"
                 value={formatCOP(fixedTotal)}
@@ -435,7 +438,11 @@ export default function BreakEvenCalculator({
                   <Plus size={14} aria-hidden />
                   Otro costo
                 </button>
+              </div>
+              </div>
 
+              <div className={styles.colRight}>
+              <div className={styles.product}>
                 <p className={styles.sep}>Tu producto</p>
 
                 {register(PRICE_FIELD, { label: "Precio de venta", ariaLabel: "Precio de venta por unidad" })}
@@ -446,7 +453,7 @@ export default function BreakEvenCalculator({
                 })}
               </div>
 
-              <div className="calc-keypad-slot">
+              <div className={`calc-keypad-slot ${styles.keypad}`}>
                 <CalcKeypad onKey={calc.press} onClearAll={handleClear} decimalEnabled={false} />
               </div>
 
@@ -460,6 +467,8 @@ export default function BreakEvenCalculator({
               <p id={msgId} className={styles.status} data-tone={statusError ? "error" : undefined} role={statusError ? "alert" : "status"}>
                 {status}
               </p>
+              </div>
+              </div>
             </CalcDevice>
           </div>
 

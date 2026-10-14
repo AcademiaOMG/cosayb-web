@@ -1,9 +1,11 @@
-/* Punto de equilibrio: la calculadora del kit (CalcDevice, ancho --calc-device-w)
-   en una sola columna y, a su lado, el boleto de resultados.
-   La composición copia la de Valoración (.valuation-workspace en su calculator.css):
-   se adapta al ANCHO DISPONIBLE (container query), no al de la pantalla. */
+/* Punto de equilibrio: la calculadora del kit (CalcDevice) en DOS columnas y el
+   boleto de resultados al lado (o debajo si no cabe).
+   El ancho de la carcasa se ensancha SOLO aquí (--be-device-w, local al módulo; la
+   variable global --calc-device-w de los demás módulos no cambia). Todo se adapta
+   al ANCHO DISPONIBLE (container query), no al de la pantalla. */
 
 .stage {
+  --be-device-w: 680px;
   container-type: inline-size;
   width: 100%;
 }
@@ -11,13 +13,15 @@
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  row-gap: 20px;
+  row-gap: 24px;
   width: 100%;
-  max-width: var(--calc-device-w);
+  max-width: var(--be-device-w);
   margin: 0 auto;
   justify-items: center;
 }
 .device {
+  --calc-device-w: var(--be-device-w);
+  container: bedev / inline-size;
   min-width: 0;
   width: 100%;
 }
@@ -50,13 +54,16 @@
   color: var(--text-secondary);
 }
 
-@container (min-width: 800px) {
+/* Cabe el boleto junto a la carcasa ancha (680 + 32 + ~330): calculadora a la
+   izquierda, boleto a la derecha, alineados por arriba. Si no cabe, el boleto
+   queda DEBAJO con el ancho de la calculadora (mismo ancho en todos los estados). */
+@container (min-width: 1040px) {
   .workspace {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0;
     justify-items: stretch;
     align-items: start;
-    grid-template-columns: var(--calc-device-w) minmax(0, 1fr);
+    grid-template-columns: var(--be-device-w) minmax(0, 1fr);
     column-gap: 32px;
   }
   .answer {
@@ -73,15 +80,63 @@
     display: block;
   }
 }
-@container (min-width: 900px) {
+@container (min-width: 1400px) {
   .workspace {
-    column-gap: 64px;
+    column-gap: 56px;
   }
   .question {
     margin-bottom: 28px;
   }
   .questionTitle {
     font-size: 28px;
+  }
+}
+
+/* ── Columnas dentro de la carcasa ── */
+.cols,
+.colLeft,
+.colRight {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.product {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 3px;
+}
+/* Carcasa ancha (≥ 640 px): dos columnas y campos de costos más bajos */
+@container bedev (min-width: 640px) {
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 22px;
+    align-items: start;
+  }
+  .colLeft .fields {
+    gap: 9px;
+  }
+  .device .cost :global(.calc-register.is-inline) {
+    min-height: 34px;
+    padding-block: 2px;
+  }
+  .device .cost :global(.calc-register-value) {
+    min-height: 26px;
+  }
+  .product .sep {
+    margin-top: 0;
+  }
+  .keypad :global(.calc-key-num),
+  .keypad :global(.calc-key-fn) {
+    height: 40px;
+  }
+  .keypad :global(.calc-keypad) {
+    gap: 6px 8px;
+  }
+  .device :global(.calc-key-equals) {
+    height: 44px;
   }
 }
 

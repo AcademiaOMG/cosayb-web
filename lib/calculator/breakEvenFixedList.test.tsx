@@ -10,7 +10,7 @@ import {
 import type { BreakEvenRecord } from "@/types/domain"
 
 /**
- * "Nuevo cálculo": la calculadora del kit en una sola columna (un campo LCD por
+ * "Nuevo cálculo": la calculadora del kit en dos columnas (un campo LCD por
  * concepto) con el boleto de resultados al lado. Se protege el contrato de
  * render (SSR) y la lógica pura; teclear no se cubre sin DOM.
  */
@@ -76,6 +76,16 @@ describe("BreakEvenCalculator — vista inicial en blanco", () => {
     expect(html.indexOf(">Precio de venta</label>")).toBeGreaterThan(sep)
     expect(html.indexOf(">Costo variable por unidad</label>")).toBeGreaterThan(html.indexOf(">Precio de venta</label>"))
     expect(html).toContain("0 si no tiene insumos")
+  })
+
+  it("orden del DOM = orden de Tab: pantalla y costos (izquierda), luego producto, teclado y Guardar (derecha)", () => {
+    const at = (t: string) => html.indexOf(t)
+    const seq = ["COSTOS FIJOS DEL MES", ">Arriendo</label>", ">Otros</label>", "Otro costo", "Tu producto", ">Precio de venta</label>", ">Costo variable por unidad</label>", "Teclado numérico", ">Guardar</button>"]
+    const pos = seq.map(at)
+    expect(pos.every((n) => n >= 0)).toBe(true)
+    expect([...pos].sort((a, b) => a - b)).toEqual(pos)
+    // El boleto va después de toda la carcasa
+    expect(at("Unidades por día")).toBeGreaterThan(at(">Guardar</button>"))
   })
 
   it("lleva el boleto de resultados con todas sus filas y Guardar deshabilitado", () => {
