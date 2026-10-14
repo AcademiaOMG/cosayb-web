@@ -160,13 +160,13 @@ export default function BreakEvenCalculator({
 }) {
   const uid = useId()
   const confirm = useConfirm()
-  const nextId = useRef(0)
 
   const [rows, setRows] = useState<FixedRow[]>(() =>
     (initialRecord?.fixedCosts ?? [])
       .filter((c) => c.amount > 0 && c.name.trim() !== "")
-      .map((c) => ({ id: nextId.current++, name: c.name, amount: toRaw(c.amount) })),
+      .map((c, i) => ({ id: i, name: c.name, amount: toRaw(c.amount) })),
   )
+  const nextId = useRef(rows.length)
   const [price, setPrice] = useState(() => (fixedOnly ? "" : toRaw(initialRecord?.salePrice)))
   // El costo variable puede ser 0 (sin insumos): "0" es un dato válido, vacío no.
   const [variable, setVariable] = useState(() =>
