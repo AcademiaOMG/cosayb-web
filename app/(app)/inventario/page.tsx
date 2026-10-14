@@ -5,14 +5,12 @@ import { useState, useMemo, useEffect } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
-import Input from "@/components/ui/Input"
 import QuotaBanner from "@/components/app/inventario/QuotaBanner"
 import IngredientSearchBar from "@/components/app/inventario/IngredientSearchBar"
 import IngredientFilters from "@/components/app/inventario/IngredientFilters"
 import IngredientList from "@/components/app/inventario/IngredientList"
 import IngredientDetailModal from "@/components/app/inventario/IngredientDetailModal"
 import IngredientFormModal from "@/components/app/inventario/IngredientFormModal"
-import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
 import { displayName, normalizeForSearch } from "@/components/app/inventario/format"
 import { Plus } from "lucide-react"
 import { toast } from "@/lib/toast"
@@ -23,7 +21,7 @@ import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 import ExtraCreateModal from "../menu/ExtraCreateModal"
 import { fetchAPI } from "@/lib/api"
-import type { Ingredient, IngredientForm, IngredientOriginFilter } from "@/types/ingredient"
+import type { Ingredient, IngredientOriginFilter } from "@/types/ingredient"
 import ModuleLocked from "@/components/app/ModuleLocked"
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -146,11 +144,6 @@ export default function InventarioPage() {
     }
     setEditing(ingredient)
     setModalOpen(true)
-  }
-
-  async function handleSave() {
-    setModalOpen(false)
-    await mutate()
   }
 
   async function handleDelete(target: Ingredient) {
@@ -285,7 +278,7 @@ export default function InventarioPage() {
         title="Inventario"
       >
         <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-          <p>En esta seccion podra gestionar el inventario de ingredientes de manera eficiente.</p>
+          <p>En esta sección podrá gestionar el inventario de ingredientes de manera eficiente.</p>
 
           <div>
             <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
@@ -296,7 +289,7 @@ export default function InventarioPage() {
               </li>
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Verificar existencia:</strong> Usa la barra de busqueda para verificar si un ingrediente ya existe antes de crearlo.</span>
+                <span><strong>Verificar existencia:</strong> Usa la barra de búsqueda para verificar si un ingrediente ya existe antes de crearlo.</span>
               </li>
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>
@@ -318,7 +311,7 @@ export default function InventarioPage() {
           </div>
 
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            <strong>Nota:</strong> La informacion se basa en promedios de mercado. Trabaja unicamente en las casillas indicadas e ingresa la informacion correspondiente.
+            <strong>Nota:</strong> La información se basa en promedios de mercado. Trabaja únicamente en las casillas indicadas e ingresa la información correspondiente.
           </p>
         </div>
       </Modal>

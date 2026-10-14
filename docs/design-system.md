@@ -8,7 +8,7 @@ Dentro de `app/(app)/...` aplica `.app-theme-neutral`, que sobreescribe fondos, 
 | Rol | Token | Valor (app autenticada) |
 |---|---|---|
 | Fondo página / secundario / superficie | `--bg-primary` / `--bg-secondary` / `--bg-surface` | `#EFF2F6` / `#E8EBF0` / `#FFFFFF` |
-| Texto | `--text-primary` / `--text-secondary` / `--text-muted` | `#12213A` / `#4B5563` / `#8890A0` |
+| Texto | `--text-primary` / `--text-secondary` / `--text-muted` | `#12213A` / `#4B5563` / `#5F6A7A` |
 | Acento | `--accent`, `-hover`, `-light`, `-text` | `#1B4FD8`, `#1540B0`, `#DEEAFF`, `#1434A4` |
 | Bordes | `--border-light` / `--border-medium` | `#E2E5EA` / `#CBD2DA` |
 | Estados | `--success` / `--warning` / `--error` (`--error-hover`) | `#10B981` / `#F59E0B` / `#B42020` (`#8F1A1A`) |
