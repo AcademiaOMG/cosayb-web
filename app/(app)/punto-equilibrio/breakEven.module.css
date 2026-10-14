@@ -1,7 +1,9 @@
 /* Punto de equilibrio: la calculadora del kit (CalcDevice) en DOS columnas y el
    boleto de resultados al lado (o debajo si no cabe).
    El ancho de la carcasa se ensancha SOLO aquí (--be-device-w, local al módulo; la
-   variable global --calc-device-w de los demás módulos no cambia). Todo se adapta
+   variable global --calc-device-w de los demás módulos no cambia). Cuando el área
+   disponible es de UNA columna (< 640 px) la carcasa vuelve al ancho estándar
+   de 420 px del kit, como en las demás calculadoras. Todo se adapta
    al ANCHO DISPONIBLE (container query), no al de la pantalla. */
 
 .stage {
@@ -24,6 +26,11 @@
   container: bedev / inline-size;
   min-width: 0;
   width: 100%;
+}
+@container (max-width: 639px) {
+  .device {
+    --calc-device-w: 420px;
+  }
 }
 .answer {
   min-width: 0;
@@ -54,10 +61,10 @@
   color: var(--text-secondary);
 }
 
-/* Cabe el boleto junto a la carcasa ancha (680 + 32 + ~330): calculadora a la
+/* Cabe el boleto junto a la carcasa ancha (680 + 32 + ~290): calculadora a la
    izquierda, boleto a la derecha, alineados por arriba. Si no cabe, el boleto
    queda DEBAJO con el ancho de la calculadora (mismo ancho en todos los estados). */
-@container (min-width: 1040px) {
+@container (min-width: 1000px) {
   .workspace {
     max-width: 1200px;
     margin: 0;
@@ -137,6 +144,36 @@
   }
   .device :global(.calc-key-equals) {
     height: 44px;
+  }
+  /* Pantallas bajas (portátiles): compacta teclas y paddings para que la carcasa
+     quepa sin scroll de página, como hace Valoración. */
+  @media (max-height: 800px) {
+    .keypad :global(.calc-key-num),
+    .keypad :global(.calc-key-fn) {
+      height: 36px;
+    }
+    .device :global(.calc-key-equals) {
+      height: 38px;
+    }
+    .keypad :global(.calc-keypad) {
+      gap: 5px 8px;
+    }
+    .cols {
+      row-gap: 10px;
+    }
+    .colLeft,
+    .colRight {
+      gap: 10px;
+    }
+    .colLeft .fields {
+      gap: 6px;
+    }
+    .device .cost :global(.calc-register.is-inline) {
+      min-height: 30px;
+    }
+    .question {
+      margin-bottom: 12px;
+    }
   }
 }
 
