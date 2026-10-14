@@ -1,22 +1,28 @@
 "use client"
 
-import { useEffect, useId, useRef, useState } from "react"
-import { Plus, X } from "lucide-react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { Pencil, Plus, X } from "lucide-react"
 import Button from "@/components/ui/Button"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
-import { CalcActionKey, CalcDevice, CalcDisplay } from "@/components/calculator"
-import { parseEntry, sanitizeEntry, type EntryOptions } from "@/lib/calculator/entry"
-import { formatCOP, formatNumber } from "@/lib/calculator/format"
+import { CalcActionKey, CalcDevice, CalcDisplay, CalcKeypad, CalcRegister, useCalcRegisters } from "@/components/calculator"
+import { entryKeyFromKeyboard, formatMoneyEntry, parseEntry, type EntryOptions } from "@/lib/calculator/entry"
+import { formatCOP } from "@/lib/calculator/format"
+import { contributionMarginOf, missingBreakEvenInputs, solveBreakEven, type BreakEvenOutcome } from "@/lib/calculator/breakEven"
 import {
-  BREAK_EVEN_RUBROS,
-  contributionMarginOf,
-  missingBreakEvenInputs,
-  solveBreakEven,
-  type BreakEvenOutcome,
-} from "@/lib/calculator/breakEven"
+  COST_NAME_MAX,
+  NEW_COST_NAME,
+  PRICE_FIELD,
+  VARIABLE_FIELD,
+  fixedCostsFromFields,
+  prefillCostFields,
+  presetCostFields,
+  sumCostFields,
+  type CostField,
+} from "@/lib/calculator/breakEvenFields"
 import type { BreakEvenRecord } from "@/types/domain"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
+import BreakEvenTicket from "./BreakEvenTicket"
 import styles from "./breakEven.module.css"
 
 export interface BreakEvenSubmitData {
@@ -25,24 +31,11 @@ export interface BreakEvenSubmitData {
   variableCost: number
 }
 
-/** Fila editable de la lista de costos fijos (el monto va como dígitos crudos). */
-export type FixedRow = { id: number; name: string; amount: string }
-
-// 9 dígitos = hasta "$ 999.999.999".
+// Pesos enteros, hasta 9 dígitos ("$ 999.999.999"): todos los campos usan la misma regla.
 const MONEY: EntryOptions = { decimals: false, maxDigits: 9 }
+const ANY_MONEY = new Proxy({} as Record<string, EntryOptions>, { get: () => MONEY })
 
 const toRaw = (n: number | null | undefined) => (n != null && Number.isFinite(n) && n > 0 ? String(Math.round(n)) : "")
-
-/** "$ 25.000" sin signo si está vacío; el campo muestra solo las cifras agrupadas. */
-const groupDigits = (raw: string) => {
-  const n = parseEntry(raw)
-  return n == null ? "" : Math.round(n).toLocaleString("es-CO", { maximumFractionDigits: 0 })
-}
-
-/** Total de los costos con monto: filas vacías o en 0 no cuentan. */
-export function sumFixedRows(rows: FixedRow[]): number {
-  return rows.reduce((s, r) => s + Math.max(0, parseEntry(r.amount) ?? 0), 0)
-}
 
 export type LiveOutcome =
   | { ok: true; result: Extract<BreakEvenOutcome, { ok: true }> }
@@ -79,66 +72,24 @@ export function solveLive(fixedTotal: number, salePrice: number | null, variable
   return { ok: false, kind: "invalid", message: r.message }
 }
 
-const signature = (rows: FixedRow[], price: string, variable: string) =>
-  JSON.stringify(rows.map((r) => [r.name.trim(), parseEntry(r.amount) ?? 0]).filter(([n, a]) => n !== "" || a !== 0)) +
+const signature = (fields: CostField[], values: Record<string, string>) =>
+  JSON.stringify(fields.map((f) => [f.id, f.name.trim(), parseEntry(values[f.id] ?? "") ?? 0])) +
   "#" +
-  (parseEntry(price) ?? "") +
+  (parseEntry(values[PRICE_FIELD] ?? "") ?? "") +
   "|" +
-  (parseEntry(variable) ?? "")
+  (parseEntry(values[VARIABLE_FIELD] ?? "") ?? "")
 
-/** Campo de pesos con el aspecto de la pantalla de la calculadora. */
-function MoneyField({
-  id,
-  label,
-  value,
-  onChange,
-  inputRef,
-  invalid,
-  describedBy,
-  hideLabel = false,
-  placeholder = "0",
-}: {
-  id: string
-  label: string
-  value: string
-  onChange: (raw: string) => void
-  inputRef?: (el: HTMLInputElement | null) => void
-  invalid?: boolean
-  describedBy?: string
-  hideLabel?: boolean
-  placeholder?: string
-}) {
-  return (
-    <div className={styles.field}>
-      <label htmlFor={id} className={hideLabel ? "sr-only" : styles.fieldLabel}>
-        {label}
-      </label>
-      <div className={styles.lcd} data-invalid={invalid ? "true" : undefined}>
-        <span className={styles.lcdUnit} aria-hidden>
-          $
-        </span>
-        <input
-          id={id}
-          ref={inputRef}
-          className={styles.lcdInput}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={placeholder}
-          value={groupDigits(value)}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange(sanitizeEntry(e.target.value, MONEY))}
-        />
-      </div>
-    </div>
-  )
+const BLANK_SIGNATURE = signature(presetCostFields(), {})
+
+function isTypingTarget(el: EventTarget | null) {
+  if (!(el instanceof HTMLElement)) return false
+  return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)
 }
 
 /**
- * Pantalla única de "Nuevo cálculo": costos fijos, producto y resultado siempre
- * a la vista. El resultado se recalcula al escribir; solo se pide Guardar.
+ * "Nuevo cálculo": la calculadora del kit en una sola columna (un campo LCD por
+ * costo, más precio y costo variable) y, al lado, el boleto de resultados. El
+ * resultado se recalcula al escribir; solo se pide Guardar.
  */
 export default function BreakEvenCalculator({
   initialRecord,
@@ -161,38 +112,51 @@ export default function BreakEvenCalculator({
   const uid = useId()
   const confirm = useConfirm()
 
-  const [rows, setRows] = useState<FixedRow[]>(() =>
-    (initialRecord?.fixedCosts ?? [])
-      .filter((c) => c.amount > 0 && c.name.trim() !== "")
-      .map((c, i) => ({ id: i, name: c.name, amount: toRaw(c.amount) })),
-  )
-  const nextId = useRef(rows.length)
-  const [price, setPrice] = useState(() => (fixedOnly ? "" : toRaw(initialRecord?.salePrice)))
-  // El costo variable puede ser 0 (sin insumos): "0" es un dato válido, vacío no.
-  const [variable, setVariable] = useState(() =>
-    fixedOnly || !initialRecord ? "" : String(Math.max(0, Math.round(initialRecord.variableCost))),
-  )
+  const [boot] = useState(() => {
+    const pre = prefillCostFields(initialRecord?.fixedCosts ?? [])
+    const withProduct = !fixedOnly && initialRecord
+    return {
+      fields: pre.fields,
+      nextExtra: pre.nextExtra,
+      values: {
+        ...pre.values,
+        [PRICE_FIELD]: withProduct ? toRaw(initialRecord.salePrice) : "",
+        // El costo variable puede ser 0 (sin insumos): "0" es un dato válido, vacío no.
+        [VARIABLE_FIELD]: withProduct ? String(Math.max(0, Math.round(initialRecord.variableCost))) : "",
+      } as Record<string, string>,
+    }
+  })
+
+  const [fields, setFields] = useState<CostField[]>(boot.fields)
+  const nextExtra = useRef(boot.nextExtra)
+  const calc = useCalcRegisters<string>(ANY_MONEY, boot.values, boot.fields[0].id)
+  const { values, active } = calc
+
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [draftName, setDraftName] = useState("")
+  const renameRef = useRef<HTMLInputElement>(null)
+  const registerRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
   const [note, setNote] = useState(prefillNote)
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
-  const [baseline, setBaseline] = useState(() => signature(rows, price, variable))
+  const [baseline, setBaseline] = useState(() => signature(boot.fields, boot.values))
   const [savedSig, setSavedSig] = useState<string | null>(null)
-  const pendingFocus = useRef<{ id: number; field: "name" | "amount" } | null>(null)
-  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
 
-  const fixedTotal = sumFixedRows(rows)
-  const salePrice = parseEntry(price)
-  const variableCost = parseEntry(variable)
+  const fixedTotal = sumCostFields(fields, values)
+  const salePrice = parseEntry(values[PRICE_FIELD] ?? "")
+  const variableCost = parseEntry(values[VARIABLE_FIELD] ?? "")
   const margin = contributionMarginOf(salePrice, variableCost)
   const live = solveLive(fixedTotal, salePrice, variableCost)
   const result = live.ok ? live.result : null
+  const marginBad = margin !== null && margin <= 0
 
   // Todo costo con monto necesita nombre para quedar en el historial.
-  const unnamed = rows.some((r) => (parseEntry(r.amount) ?? 0) > 0 && r.name.trim() === "")
-  const sig = signature(rows, price, variable)
+  const unnamed = fields.some((f) => (parseEntry(values[f.id] ?? "") ?? 0) > 0 && f.name.trim() === "")
+  const sig = signature(fields, values)
   const dirty = sig !== baseline
   const saved = result !== null && savedSig === sig
-  const hasData = rows.length > 0 || price !== "" || variable !== ""
+  const hasData = sig !== BLANK_SIGNATURE
   const canSave = result !== null && !unnamed && !saved && !saving
 
   useEffect(() => {
@@ -202,34 +166,91 @@ export default function BreakEvenCalculator({
   // Recargar o cerrar la pestaña con datos sin guardar: el navegador avisa.
   useEffect(() => {
     if (!dirty) return
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""
+    }
     window.addEventListener("beforeunload", warn)
     return () => window.removeEventListener("beforeunload", warn)
   }, [dirty])
 
   useEffect(() => {
-    const p = pendingFocus.current
-    if (!p) return
-    pendingFocus.current = null
-    inputRefs.current.get(`${p.id}-${p.field}`)?.focus()
-  }, [rows])
+    if (renaming === null) return
+    renameRef.current?.focus()
+    renameRef.current?.select()
+  }, [renaming])
 
-  function addRow(name = "") {
-    const id = nextId.current++
-    pendingFocus.current = { id, field: name ? "amount" : "name" }
-    setRows((prev) => [...prev, { id, name, amount: "" }])
+  // Teclado físico sin hacer clic en un campo primero: si el foco no está en otro
+  // control de texto (ni hay un diálogo abierto), las teclas numéricas escriben
+  // en el campo activo, como en Valoración y Factor de rendimiento.
+  const live_ = useRef({ active, press: calc.press })
+  useEffect(() => {
+    live_.current = { active, press: calc.press }
+  })
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return
+      if (isTypingTarget(e.target)) return
+      if (document.querySelector('[role="listbox"]')) return
+      const dialog = document.querySelector('[aria-modal="true"]')
+      if (dialog && !dialog.contains(document.querySelector('[data-break-even-device]'))) return
+      const key = entryKeyFromKeyboard(e.key)
+      if (!key) return
+      e.preventDefault()
+      const c = live_.current
+      registerRefs.current[c.active]?.focus({ preventScroll: true })
+      c.press(key)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
+
+  const order = useMemo(() => [...fields.map((f) => f.id), PRICE_FIELD, VARIABLE_FIELD], [fields])
+
+  function focusField(id: string) {
+    calc.activate(id)
+    registerRefs.current[id]?.focus({ preventScroll: true })
   }
-  const patchRow = (id: number, patch: Partial<FixedRow>) =>
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
-  const removeRow = (id: number) => setRows((prev) => prev.filter((r) => r.id !== id))
 
-  function reset() {
-    setRows([])
-    setPrice("")
-    setVariable("")
+  function addCost() {
+    const id = `x${nextExtra.current++}`
+    setFields((prev) => [...prev, { id, name: NEW_COST_NAME, preset: false }])
+    calc.assign({ [id]: "" })
+    calc.activate(id)
+    setDraftName(NEW_COST_NAME)
+    setRenaming(id)
+  }
+
+  function removeCost(id: string) {
+    setFields((prev) => prev.filter((f) => f.id !== id))
+    calc.assign({ [id]: "" })
+    if (renaming === id) setRenaming(null)
+    if (active === id) calc.activate(fields[0].id)
+  }
+
+  function startRename(f: CostField) {
+    setDraftName(f.name)
+    setRenaming(f.id)
+  }
+
+  function commitRename() {
+    if (renaming === null) return
+    const name = draftName.trim().slice(0, COST_NAME_MAX)
+    // Un nombre vacío no se acepta: se conserva el anterior.
+    if (name !== "") setFields((prev) => prev.map((f) => (f.id === renaming ? { ...f, name } : f)))
+    setRenaming(null)
+  }
+
+  function resetAll() {
+    const blank = presetCostFields()
+    setFields(blank)
+    nextExtra.current = 1
+    calc.assign(Object.fromEntries([...order, PRICE_FIELD, VARIABLE_FIELD].map((k) => [k, ""])))
+    calc.activate(blank[0].id)
+    setRenaming(null)
     setNote(null)
     setSavedSig(null)
-    setBaseline(signature([], "", ""))
+    setBaseline(BLANK_SIGNATURE)
   }
 
   async function handleClear() {
@@ -243,7 +264,7 @@ export default function BreakEvenCalculator({
       })
       if (!ok) return
     }
-    reset()
+    resetAll()
   }
 
   async function handleSave() {
@@ -253,9 +274,7 @@ export default function BreakEvenCalculator({
     setSaving(true)
     try {
       await onSubmit({
-        fixedCosts: rows
-          .filter((r) => (parseEntry(r.amount) ?? 0) > 0)
-          .map((r) => ({ name: r.name.trim(), amount: parseEntry(r.amount) as number })),
+        fixedCosts: fixedCostsFromFields(fields, values),
         salePrice: result.salePrice,
         variableCost: result.variableCost,
       })
@@ -271,40 +290,41 @@ export default function BreakEvenCalculator({
     }
   }
 
-  // Rubros frecuentes del Excel que aún no están en la lista.
-  const taken = new Set(rows.map((r) => r.name.trim().toLowerCase()))
-  const suggestions = BREAK_EVEN_RUBROS.map((r) => r.name).filter((n) => !taken.has(n.toLowerCase()))
-
-  const marginBad = margin !== null && margin <= 0
   const msgId = `${uid}-msg`
-  const dash = (
-    <span className={styles.dash} aria-hidden>
-      —
-    </span>
-  )
-  const tone = result ? "result" : live.ok === false && live.kind === "invalid" ? "error" : "idle"
-  const stats: { label: string; value: React.ReactNode; spoken: string }[] = [
-    {
-      label: "UNIDADES AL MES",
-      value: result ? formatNumber(result.unitsPerMonth, 2) : dash,
-      spoken: result ? `${formatNumber(result.unitsPerMonth, 2)} unidades al mes` : "",
-    },
-    {
-      label: "UNIDADES AL DÍA",
-      value: result ? formatNumber(result.unitsPerDay, 2) : dash,
-      spoken: result ? `${formatNumber(result.unitsPerDay, 2)} unidades al día` : "",
-    },
-    {
-      label: "VENTAS DEL MES",
-      value: result ? formatCOP(result.revenuePerMonth) : dash,
-      spoken: result ? `${formatCOP(result.revenuePerMonth)} en ventas al mes` : "",
-    },
-    {
-      label: "VENTAS DEL DÍA",
-      value: result ? formatCOP(result.revenuePerDay) : dash,
-      spoken: result ? `${formatCOP(result.revenuePerDay)} en ventas al día` : "",
-    },
-  ]
+  const errorOn = (id: string) => marginBad && (id === PRICE_FIELD || id === VARIABLE_FIELD)
+
+  function register(
+    id: string,
+    props: { label: string; ariaLabel: string; variant?: "block" | "inline"; accessory?: React.ReactNode; note?: React.ReactNode },
+  ) {
+    const idx = order.indexOf(id)
+    return (
+      <CalcRegister
+        ref={(el) => {
+          registerRefs.current[id] = el
+        }}
+        id={`${uid}-${id}`}
+        label={props.label}
+        ariaLabel={props.ariaLabel}
+        display={formatMoneyEntry(values[id] ?? "")}
+        placeholder="$ 0"
+        active={active === id}
+        fresh={calc.fresh}
+        error={errorOn(id)}
+        describedBy={errorOn(id) ? msgId : undefined}
+        variant={props.variant ?? "block"}
+        accessory={props.accessory}
+        note={props.note}
+        onActivate={() => calc.activate(id)}
+        onKey={calc.press}
+        onRawInput={(raw) => calc.setRaw(id, raw)}
+        onEnter={() => {
+          const next = order[idx + 1]
+          if (next) focusField(next)
+        }}
+      />
+    )
+  }
 
   const status = unnamed
     ? "Ponle nombre a cada costo para poder guardar."
@@ -313,6 +333,7 @@ export default function BreakEvenCalculator({
       : live.ok
         ? "Listo para guardar."
         : live.message
+  const statusError = marginBad || unnamed
 
   return (
     <div className="flex flex-col gap-3 min-w-0">
@@ -322,176 +343,145 @@ export default function BreakEvenCalculator({
           style={{ background: "var(--accent-light)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
         >
           <p className="flex-1">{note}</p>
-          <Button variant="ghost" size="sm" onClick={reset} className="shrink-0">
+          <Button variant="ghost" size="sm" onClick={resetAll} className="shrink-0">
             Empezar en blanco
           </Button>
         </div>
       )}
 
-      <CalcDevice label="Calculadora de punto de equilibrio" className={styles.device}>
-        <div className={styles.grid}>
-          {/* ── Costos fijos ── */}
-          <section className={styles.panel} aria-labelledby={`${uid}-fixed`}>
-            <div className={styles.panelHead}>
-              <h2 id={`${uid}-fixed`} className={styles.panelTitle}>
-                Costos fijos
-              </h2>
-              <p className={styles.panelHelp}>Lo que pagas al mes aunque no vendas</p>
-            </div>
+      <div className={styles.stage}>
+        <div className={styles.workspace}>
+          <div className={styles.device} data-break-even-device>
+            <CalcDevice label="Calculadora de punto de equilibrio">
+              <CalcDisplay
+                label="COSTOS FIJOS DEL MES"
+                value={formatCOP(fixedTotal)}
+                tone={fixedTotal > 0 ? "result" : "idle"}
+                announce={fixedTotal > 0 ? `Costos fijos del mes: ${formatCOP(fixedTotal)}` : ""}
+              />
 
-            {rows.length > 0 && (
-              <ul className={styles.rows}>
-                {rows.map((r) => (
-                  <li key={r.id} className={styles.row}>
-                    <div className={styles.rowName}>
-                      <label htmlFor={`${uid}-n-${r.id}`} className="sr-only">
-                        Nombre del costo
-                      </label>
-                      <input
-                        id={`${uid}-n-${r.id}`}
-                        ref={(el) => {
-                          if (el) inputRefs.current.set(`${r.id}-name`, el)
-                          else inputRefs.current.delete(`${r.id}-name`)
-                        }}
-                        className={styles.nameInput}
-                        type="text"
-                        autoComplete="off"
-                        placeholder="Nombre (ej. Arriendo)"
-                        value={r.name}
-                        aria-invalid={(parseEntry(r.amount) ?? 0) > 0 && r.name.trim() === "" ? true : undefined}
-                        onChange={(e) => patchRow(r.id, { name: e.target.value })}
-                      />
-                    </div>
-                    <div className={styles.rowAmount}>
-                      <MoneyField
-                        id={`${uid}-a-${r.id}`}
-                        label={`Monto de ${r.name.trim() || "este costo"} al mes`}
-                        hideLabel
-                        value={r.amount}
-                        onChange={(raw) => patchRow(r.id, { amount: raw })}
-                        inputRef={(el) => {
-                          if (el) inputRefs.current.set(`${r.id}-amount`, el)
-                          else inputRefs.current.delete(`${r.id}-amount`)
-                        }}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.remove}
-                      onClick={() => removeRow(r.id)}
-                      aria-label={`Quitar ${r.name.trim() || "costo"}`}
-                    >
-                      <X size={16} />
-                    </button>
-                  </li>
+              <div className={styles.fields}>
+                {fields.map((f) => (
+                  <div key={f.id} className={styles.cost}>
+                    {register(f.id, {
+                      label: f.name,
+                      ariaLabel: `${f.name} al mes`,
+                      variant: "inline",
+                      accessory: (
+                        <span className={styles.tools}>
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            aria-label={`Renombrar ${f.name}`}
+                            title="Cambiar el nombre"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              startRename(f)
+                            }}
+                          >
+                            <Pencil size={13} aria-hidden />
+                          </button>
+                          {!f.preset && (
+                            <button
+                              type="button"
+                              className={styles.iconBtn}
+                              aria-label={`Quitar ${f.name}`}
+                              title="Quitar este costo"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeCost(f.id)
+                              }}
+                            >
+                              <X size={14} aria-hidden />
+                            </button>
+                          )}
+                        </span>
+                      ),
+                    })}
+                    {renaming === f.id && (
+                      <div className={styles.rename}>
+                        <input
+                          ref={renameRef}
+                          className={styles.renameInput}
+                          type="text"
+                          value={draftName}
+                          maxLength={COST_NAME_MAX}
+                          autoComplete="off"
+                          aria-label={`Nombre del costo ${f.name}`}
+                          onChange={(e) => setDraftName(e.target.value)}
+                          onBlur={commitRename}
+                          onKeyDown={(e) => {
+                            // Que el teclado numérico de la calculadora no reaccione a lo que se escribe aquí
+                            e.nativeEvent.stopPropagation()
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              commitRename()
+                              focusField(f.id)
+                            } else if (e.key === "Escape") {
+                              e.preventDefault()
+                              setRenaming(null)
+                            }
+                          }}
+                        />
+                        <button type="button" className={styles.renameOk} onMouseDown={(e) => e.preventDefault()} onClick={commitRename}>
+                          Listo
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))}
-              </ul>
-            )}
 
-            <div className={styles.chips} role="group" aria-label="Agregar un costo frecuente">
-              {suggestions.map((name) => (
-                <button key={name} type="button" className={styles.chip} onClick={() => addRow(name)}>
-                  {name}
+                <button type="button" className={styles.addCost} onClick={addCost}>
+                  <Plus size={14} aria-hidden />
+                  Otro costo
                 </button>
-              ))}
-              <button type="button" className={`${styles.chip} ${styles.chipOther}`} onClick={() => addRow()}>
-                <Plus size={13} aria-hidden />
-                Otro costo
-              </button>
-            </div>
 
-            <div className={styles.totalRow}>
-              <span>Total al mes</span>
-              <strong className={styles.totalValue}>{formatCOP(fixedTotal)}</strong>
-            </div>
-          </section>
+                <p className={styles.sep}>Tu producto</p>
 
-          {/* ── Tu producto ── */}
-          <section className={styles.panel} aria-labelledby={`${uid}-prod`}>
-            <div className={styles.panelHead}>
-              <h2 id={`${uid}-prod`} className={styles.panelTitle}>
-                Tu producto
+                {register(PRICE_FIELD, { label: "Precio de venta", ariaLabel: "Precio de venta por unidad" })}
+                {register(VARIABLE_FIELD, {
+                  label: "Costo variable por unidad",
+                  ariaLabel: "Costo variable por unidad",
+                  note: <span>0 si no tiene insumos</span>,
+                })}
+              </div>
+
+              <div className="calc-keypad-slot">
+                <CalcKeypad onKey={calc.press} onClearAll={handleClear} decimalEnabled={false} />
+              </div>
+
+              {saved ? (
+                <CalcActionKey onClick={onDone}>Ver historial</CalcActionKey>
+              ) : (
+                <CalcActionKey onClick={handleSave} disabled={!canSave} aria-busy={saving || undefined}>
+                  {saving ? "Guardando…" : "Guardar"}
+                </CalcActionKey>
+              )}
+              <p id={msgId} className={styles.status} data-tone={statusError ? "error" : undefined} role={statusError ? "alert" : "status"}>
+                {status}
+              </p>
+            </CalcDevice>
+          </div>
+
+          <section className={styles.answer} aria-labelledby={`${uid}-q`}>
+            <header className={styles.question}>
+              <h2 id={`${uid}-q`} className={styles.questionTitle}>
+                ¿Cuántas unidades debo vender?
               </h2>
-              <p className={styles.panelHelp}>Por cada unidad que vendes</p>
-            </div>
-            <MoneyField
-              id={`${uid}-price`}
-              label="Precio de venta"
-              value={price}
-              onChange={setPrice}
-              invalid={marginBad}
-              describedBy={marginBad ? msgId : undefined}
-              placeholder="0"
+              <p className={styles.questionHint}>Las que cubren todos tus costos del mes: desde ahí empiezas a ganar.</p>
+            </header>
+            <BreakEvenTicket
+              result={result}
+              message={live.ok ? "" : live.message}
+              isError={!live.ok && live.kind === "invalid"}
+              fixedTotal={fixedTotal}
+              salePrice={salePrice}
+              variableCost={variableCost}
+              margin={margin}
             />
-            <MoneyField
-              id={`${uid}-variable`}
-              label="Costo variable por unidad"
-              value={variable}
-              onChange={setVariable}
-              invalid={marginBad}
-              describedBy={marginBad ? msgId : undefined}
-              placeholder="0 si no tiene insumos"
-            />
-            <div className={styles.totalRow}>
-              <span>Margen por unidad</span>
-              <strong className={marginBad ? styles.totalBad : styles.totalValue}>
-                {margin !== null ? formatCOP(margin) : "—"}
-              </strong>
-            </div>
-          </section>
-
-          {/* ── Resultado en vivo ── */}
-          <section className={`${styles.panel} ${styles.resultPanel}`} aria-labelledby={`${uid}-res`}>
-            <div className={styles.panelHead}>
-              <h2 id={`${uid}-res`} className={styles.panelTitle}>
-                Resultado en vivo
-              </h2>
-              <p className={styles.panelHelp}>Lo que debes vender para cubrir tus costos</p>
-            </div>
-            <div className={styles.stats}>
-              {stats.map((s) => (
-                <CalcDisplay
-                  key={s.label}
-                  label={s.label}
-                  value={s.value}
-                  tone={tone}
-                  size="sm"
-                  announce={s.spoken}
-                  revealKey={result ? result.unitsPerMonth : undefined}
-                />
-              ))}
-            </div>
-            <p
-              id={msgId}
-              className={styles.status}
-              data-tone={marginBad || (live.ok === false && live.kind === "invalid") || unnamed ? "error" : undefined}
-              role={marginBad || unnamed ? "alert" : "status"}
-            >
-              {status}
-            </p>
           </section>
         </div>
-
-        <div className={styles.actions}>
-          <CalcActionKey variant="fn" onClick={handleClear} disabled={saving} slotClassName={styles.actionSlot}>
-            Limpiar
-          </CalcActionKey>
-          {saved ? (
-            <CalcActionKey onClick={onDone} slotClassName={styles.actionSlotMain}>
-              Ver historial
-            </CalcActionKey>
-          ) : (
-            <CalcActionKey
-              onClick={handleSave}
-              disabled={!canSave}
-              aria-busy={saving || undefined}
-              slotClassName={styles.actionSlotMain}
-            >
-              {saving ? "Guardando…" : "Guardar"}
-            </CalcActionKey>
-          )}
-        </div>
-      </CalcDevice>
+      </div>
     </div>
   )
 }

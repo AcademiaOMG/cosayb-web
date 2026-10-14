@@ -1,267 +1,271 @@
-/* Pantalla única del punto de equilibrio. Todo vive dentro de la carcasa azul
-   del kit (CalcDevice): los tokens --print, --lcd-*, --well y --ring salen de
-   .calc-skin-blue; aquí solo se ordena el layout y se viste cada campo como
-   pantalla LCD. */
+/* Punto de equilibrio: la calculadora del kit (CalcDevice, ancho --calc-device-w)
+   en una sola columna y, a su lado, el boleto de resultados.
+   La composición copia la de Valoración (.valuation-workspace en su calculator.css):
+   se adapta al ANCHO DISPONIBLE (container query), no al de la pantalla. */
 
-.device {
-  --calc-device-w: 1080px;
+.stage {
+  container-type: inline-size;
+  width: 100%;
 }
 
-.grid {
+.workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  min-width: 0;
+  row-gap: 20px;
+  width: 100%;
+  max-width: var(--calc-device-w);
+  margin: 0 auto;
+  justify-items: center;
 }
-@media (min-width: 900px) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.device {
+  min-width: 0;
+  width: 100%;
+}
+.answer {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.question {
+  margin-bottom: 18px;
+}
+.questionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+.questionHint {
+  display: none;
+  margin: 8px 0 0;
+  max-width: 48ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+@container (min-width: 800px) {
+  .workspace {
+    max-width: 1100px;
+    margin: 0;
+    justify-items: stretch;
     align-items: start;
+    grid-template-columns: var(--calc-device-w) minmax(0, 1fr);
+    column-gap: 32px;
   }
-  .resultPanel {
-    grid-column: 1 / -1;
+  .answer {
+    max-width: 460px;
+  }
+  .question {
+    margin-bottom: 24px;
+  }
+  .questionTitle {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+  .questionHint {
+    display: block;
+  }
+}
+@container (min-width: 900px) {
+  .workspace {
+    column-gap: 64px;
+  }
+  .question {
+    margin-bottom: 28px;
+  }
+  .questionTitle {
+    font-size: 28px;
   }
 }
 
-.panel {
+/* ── Dentro de la carcasa ── */
+.fields {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-width: 0;
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(5, 9, 20, 0.42);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  padding: 0 3px;
 }
-.panelHead {
+.sep {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.panelTitle {
-  margin: 0;
-  font-size: 17px;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 0;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--print-hi, #eaeffc);
-}
-.panelHelp {
-  margin: 0;
-  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--print, rgba(208, 218, 242, 0.68));
 }
-
-/* ── Campo en forma de pantalla LCD ── */
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
+.sep::before,
+.sep::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.16);
 }
-.fieldLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--print-hi, #eaeffc);
-}
-.lcd {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  height: 46px;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: linear-gradient(180deg, var(--lcd-2, #adbb98), var(--lcd-1, #c6d2b1));
-  color: var(--lcd-ink, #1a2314);
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35), 0 0 0 2px var(--well, #050914);
-}
-.lcd:focus-within {
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--ring, #9db6ff);
-}
-.lcd[data-invalid="true"] {
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 2px #ff8a80;
-}
-.lcdUnit {
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-weight: 700;
-  opacity: 0.7;
-}
-.lcdInput,
-.nameInput {
-  width: 100%;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 0;
-  font-family: var(--font-jetbrains-mono), monospace;
-  /* 16 px: Safari iOS no hace zoom al enfocar */
-  font-size: 16px;
-  font-weight: 700;
-  color: inherit;
-}
-.lcdInput {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.lcdInput::placeholder,
-.nameInput::placeholder {
-  color: var(--lcd-ink, #1a2314);
-  opacity: 0.38;
-  font-weight: 600;
+.sep::before {
+  flex: 0 0 14px;
 }
 
-/* ── Lista de costos ── */
-.rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
+/* El lápiz de renombrar sustituye al decorativo del registro */
+.cost :global(.calc-pen) {
+  display: none;
 }
-.row {
-  display: flex;
-  flex-wrap: wrap;
+.tools {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.rowName {
-  flex: 1 1 150px;
-  display: flex;
-  align-items: center;
-  height: 46px;
-  min-width: 0;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: linear-gradient(180deg, var(--lcd-2, #adbb98), var(--lcd-1, #c6d2b1));
-  color: var(--lcd-ink, #1a2314);
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35), 0 0 0 2px var(--well, #050914);
-}
-.rowName:focus-within {
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--ring, #9db6ff);
-}
-.rowName:has(.nameInput[aria-invalid="true"]) {
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 2px #ff8a80;
-}
-.rowAmount {
-  flex: 1 1 140px;
-  min-width: 0;
-}
-.remove {
+  gap: 2px;
   flex: none;
-  display: flex;
+}
+.iconBtn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.iconBtn:hover {
+  opacity: 1;
+  background: rgba(26, 35, 20, 0.12);
+}
+.iconBtn:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--lcd-ink, #1a2314);
+  outline-offset: 1px;
+}
+
+.rename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 3px 0;
+}
+.renameInput {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  outline: none;
+  background: linear-gradient(180deg, var(--lcd-2, #adbb98), var(--lcd-1, #c6d2b1));
+  color: var(--lcd-ink, #1a2314);
+  font-weight: 700;
+  /* 16 px: Safari iOS no hace zoom al enfocar */
+  font-size: 16px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--ring, #9db6ff);
+}
+.renameOk {
+  flex: none;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
   color: var(--print-hi, #eaeffc);
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
 }
-.remove:hover {
-  background: rgba(255, 138, 128, 0.2);
-  border-color: rgba(255, 138, 128, 0.6);
+.renameOk:hover {
+  background: rgba(157, 182, 255, 0.28);
 }
-.remove:focus-visible,
-.chip:focus-visible {
+.renameOk:focus-visible,
+.addCost:focus-visible {
   outline: 2px solid var(--ring, #9db6ff);
   outline-offset: 2px;
 }
 
-/* ── Rubros frecuentes del Excel ── */
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-}
-.chip {
+.addCost {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-height: 34px;
-  padding: 4px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  gap: 6px;
+  min-height: 36px;
+  margin-left: 3px;
+  padding: 4px 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.34);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--print-hi, #eaeffc);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
 }
-.chip:hover {
+.addCost:hover {
   background: rgba(157, 182, 255, 0.25);
 }
-.chipOther {
-  border-style: dashed;
-}
 
-/* ── Totales ── */
-.totalRow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  font-size: 14px;
-  color: var(--print, rgba(208, 218, 242, 0.68));
-}
-.totalValue {
-  font-size: 18px;
-  font-variant-numeric: tabular-nums;
-  color: var(--print-hi, #eaeffc);
-}
-.totalBad {
-  font-size: 18px;
-  font-variant-numeric: tabular-nums;
-  color: #ffb4ab;
-}
-
-/* ── Resultado ── */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  min-width: 0;
-}
-@media (min-width: 900px) {
-  .stats {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-.dash {
-  margin-left: auto;
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--lcd-ink, #1a2314);
-  opacity: 0.5;
-}
 .status {
   margin: 0;
-  font-size: 14px;
-  color: var(--print-hi, #eaeffc);
+  padding: 0 4px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--print, rgba(208, 218, 242, 0.68));
 }
 .status[data-tone="error"] {
   color: #ffb4ab;
   font-weight: 600;
 }
 
-/* ── Acciones: Guardar es la tecla principal ── */
-.actions {
+/* ── Boleto ── */
+.split {
+  margin-top: 6px;
+  padding: 10px 0 2px;
   display: flex;
-  gap: 10px;
-  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
 }
-.actionSlot {
-  flex: 0 0 34%;
+.splitTitle {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
-.actionSlotMain {
-  flex: 1 1 auto;
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 2px;
+}
+.heroValue {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 40px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+.heroValue[data-empty="true"] {
+  color: var(--text-muted);
+}
+.reason {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.reason[data-tone="error"] {
+  color: var(--error);
+  font-weight: 600;
 }

@@ -1,23 +1,39 @@
 import { describe, expect, it } from "vitest"
 import { renderToString } from "react-dom/server"
-import BreakEvenCalculator, { solveLive, sumFixedRows } from "@/app/(app)/punto-equilibrio/BreakEvenCalculator"
+import BreakEvenCalculator, { solveLive } from "@/app/(app)/punto-equilibrio/BreakEvenCalculator"
+import {
+  fixedCostsFromFields,
+  prefillCostFields,
+  presetCostFields,
+  sumCostFields,
+} from "@/lib/calculator/breakEvenFields"
 import type { BreakEvenRecord } from "@/types/domain"
 
 /**
- * Pantalla única en vivo: costos fijos, producto y resultado siempre a la
- * vista. Se protege el contrato de render (SSR) y la lógica en vivo (pura);
- * las interacciones de teclear no se cubren sin DOM.
+ * "Nuevo cálculo": la calculadora del kit en una sola columna (un campo LCD por
+ * concepto) con el boleto de resultados al lado. Se protege el contrato de
+ * render (SSR) y la lógica pura; teclear no se cubre sin DOM.
  */
 
 const render = (initialRecord: BreakEvenRecord | null = null) =>
   renderToString(<BreakEvenCalculator initialRecord={initialRecord} onSubmit={async () => {}} onDone={() => {}} />)
 
+const RUBROS = ["Arriendo", "Sueldos", "Agua", "Energía", "Gas", "Teléfonos", "Marketing digital", "Impuestos", "Otros"]
+
+// Los 9 rubros del Excel (suman 6.585.000)
 const excel = {
   id: "be_x",
   organizationId: "org_1",
   fixedCosts: [
-    { name: "Arriendo", amount: 4000000 },
-    { name: "Sueldos", amount: 2585000 },
+    { name: "Arriendo", amount: 2000000 },
+    { name: "Sueldos", amount: 3000000 },
+    { name: "Agua", amount: 100000 },
+    { name: "Energía", amount: 350000 },
+    { name: "Gas", amount: 185000 },
+    { name: "Teléfonos", amount: 100000 },
+    { name: "Marketing digital", amount: 450000 },
+    { name: "Impuestos", amount: 250000 },
+    { name: "Otros", amount: 150000 },
   ],
   totalFixedCosts: 6585000,
   salePrice: 28500,
@@ -28,65 +44,106 @@ const excel = {
   createdAt: "2026-01-01T00:00:00.000Z",
 } as BreakEvenRecord
 
+const guardarDisabled = (html: string) => /<button[^>]*disabled[^>]*>Guardar<\/button>/.test(html)
+
 describe("BreakEvenCalculator — vista inicial en blanco", () => {
   const html = render()
 
-  it("muestra los tres bloques a la vez, sin pasos, Continuar, Calcular ni modal de resultado", () => {
-    for (const t of ["Costos fijos", "Tu producto", "Resultado en vivo", "Total al mes", "Margen por unidad"]) {
-      expect(html).toContain(t)
-    }
-    expect(html).toContain("Precio de venta")
-    expect(html).toContain("Costo variable por unidad")
-    for (const t of ["Continuar", "Siguiente", "Calcular<", "Resultado del cálculo", "Pasos del cálculo", 'aria-label="Teclado numérico"']) {
-      expect(html).not.toContain(t)
-    }
+  it("es la calculadora del kit en una columna, con teclado numérico y sin cuadros de texto sueltos", () => {
+    expect(html).toContain('aria-label="Calculadora de punto de equilibrio"')
+    expect(html).toContain("calc-device")
+    expect(html).toContain('aria-label="Teclado numérico"')
+    expect(html).toContain("COSTOS FIJOS DEL MES")
+    // Los campos son registros LCD (inputMode none), no inputs de pesos normales
+    expect(html).not.toContain('inputMode="decimal"')
+    expect(html).toContain('inputMode="none"')
+    for (const t of ["Continuar", "Siguiente", "Resultado en vivo"]) expect(html).not.toContain(t)
   })
 
-  it("ofrece los 9 rubros del Excel como chips y la acción de otro costo", () => {
-    for (const n of ["Arriendo", "Sueldos", "Agua", "Energía", "Gas", "Teléfonos", "Marketing digital", "Impuestos", "Otros"]) {
-      expect(html).toContain(`>${n}</button>`)
+  it("trae los 9 rubros del Excel como campos LCD, cada uno con su lápiz para renombrar", () => {
+    for (const n of RUBROS) {
+      expect(html).toMatch(new RegExp(`<label[^>]*calc-register-label[^>]*>${n}</label>`))
+      expect(html).toContain(`aria-label="Renombrar ${n}"`)
     }
+    // Los predefinidos no se quitan; solo los añadidos
+    expect(html).not.toContain('aria-label="Quitar')
     expect(html).toContain("Otro costo")
   })
 
-  it("usa campos numéricos accesibles (inputMode decimal, etiquetas) y Guardar deshabilitado", () => {
-    expect(html).toContain('inputMode="decimal"')
-    expect(html).toMatch(/<label[^>]*for="[^"]*-price"[^>]*>Precio de venta<\/label>/)
-    expect(html).toMatch(/<button[^>]*disabled[^>]*>Guardar<\/button>/)
+  it("después de los costos: separador «Tu producto», precio y costo variable", () => {
+    const sep = html.indexOf("Tu producto")
+    expect(sep).toBeGreaterThan(html.indexOf(">Otros</label>"))
+    expect(html.indexOf(">Precio de venta</label>")).toBeGreaterThan(sep)
+    expect(html.indexOf(">Costo variable por unidad</label>")).toBeGreaterThan(html.indexOf(">Precio de venta</label>"))
+    expect(html).toContain("0 si no tiene insumos")
+  })
+
+  it("lleva el boleto de resultados con todas sus filas y Guardar deshabilitado", () => {
+    expect(html).toContain("Punto de equilibrio")
+    for (const t of [
+      "Costos fijos del mes",
+      "Margen por unidad",
+      "Unidades por día",
+      "Ventas del mes",
+      "Ventas del día",
+      "Unidades para cubrir costos al mes",
+    ]) {
+      expect(html).toContain(t)
+    }
+    expect(guardarDisabled(html)).toBe(true)
     expect(html).toContain("Limpiar")
   })
 
-  it("sin datos: guiones y el motivo, nunca ceros, NaN ni Infinity", () => {
-    expect(html).toContain("UNIDADES AL MES")
-    expect(html).toContain("UNIDADES AL DÍA")
-    expect(html).toContain("VENTAS DEL MES")
-    expect(html).toContain("VENTAS DEL DÍA")
+  it("sin datos: guiones y el motivo, nunca cifras ni NaN ni Infinity", () => {
     expect(html).toContain("—")
     expect(html).toContain("Agrega al menos un costo fijo")
     expect(html).not.toContain("NaN")
     expect(html).not.toContain("Infinity")
+    expect(html).not.toContain("337,69")
   })
 })
 
 describe("BreakEvenCalculator — precarga", () => {
-  it("con los datos del Excel calcula en vivo sin pulsar nada", () => {
+  it("con los datos del Excel rellena los campos por nombre y calcula en vivo", () => {
     const html = render(excel)
-    expect(html).toContain('value="Arriendo"')
-    expect(html).toContain('aria-label="Quitar Sueldos"')
-    expect(html).toMatch(/6[.,]585[.,]000/)
-    expect(html).toMatch(/19[.,]500/) // margen
+    expect(html).toContain('value="$ 2.000.000"') // Arriendo
+    expect(html).toContain('value="$ 3.000.000"') // Sueldos
+    expect(html).toContain('value="$ 150.000"') // Otros
+    expect(html).toContain('value="$ 28.500"')
+    expect(html).toContain('value="$ 9.000"')
+    expect(html).toContain("$ 6.585.000") // total de fijos
+    expect(html).toContain("$ 19.500") // margen
     expect(html).toContain("337,69") // unidades al mes
-    expect(html).toContain("11,26") // unidades al día
+    expect(html).toContain("11,26") // por día
+    expect(html).toContain("$ 9.624.231") // ventas del mes
+    expect(html).toContain("$ 320.808") // ventas del día
     expect(html).toContain("Listo para guardar")
-    expect(html).not.toMatch(/<button[^>]*disabled[^>]*>Guardar<\/button>/)
+    expect(guardarDisabled(html)).toBe(false)
   })
 
-  it("si el precio no supera el costo variable no muestra ninguna cifra", () => {
+  it("un costo con otro nombre crea un campo añadido que se puede quitar", () => {
+    const html = render({ ...excel, fixedCosts: [{ name: "Arriendo", amount: 2000000 }, { name: "Seguro del local", amount: 80000 }] })
+    expect(html).toMatch(/calc-register-label[^>]*>Seguro del local<\/label>/)
+    expect(html).toContain('aria-label="Quitar Seguro del local"')
+    expect(html).toContain('value="$ 80.000"')
+    expect(html).toContain("$ 2.080.000")
+  })
+
+  it("si el precio no supera el costo variable no muestra ninguna cifra de resultado", () => {
     const html = render({ ...excel, salePrice: 9000 })
     expect(html).toContain("debe ser mayor al costo variable")
     expect(html).not.toContain("337,69")
     expect(html).not.toContain("NaN")
-    expect(html).toMatch(/<button[^>]*disabled[^>]*>Guardar<\/button>/)
+    expect(html).not.toContain("Infinity")
+    expect(guardarDisabled(html)).toBe(true)
+  })
+
+  it("faltan el precio y el costo variable: los fijos se ven, el resultado es «—» con el motivo", () => {
+    const html = render({ ...excel, salePrice: 0, variableCost: 0 })
+    expect(html).toContain("$ 6.585.000")
+    expect(html).toContain("Escribe el precio de venta")
+    expect(html).not.toContain("337,69")
+    expect(guardarDisabled(html)).toBe(true)
   })
 })
 
@@ -102,15 +159,12 @@ describe("solveLive — valores de la hoja PUNTOEKILIBRIO", () => {
   })
 
   it("costo variable 0 es válido (producto sin insumos)", () => {
-    const r = solveLive(1000, 100, 0)
-    expect(r.ok).toBe(true)
+    expect(solveLive(1000, 100, 0).ok).toBe(true)
   })
 
   it("falta un dato: motivo claro y ninguna cifra", () => {
-    const a = solveLive(0, 28500, 9000)
-    expect(a).toMatchObject({ ok: false, kind: "empty", message: "Agrega al menos un costo fijo" })
-    const b = solveLive(6585000, null, 9000)
-    expect(b).toMatchObject({ ok: false, kind: "empty", message: "Escribe el precio de venta" })
+    expect(solveLive(0, 28500, 9000)).toMatchObject({ ok: false, kind: "empty", message: "Agrega al menos un costo fijo" })
+    expect(solveLive(6585000, null, 9000)).toMatchObject({ ok: false, kind: "empty", message: "Escribe el precio de venta" })
     const c = solveLive(6585000, 28500, null)
     expect(c).toMatchObject({ ok: false, kind: "empty" })
     expect(c.ok === false && c.message).toContain("costo variable")
@@ -130,21 +184,55 @@ describe("solveLive — valores de la hoja PUNTOEKILIBRIO", () => {
     expect(solveLive(NaN, 28500, 9000).ok).toBe(false)
     expect(solveLive(6585000, -1, 9000).ok).toBe(false)
     expect(solveLive(6585000, 28500, -5).ok).toBe(false)
-    const big = solveLive(Number.MAX_VALUE, 3, 1)
-    expect(big.ok).toBe(false)
+    expect(solveLive(Number.MAX_VALUE, 3, 1).ok).toBe(false)
   })
 })
 
-describe("sumFixedRows", () => {
-  it("suma solo montos válidos (vacíos y 0 no cuentan)", () => {
-    expect(
-      sumFixedRows([
-        { id: 1, name: "Arriendo", amount: "4000000" },
-        { id: 2, name: "Sueldos", amount: "2585000" },
-        { id: 3, name: "Agua", amount: "" },
-        { id: 4, name: "Gas", amount: "0" },
-      ]),
-    ).toBe(6585000)
-    expect(sumFixedRows([])).toBe(0)
+describe("campos de costos fijos (breakEvenFields)", () => {
+  it("los predefinidos son los 9 rubros del Excel, en orden y vacíos", () => {
+    const { fields, values } = prefillCostFields()
+    expect(fields.map((f) => f.name)).toEqual(RUBROS)
+    expect(fields.every((f) => f.preset)).toBe(true)
+    expect(Object.values(values).every((v) => v === "")).toBe(true)
+    expect(sumCostFields(fields, values)).toBe(0)
+    expect(fixedCostsFromFields(fields, values)).toEqual([])
+    expect(presetCostFields()).toEqual(fields)
+  })
+
+  it("el Excel suma 6.585.000 y guarda los 9 rubros", () => {
+    const { fields, values } = prefillCostFields(excel.fixedCosts)
+    expect(fields).toHaveLength(9)
+    expect(sumCostFields(fields, values)).toBe(6585000)
+    expect(fixedCostsFromFields(fields, values)).toEqual(excel.fixedCosts)
+  })
+
+  it("el nombre coincide sin importar tildes ni mayúsculas; lo que no coincide se añade; repetidos suman", () => {
+    const { fields, values } = prefillCostFields([
+      { name: "energia", amount: 300000 },
+      { name: "ENERGÍA", amount: 50000 },
+      { name: "Seguros", amount: 70000 },
+      { name: "  ", amount: 999 },
+      { name: "Gas", amount: 0 },
+    ])
+    expect(fields).toHaveLength(10)
+    expect(values.energy).toBe("350000")
+    const extra = fields[9]
+    expect(extra).toMatchObject({ name: "Seguros", preset: false })
+    expect(values[extra.id]).toBe("70000")
+    expect(values.gas).toBe("")
+    expect(sumCostFields(fields, values)).toBe(420000)
+  })
+
+  it("una fila con monto 0 o vacío no se guarda ni suma", () => {
+    const { fields, values } = prefillCostFields()
+    const v = { ...values, rent: "0", salaries: "1500000", water: "" }
+    expect(sumCostFields(fields, v)).toBe(1500000)
+    expect(fixedCostsFromFields(fields, v)).toEqual([{ name: "Sueldos", amount: 1500000 }])
+  })
+
+  it("usa el nombre renombrado al guardar", () => {
+    const { fields, values } = prefillCostFields([{ name: "Arriendo", amount: 100 }])
+    const renamed = fields.map((f) => (f.id === "rent" ? { ...f, name: "  Local  " } : f))
+    expect(fixedCostsFromFields(renamed, values)).toEqual([{ name: "Local", amount: 100 }])
   })
 })

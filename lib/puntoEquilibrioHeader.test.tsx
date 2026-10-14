@@ -64,6 +64,9 @@ describe("Punto de Equilibrio — header con pestañas", () => {
     expect(html).toContain("Historial")
     // Vista inicial: la calculadora, no el historial
     expect(html).toContain("Calculadora de punto de equilibrio")
+    // La calculadora del kit y, al lado, el boleto de resultados
+    expect(html).toContain("calc-device")
+    expect(html).toContain("Unidades para cubrir costos al mes")
     expect(html).not.toContain("Unidades al mes")
     expect(html).not.toContain("Exportar Excel")
   })
