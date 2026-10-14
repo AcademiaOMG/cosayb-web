@@ -1,37 +1,23 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { ArrowRight, Check, ListChecks, Wallet, X } from "lucide-react"
+import { useEffect, useId, useRef, useState } from "react"
+import { Plus, X } from "lucide-react"
 import Button from "@/components/ui/Button"
-import Modal from "@/components/ui/Modal"
-import {
-  CalcActionKey,
-  CalcDevice,
-  CalcDisplay,
-  CalcKeypad,
-  CalcRegister,
-  useSolverCalculator,
-} from "@/components/calculator"
-import {
-  entryKeyFromKeyboard,
-  formatMoneyEntry,
-  parseEntry,
-  type EntryKey,
-  type EntryOptions,
-} from "@/lib/calculator/entry"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
+import { CalcActionKey, CalcDevice, CalcDisplay } from "@/components/calculator"
+import { parseEntry, sanitizeEntry, type EntryOptions } from "@/lib/calculator/entry"
 import { formatCOP, formatNumber } from "@/lib/calculator/format"
-import { BREAK_EVEN_RUBROS, contributionMarginOf, solveBreakEven, type BreakEvenOutcome } from "@/lib/calculator/breakEven"
+import {
+  BREAK_EVEN_RUBROS,
+  contributionMarginOf,
+  missingBreakEvenInputs,
+  solveBreakEven,
+  type BreakEvenOutcome,
+} from "@/lib/calculator/breakEven"
 import type { BreakEvenRecord } from "@/types/domain"
-import BreakEvenFicha from "./BreakEvenFicha"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 import styles from "./breakEven.module.css"
-
-type Field = "amount" | "salePrice" | "variableCost"
-type Step = "fixed" | "product"
-type Outcome = Extract<BreakEvenOutcome, { ok: true }> | { ok: false; field: Field; message: string }
-/** Costo fijo de la lista libre del paso 1: lo que el usuario nombra y agrega. */
-type FixedItem = { name: string; amount: number }
 
 export interface BreakEvenSubmitData {
   fixedCosts: { name: string; amount: number }[]
@@ -39,64 +25,120 @@ export interface BreakEvenSubmitData {
   variableCost: number
 }
 
-// 9 dígitos = hasta "$ 999.999.999": es lo que cabe sin cortarse en la pantalla del registro.
-const MONEY: EntryOptions = { decimals: false, maxDigits: 9 }
-const FIELD_ORDER: Field[] = ["amount", "salePrice", "variableCost"]
-const ENTRY = Object.fromEntries(FIELD_ORDER.map((k) => [k, MONEY])) as Record<Field, EntryOptions>
-const stepOf = (f: Field): Step => (f === "salePrice" || f === "variableCost" ? "product" : "fixed")
+/** Fila editable de la lista de costos fijos (el monto va como dígitos crudos). */
+export type FixedRow = { id: number; name: string; amount: string }
 
-const LABELS: Record<Field, { lcd: string; aria: string }> = {
-  amount: { lcd: "MONTO AL MES", aria: "Monto del costo fijo al mes" },
-  salePrice: { lcd: "PRECIO DE VENTA", aria: "Precio de venta de un producto" },
-  variableCost: { lcd: "COSTO VARIABLE", aria: "Costo variable de un producto" },
-}
+// 9 dígitos = hasta "$ 999.999.999".
+const MONEY: EntryOptions = { decimals: false, maxDigits: 9 }
 
 const toRaw = (n: number | null | undefined) => (n != null && Number.isFinite(n) && n > 0 ? String(Math.round(n)) : "")
 
-/** Huella de los datos escritos (lista incluida): dice si hay algo sin guardar y si ya se guardó. */
-const signature = (items: FixedItem[], v: Record<Field, number | null>) =>
-  FIELD_ORDER.map((k) => v[k] ?? "").join("|") + "#" + JSON.stringify(items)
+/** "$ 25.000" sin signo si está vacío; el campo muestra solo las cifras agrupadas. */
+const groupDigits = (raw: string) => {
+  const n = parseEntry(raw)
+  return n == null ? "" : Math.round(n).toLocaleString("es-CO", { maximumFractionDigits: 0 })
+}
 
-function FormulaRow({
+/** Total de los costos con monto: filas vacías o en 0 no cuentan. */
+export function sumFixedRows(rows: FixedRow[]): number {
+  return rows.reduce((s, r) => s + Math.max(0, parseEntry(r.amount) ?? 0), 0)
+}
+
+export type LiveOutcome =
+  | { ok: true; result: Extract<BreakEvenOutcome, { ok: true }> }
+  | { ok: false; kind: "empty" | "invalid"; message: string }
+
+/**
+ * Resultado en vivo a partir de lo escrito: usa solveBreakEven (fórmula validada
+ * contra el Excel) y traduce cada fallo a un motivo claro. Jamás devuelve una
+ * cifra si no puede calcularse.
+ */
+export function solveLive(fixedTotal: number, salePrice: number | null, variableCost: number | null): LiveOutcome {
+  const inputs = { fixedCosts: fixedTotal > 0 ? fixedTotal : null, salePrice, variableCost }
+  const missing = missingBreakEvenInputs(inputs)
+  if (missing.length > 0) {
+    const parts = missing.map((f) =>
+      f === "fixedCosts"
+        ? "agrega al menos un costo fijo"
+        : f === "salePrice"
+          ? "escribe el precio de venta"
+          : "escribe el costo variable (0 si no tiene insumos)",
+    )
+    const text = parts.join(" y ")
+    return { ok: false, kind: "empty", message: text.charAt(0).toUpperCase() + text.slice(1) }
+  }
+  const r = solveBreakEven(inputs)
+  if (r.ok) return { ok: true, result: r }
+  if (r.reason === "invalid" && r.field === "salePrice" && salePrice != null && variableCost != null) {
+    return {
+      ok: false,
+      kind: "invalid",
+      message: `El precio (${formatCOP(salePrice)}) debe ser mayor al costo variable (${formatCOP(variableCost)}); si no, no ganas nada por unidad.`,
+    }
+  }
+  return { ok: false, kind: "invalid", message: r.message }
+}
+
+const signature = (rows: FixedRow[], price: string, variable: string) =>
+  JSON.stringify(rows.map((r) => [r.name.trim(), parseEntry(r.amount) ?? 0]).filter(([n, a]) => n !== "" || a !== 0)) +
+  "#" +
+  (parseEntry(price) ?? "") +
+  "|" +
+  (parseEntry(variable) ?? "")
+
+/** Campo de pesos con el aspecto de la pantalla de la calculadora. */
+function MoneyField({
+  id,
   label,
-  hint,
   value,
-  strong = false,
-  bad = false,
+  onChange,
+  inputRef,
+  invalid,
+  describedBy,
+  hideLabel = false,
+  placeholder = "0",
 }: {
+  id: string
   label: string
-  hint: string
-  value: string | null
-  strong?: boolean
-  bad?: boolean
+  value: string
+  onChange: (raw: string) => void
+  inputRef?: (el: HTMLInputElement | null) => void
+  invalid?: boolean
+  describedBy?: string
+  hideLabel?: boolean
+  placeholder?: string
 }) {
   return (
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <p className="text-sm" style={{ color: "var(--text-primary)", fontWeight: strong ? 600 : 400 }}>{label}</p>
-        <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{hint}</p>
+    <div className={styles.field}>
+      <label htmlFor={id} className={hideLabel ? "sr-only" : styles.fieldLabel}>
+        {label}
+      </label>
+      <div className={styles.lcd} data-invalid={invalid ? "true" : undefined}>
+        <span className={styles.lcdUnit} aria-hidden>
+          $
+        </span>
+        <input
+          id={id}
+          ref={inputRef}
+          className={styles.lcdInput}
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={placeholder}
+          value={groupDigits(value)}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
+          onChange={(e) => onChange(sanitizeEntry(e.target.value, MONEY))}
+        />
       </div>
-      <p
-        className="text-sm tabular-nums font-mono shrink-0"
-        style={{ color: bad ? "var(--error)" : strong ? "var(--accent-text)" : "var(--text-secondary)", fontWeight: strong ? 700 : 500 }}
-      >
-        {value ?? "—"}
-      </p>
     </div>
   )
 }
 
-function isTypingTarget(el: EventTarget | null) {
-  if (!(el instanceof HTMLElement)) return false
-  return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)
-}
-
 /**
- * Pantalla de "Nuevo cálculo": la calculadora ES el proceso. Dos pasos —
- * costos fijos (lista libre: el usuario nombra un costo, teclea el monto
- * y lo agrega; el total se suma solo) y el producto (precio y costo
- * variable). Calcular muestra unidades y ventas por mes y por día; solo
- * entonces se puede guardar.
+ * Pantalla única de "Nuevo cálculo": costos fijos, producto y resultado siempre
+ * a la vista. El resultado se recalcula al escribir; solo se pide Guardar.
  */
 export default function BreakEvenCalculator({
   initialRecord,
@@ -116,73 +158,42 @@ export default function BreakEvenCalculator({
   /** Hay datos escritos sin guardar */
   onDirtyChange?: (dirty: boolean) => void
 }) {
-  const [boot] = useState<Record<Field, string>>(() => {
-    const values: Record<Field, string> = { amount: "", salePrice: "", variableCost: "" }
-    if (!fixedOnly) {
-      values.salePrice = toRaw(initialRecord?.salePrice)
-      values.variableCost = toRaw(initialRecord?.variableCost)
-    }
-    return values
-  })
+  const uid = useId()
+  const confirm = useConfirm()
+  const nextId = useRef(0)
 
-  // Lista libre de costos fijos del paso 1 (los del registro precargado se muestran tal cual).
-  const [fixedItems, setFixedItems] = useState<FixedItem[]>(() =>
+  const [rows, setRows] = useState<FixedRow[]>(() =>
     (initialRecord?.fixedCosts ?? [])
       .filter((c) => c.amount > 0 && c.name.trim() !== "")
-      .map((c) => ({ name: c.name, amount: c.amount })),
+      .map((c) => ({ id: nextId.current++, name: c.name, amount: toRaw(c.amount) })),
   )
-  const [itemName, setItemName] = useState("")
-  const [addError, setAddError] = useState<string | null>(null)
-  const nameRef = useRef<HTMLInputElement>(null)
-  const fixedTotal = fixedItems.reduce((s, c) => s + c.amount, 0)
-
-  /** Fórmula del módulo sobre el total de la lista actual. */
-  function solve(v: Record<Field, number | null>): Outcome {
-    if (fixedTotal <= 0) {
-      return { ok: false, field: "amount", message: "Agrega al menos un costo fijo a la lista" }
-    }
-    const r = solveBreakEven({ fixedCosts: fixedTotal, salePrice: v.salePrice, variableCost: v.variableCost })
-    if (r.ok) return r
-    const field: Field = r.field === "fixedCosts" ? "amount" : r.field
-    if (r.reason === "invalid") {
-      return {
-        ok: false,
-        field,
-        message: `El precio (${formatCOP(v.salePrice ?? 0)}) debe ser mayor al costo variable (${formatCOP(v.variableCost ?? 0)}); si no, no ganas nada por unidad`,
-      }
-    }
-    const noVariable = r.message.includes("costo variable")
-    return { ok: false, field, message: noVariable ? `${r.message} (escribe 0 si tu producto no tiene insumos)` : r.message }
-  }
-
-  const calc = useSolverCalculator<Field, Outcome>({ entry: ENTRY, initial: boot, first: "amount", solve })
-  const [step, setStep] = useState<Step>("fixed")
-  const [saving, setSaving] = useState(false)
+  const [price, setPrice] = useState(() => (fixedOnly ? "" : toRaw(initialRecord?.salePrice)))
+  // El costo variable puede ser 0 (sin insumos): "0" es un dato válido, vacío no.
+  const [variable, setVariable] = useState(() =>
+    fixedOnly || !initialRecord ? "" : String(Math.max(0, Math.round(initialRecord.variableCost))),
+  )
   const [note, setNote] = useState(prefillNote)
-  const [clearArmed, setClearArmed] = useState(false)
-  const [resultOpen, setResultOpen] = useState(false)
-  // Con qué datos se abrió o qué se guardó por última vez: contra eso se mide "sin guardar".
-  const [baseline, setBaseline] = useState(() =>
-    signature(
-      fixedItems,
-      Object.fromEntries(FIELD_ORDER.map((k) => [k, parseEntry(boot[k])])) as Record<Field, number | null>,
-    ),
-  )
-  const [savedSig, setSavedSig] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
+  const [baseline, setBaseline] = useState(() => signature(rows, price, variable))
+  const [savedSig, setSavedSig] = useState<string | null>(null)
+  const pendingFocus = useRef<{ id: number; field: "name" | "amount" } | null>(null)
+  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
 
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const registerRefs = useRef<Partial<Record<Field, HTMLInputElement | null>>>({})
+  const fixedTotal = sumFixedRows(rows)
+  const salePrice = parseEntry(price)
+  const variableCost = parseEntry(variable)
+  const margin = contributionMarginOf(salePrice, variableCost)
+  const live = solveLive(fixedTotal, salePrice, variableCost)
+  const result = live.ok ? live.result : null
 
-  const result = calc.outcome?.ok ? calc.outcome : null
-  const error = calc.outcome && !calc.outcome.ok ? calc.outcome : null
-  const hasData = fixedItems.length > 0 || itemName.trim() !== "" || FIELD_ORDER.some((k) => calc.inputs[k] != null)
-
-  const sig = signature(fixedItems, calc.inputs)
+  // Todo costo con monto necesita nombre para quedar en el historial.
+  const unnamed = rows.some((r) => (parseEntry(r.amount) ?? 0) > 0 && r.name.trim() === "")
+  const sig = signature(rows, price, variable)
   const dirty = sig !== baseline
-  // "Guardado" vale solo para estos datos exactos: editar algo es otro cálculo, pero
-  // volver a pulsar Calcular con lo mismo no deja guardar un duplicado.
   const saved = result !== null && savedSig === sig
+  const hasData = rows.length > 0 || price !== "" || variable !== ""
+  const canSave = result !== null && !unnamed && !saved && !saving
 
   useEffect(() => {
     onDirtyChange?.(dirty)
@@ -196,250 +207,55 @@ export default function BreakEvenCalculator({
     return () => window.removeEventListener("beforeunload", warn)
   }, [dirty])
 
-  // "Limpiar" borra la lista y los datos de golpe: hay que tocarlo dos veces.
   useEffect(() => {
-    if (!clearArmed) return
-    const t = window.setTimeout(() => setClearArmed(false), 4000)
-    return () => window.clearTimeout(t)
-  }, [clearArmed])
+    const p = pendingFocus.current
+    if (!p) return
+    pendingFocus.current = null
+    inputRefs.current.get(`${p.id}-${p.field}`)?.focus()
+  }, [rows])
 
-  function press(key: EntryKey) {
-    setClearArmed(false)
-    setAddError(null)
-    calc.press(key)
+  function addRow(name = "") {
+    const id = nextId.current++
+    pendingFocus.current = { id, field: name ? "amount" : "name" }
+    setRows((prev) => [...prev, { id, name, amount: "" }])
   }
+  const patchRow = (id: number, patch: Partial<FixedRow>) =>
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
+  const removeRow = (id: number) => setRows((prev) => prev.filter((r) => r.id !== id))
 
-  function handleClearAll() {
-    if (hasData && !clearArmed) {
-      setClearArmed(true)
-      return
-    }
-    setClearArmed(false)
+  function reset() {
+    setRows([])
+    setPrice("")
+    setVariable("")
     setNote(null)
-    calc.clearAll()
-    setFixedItems([])
-    setItemName("")
-    setAddError(null)
-    setStep("fixed")
+    setSavedSig(null)
+    setBaseline(signature([], "", ""))
   }
 
-  /** "Empezar en blanco" del aviso: descarta lo precargado sin pedir doble toque. */
-  function startBlank() {
-    setClearArmed(false)
-    setNote(null)
-    calc.clearAll()
-    setFixedItems([])
-    setItemName("")
-    setAddError(null)
-    setStep("fixed")
-    setBaseline(signature([], Object.fromEntries(FIELD_ORDER.map((k) => [k, null])) as Record<Field, number | null>))
-  }
-
-  /** Lleva el foco (y la vista) al dato: el teclado físico y el lector de pantalla siguen al dato activo. */
-  function focusField(field: Field) {
-    requestAnimationFrame(() => {
-      const el = registerRefs.current[field]
-      el?.focus({ preventScroll: true })
-      el?.scrollIntoView({ block: "nearest" })
-    })
-  }
-
-  /** Calcula; un error en un dato del otro paso nos lleva a ese paso. */
-  function calculate() {
-    setClearArmed(false)
-    setAddError(null)
-    const r = calc.calculate()
-    if (!r.ok) {
-      setStep(stepOf(r.field))
-      focusField(r.field)
-      return
+  async function handleClear() {
+    if (hasData) {
+      const ok = await confirm({
+        title: "Empezar un cálculo nuevo",
+        description: "Se borrarán los costos y los datos de tu producto que escribiste.",
+        confirmLabel: "Borrar y empezar",
+        cancelLabel: "Seguir editando",
+        variant: "danger",
+      })
+      if (!ok) return
     }
-    setResultOpen(true)
+    reset()
   }
-
-  function goTo(field: Field) {
-    setAddError(null)
-    setStep(stepOf(field))
-    calc.activate(field)
-  }
-
-  function goStep(next: Step) {
-    const field: Field = next === "fixed" ? "amount" : "salePrice"
-    setAddError(null)
-    setStep(next)
-    calc.activate(field)
-    focusField(field)
-  }
-
-  /** Pasa el costo escrito (nombre + monto) a la lista del paso 1. */
-  function addItem() {
-    setClearArmed(false)
-    const name = itemName.trim()
-    const amount = calc.inputs.amount ?? 0
-    if (!name) {
-      setAddError("Escribe un nombre para el costo (ej. Arriendo)")
-      nameRef.current?.focus()
-      return
-    }
-    if (!(amount > 0)) {
-      setAddError("Falta el monto: escríbelo con el teclado de la calculadora")
-      focusField("amount")
-      return
-    }
-    setFixedItems((prev) => [...prev, { name, amount }])
-    setItemName("")
-    setAddError(null)
-    calc.fill({ amount: "" })
-    nameRef.current?.focus()
-  }
-
-  /** Nombre sugerido (rubros del Excel): lo escribe en el campo y pasa al monto. */
-  function pickName(name: string) {
-    setClearArmed(false)
-    setAddError(null)
-    setItemName(name)
-    focusField("amount")
-  }
-
-  /** Quita un costo de la lista; un resultado previo deja de valer. */
-  function removeItem(index: number) {
-    setClearArmed(false)
-    setAddError(null)
-    setFixedItems((prev) => prev.filter((_, i) => i !== index))
-    calc.fill({})
-  }
-
-  /** Enter: en el paso 1 agrega el costo a la lista; en el 2 pasa al siguiente dato o calcula. */
-  function advance() {
-    if (step === "fixed") {
-      addItem()
-      return
-    }
-    const i = FIELD_ORDER.indexOf(calc.active)
-    if (i >= FIELD_ORDER.length - 1) {
-      calculate()
-      return
-    }
-    const next = FIELD_ORDER[i + 1]
-    goTo(next)
-    focusField(next)
-  }
-
-  // Teclado físico: escribe en el dato activo sin hacer clic antes.
-  const live = useRef({ active: calc.active, press, advance })
-  useEffect(() => {
-    live.current = { active: calc.active, press, advance }
-  })
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return
-      if (isTypingTarget(e.target)) return
-      if (document.querySelector('[role="listbox"]')) return
-      const dialog = document.querySelector('[aria-modal="true"]')
-      if (dialog && !dialog.contains(wrapRef.current)) return
-      const c = live.current
-      const t = e.target as HTMLElement | null
-      if (e.key === "Enter" && !t?.closest?.("a,button,summary,[role]")) {
-        e.preventDefault()
-        c.advance()
-        return
-      }
-      const key = entryKeyFromKeyboard(e.key)
-      if (!key) return
-      e.preventDefault()
-      registerRefs.current[c.active]?.focus({ preventScroll: true })
-      c.press(key)
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [])
-
-  function renderRegister(key: Field, variant: "block" | "inline") {
-    const hasError = error?.field === key
-    return (
-      <CalcRegister
-        key={key}
-        ref={(el) => {
-          registerRefs.current[key] = el
-        }}
-        id={`be-${key}`}
-        label={LABELS[key].lcd}
-        ariaLabel={LABELS[key].aria}
-        display={formatMoneyEntry(calc.values[key])}
-        placeholder="$ 0"
-        active={calc.active === key}
-        fresh={calc.fresh && !result}
-        error={hasError}
-        describedBy={hasError ? "be-message" : undefined}
-        variant={variant}
-        onActivate={() => goTo(key)}
-        onKey={press}
-        onRawInput={(raw) => {
-          setClearArmed(false)
-          setAddError(null)
-          calc.setRaw(key, raw)
-        }}
-        onEnter={advance}
-      />
-    )
-  }
-
-  // Rubros frecuentes (los del Excel) que aún no están en la lista.
-  const taken = new Set(fixedItems.map((c) => c.name.trim().toLowerCase()))
-  const suggestions = BREAK_EVEN_RUBROS.map((r) => r.name).filter((n) => !taken.has(n.toLowerCase()))
-
-  // Vista previa de la fórmula con los datos de ahora: nunca una cifra si no se puede calcular.
-  const preview = calc.preview
-  const margin = contributionMarginOf(calc.inputs.salePrice, calc.inputs.variableCost)
-  const marginBad = margin !== null && margin <= 0
-  const fixedDone = fixedTotal > 0
-  const productDone = (calc.inputs.salePrice ?? 0) > 0 && calc.inputs.variableCost != null
-
-  // Pantalla: total de la lista mientras se llena; unidades al calcular.
-  const missingProduct = [
-    (calc.inputs.salePrice ?? 0) <= 0 && "el precio de venta",
-    calc.inputs.variableCost == null && "el costo variable",
-  ].filter(Boolean) as string[]
-
-  let tone: "idle" | "error" | "result" = "idle"
-  let label = "COSTOS FIJOS DEL MES"
-  let value = formatCOP(fixedTotal)
-  let sub: string =
-    fixedTotal <= 0
-      ? step === "fixed"
-        ? "Nombra tu primer costo y agrégalo a la lista"
-        : "Falta anotar tus costos fijos (paso 1)"
-      : step === "fixed"
-        ? `${fixedItems.length} en la lista · se suma solo`
-        : missingProduct.length > 0
-          ? `Falta ${missingProduct.join(" y ")}`
-          : "Pulsa Calcular"
-  let announce = ""
-  if (addError) {
-    tone = "error"
-    sub = addError
-    announce = addError
-  } else if (result) {
-    tone = "result"
-    label = "UNIDADES AL MES"
-    value = formatNumber(result.unitsPerMonth, 2)
-    sub = "para cubrir tus costos"
-    announce = `Punto de equilibrio: ${value} unidades al mes`
-  } else if (error) {
-    tone = "error"
-    sub = error.message
-    announce = error.message
-  }
-  if (clearArmed) sub = "Toca Limpiar otra vez para borrar todos los datos"
 
   async function handleSave() {
-    if (!result || savingRef.current || saved) return
+    if (!result || !canSave || savingRef.current) return
     savingRef.current = true
     const savingSig = sig
     setSaving(true)
     try {
       await onSubmit({
-        fixedCosts: fixedItems.map((c) => ({ ...c })),
+        fixedCosts: rows
+          .filter((r) => (parseEntry(r.amount) ?? 0) > 0)
+          .map((r) => ({ name: r.name.trim(), amount: parseEntry(r.amount) as number })),
         salePrice: result.salePrice,
         variableCost: result.variableCost,
       })
@@ -455,267 +271,227 @@ export default function BreakEvenCalculator({
     }
   }
 
-  const stepBtn = (s: Step, n: number, title: string, detail: string, done: boolean) => {
-    const on = step === s
-    return (
-      <button
-        type="button"
-        onClick={() => goStep(s)}
-        aria-current={on ? "step" : undefined}
-        className="flex-1 min-w-0 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors"
-        style={{
-          background: on ? "var(--accent-light)" : "var(--bg-surface)",
-          border: `1px solid ${on ? "var(--accent)" : "var(--border-light)"}`,
-          color: "var(--text-primary)",
-        }}
-      >
-        <span
-          className="shrink-0 flex items-center justify-center rounded-full text-xs font-bold"
-          style={{
-            width: 24,
-            height: 24,
-            background: on ? "var(--accent)" : "var(--bg-secondary)",
-            color: on ? "#fff" : "var(--text-muted)",
-          }}
-        >
-          {done && !on ? <Check size={14} aria-label="completo" /> : n}
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold truncate">{title}</span>
-          <span className="block text-xs truncate" style={{ color: "var(--text-muted)" }}>
-            {detail}
-          </span>
-        </span>
-      </button>
-    )
-  }
+  // Rubros frecuentes del Excel que aún no están en la lista.
+  const taken = new Set(rows.map((r) => r.name.trim().toLowerCase()))
+  const suggestions = BREAK_EVEN_RUBROS.map((r) => r.name).filter((n) => !taken.has(n.toLowerCase()))
+
+  const marginBad = margin !== null && margin <= 0
+  const msgId = `${uid}-msg`
+  const dash = (
+    <span className={styles.dash} aria-hidden>
+      —
+    </span>
+  )
+  const tone = result ? "result" : live.ok === false && live.kind === "invalid" ? "error" : "idle"
+  const stats: { label: string; value: React.ReactNode; spoken: string }[] = [
+    {
+      label: "UNIDADES AL MES",
+      value: result ? formatNumber(result.unitsPerMonth, 2) : dash,
+      spoken: result ? `${formatNumber(result.unitsPerMonth, 2)} unidades al mes` : "",
+    },
+    {
+      label: "UNIDADES AL DÍA",
+      value: result ? formatNumber(result.unitsPerDay, 2) : dash,
+      spoken: result ? `${formatNumber(result.unitsPerDay, 2)} unidades al día` : "",
+    },
+    {
+      label: "VENTAS DEL MES",
+      value: result ? formatCOP(result.revenuePerMonth) : dash,
+      spoken: result ? `${formatCOP(result.revenuePerMonth)} en ventas al mes` : "",
+    },
+    {
+      label: "VENTAS DEL DÍA",
+      value: result ? formatCOP(result.revenuePerDay) : dash,
+      spoken: result ? `${formatCOP(result.revenuePerDay)} en ventas al día` : "",
+    },
+  ]
+
+  const status = unnamed
+    ? "Ponle nombre a cada costo para poder guardar."
+    : saved
+      ? "Cálculo guardado."
+      : live.ok
+        ? "Listo para guardar."
+        : live.message
 
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)] items-start">
-      <div ref={wrapRef} className="flex flex-col gap-3 min-w-0">
-        {note && (
-          <div
-            className="flex flex-col gap-2 rounded-xl p-3 text-sm sm:flex-row sm:items-center"
-            style={{ background: "var(--accent-light)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
-          >
-            <p className="flex-1">{note}</p>
-            <Button variant="ghost" size="sm" onClick={startBlank} className="shrink-0">
-              Empezar en blanco
-            </Button>
-          </div>
-        )}
+    <div className="flex flex-col gap-3 min-w-0">
+      {note && (
+        <div
+          className="flex flex-col gap-2 rounded-xl p-3 text-sm sm:flex-row sm:items-center"
+          style={{ background: "var(--accent-light)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
+        >
+          <p className="flex-1">{note}</p>
+          <Button variant="ghost" size="sm" onClick={reset} className="shrink-0">
+            Empezar en blanco
+          </Button>
+        </div>
+      )}
 
-        <div className="flex gap-2" role="group" aria-label="Pasos del cálculo">
-          {stepBtn("fixed", 1, "Costos fijos", fixedTotal > 0 ? formatCOP(fixedTotal) : "Lo que pagas al mes", fixedDone)}
-          {stepBtn(
-            "product",
-            2,
-            "Tu producto",
-            (calc.inputs.salePrice ?? 0) > 0 ? `Vende a ${formatCOP(calc.inputs.salePrice ?? 0)}` : "Precio y costo",
-            productDone,
-          )}
+      <CalcDevice label="Calculadora de punto de equilibrio" className={styles.device}>
+        <div className={styles.grid}>
+          {/* ── Costos fijos ── */}
+          <section className={styles.panel} aria-labelledby={`${uid}-fixed`}>
+            <div className={styles.panelHead}>
+              <h2 id={`${uid}-fixed`} className={styles.panelTitle}>
+                Costos fijos
+              </h2>
+              <p className={styles.panelHelp}>Lo que pagas al mes aunque no vendas</p>
+            </div>
+
+            {rows.length > 0 && (
+              <ul className={styles.rows}>
+                {rows.map((r) => (
+                  <li key={r.id} className={styles.row}>
+                    <div className={styles.rowName}>
+                      <label htmlFor={`${uid}-n-${r.id}`} className="sr-only">
+                        Nombre del costo
+                      </label>
+                      <input
+                        id={`${uid}-n-${r.id}`}
+                        ref={(el) => {
+                          if (el) inputRefs.current.set(`${r.id}-name`, el)
+                          else inputRefs.current.delete(`${r.id}-name`)
+                        }}
+                        className={styles.nameInput}
+                        type="text"
+                        autoComplete="off"
+                        placeholder="Nombre (ej. Arriendo)"
+                        value={r.name}
+                        aria-invalid={(parseEntry(r.amount) ?? 0) > 0 && r.name.trim() === "" ? true : undefined}
+                        onChange={(e) => patchRow(r.id, { name: e.target.value })}
+                      />
+                    </div>
+                    <div className={styles.rowAmount}>
+                      <MoneyField
+                        id={`${uid}-a-${r.id}`}
+                        label={`Monto de ${r.name.trim() || "este costo"} al mes`}
+                        hideLabel
+                        value={r.amount}
+                        onChange={(raw) => patchRow(r.id, { amount: raw })}
+                        inputRef={(el) => {
+                          if (el) inputRefs.current.set(`${r.id}-amount`, el)
+                          else inputRefs.current.delete(`${r.id}-amount`)
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.remove}
+                      onClick={() => removeRow(r.id)}
+                      aria-label={`Quitar ${r.name.trim() || "costo"}`}
+                    >
+                      <X size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className={styles.chips} role="group" aria-label="Agregar un costo frecuente">
+              {suggestions.map((name) => (
+                <button key={name} type="button" className={styles.chip} onClick={() => addRow(name)}>
+                  {name}
+                </button>
+              ))}
+              <button type="button" className={`${styles.chip} ${styles.chipOther}`} onClick={() => addRow()}>
+                <Plus size={13} aria-hidden />
+                Otro costo
+              </button>
+            </div>
+
+            <div className={styles.totalRow}>
+              <span>Total al mes</span>
+              <strong className={styles.totalValue}>{formatCOP(fixedTotal)}</strong>
+            </div>
+          </section>
+
+          {/* ── Tu producto ── */}
+          <section className={styles.panel} aria-labelledby={`${uid}-prod`}>
+            <div className={styles.panelHead}>
+              <h2 id={`${uid}-prod`} className={styles.panelTitle}>
+                Tu producto
+              </h2>
+              <p className={styles.panelHelp}>Por cada unidad que vendes</p>
+            </div>
+            <MoneyField
+              id={`${uid}-price`}
+              label="Precio de venta"
+              value={price}
+              onChange={setPrice}
+              invalid={marginBad}
+              describedBy={marginBad ? msgId : undefined}
+              placeholder="0"
+            />
+            <MoneyField
+              id={`${uid}-variable`}
+              label="Costo variable por unidad"
+              value={variable}
+              onChange={setVariable}
+              invalid={marginBad}
+              describedBy={marginBad ? msgId : undefined}
+              placeholder="0 si no tiene insumos"
+            />
+            <div className={styles.totalRow}>
+              <span>Margen por unidad</span>
+              <strong className={marginBad ? styles.totalBad : styles.totalValue}>
+                {margin !== null ? formatCOP(margin) : "—"}
+              </strong>
+            </div>
+          </section>
+
+          {/* ── Resultado en vivo ── */}
+          <section className={`${styles.panel} ${styles.resultPanel}`} aria-labelledby={`${uid}-res`}>
+            <div className={styles.panelHead}>
+              <h2 id={`${uid}-res`} className={styles.panelTitle}>
+                Resultado en vivo
+              </h2>
+              <p className={styles.panelHelp}>Lo que debes vender para cubrir tus costos</p>
+            </div>
+            <div className={styles.stats}>
+              {stats.map((s) => (
+                <CalcDisplay
+                  key={s.label}
+                  label={s.label}
+                  value={s.value}
+                  tone={tone}
+                  size="sm"
+                  announce={s.spoken}
+                  revealKey={result ? result.unitsPerMonth : undefined}
+                />
+              ))}
+            </div>
+            <p
+              id={msgId}
+              className={styles.status}
+              data-tone={marginBad || (live.ok === false && live.kind === "invalid") || unnamed ? "error" : undefined}
+              role={marginBad || unnamed ? "alert" : "status"}
+            >
+              {status}
+            </p>
+          </section>
         </div>
 
-        <CalcDevice label="Calculadora de punto de equilibrio">
-          <CalcDisplay
-            label={label}
-            value={value}
-            sub={sub}
-            subId="be-message"
-            tone={tone}
-            announce={announce}
-            revealKey={result ? result.unitsPerMonth : undefined}
-          />
-
-          {step === "fixed" ? (
-            <section className={styles.fixedSection} aria-label="Escribe un costo fijo">
-              <div className={styles.fixedNameBox}>
-                <label className={styles.fixedNameLabel} htmlFor="be-fixed-name">
-                  NOMBRE DEL COSTO
-                </label>
-                <input
-                  ref={nameRef}
-                  id="be-fixed-name"
-                  className={styles.fixedName}
-                  type="text"
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="Ej. Arriendo, Agua, Teléfonos…"
-                  aria-label="Nombre del costo fijo"
-                  aria-invalid={addError ? true : undefined}
-                  aria-describedby={addError ? "be-message" : undefined}
-                  value={itemName}
-                  onChange={(e) => {
-                    setAddError(null)
-                    setItemName(e.target.value)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      addItem()
-                    }
-                  }}
-                />
-              </div>
-              {suggestions.length > 0 && (
-                <div className={styles.chips} role="group" aria-label="Costos fijos frecuentes">
-                  {suggestions.map((name) => (
-                    <button key={name} type="button" className={styles.chip} onClick={() => pickName(name)}>
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {renderRegister("amount", "block")}
-            </section>
+        <div className={styles.actions}>
+          <CalcActionKey variant="fn" onClick={handleClear} disabled={saving} slotClassName={styles.actionSlot}>
+            Limpiar
+          </CalcActionKey>
+          {saved ? (
+            <CalcActionKey onClick={onDone} slotClassName={styles.actionSlotMain}>
+              Ver historial
+            </CalcActionKey>
           ) : (
-            <div className={styles.product}>
-              <div className="calc-registers">
-                {renderRegister("salePrice", "block")}
-                {renderRegister("variableCost", "block")}
-              </div>
-            </div>
-          )}
-
-          <div className="calc-keypad-slot">
-            <CalcKeypad onKey={press} onClearAll={handleClearAll} decimalEnabled={false} />
-          </div>
-
-          {step === "fixed" ? (
-            <CalcActionKey onClick={addItem}>Agregar a la lista</CalcActionKey>
-          ) : (
-            <CalcActionKey onClick={calculate}>Calcular</CalcActionKey>
-          )}
-        </CalcDevice>
-
-        {step === "fixed" && (
-          <Button variant="ghost" onClick={() => goStep("product")} className="w-full">
-            Siguiente: tu producto
-            <ArrowRight size={15} />
-          </Button>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-4 min-w-0">
-        <>
-            <div
-              className="rounded-2xl p-5 flex flex-col gap-3"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
+            <CalcActionKey
+              onClick={handleSave}
+              disabled={!canSave}
+              aria-busy={saving || undefined}
+              slotClassName={styles.actionSlotMain}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2">
-                  <Wallet size={18} style={{ color: "var(--accent)" }} />
-                  <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                    Costos fijos del mes
-                  </h2>
-                </span>
-                <span className="text-sm font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>
-                  {formatCOP(fixedTotal)}
-                </span>
-              </div>
-              {fixedItems.length === 0 ? (
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  Aún no has agregado costos. Nombra el primero en la calculadora y pulsa Agregar a la lista.
-                </p>
-              ) : (
-                <ul className={styles.fixedList}>
-                  {fixedItems.map((item, i) => (
-                    <li key={`${i}-${item.name}`} className={styles.fixedItem}>
-                      <span className={styles.fixedItemName}>{item.name}</span>
-                      <span className={styles.fixedItemAmount}>{formatCOP(item.amount)}</span>
-                      <button
-                        type="button"
-                        className={styles.fixedItemRemove}
-                        onClick={() => removeItem(i)}
-                        aria-label={`Quitar ${item.name}`}
-                      >
-                        <X size={14} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div
-              className="rounded-2xl p-5 flex flex-col gap-3"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
-              aria-label="Fórmula con tus datos"
-            >
-              <div className="flex items-center gap-2">
-                <ListChecks size={18} style={{ color: "var(--accent)" }} />
-                <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                  Tu cálculo
-                </h2>
-              </div>
-              <FormulaRow label="Costos fijos del mes" hint="Suma de tu lista" value={fixedDone ? formatCOP(fixedTotal) : null} />
-              <FormulaRow
-                label="÷ Margen por unidad"
-                hint="Precio de venta − costo variable"
-                value={margin !== null ? formatCOP(margin) : null}
-                bad={marginBad}
-              />
-              <FormulaRow
-                label="= Unidades para cubrir costos"
-                hint="Por mes; al día se divide en 30"
-                value={preview.ok ? formatNumber(preview.unitsPerMonth, 2) : null}
-                strong
-              />
-              <p
-                role={marginBad ? "alert" : undefined}
-                className="text-xs"
-                style={{ color: marginBad ? "var(--error)" : "var(--text-muted)" }}
-              >
-                {preview.ok ? "Pulsa Calcular para ver el detalle y guardarlo." : preview.message}
-              </p>
-            </div>
-          </>
-      </div>
-
-      {/* ── Modal: resultado del cálculo (mismo patrón que el módulo Menú) ── */}
-      <Modal
-        open={resultOpen && result !== null}
-        onClose={() => setResultOpen(false)}
-        title="Resultado del cálculo"
-        wide
-        blur
-        footer={
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <div className="min-w-0">
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
-              <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setResultOpen(false)}>
-                Cerrar
-              </Button>
-              {saved ? (
-                <Button variant="primary" className="w-full sm:w-auto" onClick={onDone}>
-                  Ver historial
-                </Button>
-              ) : (
-                <Button variant="primary" className="w-full sm:w-auto" onClick={handleSave} loading={saving}>
-                  Guardar cálculo
-                </Button>
-              )}
-            </div>
-          </div>
-        }
-      >
-        {result && (
-          <BreakEvenFicha
-            data={{
-              unitsPerMonth: result.unitsPerMonth,
-              unitsPerDay: result.unitsPerDay,
-              revenuePerMonth: result.revenuePerMonth,
-              revenuePerDay: result.revenuePerDay,
-              fixedTotal: result.fixedCosts,
-              salePrice: result.salePrice,
-              variableCost: result.variableCost,
-              contributionMargin: result.contributionMargin,
-              fixedCosts: fixedItems,
-            }}
-          />
-        )}
-      </Modal>
+              {saving ? "Guardando…" : "Guardar"}
+            </CalcActionKey>
+          )}
+        </div>
+      </CalcDevice>
     </div>
   )
 }

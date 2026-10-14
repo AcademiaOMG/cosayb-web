@@ -74,7 +74,7 @@ describe("Punto de Equilibrio — header con pestañas", () => {
     // Sin datos de ejemplo ni del historial: lista vacía y total en cero
     expect(html).not.toContain('aria-label="Quitar Arriendo"')
     expect(html).not.toContain("6.585.000")
-    expect(html).toContain("Aún no has agregado costos")
+    expect(html).toContain("Agrega al menos un costo fijo")
     expect(html).not.toContain("Empezar en blanco")
   })
 })

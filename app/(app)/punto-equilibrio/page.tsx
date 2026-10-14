@@ -362,7 +362,7 @@ export default function PuntoEquilibrioPage() {
           <ul className="flex flex-col gap-2 ml-1">
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Costos fijos:</strong> lo que pagas cada mes aunque no vendas. Toca uno frecuente (Arriendo, Sueldos…) o escribe su nombre, teclea el monto y agrégalo; el total se suma solo.</span>
+              <span><strong>Costos fijos:</strong> lo que pagas cada mes aunque no vendas. Toca uno frecuente (Arriendo, Sueldos…) o agrega otro, y escribe su monto; el total se suma solo.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
@@ -370,7 +370,7 @@ export default function PuntoEquilibrioPage() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Resultado:</strong> costos fijos ÷ (precio − costo variable) = unidades al mes. Mientras escribes ves la fórmula en vivo; &quot;Calcular&quot; abre el detalle por mes y por día y ahí lo guardas.</span>
+              <span><strong>Resultado:</strong> costos fijos ÷ (precio − costo variable) = unidades al mes. Se recalcula mientras escribes, por mes y por día; cuando esté listo, pulsa Guardar.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
