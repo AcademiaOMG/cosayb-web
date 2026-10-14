@@ -58,3 +58,16 @@ export function placeDropdown(
     ? { side, maxHeight, left, width, top: rect.bottom + gap }
     : { side, maxHeight, left, width, bottom: viewport.height - rect.top + gap }
 }
+
+/**
+ * ¿Se ofrece "Crear «texto»"? Solo con texto buscado y sin una opción que coincida
+ * exactamente (ignora tildes/mayúsculas y un sufijo " · unidad" en la etiqueta).
+ */
+export function shouldOfferCreate(options: SelectOption[], query: string): boolean {
+  const q = normalizeText(query)
+  if (!q) return false
+  return !options.some((o) => {
+    const label = normalizeText(o.label)
+    return label === q || normalizeText(o.label.split(" · ")[0]) === q
+  })
+}

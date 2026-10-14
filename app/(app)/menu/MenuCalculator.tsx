@@ -109,6 +109,7 @@ export default function MenuCalculator({
   const [selected, setSelected] = useState("")
   const [addError, setAddError] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const [createName, setCreateName] = useState("")
   const [editOpen, setEditOpen] = useState(false)
 
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -370,24 +371,22 @@ export default function MenuCalculator({
             placeholder={isRecipes ? "Buscar receta…" : "Buscar extra…"}
             searchPlaceholder={isRecipes ? "Buscar receta…" : "Buscar extra…"}
             clearLabel={isRecipes ? "Seleccionar receta" : "Seleccionar extra"}
-            emptyMessage={isRecipes ? "No se encontraron recetas" : "No encontramos este extra. Usa «Crear nuevo»"}
+            emptyMessage={isRecipes ? "No se encontraron recetas" : "No encontramos este extra"}
             ariaLabel={isRecipes ? "Seleccionar receta para agregar" : "Seleccionar extra para agregar"}
             variant="calculator"
+            onCreate={
+              isRecipes
+                ? undefined
+                : (q) => {
+                    setClearArmed(false)
+                    setCreateName(q)
+                    setCreateOpen(true)
+                  }
+            }
           />
 
           {!isRecipes && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setClearArmed(false)
-                  setCreateOpen(true)
-                }}
-                className="self-start text-xs font-medium underline-offset-2 hover:underline"
-                style={{ color: "var(--accent-text, #1434A4)" }}
-              >
-                No encontramos este extra. Crear nuevo
-              </button>
               {editableExtra && (
                 <button
                   type="button"
@@ -440,6 +439,7 @@ export default function MenuCalculator({
 
       <ExtraCreateModal
         open={createOpen}
+        initialName={createName}
         existing={catalog}
         onClose={() => setCreateOpen(false)}
         onCreated={(extra) => {

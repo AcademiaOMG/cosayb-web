@@ -660,6 +660,13 @@ html { scroll-behavior: smooth; }
     color: var(--text-secondary);
   }
   .ui-select-option[data-clear][aria-selected="true"] { color: var(--accent-text); }
+  .ui-select-option[data-create] {
+    justify-content: flex-start;
+    gap: 8px;
+    border-top: 1px solid var(--border-light);
+    font-weight: 600;
+    color: var(--accent-text);
+  }
   .ui-select-check { flex-shrink: 0; color: var(--accent); }
   .ui-select-empty { padding: 10px; font-size: 13px; color: var(--text-muted); text-align: center; }
 

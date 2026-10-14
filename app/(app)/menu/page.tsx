@@ -2,7 +2,6 @@
 
 import useSWR, { useSWRConfig } from "swr"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import SearchableSelect from "@/components/ui/SearchableSelect"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
@@ -14,6 +13,7 @@ import {
 } from "lucide-react"
 import { scrollMainToTop } from "@/components/calculator/scrollMainToTop"
 import RecipePickerModal from "@/components/app/recipes/RecipePickerModal"
+import ExtraCreateModal from "./ExtraCreateModal"
 import MenuCalculator, { type MenuCalcAdd } from "./MenuCalculator"
 import MenuFicha from "./MenuFicha"
 import { IND, fmt } from "./menuFormat"
@@ -168,17 +168,16 @@ function DetailView({
     onDirtyChange(sig !== baselineRef.current)
   }, [sig, onDirtyChange])
 
-  const ingredientOptions = useMemo(
-    () => availableIngredients.map((i) => ({ value: i.id, label: i.name })),
-    [availableIngredients],
-  )
+  // Extra en edición (modal); solo los propios (kind='extra') se editan
+  const [editingExtraId, setEditingExtraId] = useState<string | null>(null)
+  const editingExtra = editingExtraId ? availableIngredients.find((i) => i.id === editingExtraId) : undefined
 
-  // Resolver costo por unidad de los extras cuando cargue el catálogo
+  // Resolver nombre y costo por unidad de los extras cuando cargue o cambie el catálogo (p. ej. tras editar uno)
   useEffect(() => {
     if (availableIngredients.length === 0) return
     setLineItems((prev) =>
       prev.map((item) => {
-        if (item.componentType !== "ingredient" || !item.ingredientId || item.costoGramo !== null) {
+        if (item.componentType !== "ingredient" || !item.ingredientId) {
           return item
         }
         const ing = availableIngredients.find((i) => i.id === item.ingredientId)
@@ -335,23 +334,6 @@ function DetailView({
       })
     )
     if (recipeId) void fetchRecipeCost(uid, recipeId)
-  }
-
-  function selectIngredient(uid: string, ingredientId: string) {
-    const ing = availableIngredients.find((i) => i.id === ingredientId)
-    setLineItems((prev) =>
-      prev.map((item) => {
-        if (item.uid !== uid) return item
-        return {
-          ...item,
-          ingredientId,
-          nombre: ing?.name ?? "",
-          // Extras: costo por UNIDAD directo del catálogo, sin fetch
-          costoGramo: ing ? menuUnitCost(ing) : null,
-          costoLoading: false,
-        }
-      })
-    )
   }
 
   function handleCalcular() {
@@ -525,20 +507,26 @@ function DetailView({
                           </span>
                         )}
                         {item.componentType === "ingredient" ? (
-                          ingredientOptions.length > 0 ? (
-                            <SearchableSelect
-                              options={ingredientOptions}
-                              value={item.ingredientId}
-                              onChange={(val) => selectIngredient(item.uid, val)}
-                              placeholder="— Seleccionar extra —"
-                              emptyMessage="No se encontraron extras"
-                              ariaLabel="Extra del menú"
-                            />
-                          ) : (
-                            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                              No hay extras. Créalos desde la calculadora con «Crear nuevo» (ej. GASEOSA, VASO PLÁSTICO).
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate text-sm" style={{ color: "var(--text-primary)" }}>
+                              {item.nombre || "Extra"}
                             </span>
-                          )
+                            {(() => {
+                              const ing = availableIngredients.find((i) => i.id === item.ingredientId)
+                              return ing && ing.kind === "extra" && ing.userId !== null ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingExtraId(ing.id)}
+                                  className="shrink-0 transition-opacity hover:opacity-70"
+                                  style={{ color: "var(--text-muted)" }}
+                                  title="Editar extra"
+                                  aria-label={`Editar el extra ${ing.name}`}
+                                >
+                                  <Pencil size={12} />
+                                </button>
+                              ) : null
+                            })()}
+                          </div>
                         ) : item.recipeId ? (
                           <div className="flex min-w-0 items-center gap-1.5">
                             <span className="truncate text-sm" style={{ color: "var(--text-primary)" }}>
@@ -638,6 +626,17 @@ function DetailView({
           </div>
         </div>
       </div>
+
+      <ExtraCreateModal
+        open={!!editingExtra}
+        editing={editingExtra ?? null}
+        existing={availableIngredients}
+        onClose={() => setEditingExtraId(null)}
+        onUpdated={(extra) => {
+          onExtraUpdated(extra)
+          setEditingExtraId(null)
+        }}
+      />
 
       {/* ── Modal: selector de platos (lista de recetas) ───────────────────── */}
       <RecipePickerModal

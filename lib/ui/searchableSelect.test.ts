@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { filterOptions, moveHighlight, normalizeText, placeDropdown } from "./searchableSelect"
+import { filterOptions, moveHighlight, normalizeText, placeDropdown, shouldOfferCreate } from "./searchableSelect"
 
 const opts = [
   { value: "1", label: "Café molido" },
@@ -46,5 +46,16 @@ describe("placeDropdown", () => {
   it("no se sale del viewport en horizontal", () => {
     const p = placeDropdown({ top: 100, bottom: 140, left: 300, width: 300 }, vp)
     expect(p.left + p.width).toBeLessThanOrEqual(vp.width - 8)
+  })
+})
+
+describe("shouldOfferCreate", () => {
+  const list = [{ value: "1", label: "Aceite de canola · und" }, { value: "2", label: "Gaseosa" }]
+  it("no ofrece sin texto", () => expect(shouldOfferCreate(list, "  ")).toBe(false))
+  it("ofrece sin coincidencias", () => expect(shouldOfferCreate(list, "vaso")).toBe(true))
+  it("ofrece con coincidencia parcial", () => expect(shouldOfferCreate(list, "aceite")).toBe(true))
+  it("no ofrece con coincidencia exacta (sin tildes ni sufijo)", () => {
+    expect(shouldOfferCreate(list, "ACEITE DE CANOLA")).toBe(false)
+    expect(shouldOfferCreate(list, "gaseosa")).toBe(false)
   })
 })

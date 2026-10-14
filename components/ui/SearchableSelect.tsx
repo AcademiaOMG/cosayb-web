@@ -2,11 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback, useId, useMemo } from "react"
 import { createPortal } from "react-dom"
-import { Check, ChevronDown, Search, X } from "lucide-react"
+import { Check, ChevronDown, Plus, Search, X } from "lucide-react"
 import {
   filterOptions,
   moveHighlight,
   placeDropdown,
+  shouldOfferCreate,
   type DropdownPlacement,
   type SelectOption,
 } from "@/lib/ui/searchableSelect"
@@ -31,12 +32,15 @@ interface SearchableSelectProps {
   disabled?: boolean
   /** Las opciones se están cargando */
   loading?: boolean
+  /** Si se pasa, al buscar sin coincidencia exacta aparece al final «Crear «texto»» y se llama con el texto */
+  onCreate?: (query: string) => void
 }
 
 interface Item {
   value: string
   label: string
   isClear: boolean
+  isCreate?: boolean
 }
 
 // Los estilos viven en app/globals.css (.ui-select-*): tokens compartidos y
@@ -55,6 +59,7 @@ export default function SearchableSelect({
   clearLabel,
   disabled = false,
   loading = false,
+  onCreate,
 }: SearchableSelectProps) {
   const uid = useId()
   const listId = `${uid}-list`
@@ -73,8 +78,11 @@ export default function SearchableSelect({
   // Lista navegable con teclado: la opción fija de "limpiar" (si existe) va primero
   const items = useMemo<Item[]>(() => {
     const real = filteredOptions.map((o) => ({ ...o, isClear: false }))
-    return clearLabel ? [{ value: "", label: clearLabel, isClear: true }, ...real] : real
-  }, [clearLabel, filteredOptions])
+    const withClear = clearLabel ? [{ value: "", label: clearLabel, isClear: true }, ...real] : real
+    return onCreate && shouldOfferCreate(options, search)
+      ? [...withClear, { value: "__create", label: `Crear «${search.trim()}»`, isClear: false, isCreate: true }]
+      : withClear
+  }, [clearLabel, filteredOptions, onCreate, options, search])
   const firstReal = clearLabel ? 1 : 0
 
   const computePlacement = useCallback((): DropdownPlacement | null => {
@@ -136,11 +144,17 @@ export default function SearchableSelect({
   }, [disabled, computePlacement, options, value, firstReal])
 
   const choose = useCallback(
-    (item: { value: string }) => {
+    (item: { value: string; isCreate?: boolean }) => {
+      if (item.isCreate) {
+        const q = search.trim()
+        closeDropdown()
+        onCreate?.(q)
+        return
+      }
       onChange(item.value)
       closeDropdown(true)
     },
-    [onChange, closeDropdown],
+    [onChange, onCreate, search, closeDropdown],
   )
 
   const handleTriggerKeyDown = useCallback(
@@ -253,23 +267,25 @@ export default function SearchableSelect({
           ) : (
             <>
               {items.map((item, idx) => {
-                const isSelected = item.isClear ? value === "" : item.value === value
+                const isSelected = item.isCreate ? false : item.isClear ? value === "" : item.value === value
                 return (
                   <div
-                    key={item.isClear ? "__clear" : item.value}
+                    key={item.isCreate ? "__create" : item.isClear ? "__clear" : item.value}
                     id={optionId(idx)}
                     data-idx={idx}
                     role="option"
                     aria-selected={isSelected}
                     data-active={idx === highlightIndex || undefined}
                     data-clear={item.isClear || undefined}
+                    data-create={item.isCreate || undefined}
                     className="ui-select-option"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => choose(item)}
                     onMouseEnter={() => setHighlightIndex(idx)}
                   >
+                    {item.isCreate && <Plus size={14} aria-hidden className="ui-select-check" />}
                     <span className="ui-select-option-label">{item.label}</span>
-                    {isSelected && !item.isClear && <Check size={14} aria-hidden className="ui-select-check" />}
+                    {isSelected && !item.isClear && !item.isCreate && <Check size={14} aria-hidden className="ui-select-check" />}
                   </div>
                 )
               })}
