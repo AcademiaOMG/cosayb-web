@@ -1,12 +1,13 @@
 "use client"
 
 import useSWR, { useSWRConfig } from "swr"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
 import Table from "@/components/ui/Table"
 import Modal from "@/components/ui/Modal"
+import ExtraTag from "@/components/ui/ExtraTag"
 import {
   Plus, Trash2, UtensilsCrossed, ChefHat, Users, Calculator, History,
   Loader2, CalendarDays, Pencil, Eye, ShoppingCart, Printer, StickyNote, ArrowLeftCircle,
@@ -338,9 +339,11 @@ function DetailView({
 
   function handleCalcular() {
     if (!costo) {
-      setError(
+      const msg =
         "No se puede calcular: agrega al menos un plato con costo, define el número de personas y el % de materia prima."
-      )
+      setError(msg)
+      // El aviso inline queda fuera de pantalla en móvil: se repite como toast
+      toast.error(msg, { id: "menu-calc-blocked" })
       return
     }
     setError(null)
@@ -498,13 +501,7 @@ function DetailView({
                       {/* Selector de receta o de ingrediente extra */}
                       <div className="flex-1 min-w-0 flex items-center gap-2">
                         {item.componentType === "ingredient" && (
-                          <span
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full tracking-wider uppercase shrink-0"
-                            style={{ background: "#FEF3C7", color: "#92400E" }}
-                            title="Extra (bebidas, desechables, acompañamientos…)"
-                          >
-                            Extra
-                          </span>
+                          <ExtraTag unit={unitOfItem(item)} />
                         )}
                         {item.componentType === "ingredient" ? (
                           <div className="flex min-w-0 items-center gap-1.5">
@@ -517,7 +514,7 @@ function DetailView({
                                 <button
                                   type="button"
                                   onClick={() => setEditingExtraId(ing.id)}
-                                  className="shrink-0 transition-opacity hover:opacity-70"
+                                  className="shrink-0 inline-flex items-center justify-center min-h-8 min-w-8 -m-1.5 rounded-lg transition-opacity hover:opacity-70"
                                   style={{ color: "var(--text-muted)" }}
                                   title="Editar extra"
                                   aria-label={`Editar el extra ${ing.name}`}
@@ -535,7 +532,7 @@ function DetailView({
                             <button
                               type="button"
                               onClick={() => openRecipePicker(item.uid)}
-                              className="shrink-0 transition-opacity hover:opacity-70"
+                              className="shrink-0 inline-flex items-center justify-center min-h-8 min-w-8 -m-1.5 rounded-lg transition-opacity hover:opacity-70"
                               style={{ color: "var(--text-muted)" }}
                               title="Cambiar receta"
                               aria-label={`Cambiar receta ${item.nombre}`}
@@ -560,6 +557,8 @@ function DetailView({
                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-sm tabular-nums"
                         style={{ flexShrink: 0, background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
                         title="Para cambiar la cantidad, quita el ítem y agrégalo de nuevo desde la calculadora"
+                        role="group"
+                        aria-label={`Cantidad por porción: ${item.cantidadGramos} ${unitOfItem(item)}. Para cambiarla, quita el ítem y agrégalo de nuevo desde la calculadora`}
                       >
                         <span>{item.cantidadGramos}</span>
                         <span className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -573,10 +572,10 @@ function DetailView({
                           <Loader2 size={12} style={{ color: "var(--text-muted)", display: "inline" }}
                             className="animate-spin" />
                         ) : item.costoGramo === null && item.rawCostPerServing === null && item.recipeId ? (
-                          <span className="text-xs" style={{ color: "#F59E0B" }} title="Esta receta no tiene costo calculado. Asegúrate de que tenga ingredientes con precio definido.">
+                          <span className="text-xs" style={{ color: "#B45309" }} title="Esta receta no tiene costo calculado. Asegúrate de que tenga ingredientes con precio definido.">
                             Sin costo ⚠
                           </span>
-                        ) : costoPorcion !== null && costoPorcion > 0 ? (
+                        ) : costoPorcion !== null && !Number.isNaN(costoPorcion) ? (
                           <span className="text-xs tabular-nums font-medium" style={{ color: "var(--text-muted)" }}>
                             {fmt(costoPorcion)}
                           </span>

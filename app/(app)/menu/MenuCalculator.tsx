@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import SearchableSelect from "@/components/ui/SearchableSelect"
+import { toast } from "@/lib/toast"
 import ExtraCreateModal from "./ExtraCreateModal"
 import { unitShort, type ExtraUnit } from "@/lib/menuExtras"
 import type { Ingrediente } from "@/types/domain"
@@ -138,6 +139,8 @@ export default function MenuCalculator({
   function handleClearAll() {
     if (!clearArmed) {
       setClearArmed(true)
+      // La pantalla (sub) es solo para lectores; el aviso visible va en un toast
+      toast.info("Toca Limpiar otra vez para restaurar los valores", { id: "menu-clear-armed", duration: 4000 })
       return
     }
     setClearArmed(false)
@@ -181,15 +184,18 @@ export default function MenuCalculator({
     setClearArmed(false)
     const grams = parseEntry(regs.values.grams)
     if (!selected) {
-      setAddError(mode === "recipes" ? "Selecciona una receta en el buscador" : "Selecciona un extra en el buscador")
+      const msg = mode === "recipes" ? "Selecciona una receta en el buscador" : "Selecciona un extra en el buscador"
+      setAddError(msg)
+      toast.warning(msg, { id: "menu-add-missing" })
       return
     }
     if (!(grams && grams > 0)) {
-      setAddError(
+      const msg =
         mode === "recipes"
           ? "Escribe los gramos por porción con el teclado"
-          : "Escribe la cantidad por porción con el teclado",
-      )
+          : "Escribe la cantidad por porción con el teclado"
+      setAddError(msg)
+      toast.warning(msg, { id: "menu-add-missing" })
       regs.activate("grams")
       focusField("grams")
       return
@@ -374,6 +380,7 @@ export default function MenuCalculator({
             emptyMessage={isRecipes ? "No se encontraron recetas" : "No encontramos este extra"}
             ariaLabel={isRecipes ? "Seleccionar receta para agregar" : "Seleccionar extra para agregar"}
             variant="calculator"
+            invalid={!!addError && !selected}
             onCreate={
               isRecipes
                 ? undefined

@@ -176,13 +176,7 @@ function ExtraCreateForm({
             value={unit}
             onChange={(e) => setUnit(e.target.value as ExtraUnit)}
             disabled={saving}
-            className="h-10 w-full px-3 text-sm"
-            style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-light)",
-              borderRadius: "var(--radius-md)",
-              color: "var(--text-primary)",
-            }}
+            className="ui-native-select"
           >
             {EXTRA_UNITS.map((u) => (
               <option key={u.value} value={u.value}>

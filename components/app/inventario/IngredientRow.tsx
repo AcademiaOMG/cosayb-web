@@ -3,6 +3,7 @@
 import { ChevronRight, Pencil, Trash2 } from "lucide-react"
 import type { Ingredient } from "@/types/ingredient"
 import { extraUnitLabel } from "@/lib/menuExtras"
+import ExtraTag from "@/components/ui/ExtraTag"
 import {
   displayName,
   formatCOP,
@@ -40,19 +41,6 @@ function OwnTag() {
       }}
     >
       Propio
-    </span>
-  )
-}
-
-/** Identifica los extras del menú (vasos, bebidas…) y su unidad */
-function ExtraTag({ unit }: { unit: string }) {
-  return (
-    <span
-      className="shrink-0 px-1.5 py-px text-[11px] font-semibold leading-4"
-      style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", borderRadius: "6px" }}
-      title="Extra del menú"
-    >
-      Extra · {unit}
     </span>
   )
 }
