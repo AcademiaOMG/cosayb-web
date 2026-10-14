@@ -38,6 +38,15 @@
   display: flex;
   flex-direction: column;
 }
+/* Como en Valoración: sin resultado, en angosto la respuesta no ocupa lugar
+   (el aparato ya dice qué falta); en ancho muestra pregunta + marcador de lugar. */
+.answer[data-state="idle"] {
+  display: none;
+}
+/* Boleto precargado: aparece ya impreso, sin animación de entrada */
+.still :global(.calc-receipt-print) {
+  animation: none;
+}
 
 .question {
   margin-bottom: 18px;
@@ -73,7 +82,9 @@
     grid-template-columns: var(--be-device-w) minmax(0, 1fr);
     column-gap: 32px;
   }
-  .answer {
+  .answer,
+  .answer[data-state="idle"] {
+    display: flex;
     max-width: 460px;
   }
   .question {
@@ -120,7 +131,12 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: 22px;
-    align-items: start;
+    /* Ambas columnas estiradas a la misma altura: arrancan juntas arriba y el
+       teclado + acción de la derecha se asientan abajo, a ras con el borde inferior */
+    align-items: stretch;
+  }
+  .colRight .keypad {
+    margin-top: auto;
   }
   .colLeft .fields {
     gap: 9px;
@@ -131,9 +147,6 @@
   }
   .device .cost :global(.calc-register-value) {
     min-height: 26px;
-  }
-  .product .sep {
-    margin-top: 0;
   }
   .keypad :global(.calc-key-num),
   .keypad :global(.calc-key-fn) {
@@ -184,28 +197,6 @@
   gap: 12px;
   padding: 0 3px;
 }
-.sep {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 6px 0 0;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--print, rgba(208, 218, 242, 0.68));
-}
-.sep::before,
-.sep::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.16);
-}
-.sep::before {
-  flex: 0 0 14px;
-}
-
 /* El lápiz de renombrar sustituye al decorativo del registro */
 .cost :global(.calc-pen) {
   display: none;
@@ -350,14 +341,4 @@
 }
 .heroValue[data-empty="true"] {
   color: var(--text-muted);
-}
-.reason {
-  margin: 6px 0 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--text-secondary);
-}
-.reason[data-tone="error"] {
-  color: var(--error);
-  font-weight: 600;
 }

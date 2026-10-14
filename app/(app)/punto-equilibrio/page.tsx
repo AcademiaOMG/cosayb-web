@@ -370,7 +370,7 @@ export default function PuntoEquilibrioPage() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Resultado:</strong> costos fijos ÷ (precio − costo variable) = unidades al mes. Aparece en el boleto de la derecha (debajo en el celular) y se recalcula mientras escribes, por mes y por día; cuando esté listo, pulsa Guardar.</span>
+              <span><strong>Resultado:</strong> costos fijos ÷ (precio − costo variable) = unidades al mes. Pulsa Calcular y aparece en el boleto de la derecha (debajo en el celular), por mes y por día; si cambias un dato, vuelve a calcular. Cuando esté listo, pulsa Guardar.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>

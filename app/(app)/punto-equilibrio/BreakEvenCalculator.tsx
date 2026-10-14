@@ -9,11 +9,14 @@ import { entryKeyFromKeyboard, formatMoneyEntry, parseEntry, type EntryOptions }
 import { formatCOP } from "@/lib/calculator/format"
 import { contributionMarginOf, missingBreakEvenInputs, solveBreakEven, type BreakEvenOutcome } from "@/lib/calculator/breakEven"
 import {
+  BLANK_SIGNATURE,
   COST_NAME_MAX,
   NEW_COST_NAME,
   PRICE_FIELD,
   VARIABLE_FIELD,
+  calcPhase,
   fixedCostsFromFields,
+  inputsSignature as signature,
   prefillCostFields,
   presetCostFields,
   sumCostFields,
@@ -72,15 +75,6 @@ export function solveLive(fixedTotal: number, salePrice: number | null, variable
   return { ok: false, kind: "invalid", message: r.message }
 }
 
-const signature = (fields: CostField[], values: Record<string, string>) =>
-  JSON.stringify(fields.map((f) => [f.id, f.name.trim(), parseEntry(values[f.id] ?? "") ?? 0])) +
-  "#" +
-  (parseEntry(values[PRICE_FIELD] ?? "") ?? "") +
-  "|" +
-  (parseEntry(values[VARIABLE_FIELD] ?? "") ?? "")
-
-const BLANK_SIGNATURE = signature(presetCostFields(), {})
-
 function isTypingTarget(el: EventTarget | null) {
   if (!(el instanceof HTMLElement)) return false
   return el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName)
@@ -88,8 +82,8 @@ function isTypingTarget(el: EventTarget | null) {
 
 /**
  * "Nuevo cálculo": la calculadora del kit en dos columnas (costos fijos a la izquierda;
- * precio, costo variable, teclado y Guardar a la derecha) y, al lado o debajo, el boleto de resultados. El
- * resultado se recalcula al escribir; solo se pide Guardar.
+ * precio, costo variable, teclado y Calcular/Guardar a la derecha) y, al lado o debajo, el boleto de resultados. El
+ * resultado aparece al pulsar Calcular (como en Valoración) y luego se guarda.
  */
 export default function BreakEvenCalculator({
   initialRecord,
@@ -142,18 +136,32 @@ export default function BreakEvenCalculator({
   const savingRef = useRef(false)
   const [baseline, setBaseline] = useState(() => signature(boot.fields, boot.values))
   const [savedSig, setSavedSig] = useState<string | null>(null)
+  // Huella de los datos con los que se pulsó «Calcular». Con un registro precargado
+  // y válido arranca ya calculada (boleto visible, sin animación de entrada).
+  const [calculatedSig, setCalculatedSig] = useState<string | null>(() => {
+    const total = sumCostFields(boot.fields, boot.values)
+    const ok = solveLive(total, parseEntry(boot.values[PRICE_FIELD] ?? ""), parseEntry(boot.values[VARIABLE_FIELD] ?? "")).ok
+    return initialRecord && ok ? signature(boot.fields, boot.values) : null
+  })
+  // El boleto solo se anima si el usuario pulsó «Calcular» (no al precargar).
+  const [animate, setAnimate] = useState(false)
+  // Motivo del último «Calcular» fallido; vale solo mientras los datos no cambien.
+  const [failed, setFailed] = useState<{ sig: string; message: string } | null>(null)
+  const answerRef = useRef<HTMLElement>(null)
 
   const fixedTotal = sumCostFields(fields, values)
   const salePrice = parseEntry(values[PRICE_FIELD] ?? "")
   const variableCost = parseEntry(values[VARIABLE_FIELD] ?? "")
   const margin = contributionMarginOf(salePrice, variableCost)
   const live = solveLive(fixedTotal, salePrice, variableCost)
-  const result = live.ok ? live.result : null
   const marginBad = margin !== null && margin <= 0
 
   // Todo costo con monto necesita nombre para quedar en el historial.
   const unnamed = fields.some((f) => (parseEntry(values[f.id] ?? "") ?? 0) > 0 && f.name.trim() === "")
   const sig = signature(fields, values)
+  const phase = calcPhase(calculatedSig, sig)
+  // Boleto solo si se calculó con estos mismos datos y siguen siendo válidos.
+  const result = phase === "ready" && live.ok ? live.result : null
   const dirty = sig !== baseline
   const saved = result !== null && savedSig === sig
   const hasData = sig !== BLANK_SIGNATURE
@@ -251,6 +259,30 @@ export default function BreakEvenCalculator({
     setNote(null)
     setSavedSig(null)
     setBaseline(BLANK_SIGNATURE)
+    setCalculatedSig(null)
+    setFailed(null)
+    setAnimate(false)
+  }
+
+  /** «Calcular»: valida con solveLive; si es válido muestra el boleto, si no avisa el motivo. */
+  function handleCalculate() {
+    if (phase === "ready" && result) return
+    if (!live.ok) {
+      setFailed({ sig, message: live.message })
+      toast.warning("No se puede calcular todavía", { description: live.message })
+      focusField(
+        fixedTotal <= 0 ? fields[0].id : salePrice === null || salePrice <= 0 ? PRICE_FIELD : VARIABLE_FIELD,
+      )
+      return
+    }
+    setFailed(null)
+    setAnimate(true)
+    setCalculatedSig(sig)
+    // En una columna el boleto queda debajo de la calculadora: llévalo a la vista.
+    requestAnimationFrame(() => {
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+      answerRef.current?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" })
+    })
   }
 
   async function handleClear() {
@@ -321,19 +353,23 @@ export default function BreakEvenCalculator({
         onEnter={() => {
           const next = order[idx + 1]
           if (next) focusField(next)
+          // Último campo: Enter = Calcular
+          else handleCalculate()
         }}
       />
     )
   }
 
-  const status = unnamed
-    ? "Ponle nombre a cada costo para poder guardar."
-    : saved
-      ? "Cálculo guardado."
-      : live.ok
-        ? "Listo para guardar."
-        : live.message
-  const statusError = marginBad || unnamed
+  // Solo avisos útiles: nada de «Listo para guardar». Sin aviso no se dibuja la línea.
+  const failedNow = failed && failed.sig === sig ? failed.message : null
+  let status = ""
+  let statusError = true
+  if (result && unnamed) status = "Ponle nombre a cada costo para poder guardar."
+  else if (saved) {
+    status = "Cálculo guardado."
+    statusError = false
+  } else if (failedNow) status = failedNow
+  else if (marginBad && !live.ok && live.kind === "invalid") status = live.message
 
   return (
     <div className="flex flex-col gap-3 min-w-0">
@@ -443,8 +479,6 @@ export default function BreakEvenCalculator({
 
               <div className={styles.colRight}>
               <div className={styles.product}>
-                <p className={styles.sep}>Tu producto</p>
-
                 {register(PRICE_FIELD, { label: "Precio de venta", ariaLabel: "Precio de venta por unidad" })}
                 {register(VARIABLE_FIELD, {
                   label: "Costo variable por unidad",
@@ -459,35 +493,55 @@ export default function BreakEvenCalculator({
 
               {saved ? (
                 <CalcActionKey onClick={onDone}>Ver historial</CalcActionKey>
-              ) : (
+              ) : result ? (
                 <CalcActionKey onClick={handleSave} disabled={!canSave} aria-busy={saving || undefined}>
                   {saving ? "Guardando…" : "Guardar"}
                 </CalcActionKey>
+              ) : (
+                <CalcActionKey onClick={handleCalculate}>Calcular</CalcActionKey>
               )}
-              <p id={msgId} className={styles.status} data-tone={statusError ? "error" : undefined} role={statusError ? "alert" : "status"}>
-                {status}
-              </p>
+              {status && (
+                <p id={msgId} className={styles.status} data-tone={statusError ? "error" : undefined} role={statusError ? "alert" : "status"}>
+                  {status}
+                </p>
+              )}
               </div>
               </div>
             </CalcDevice>
           </div>
 
-          <section className={styles.answer} aria-labelledby={`${uid}-q`}>
+          <section
+            ref={answerRef}
+            className={styles.answer}
+            data-state={result ? "result" : "idle"}
+            aria-labelledby={`${uid}-q`}
+          >
             <header className={styles.question}>
               <h2 id={`${uid}-q`} className={styles.questionTitle}>
                 ¿Cuántas unidades debo vender?
               </h2>
               <p className={styles.questionHint}>Las que cubren todos tus costos del mes: desde ahí empiezas a ganar.</p>
             </header>
-            <BreakEvenTicket
-              result={result}
-              message={live.ok ? "" : live.message}
-              isError={!live.ok && live.kind === "invalid"}
-              fixedTotal={fixedTotal}
-              salePrice={salePrice}
-              variableCost={variableCost}
-              margin={margin}
-            />
+            {result ? (
+              <div className={animate ? undefined : styles.still}>
+                <BreakEvenTicket
+                  result={result}
+                  fixedTotal={fixedTotal}
+                  salePrice={salePrice}
+                  variableCost={variableCost}
+                  margin={margin}
+                />
+              </div>
+            ) : (
+              <div className="calc-printer" aria-hidden>
+                <div className="calc-printer-slot" />
+                <div className="calc-receipt-placeholder">
+                  {phase === "stale"
+                    ? "Cambiaste los datos. Pulsa Calcular para ver el resultado de nuevo."
+                    : "El resultado aparecerá aquí cuando pulses Calcular"}
+                </div>
+              </div>
+            )}
           </section>
         </div>
       </div>

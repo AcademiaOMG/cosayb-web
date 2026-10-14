@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest"
 import { renderToString } from "react-dom/server"
 import BreakEvenCalculator, { solveLive } from "@/app/(app)/punto-equilibrio/BreakEvenCalculator"
 import {
+  calcPhase,
   fixedCostsFromFields,
+  inputsSignature,
   prefillCostFields,
   presetCostFields,
   sumCostFields,
@@ -11,7 +13,7 @@ import type { BreakEvenRecord } from "@/types/domain"
 
 /**
  * "Nuevo cálculo": la calculadora del kit en dos columnas (un campo LCD por
- * concepto) con el boleto de resultados al lado. Se protege el contrato de
+ * concepto) con el boleto de resultados que aparece al pulsar Calcular. Se protege el contrato de
  * render (SSR) y la lógica pura; teclear no se cubre sin DOM.
  */
 
@@ -44,6 +46,7 @@ const excel = {
   createdAt: "2026-01-01T00:00:00.000Z",
 } as BreakEvenRecord
 
+const calcularBtn = (html: string) => html.includes(">Calcular</button>")
 const guardarDisabled = (html: string) => /<button[^>]*disabled[^>]*>Guardar<\/button>/.test(html)
 
 describe("BreakEvenCalculator — vista inicial en blanco", () => {
@@ -57,7 +60,7 @@ describe("BreakEvenCalculator — vista inicial en blanco", () => {
     // Los campos son registros LCD (inputMode none), no inputs de pesos normales
     expect(html).not.toContain('inputMode="decimal"')
     expect(html).toContain('inputMode="none"')
-    for (const t of ["Continuar", "Siguiente", "Resultado en vivo"]) expect(html).not.toContain(t)
+    for (const t of ["Continuar", "Siguiente", "Resultado en vivo", "Listo para guardar"]) expect(html).not.toContain(t)
   })
 
   it("trae los 9 rubros del Excel como campos LCD, cada uno con su lápiz para renombrar", () => {
@@ -70,43 +73,44 @@ describe("BreakEvenCalculator — vista inicial en blanco", () => {
     expect(html).toContain("Otro costo")
   })
 
-  it("después de los costos: separador «Tu producto», precio y costo variable", () => {
-    const sep = html.indexOf("Tu producto")
-    expect(sep).toBeGreaterThan(html.indexOf(">Otros</label>"))
-    expect(html.indexOf(">Precio de venta</label>")).toBeGreaterThan(sep)
+  it("después de los costos: precio y costo variable, sin rótulo «Tu producto» que desplace la columna", () => {
+    expect(html).not.toContain("Tu producto")
+    expect(html.indexOf(">Precio de venta</label>")).toBeGreaterThan(html.indexOf(">Otros</label>"))
     expect(html.indexOf(">Costo variable por unidad</label>")).toBeGreaterThan(html.indexOf(">Precio de venta</label>"))
     expect(html).toContain("0 si no tiene insumos")
   })
 
-  it("orden del DOM = orden de Tab: pantalla y costos (izquierda), luego producto, teclado y Guardar (derecha)", () => {
+  it("orden del DOM = orden de Tab: pantalla y costos (izquierda), luego producto, teclado y Calcular (derecha)", () => {
     const at = (t: string) => html.indexOf(t)
-    const seq = ["COSTOS FIJOS DEL MES", ">Arriendo</label>", ">Otros</label>", "Otro costo", "Tu producto", ">Precio de venta</label>", ">Costo variable por unidad</label>", "Teclado numérico", ">Guardar</button>"]
+    const seq = ["COSTOS FIJOS DEL MES", ">Arriendo</label>", ">Otros</label>", "Otro costo", ">Precio de venta</label>", ">Costo variable por unidad</label>", "Teclado numérico", ">Calcular</button>"]
     const pos = seq.map(at)
     expect(pos.every((n) => n >= 0)).toBe(true)
     expect([...pos].sort((a, b) => a - b)).toEqual(pos)
-    // El boleto va después de toda la carcasa
-    expect(at("Unidades por día")).toBeGreaterThan(at(">Guardar</button>"))
+    // La zona del boleto va después de toda la carcasa
+    expect(at("¿Cuántas unidades debo vender?")).toBeGreaterThan(at(">Calcular</button>"))
   })
 
-  it("lleva el boleto de resultados con todas sus filas y Guardar deshabilitado", () => {
-    expect(html).toContain("Punto de equilibrio")
+  it("el render inicial NO trae boleto ni cifras: solo la pregunta y el marcador de lugar", () => {
+    expect(html).toContain("¿Cuántas unidades debo vender?")
+    expect(html).toContain("El resultado aparecerá aquí cuando pulses Calcular")
     for (const t of [
-      "Costos fijos del mes",
+      "calc-receipt-print",
       "Margen por unidad",
       "Unidades por día",
       "Ventas del mes",
       "Ventas del día",
       "Unidades para cubrir costos al mes",
     ]) {
-      expect(html).toContain(t)
+      expect(html).not.toContain(t)
     }
-    expect(guardarDisabled(html)).toBe(true)
+    expect(calcularBtn(html)).toBe(true)
+    expect(html).not.toContain(">Guardar</button>")
     expect(html).toContain("Limpiar")
   })
 
-  it("sin datos: guiones y el motivo, nunca cifras ni NaN ni Infinity", () => {
-    expect(html).toContain("—")
-    expect(html).toContain("Agrega al menos un costo fijo")
+  it("sin datos: ningún aviso ni cifra hasta pulsar Calcular (nunca NaN ni Infinity)", () => {
+    expect(html).not.toContain("Agrega al menos un costo fijo")
+    expect(html).not.toContain("Listo para guardar")
     expect(html).not.toContain("NaN")
     expect(html).not.toContain("Infinity")
     expect(html).not.toContain("337,69")
@@ -114,7 +118,7 @@ describe("BreakEvenCalculator — vista inicial en blanco", () => {
 })
 
 describe("BreakEvenCalculator — precarga", () => {
-  it("con los datos del Excel rellena los campos por nombre y calcula en vivo", () => {
+  it("con los datos del Excel rellena los campos por nombre y muestra el boleto ya calculado", () => {
     const html = render(excel)
     expect(html).toContain('value="$ 2.000.000"') // Arriendo
     expect(html).toContain('value="$ 3.000.000"') // Sueldos
@@ -127,7 +131,9 @@ describe("BreakEvenCalculator — precarga", () => {
     expect(html).toContain("11,26") // por día
     expect(html).toContain("$ 9.624.231") // ventas del mes
     expect(html).toContain("$ 320.808") // ventas del día
-    expect(html).toContain("Listo para guardar")
+    expect(html).not.toContain("Listo para guardar")
+    expect(html).toContain("calc-receipt-print")
+    expect(calcularBtn(html)).toBe(false)
     expect(guardarDisabled(html)).toBe(false)
   })
 
@@ -139,21 +145,22 @@ describe("BreakEvenCalculator — precarga", () => {
     expect(html).toContain("$ 2.080.000")
   })
 
-  it("si el precio no supera el costo variable no muestra ninguna cifra de resultado", () => {
+  it("si el precio no supera el costo variable no hay boleto: aviso del motivo y Calcular", () => {
     const html = render({ ...excel, salePrice: 9000 })
     expect(html).toContain("debe ser mayor al costo variable")
+    expect(html).not.toContain("calc-receipt-print")
     expect(html).not.toContain("337,69")
     expect(html).not.toContain("NaN")
     expect(html).not.toContain("Infinity")
-    expect(guardarDisabled(html)).toBe(true)
+    expect(calcularBtn(html)).toBe(true)
   })
 
-  it("faltan el precio y el costo variable: los fijos se ven, el resultado es «—» con el motivo", () => {
+  it("faltan el precio y el costo variable: los fijos se ven, no hay boleto", () => {
     const html = render({ ...excel, salePrice: 0, variableCost: 0 })
     expect(html).toContain("$ 6.585.000")
-    expect(html).toContain("Escribe el precio de venta")
+    expect(html).not.toContain("calc-receipt-print")
     expect(html).not.toContain("337,69")
-    expect(guardarDisabled(html)).toBe(true)
+    expect(calcularBtn(html)).toBe(true)
   })
 })
 
@@ -195,6 +202,41 @@ describe("solveLive — valores de la hoja PUNTOEKILIBRIO", () => {
     expect(solveLive(6585000, -1, 9000).ok).toBe(false)
     expect(solveLive(6585000, 28500, -5).ok).toBe(false)
     expect(solveLive(Number.MAX_VALUE, 3, 1).ok).toBe(false)
+  })
+})
+
+describe("fase del boleto: calculado / obsoleto (calcPhase)", () => {
+  const { fields, values } = prefillCostFields(excel.fixedCosts)
+  const vals = { ...values, price: "28500", variable: "9000" }
+  const sig = inputsSignature(fields, vals)
+
+  it("sin haber calculado: en reposo, sin boleto", () => {
+    expect(calcPhase(null, sig)).toBe("idle")
+  })
+
+  it("calculado con los mismos datos: listo (boleto visible) y con las cifras del Excel", () => {
+    expect(calcPhase(sig, inputsSignature(fields, { ...vals }))).toBe("ready")
+    const r = solveLive(sumCostFields(fields, vals), 28500, 9000)
+    if (!r.ok) throw new Error(r.message)
+    expect(r.result.unitsPerMonth).toBeCloseTo(337.69, 2)
+    expect(r.result.unitsPerDay).toBeCloseTo(11.26, 2)
+    expect(r.result.revenuePerMonth).toBeCloseTo(9624230.77, 2)
+    expect(r.result.revenuePerDay).toBeCloseTo(320807.69, 2)
+  })
+
+  it("cualquier cambio de dato después de calcular lo vuelve obsoleto", () => {
+    expect(calcPhase(sig, inputsSignature(fields, { ...vals, price: "29000" }))).toBe("stale")
+    expect(calcPhase(sig, inputsSignature(fields, { ...vals, variable: "0" }))).toBe("stale")
+    expect(calcPhase(sig, inputsSignature(fields, { ...vals, rent: "2000001" }))).toBe("stale")
+    expect(calcPhase(sig, inputsSignature(fields.map((f) => (f.id === "rent" ? { ...f, name: "Local" } : f)), vals))).toBe("stale")
+    // Volver al valor original lo deja listo otra vez
+    expect(calcPhase(sig, inputsSignature(fields, { ...vals, price: "28500" }))).toBe("ready")
+  })
+
+  it("casos inválidos: no hay resultado que mostrar aunque se pulse Calcular", () => {
+    expect(solveLive(0, 28500, 9000).ok).toBe(false)
+    expect(solveLive(6585000, 9000, 9000).ok).toBe(false)
+    expect(solveLive(6585000, null, null).ok).toBe(false)
   })
 })
 

@@ -80,3 +80,35 @@ export function fixedCostsFromFields(
 ): { name: string; amount: number }[] {
   return fields.flatMap((f) => (amountOf(values, f.id) > 0 ? [{ name: f.name.trim(), amount: amountOf(values, f.id) }] : []))
 }
+
+// ─── Firma de datos y fase de la calculadora (Calcular → boleto → Guardar) ───
+
+/**
+ * Huella de TODO lo que alimenta el cálculo (id, nombre y monto de cada costo,
+ * precio y costo variable). Dos huellas iguales = mismos datos.
+ */
+export function inputsSignature(fields: CostField[], values: Record<string, string>): string {
+  return (
+    JSON.stringify(fields.map((f) => [f.id, f.name.trim(), parseEntry(values[f.id] ?? "") ?? 0])) +
+    "#" +
+    (parseEntry(values[PRICE_FIELD] ?? "") ?? "") +
+    "|" +
+    (parseEntry(values[VARIABLE_FIELD] ?? "") ?? "")
+  )
+}
+
+/** Huella de la calculadora en blanco (9 rubros vacíos) */
+export const BLANK_SIGNATURE = inputsSignature(presetCostFields(), {})
+
+export type CalcPhase = "idle" | "ready" | "stale"
+
+/**
+ * Fase del boleto:
+ *  - idle:  nunca se calculó (o se limpió): no hay boleto.
+ *  - ready: se calculó con estos mismos datos: boleto visible.
+ *  - stale: se calculó pero después cambió algún dato: el boleto ya no vale y se oculta.
+ */
+export function calcPhase(calculatedSig: string | null, currentSig: string): CalcPhase {
+  if (calculatedSig === null) return "idle"
+  return calculatedSig === currentSig ? "ready" : "stale"
+}
