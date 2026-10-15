@@ -11,6 +11,7 @@ import {
   platformListOrgMembers,
   platformStartImpersonation,
 } from "@/lib/api"
+import OrgSupportActions from "@/components/saas/OrgSupportActions"
 import { ArrowLeft, Ban, CheckCircle2, Users, Calendar, CreditCard, Eye } from "lucide-react"
 
 export default function OrganizacionDetallePage({
@@ -172,6 +173,10 @@ export default function OrganizacionDetallePage({
           <p className="text-xs console-muted mt-3">Tu rol no permite cambiar la membresía.</p>
         )}
       </div>
+
+      {canUpdate && (
+        <OrgSupportActions orgId={id} name={org.name} plan={org.membership as "free" | "pro" | "academia"} onDone={() => mutate()} />
+      )}
 
       {/* Impersonación */}
       {canImpersonate && (

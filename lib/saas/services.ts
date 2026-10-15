@@ -52,7 +52,7 @@ export interface SaasServices {
     metrics(): Promise<PlatformSaasMetrics>
     subscriptions(f?: platform.SubscriptionFilters): Promise<PlatformSubscription[]>
     payments(f?: platform.PaymentFilters): Promise<PlatformPayment[]>
-    orgAction(orgId: string, action: OrgSupportAction): Promise<void>
+    orgAction(orgId: string, action: OrgSupportAction, seed?: { name: string; plan: PlanId }): Promise<void>
     tickets(status?: TicketStatus | "all"): Promise<PlatformTicket[]>
     setTicketStatus(id: string, status: TicketStatus): Promise<void>
   }
@@ -101,9 +101,19 @@ const mockServices: SaasServices = {
           ticket = r.ticket
           return r.state
         })
+        // también llega a la bandeja de soporte de la plataforma
+        mutatePlatformMock((p) => ({
+          ...p,
+          tickets: [{ ...ticket, id: `u-${ticket.id}`, number: ticket.number, organizationName: null }, ...p.tickets],
+        }))
         return ticket
       }),
-    mine: () => mock(() => loadMock().tickets),
+    // el estado lo gestiona soporte (plataforma): se refleja aquí
+    mine: () =>
+      mock(() => {
+        const managed = new Map(loadPlatformMock().tickets.map((t) => [t.id, t.status]))
+        return loadMock().tickets.map((t) => ({ ...t, status: managed.get(`u-${t.id}`) ?? t.status }))
+      }),
   },
   account: {
     exportData: () => buildAccountExport(),
@@ -112,7 +122,8 @@ const mockServices: SaasServices = {
     metrics: () => mock(() => platform.computeMetrics(loadPlatformMock())),
     subscriptions: (f) => mock(() => platform.listSubscriptions(loadPlatformMock(), f)),
     payments: (f) => mock(() => platform.listPayments(loadPlatformMock(), f)),
-    orgAction: (orgId, action) => mock(() => void mutatePlatformMock((s, now) => platform.applyOrgAction(s, orgId, action, now))),
+    orgAction: (orgId, action, seed) =>
+      mock(() => void mutatePlatformMock((s, now) => platform.applyOrgAction(s, orgId, action, now, seed))),
     tickets: (status) =>
       mock(() => loadPlatformMock().tickets.filter((t) => (status && status !== "all" ? t.status === status : true))),
     setTicketStatus: (id, status) => mock(() => void mutatePlatformMock((s, now) => platform.setTicketStatus(s, id, status, now))),

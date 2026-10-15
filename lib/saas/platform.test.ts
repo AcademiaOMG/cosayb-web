@@ -78,6 +78,12 @@ describe("mockPlatform · acciones de soporte", () => {
     expect(() => applyOrgAction(base, free.id, { type: "mark_paid" }, NOW)).toThrowError(SaasError)
   })
 
+  it("incorpora una organización real desconocida al actuar sobre ella", () => {
+    const next = applyOrgAction(base, "org-real", { type: "extend_trial", days: 5 }, NOW, { name: "Mi Negocio", plan: "free" })
+    expect(next.orgs[0]).toMatchObject({ id: "org-real", name: "Mi Negocio", status: "trialing" })
+    expect(() => applyOrgAction(base, "org-real", { type: "mark_paid" }, NOW)).toThrowError(/no encontrada/)
+  })
+
   it("actualiza tickets", () => {
     const t = base.tickets[0]
     const next = setTicketStatus(base, t.id, "closed", NOW)

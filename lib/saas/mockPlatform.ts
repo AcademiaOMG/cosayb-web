@@ -202,8 +202,23 @@ function addPayment(state: PlatformState, org: MockOrg, status: PaymentStatus, n
 }
 
 /** Acciones de soporte sobre una organización (extender prueba, cambiar plan, marcar pago). */
-export function applyOrgAction(state: PlatformState, orgId: string, action: OrgSupportAction, now: Date): PlatformState {
-  const org = state.orgs.find((o) => o.id === orgId)
+export function applyOrgAction(
+  state: PlatformState,
+  orgId: string,
+  action: OrgSupportAction,
+  now: Date,
+  seed?: { name: string; plan: PlanId },
+): PlatformState {
+  let org = state.orgs.find((o) => o.id === orgId)
+  if (!org && seed) {
+    // Organización real que aún no existe en los datos de demostración: se incorpora
+    org = {
+      id: orgId, name: seed.name, plan: seed.plan, status: seed.plan === "free" ? "free" : "active",
+      trialEndsAt: null, currentPeriodEnd: seed.plan === "free" ? null : iso(addDays(now, 30)),
+      cancelAtPeriodEnd: false, createdAt: iso(now),
+    }
+    state = { ...state, orgs: [org, ...state.orgs] }
+  }
   if (!org) throw new SaasError("NOT_FOUND", "Organización no encontrada.")
   let updated: MockOrg = org
   let next = state

@@ -9,7 +9,7 @@ import SessionGuard from "@/components/SessionGuard"
 import { authClient } from "@/lib/auth"
 import {
   Shield, BarChart3, Building2, Users, Drama, CreditCard,
-  ChefHat, Carrot, ScrollText, LogOut, ShieldAlert, ArrowLeft,
+  ChefHat, Carrot, ScrollText, LogOut, ShieldAlert, ArrowLeft, Repeat, Wallet, LifeBuoy,
 } from "lucide-react"
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -49,6 +49,24 @@ const SECTIONS: ConsoleSection[] = [
     label: "Roles y permisos",
     icon: Drama,
     roles: ["platform_owner"],
+  },
+  {
+    href: "/plataforma/suscripciones",
+    label: "Suscripciones",
+    icon: Repeat,
+    roles: ["platform_owner", "platform_admin", "platform_billing", "platform_readonly"],
+  },
+  {
+    href: "/plataforma/pagos",
+    label: "Pagos",
+    icon: Wallet,
+    roles: ["platform_owner", "platform_admin", "platform_billing", "platform_readonly"],
+  },
+  {
+    href: "/plataforma/soporte",
+    label: "Soporte",
+    icon: LifeBuoy,
+    roles: ["platform_owner", "platform_admin", "platform_support"],
   },
   {
     href: "/plataforma/membresias",

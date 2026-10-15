@@ -64,11 +64,11 @@ Ya existe: métricas básicas, organizaciones, usuarios, roles, membresías, ban
 
 | ID | Brecha | Estado |
 |---|---|---|
-| P1 | Métricas SaaS: MRR, altas, bajas, churn, ARPA, series mensuales | todo |
-| P2 | Suscripciones (lista, filtros por estado, detalle) | todo |
-| P3 | Pagos (lista, estado, reintento/reembolso simulado) | todo |
-| P4 | Acciones de soporte sobre una organización: extender prueba, cambiar plan, suspender, marcar pago | todo |
-| P5 | Bandeja de tickets de soporte | todo |
+| P1 | Métricas SaaS: MRR, altas, bajas, churn, ARPA, series mensuales | done |
+| P2 | Suscripciones (lista, filtros por estado, detalle) | done |
+| P3 | Pagos (lista, estado, reintento/reembolso simulado) | done |
+| P4 | Acciones de soporte sobre una organización: extender prueba, cambiar plan, suspender, marcar pago | done |
+| P5 | Bandeja de tickets de soporte | done |
 
 ## P2 — Calidad de producto
 
