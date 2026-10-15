@@ -10,7 +10,7 @@ import StatusPill from "@/components/plataforma/StatusPill"
 import { BusinessesCell } from "@/components/plataforma/accesos/AccessUsersTab"
 import { deviceText, getAccessDetail, resultInfo } from "@/lib/plataforma/accesos"
 import { exactTime, relativeTime } from "@/lib/plataforma/auditView"
-import { authEventLabel, authFailureLabel, authMethodLabel, moduleLabel, usageActionLabel } from "@/lib/plataforma/labels"
+import { authEventLabel, authFailureLabel, authMethodLabel, authRevokeReasonLabel, moduleLabel, usageActionLabel } from "@/lib/plataforma/labels"
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -87,6 +87,7 @@ export default function UserAccessDetail({ userId, onClose, onSeeActivity, canOp
                       <span className="text-sm console-title">
                         {authEventLabel(t.type)}
                         {t.type === "login_failed" && <span className="console-muted"> · {authFailureLabel(t.reason)}</span>}
+                        {t.type === "session_revoked" && t.reason && <span className="console-muted"> · {authRevokeReasonLabel(t.reason)}</span>}
                       </span>
                       {t.at && <span className="text-xs console-muted" title={exactTime(t.at)}>{relativeTime(t.at)}</span>}
                     </div>

@@ -19,10 +19,11 @@ function AccesosContent() {
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
-  const { platformCan } = usePermissions()
+  const { platformCan, isLoading: loadingPerms } = usePermissions()
   const [detailUserId, setDetailUserId] = useState<string | null>(null)
   const tab = params.get("vista") === "actividad" ? "actividad" : "usuarios"
 
+  if (loadingPerms) return <LoadingBlock />
   if (!platformCan("platform_audit", "list")) return <AccessDenied />
 
   const go = (id: string, extra?: string) => router.replace(id === "usuarios" ? pathname : `${pathname}?vista=actividad${extra ?? ""}`, { scroll: false })

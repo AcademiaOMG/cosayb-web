@@ -558,3 +558,14 @@ export function authFailureLabel(reason: string | null | undefined): string {
   if (!reason) return "Sin motivo registrado"
   return AUTH_FAILURE_LABELS[reason] ?? humanize(reason)
 }
+
+/** Por qué se cerró una sesión (`auth_events.reason` en eventos de sesión revocada). */
+export const AUTH_REVOKE_REASON_LABELS: Record<string, string> = {
+  single_session: "al iniciar sesión en otro dispositivo",
+  by_user: "la cerró la propia persona",
+}
+
+export function authRevokeReasonLabel(reason: string | null | undefined): string {
+  if (!reason) return ""
+  return AUTH_REVOKE_REASON_LABELS[reason] ?? humanize(reason)
+}
