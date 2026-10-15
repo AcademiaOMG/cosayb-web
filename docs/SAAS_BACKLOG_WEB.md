@@ -1,4 +1,4 @@
-# Backlog SaaS — frontend (cosayb-web)undefineddone ||||||
+# Backlog SaaS — frontend (cosayb-web)undefineddone ||||||||
 
 Objetivo: dejar la web como producto SaaS comercial completo; solo falta conectar la pasarela real.
 Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho en web, depende del API) · `blocked` (requiere decisión o servicio externo).
@@ -15,15 +15,15 @@ Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho e
 
 | ID | Brecha | Estado |
 |---|---|---|
-| A1 | Login con correo y contraseña (además de Google) | todo |
-| A2 | Registro con nombre, correo, contraseña, aceptación de términos | todo |
-| A3 | Verificación de correo (pantalla + reenvío + aviso en la app) | todo |
-| A4 | Olvidé mi contraseña / restablecer contraseña | todo |
-| A5 | Cambiar contraseña y cambiar correo (Mi cuenta > Seguridad) | todo |
-| A6 | Sesiones activas (listar, cerrar una, cerrar otras) | todo |
-| L1 | Política de reembolso (`/refunds`) y revisión de términos/privacidad/cookies | todo |
-| L2 | Banner de cookies con preferencias persistentes | todo |
-| L3 | Rutas públicas nuevas en `proxy.ts`, sitemap y footer | todo |
+| A1 | Login con correo y contraseña (además de Google) | done |
+| A2 | Registro con nombre, correo, contraseña, aceptación de términos | done |
+| A3 | Verificación de correo (pantalla + reenvío + aviso en la app) | partial |
+| A4 | Olvidé mi contraseña / restablecer contraseña | done |
+| A5 | Cambiar contraseña y cambiar correo (Mi cuenta > Seguridad) | done |
+| A6 | Sesiones activas (listar, cerrar una, cerrar otras) | done |
+| L1 | Política de reembolso (`/refunds`) y revisión de términos/privacidad/cookies | done |
+| L2 | Banner de cookies con preferencias persistentes | done |
+| L3 | Rutas públicas nuevas en `proxy.ts`, sitemap y footer | done |
 
 ## P1 — Facturación y ciclo de vida de suscripción
 
