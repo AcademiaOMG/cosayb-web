@@ -32,7 +32,7 @@ export interface RawMySubscription {
   } | null
 }
 
-const SUB_STATUS: Record<string, SubscriptionStatus> = {
+export const SUB_STATUS: Record<string, SubscriptionStatus> = {
   ACTIVE: "active",
   PAST_DUE: "past_due",
   CANCELLED: "canceled",
