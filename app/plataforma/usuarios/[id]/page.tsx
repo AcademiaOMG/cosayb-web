@@ -9,24 +9,27 @@ import { ArrowLeft, Shield, Building2, Mail, Users, UserPlus } from "lucide-reac
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
-import { platformResendVerification } from "@/lib/saas/account"
-import { SaasError } from "@/lib/saas/types"
-import { saasErrorMessage } from "@/lib/saas/services"
+import { roleLabel } from "@/lib/plataforma/labels"
+import { getUserActivity } from "@/lib/plataforma/clientes"
+import ActivityList from "@/components/plataforma/clientes/ActivityList"
+import SectionTabs from "@/components/plataforma/clientes/SectionTabs"
+import { CuentaActions, SesionesSection } from "@/components/plataforma/clientes/UserSections"
+import Badge from "@/components/ui/Badge"
 
-// Roles de plataforma visibles (sin Auditor ni Facturación — demasiado granulares)
+// Roles de plataforma visibles (sin Auditor ni Facturación — demasiado granulares); los nombres vienen de labels.ts
 const PLATFORM_ROLES = [
-  { slug: "platform_owner",    name: "Super Admin",       description: "Control total del SaaS" },
-  { slug: "platform_admin",    name: "Administrador",     description: "Administración sin editar permisos" },
-  { slug: "platform_support",  name: "Soporte",           description: "Lectura de orgs y usuarios" },
-  { slug: "platform_readonly", name: "Lector",            description: "Solo lectura de la plataforma" },
-  { slug: "platform_chef",     name: "Chef de contenido", description: "Gestiona los bancos públicos" },
+  { slug: "platform_owner", description: "Control total del SaaS" },
+  { slug: "platform_admin", description: "Administración sin editar permisos" },
+  { slug: "platform_support", description: "Lectura de orgs y usuarios" },
+  { slug: "platform_readonly", description: "Solo lectura de la plataforma" },
+  { slug: "platform_chef", description: "Gestiona los bancos públicos" },
 ]
 
 // Roles de organización visibles (sin Chef ni Analista de costos)
 const ORG_ROLES = [
-  { slug: "org_owner",    name: "Propietario", description: "Dueño del negocio" },
-  { slug: "org_manager",  name: "Gerente",     description: "Gestión operativa completa" },
-  { slug: "org_viewer",   name: "Observador",  description: "Solo lectura" },
+  { slug: "org_owner", description: "Dueño del negocio" },
+  { slug: "org_manager", description: "Gestión operativa completa" },
+  { slug: "org_viewer", description: "Solo lectura" },
 ]
 
 // ─── Agregar a un negocio ────────────────────────────────────────────────────
@@ -134,7 +137,7 @@ function AddOrgMembership({
                   cursor: "pointer",
                 }}
               >
-                <p className="text-sm font-semibold">{role.name}</p>
+                <p className="text-sm font-semibold">{roleLabel(role.slug)}</p>
               </button>
             ))}
           </div>
@@ -261,7 +264,7 @@ function OrgRoleCard({
               }}
             >
               <p className="text-sm font-semibold" style={{ color: active ? "var(--accent)" : "var(--text-primary)" }}>
-                {role.name}
+                {roleLabel(role.slug)}
               </p>
               <p className="text-xs console-muted mt-0.5">{role.description}</p>
             </button>
@@ -323,6 +326,7 @@ export default function UsuarioDetallePage({
   const canUpdate = platformCan("platform_users", "update")
   const [selected, setSelected] = useState<string[] | null>(null)
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState("resumen")
 
   const currentPlatformRoles = selected ?? user?.platformRoles ?? []
 
@@ -357,6 +361,13 @@ export default function UsuarioDetallePage({
     )
   }
 
+  const tabs = [
+    { id: "resumen", label: "Resumen" },
+    { id: "negocios", label: "Negocios y roles", badge: user.memberships.length },
+    ...(platformCan("platform_users", "read") ? [{ id: "sesiones", label: "Sesiones" }, { id: "actividad", label: "Actividad" }] : []),
+    { id: "plataforma", label: "Equipo de la plataforma" },
+  ]
+
   const dirty =
     selected != null &&
     JSON.stringify([...selected].sort()) !== JSON.stringify([...user.platformRoles].sort())
@@ -375,27 +386,34 @@ export default function UsuarioDetallePage({
         <p className="text-sm console-muted mt-1 inline-flex items-center gap-1.5">
           <Mail size={12} /> {user.email}
         </p>
-        {canUpdate && (
-          <div className="mt-2">
-            <button
-              type="button"
-              className="text-xs underline console-accent"
-              onClick={async () => {
-                try {
-                  await platformResendVerification(user.id)
-                  toast.success("Correo de verificación reenviado", { description: user.email })
-                } catch (err) {
-                  if (err instanceof SaasError && err.code === "ALREADY_VERIFIED") toast.info("Este usuario ya verificó su correo.")
-                  else toast.error("No se pudo reenviar", { description: saasErrorMessage(err) })
-                }
-              }}
-            >
-              Reenviar verificación de correo
-            </button>
-          </div>
-        )}
+        <div className="mt-2 flex gap-2">
+          <Badge variant={user.emailVerified ? "success" : "warning"}>{user.emailVerified ? "Correo verificado" : "Correo sin verificar"}</Badge>
+          {user.platformRoles.map((r) => <Badge key={r} variant="accent">{roleLabel(r)}</Badge>)}
+        </div>
       </div>
 
+      <SectionTabs tabs={tabs} active={tab} onChange={setTab} />
+
+      {tab === "resumen" && (
+        <div className="flex flex-col gap-4">
+          <CuentaActions userId={user.id} email={user.email} emailVerified={user.emailVerified} />
+          <div className="console-card">
+            <p className="text-[11px] font-bold tracking-widest console-muted mb-3">NEGOCIOS ({user.memberships.length})</p>
+            {user.memberships.length === 0 && <p className="text-sm console-muted">Todavía no pertenece a ningún negocio.</p>}
+            {user.memberships.map((m) => (
+              <Link key={m.organizationId} href={`/plataforma/organizaciones/${m.organizationId}`} className="block py-1.5 text-sm hover:underline" style={{ color: "var(--accent)" }}>
+                {m.organizationName}{m.isDefault ? " (principal)" : ""} · {roleLabel(user.orgRoles.find((r) => r.organizationId === m.organizationId)?.roleSlug ?? "") || "Sin rol"}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "sesiones" && <SesionesSection userId={user.id} userName={user.name} />}
+      {tab === "actividad" && <ActivityList cacheKey={`user-${id}`} load={(offset) => getUserActivity(id, offset)} emptyText="Aún no hay acciones registradas de este usuario." />}
+
+      {tab === "negocios" && (
+        <div className="flex flex-col gap-4">
       {/* Negocios — solo info + link */}
       <div className="console-card">
         <div className="flex items-center gap-2 mb-4">
@@ -414,7 +432,7 @@ export default function UsuarioDetallePage({
               <span className="text-sm console-title flex-1 truncate">
                 {m.organizationName}
                 {m.isDefault && (
-                  <span className="ml-2 text-[10px] console-accent">DEFAULT</span>
+                  <span className="ml-2 text-[10px] console-accent">Principal</span>
                 )}
               </span>
             </Link>
@@ -443,7 +461,10 @@ export default function UsuarioDetallePage({
         )
       })}
 
-      {/* Roles de plataforma */}
+        </div>
+      )}
+
+      {tab === "plataforma" && (
       <div className="console-card">
         <div className="flex items-center gap-2 mb-4">
           <Shield size={14} className="console-muted" />
@@ -473,7 +494,7 @@ export default function UsuarioDetallePage({
                   className="text-sm font-semibold"
                   style={{ color: active ? "var(--accent)" : "var(--text-primary)" }}
                 >
-                  {role.name}
+                  {roleLabel(role.slug)}
                 </p>
                 <p className="text-xs console-muted mt-0.5">{role.description}</p>
               </button>
@@ -511,6 +532,7 @@ export default function UsuarioDetallePage({
           </p>
         )}
       </div>
+      )}
     </div>
   )
 }
