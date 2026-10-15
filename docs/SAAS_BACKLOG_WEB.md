@@ -1,4 +1,4 @@
-# Backlog SaaS — frontend (cosayb-web)
+# Backlog SaaS — frontend (cosayb-web)undefineddone ||||||
 
 Objetivo: dejar la web como producto SaaS comercial completo; solo falta conectar la pasarela real.
 Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho en web, depende del API) · `blocked` (requiere decisión o servicio externo).

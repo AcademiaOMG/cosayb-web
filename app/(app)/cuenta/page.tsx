@@ -22,6 +22,7 @@ import {
   AlertTriangle, Monitor, LogOut, ExternalLink, Trash2, Check,
 } from "lucide-react"
 import type { Plan } from "@/types/domain"
+import { validatePassword, validateEmail, normalizeEmail, authErrorMessage } from "@/lib/auth/validation"
 
 /**
  * Mi cuenta — perfil PERSONAL del usuario, organizado en secciones
@@ -245,9 +246,106 @@ function useAuthAccounts() {
 function SeguridadTab() {
   return (
     <div className="flex flex-col gap-6">
+      <EmailCard />
       <PasswordCard />
       <SessionsCard />
     </div>
+  )
+}
+
+function EmailCard() {
+  const { data: session } = authClient.useSession()
+  const user = session?.user
+  const [newEmail, setNewEmail] = useState("")
+  const [error, setError] = useState<string | undefined>()
+  const [saving, setSaving] = useState(false)
+  const [resending, setResending] = useState(false)
+
+  if (!user) return null
+
+  async function handleChangeEmail() {
+    const err = validateEmail(newEmail)
+    setError(err ?? undefined)
+    if (err) return
+    if (normalizeEmail(newEmail) === user!.email.toLowerCase()) {
+      setError("Ese ya es tu correo actual.")
+      return
+    }
+    setSaving(true)
+    try {
+      const { error: apiError } = await authClient.changeEmail({
+        newEmail: normalizeEmail(newEmail),
+        callbackURL: `${window.location.origin}/cuenta`,
+      })
+      if (apiError) {
+        toast.error("No se pudo cambiar el correo", { description: authErrorMessage(apiError) })
+      } else {
+        toast.success("Revisa tu correo", { description: "Te enviamos un enlace para confirmar el cambio." })
+        setNewEmail("")
+      }
+    } catch {
+      toast.error("No se pudo cambiar el correo", { description: "Revisa tu conexión e inténtalo de nuevo." })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleResend() {
+    setResending(true)
+    try {
+      const { error: apiError } = await authClient.sendVerificationEmail({
+        email: user!.email,
+        callbackURL: `${window.location.origin}/verify-email?verified=1`,
+      })
+      if (apiError) throw new Error(apiError.message)
+      toast.success("Te enviamos un nuevo correo de verificación.")
+    } catch {
+      toast.error("No pudimos reenviar el correo. Inténtalo más tarde.")
+    } finally {
+      setResending(false)
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3 mb-5">
+        <Mail size={18} style={{ color: "var(--accent)" }} />
+        <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
+          CORREO
+        </p>
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
+          <span className="font-medium break-all">{user.email}</span>
+          {user.emailVerified ? (
+            <span className="inline-flex items-center gap-1 text-xs" style={{ color: "var(--success)" }}>
+              <Check size={12} aria-hidden="true" /> Verificado
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2 text-xs" style={{ color: "var(--warning)" }}>
+              Sin verificar
+              <button type="button" onClick={handleResend} disabled={resending} className="underline" style={{ color: "var(--accent)" }}>
+                {resending ? "Enviando…" : "Reenviar verificación"}
+              </button>
+            </span>
+          )}
+        </div>
+        <Input
+          label="Nuevo correo"
+          type="email"
+          autoComplete="email"
+          value={newEmail}
+          onChange={(e) => { setNewEmail(e.target.value); setError(undefined) }}
+          error={error}
+          hint="Te enviaremos un enlace de confirmación."
+        />
+        <div className="flex justify-end">
+          <Button onClick={handleChangeEmail} disabled={saving || !newEmail}>
+            {saving ? "Enviando..." : "Cambiar correo"}
+          </Button>
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -262,8 +360,9 @@ function PasswordCard() {
 
   async function handleChangePassword() {
     setMsg(null)
-    if (newPassword.length < 8) {
-      setMsg("La nueva contraseña debe tener al menos 8 caracteres.")
+    const pwError = validatePassword(newPassword)
+    if (pwError) {
+      setMsg(pwError)
       return
     }
     if (newPassword !== confirmPassword) {
@@ -324,7 +423,7 @@ function PasswordCard() {
               type="password"
               value={newPassword}
               onChange={(e) => { setNewPassword(e.target.value); setMsg(null) }}
-              hint="Mínimo 8 caracteres"
+              hint="Mínimo 8 caracteres, con letras y números"
             />
             <Input
               label="Confirmar nueva contraseña"
@@ -364,7 +463,11 @@ function PasswordCard() {
         >
           <Globe size={16} style={{ color: "var(--text-muted)" }} />
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Inicias sesión con Google — no tienes una contraseña que gestionar aquí.
+            Inicias sesión con Google — no tienes una contraseña. Si quieres una para entrar también con tu correo,{" "}
+            <Link href="/forgot-password" className="underline" style={{ color: "var(--accent)" }}>
+              créala con el enlace de recuperación
+            </Link>
+            .
           </p>
         </div>
       )}
