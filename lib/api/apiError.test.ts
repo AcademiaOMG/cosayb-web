@@ -45,3 +45,23 @@ describe("fetchAPI: errores del API", () => {
     expect(isPlanLimitError(e2)).toBe(false)
   })
 })
+
+describe("fetchAPI: conflictos 409", () => {
+  it("muestra el detalle accionable en vez del título", async () => {
+    respond(409, {
+      error: "Receta en uso en menús",
+      code: "RECIPE_IN_MENU",
+      message: "Esta receta está en el menú: Menú Boda. Quítala de él antes de eliminarla.",
+    })
+    const err = await fetchAPI("/api/v1/recipes/1", { method: "DELETE" }).catch((e: unknown) => e)
+    expect((err as ApiError).status).toBe(409)
+    expect((err as ApiError).code).toBe("RECIPE_IN_MENU")
+    expect((err as Error).message).toBe("Esta receta está en el menú: Menú Boda. Quítala de él antes de eliminarla.")
+  })
+
+  it("un 409 sin detalle conserva el título", async () => {
+    respond(409, { error: "Ya existe" })
+    const err = await fetchAPI("/x", { method: "POST" }).catch((e: unknown) => e)
+    expect((err as Error).message).toBe("Ya existe")
+  })
+})

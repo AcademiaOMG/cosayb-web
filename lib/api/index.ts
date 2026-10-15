@@ -64,6 +64,8 @@ async function fetchAPI<T>(
       code = typeof body.code === "string" ? body.code : undefined
       if (body.error) message = body.error
       else if (body.message) message = body.message
+      // 409 = conflicto («está en uso, quítala de...»): el detalle dice qué hacer, el título no
+      if (response.status === 409 && body.message) message = body.message
       // Límite o función fuera del plan: el detalle ("permite un máximo de 20") y la salida valen más que el título
       if ((code === "MEMBERSHIP_LIMIT_REACHED" || code === "FEATURE_NOT_AVAILABLE") && body.message) {
         message = `${body.message} Mejora tu plan para continuar.`
