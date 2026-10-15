@@ -31,8 +31,3 @@ export function timeAgoEs(iso: string, now: Date = new Date()): string {
   if (d < 30) return `hace ${d} ${d === 1 ? "día" : "días"}`
   return fmtDate(iso, "short")
 }
-
-/** Porcentaje legible: 0.0345 → «3,5 %». */
-export function fmtPercent(ratio: number): string {
-  return `${(ratio * 100).toLocaleString("es-CO", { maximumFractionDigits: 1 })} %`
-}

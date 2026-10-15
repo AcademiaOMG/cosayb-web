@@ -49,7 +49,7 @@ Ver `.env.example`. Las `NEXT_PUBLIC_*` se incrustan **en el build**: cambiarlas
    `PAYMENT_PROVIDER` (`simulated` o `real` con credenciales). Ver `docs/SAAS_API_CONTRATO.md` y `PASARELA_REAL.md` del API.
 2. Los endpoints del modo real están en el bloque `realServices` de `lib/saas/services.ts` y sus adaptadores en `lib/saas/adapters.ts`
    (según `SAAS_API_CONTRATO.md` del repo del API). Si el contrato cambia, se ajusta solo ahí.
-   En modo real la UI de Facturación se adapta (`capabilities`): subir de plan va al checkout, no hay cambio directo ni actualización de método de pago.
+   En modo real la UI de Facturación se adapta (`capabilities`): subir de plan va al checkout y no hay cambio directo a un plan de pago menor; cambiar el método de pago sí está disponible y, si el cobro estaba fallido, el API reintenta al instante.
 3. Poner `NEXT_PUBLIC_SAAS_MODE=real` y volver a desplegar.
 4. Con la pasarela real, el formulario de método de pago (`components/saas/PaymentMethodModal.tsx`) y el checkout
    (`components/commerce/PaymentStep.tsx`) deben sustituir la captura de tarjeta por el widget/tokenización del proveedor:
@@ -64,7 +64,7 @@ Ver `.env.example`. Las `NEXT_PUBLIC_*` se incrustan **en el build**: cambiarlas
 | «Esta función aún no está disponible en el servidor» al registrarse o recuperar contraseña | el API no tiene `emailAndPassword` activo | habilitarlo en el API (`auth.ts`) |
 | No llegan correos de verificación/recuperación | `EMAIL_PROVIDER=console` o SMTP/Resend mal configurado | revisar variables y logs del API |
 | Facturación vacía o con error en modo real | endpoints distintos al contrato / migraciones sin aplicar | revisar `realServices` y la respuesta del API (cada error 5xx muestra su `X-Request-Id`); mientras tanto `NEXT_PUBLIC_SAAS_MODE=mock` |
-| Aviso «pago pendiente» persistente | suscripción en `past_due` | el cliente reintenta en Facturación; soporte puede «Marcar pago recibido» en `/plataforma/organizaciones/:id` |
+| Aviso «pago pendiente» persistente | suscripción en `past_due` | el cliente cambia su método de pago en Facturación (reintenta al instante); si es un caso especial, soporte puede fijar el plan por cortesía en `/plataforma/organizaciones/:id` (queda auditado) |
 | Estilos o datos de otra organización tras cambiar de negocio | caché SWR | el cambio de organización recarga la página; si persiste, limpiar `localStorage` (`activeOrg`) |
 
 ## 6. Datos de demostración (modo mock)
