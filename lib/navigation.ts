@@ -9,6 +9,8 @@ import {
   Tag,
   Settings,
   UserCircle,
+  LifeBuoy,
+  Bell,
   type LucideIcon,
 } from "lucide-react"
 import type { Resource, Action } from "@/lib/api"
@@ -74,6 +76,20 @@ export const ACCOUNT_ITEM = {
   label: "Mi cuenta",
   shortLabel: "Cuenta",
   icon: UserCircle,
+} as const
+
+export const SUPPORT_ITEM = {
+  href: "/soporte",
+  label: "Ayuda y soporte",
+  shortLabel: "Ayuda",
+  icon: LifeBuoy,
+} as const
+
+export const NOTIFICATIONS_ITEM = {
+  href: "/notificaciones",
+  label: "Notificaciones",
+  shortLabel: "Avisos",
+  icon: Bell,
 } as const
 
 /** Destinos fijos en la barra inferior móvil, en orden de prioridad. El resto va en «Más». */

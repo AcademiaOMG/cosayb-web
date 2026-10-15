@@ -8,6 +8,8 @@ import { useNavItems } from "@/hooks/useNavItems"
 import {
   ACCOUNT_ITEM,
   CONFIG_ITEM,
+  SUPPORT_ITEM,
+  NOTIFICATIONS_ITEM,
   MOBILE_PRIMARY_HREFS,
   isNavActive,
   type NavItem,
@@ -45,7 +47,7 @@ export default function MobileTabBar() {
       (i): i is LinkEntry => !!i,
     )
     const rest = all.filter((i) => !primary.includes(i))
-    const extras: LinkEntry[] = [...(showConfig ? [CONFIG_ITEM] : []), ACCOUNT_ITEM].map((i) => ({
+    const extras: LinkEntry[] = [...(showConfig ? [CONFIG_ITEM] : []), ACCOUNT_ITEM, NOTIFICATIONS_ITEM, SUPPORT_ITEM].map((i) => ({
       href: i.href,
       label: i.label,
       shortLabel: i.shortLabel,

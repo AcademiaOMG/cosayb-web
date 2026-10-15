@@ -36,6 +36,8 @@ const PROTECTED_PREFIXES = [
   "/ajustes",
   "/configuracion",
   "/cuenta",
+  "/soporte",
+  "/notificaciones",
 ];
 
 const SESSION_COOKIE_NAMES = [

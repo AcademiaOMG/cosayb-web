@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { LogOut } from "lucide-react"
 import type { Plan } from "@/types/domain"
 import { useNavItems } from "@/hooks/useNavItems"
-import { ACCOUNT_ITEM, CONFIG_ITEM } from "@/lib/navigation"
+import { ACCOUNT_ITEM, CONFIG_ITEM, SUPPORT_ITEM } from "@/lib/navigation"
 import SidebarChecklist from "./SidebarChecklist"
 
 // ─── Navegación del Restaurant Tenant Workspace ──────────────────────────────
@@ -97,6 +97,7 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
                 ? { type: "link" as const, href: CONFIG_ITEM.href, label: CONFIG_ITEM.label, icon: CONFIG_ITEM.icon }
                 : null,
               { type: "link" as const, href: ACCOUNT_ITEM.href, label: ACCOUNT_ITEM.label, icon: ACCOUNT_ITEM.icon },
+              { type: "link" as const, href: SUPPORT_ITEM.href, label: SUPPORT_ITEM.label, icon: SUPPORT_ITEM.icon },
               { type: "button" as const, label: "Cerrar sesión", icon: LogOut },
             ]
           )

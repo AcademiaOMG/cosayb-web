@@ -53,10 +53,10 @@ Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho e
 
 | ID | Brecha | Estado |
 |---|---|---|
-| S1 | Centro de ayuda `/ayuda` con FAQ buscable por categoría | todo |
-| S2 | Formulario de contacto/soporte funcional (hoy `preventDefault`) en `/contacto` y dentro de la app (`/soporte`) | todo |
-| S3 | Notificaciones in-app (campana, lista, marcar leídas) | todo |
-| S4 | Enlace a ayuda/soporte en Topbar/Sidebar | todo |
+| S1 | Centro de ayuda `/ayuda` con FAQ buscable por categoría | done |
+| S2 | Formulario de contacto/soporte funcional (hoy `preventDefault`) en `/contacto` y dentro de la app (`/soporte`) | done |
+| S3 | Notificaciones in-app (campana, lista, marcar leídas) | done |
+| S4 | Enlace a ayuda/soporte en Topbar/Sidebar | done |
 
 ## P1 — Panel de plataforma (admin)
 

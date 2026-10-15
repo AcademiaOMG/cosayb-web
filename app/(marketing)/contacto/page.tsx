@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import SupportForm from "@/components/saas/SupportForm"
 import { Mail, MessageCircle, Clock, CheckCircle, ArrowRight } from "lucide-react"
 
 
@@ -124,85 +125,7 @@ export default function ContactoPage() {
               >
                 Envíanos un mensaje
               </h2>
-              <form
-                className="flex flex-col gap-5"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <div className="flex flex-col gap-2">
-                    <label className="font-body text-xs font-semibold text-[#4A4438] uppercase tracking-wide">
-                      Nombre
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Tu nombre"
-                      className="font-body text-sm px-4 py-3 rounded bg-white border border-[#DDD6C8] text-[#12213A] placeholder-[#B0A898] outline-none focus:border-[#1B4FD8] transition-colors"
-                      style={{ appearance: "none" }}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="font-body text-xs font-semibold text-[#4A4438] uppercase tracking-wide">
-                      Correo electrónico
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="tu@correo.com"
-                      className="font-body text-sm px-4 py-3 rounded bg-white border border-[#DDD6C8] text-[#12213A] placeholder-[#B0A898] outline-none focus:border-[#1B4FD8] transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="font-body text-xs font-semibold text-[#4A4438] uppercase tracking-wide">
-                    Asunto
-                  </label>
-                  <select
-                    className="font-body text-sm px-4 py-3 rounded bg-white border border-[#DDD6C8] text-[#12213A] outline-none focus:border-[#1B4FD8] transition-colors"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Selecciona una opción</option>
-                    <option>Tengo una pregunta sobre planes</option>
-                    <option>Problema técnico con mi cuenta</option>
-                    <option>Quiero una demo personalizada</option>
-                    <option>Propuesta de alianza o colaboración</option>
-                    <option>Otro</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="font-body text-xs font-semibold text-[#4A4438] uppercase tracking-wide">
-                    Mensaje
-                  </label>
-                  <textarea
-                    rows={5}
-                    placeholder="Cuéntanos en qué podemos ayudarte..."
-                    className="font-body text-sm px-4 py-3 rounded bg-white border border-[#DDD6C8] text-[#12213A] placeholder-[#B0A898] outline-none focus:border-[#1B4FD8] transition-colors resize-none"
-                  />
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="privacy"
-                    className="mt-1 accent-[#1B4FD8]"
-                  />
-                  <label htmlFor="privacy" className="font-body text-xs text-[#7A6E60] leading-relaxed">
-                    He leído y acepto la{" "}
-                    <Link href="/privacy" className="text-[#1B4FD8] hover:underline">
-                      Política de Privacidad
-                    </Link>
-                    . Entiendo que mis datos serán usados únicamente para atender mi consulta.
-                  </label>
-                </div>
-
-                <button
-                  type="submit"
-                  className="btn-spx btn-spx-accent w-full sm:w-auto self-start"
-                >
-                  Enviar mensaje
-                </button>
-
-              </form>
+              <SupportForm />
             </div>
           </div>
         </div>
