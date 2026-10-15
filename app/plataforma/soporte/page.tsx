@@ -13,7 +13,8 @@ import { toast } from "@/lib/toast"
 const FILTERS: { id: TicketStatus | "all"; label: string }[] = [
   { id: "all", label: "Todos" },
   { id: "open", label: "Abiertos" },
-  { id: "pending", label: "En curso" },
+  { id: "in_progress", label: "En curso" },
+  { id: "resolved", label: "Resueltos" },
   { id: "closed", label: "Cerrados" },
 ]
 
@@ -82,11 +83,11 @@ export default function SoportePlataformaPage() {
                 {t.organizationName ? ` · ${t.organizationName}` : ""}
               </p>
               <div className="flex gap-2 pt-1">
-                {t.status !== "pending" && t.status !== "closed" && (
-                  <button type="button" onClick={() => change(t.id, "pending")} className="text-xs font-medium underline console-accent">Marcar en curso</button>
+                {t.status === "open" && (
+                  <button type="button" onClick={() => change(t.id, "in_progress")} className="text-xs font-medium underline console-accent">Marcar en curso</button>
                 )}
-                {t.status !== "closed" ? (
-                  <button type="button" onClick={() => change(t.id, "closed")} className="text-xs font-medium underline console-accent">Cerrar</button>
+                {t.status !== "closed" && t.status !== "resolved" ? (
+                  <button type="button" onClick={() => change(t.id, "resolved")} className="text-xs font-medium underline console-accent">Marcar resuelto</button>
                 ) : (
                   <button type="button" onClick={() => change(t.id, "open")} className="text-xs font-medium underline console-accent">Reabrir</button>
                 )}

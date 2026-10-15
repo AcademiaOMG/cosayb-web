@@ -4,7 +4,6 @@ export { formatCOP }
 
 const dateFmt = new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "long", year: "numeric" })
 const shortFmt = new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "short", year: "numeric" })
-const monthFmt = new Intl.DateTimeFormat("es-CO", { month: "short", year: "2-digit", timeZone: "UTC" })
 
 export function fmtDate(iso: string | null | undefined, style: "long" | "short" = "long"): string {
   if (!iso) return "—"
@@ -13,10 +12,11 @@ export function fmtDate(iso: string | null | undefined, style: "long" | "short" 
   return (style === "long" ? dateFmt : shortFmt).format(d)
 }
 
-/** «2026-10» → «oct 26». */
-export function fmtMonth(yyyymm: string): string {
-  const [y, m] = yyyymm.split("-").map(Number)
-  return monthFmt.format(new Date(Date.UTC(y, m - 1, 1)))
+/** «2026-10-15» → «15 oct» (corto) o «15 de octubre de 2026» (largo). */
+export function fmtDay(yyyymmdd: string, style: "short" | "long" = "short"): string {
+  const [y, m, d] = yyyymmdd.slice(0, 10).split("-").map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d))
+  return new Intl.DateTimeFormat("es-CO", style === "short" ? { day: "numeric", month: "short", timeZone: "UTC" } : { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(date)
 }
 
 /** Hace cuánto ocurrió algo, en español corto. */

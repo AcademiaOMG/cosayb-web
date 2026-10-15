@@ -34,7 +34,7 @@ const STYLES: Record<Variant, { label: string; field: string; consent: string; b
 /** Formulario de contacto/soporte compartido por /contacto (público) y /soporte (app). */
 export default function SupportForm({
   variant = "marketing",
-  defaultCategory = "otro",
+  defaultCategory = "general",
 }: {
   variant?: Variant
   defaultCategory?: TicketCategory
@@ -73,14 +73,14 @@ export default function SupportForm({
     // Honeypot: un bot rellena el campo oculto; fingimos éxito sin enviar
     if (trap) {
       setSent({
-        name: input.name, email: input.email, category: "otro", subject: input.subject, message: input.message,
+        name: input.name, email: input.email, category: "other", subject: input.subject, message: input.message,
         id: "x", number: "SUP-0000", status: "open", createdAt: "", updatedAt: "",
       })
       return
     }
     setSending(true)
     try {
-      const ticket = await saas.support.submit({ ...input, category: input.category as TicketCategory })
+      const ticket = await saas.support.submit({ ...input, category: input.category as TicketCategory, website: trap })
       setSent(ticket)
       await refreshTickets()
     } catch (err) {
@@ -146,7 +146,7 @@ export default function SupportForm({
 
       <div className="flex flex-col gap-2">
         <label htmlFor={`${uid}-subject`} className={s.label}>Asunto</label>
-        <input id={`${uid}-subject`} className={s.field} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Resume tu consulta" maxLength={140} {...aria("subject")} />
+        <input id={`${uid}-subject`} className={s.field} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Resume tu consulta" maxLength={200} {...aria("subject")} />
         {err("subject")}
       </div>
 

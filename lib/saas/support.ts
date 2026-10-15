@@ -2,16 +2,17 @@ import { validateEmail, validateName } from "@/lib/auth/validation"
 import type { SupportTicketInput, TicketCategory } from "./types"
 
 export const TICKET_CATEGORIES: { id: TicketCategory; label: string }[] = [
-  { id: "cuenta", label: "Mi cuenta o acceso" },
-  { id: "facturacion", label: "Planes, pagos y facturas" },
-  { id: "tecnico", label: "Problema técnico" },
-  { id: "sugerencia", label: "Sugerencia o idea" },
-  { id: "otro", label: "Otro" },
+  { id: "account", label: "Mi cuenta o acceso" },
+  { id: "billing", label: "Planes, pagos y facturas" },
+  { id: "technical", label: "Problema técnico" },
+  { id: "general", label: "Pregunta general o sugerencia" },
+  { id: "other", label: "Otro" },
 ]
 
-export const SUBJECT_MAX = 120
+export const SUBJECT_MIN = 3 // el API acepta 3–200 caracteres
+export const SUBJECT_MAX = 200
 export const MESSAGE_MIN = 10
-export const MESSAGE_MAX = 4000
+export const MESSAGE_MAX = 5000
 
 export type TicketErrors = Partial<Record<"name" | "email" | "category" | "subject" | "message" | "consent", string>>
 
@@ -24,7 +25,7 @@ export function validateTicket(input: Partial<SupportTicketInput>, consent: bool
   if (email) errors.email = email
   if (!TICKET_CATEGORIES.some((c) => c.id === input.category)) errors.category = "Elige un tema."
   const subject = (input.subject ?? "").trim()
-  if (subject.length < 4) errors.subject = "Escribe un asunto (mínimo 4 caracteres)."
+  if (subject.length < SUBJECT_MIN) errors.subject = `Escribe un asunto (mínimo ${SUBJECT_MIN} caracteres).`
   else if (subject.length > SUBJECT_MAX) errors.subject = `Máximo ${SUBJECT_MAX} caracteres.`
   const message = (input.message ?? "").trim()
   if (message.length < MESSAGE_MIN) errors.message = `Cuéntanos un poco más (mínimo ${MESSAGE_MIN} caracteres).`

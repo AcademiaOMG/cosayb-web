@@ -1,30 +1,10 @@
-// Cliente HTTP del modo real. Los endpoints se concentran en ENDPOINTS para
-// ajustarlos al contrato del API (docs/SAAS_API_CONTRATO.md) en un único lugar.
+// Cliente HTTP del modo real. Los endpoints concretos (según docs/SAAS_API_CONTRATO.md del repo
+// del API) viven en el bloque realServices de services.ts.
 
 import { getActiveOrgId } from "@/lib/activeOrg"
 import { SaasError } from "./types"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
-
-export const ENDPOINTS = {
-  billingOverview: "/api/v1/billing/overview",
-  billingPreview: "/api/v1/billing/preview",
-  billingChangePlan: "/api/v1/billing/change-plan",
-  billingCancel: "/api/v1/billing/cancel",
-  billingResume: "/api/v1/billing/resume",
-  billingPaymentMethod: "/api/v1/billing/payment-method",
-  billingRetry: "/api/v1/billing/retry",
-  invoices: "/api/v1/billing/invoices",
-  notifications: "/api/v1/notifications",
-  notificationsReadAll: "/api/v1/notifications/read-all",
-  supportTickets: "/api/v1/support/tickets",
-  supportMine: "/api/v1/support/tickets/mine",
-  accountExport: "/api/v1/me/export",
-  platformMetrics: "/api/v1/platform/saas/metrics",
-  platformSubscriptions: "/api/v1/platform/saas/subscriptions",
-  platformPayments: "/api/v1/platform/saas/payments",
-  platformTickets: "/api/v1/platform/saas/tickets",
-} as const
 
 export async function saasFetch<T>(endpoint: string, init: RequestInit = {}): Promise<T> {
   const activeOrg = getActiveOrgId()
@@ -75,7 +55,6 @@ export async function saasData<T>(endpoint: string, init?: RequestInit): Promise
 }
 
 export const json = (body: unknown): RequestInit => ({ method: "POST", body: JSON.stringify(body) })
-export const put = (body: unknown): RequestInit => ({ method: "PUT", body: JSON.stringify(body) })
 
 export function qs(params: Record<string, string | number | undefined | null>): string {
   const q = new URLSearchParams()

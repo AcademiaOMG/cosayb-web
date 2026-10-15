@@ -3,9 +3,11 @@
 import useSWR from "swr"
 import { platformGetMetrics } from "@/lib/api"
 import { Building2, Users, CreditCard } from "lucide-react"
-import MrrChart from "@/components/saas/MrrChart"
+import Link from "next/link"
+import { useState } from "react"
+import DailyBarChart from "@/components/saas/DailyBarChart"
 import ErrorState from "@/components/ui/ErrorState"
-import { fmtPercent, formatCOP } from "@/lib/saas/format"
+import { fmtDay, formatCOP } from "@/lib/saas/format"
 import { saas } from "@/lib/saas/services"
 import { planLabel } from "@/lib/saas/billing"
 
@@ -13,9 +15,10 @@ export default function MetricasPage() {
   const { data } = useSWR("platform-metrics", () =>
     platformGetMetrics().then((r) => r.data)
   )
+  const [days, setDays] = useState(30)
   const { data: saasMetrics, error: saasError, mutate: retrySaas } = useSWR(
-    "platform-saas-metrics",
-    () => saas.platform.metrics(),
+    ["platform-saas-metrics", days],
+    () => saas.platform.metrics(days),
     { revalidateOnFocus: false },
   )
 
@@ -64,9 +67,22 @@ export default function MetricasPage() {
       </div>
 
       <section aria-labelledby="saas-titulo" className="flex flex-col gap-4">
-        <div>
-          <h2 id="saas-titulo" className="text-lg font-bold console-title">Ingresos y suscripciones</h2>
-          <p className="text-sm console-muted mt-1">MRR, altas y bajas del negocio SaaS</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="saas-titulo" className="text-lg font-bold console-title">Ingresos y suscripciones</h2>
+            <p className="text-sm console-muted mt-1">MRR, altas y bajas del negocio SaaS</p>
+          </div>
+          <select
+            aria-label="Periodo"
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="console-input text-sm"
+            style={{ height: 36, paddingInline: 10 }}
+          >
+            <option value={7}>Últimos 7 días</option>
+            <option value={30}>Últimos 30 días</option>
+            <option value={90}>Últimos 90 días</option>
+          </select>
         </div>
 
         {saasError ? (
@@ -79,21 +95,33 @@ export default function MetricasPage() {
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Kpi label="MRR" value={formatCOP(saasMetrics.mrr)} hint={`ARR ${formatCOP(saasMetrics.arr)}`} />
-              <Kpi label="SUSCRIPCIONES ACTIVAS" value={String(saasMetrics.activeSubscriptions)} hint={`ARPA ${formatCOP(saasMetrics.arpa)}`} />
-              <Kpi label="ALTAS DEL MES" value={String(saasMetrics.newThisMonth)} hint={`${saasMetrics.trialing} en prueba`} />
-              <Kpi label="BAJAS DEL MES" value={String(saasMetrics.canceledThisMonth)} hint={`Churn ${fmtPercent(saasMetrics.churnRate)}`} />
+              <Kpi label="SUSCRIPCIONES ACTIVAS" value={String(saasMetrics.activeSubscriptions)} hint={`${saasMetrics.activeTrials} pruebas activas`} />
+              <Kpi label="ALTAS (REGISTROS)" value={String(saasMetrics.newSignups)} hint={`${saasMetrics.newOrganizations} organizaciones nuevas`} />
+              <Kpi label="BAJAS" value={String(saasMetrics.cancellations)} hint={`Churn ${saasMetrics.churnRatePercent.toLocaleString("es-CO")} %`} />
+              <Kpi label="INGRESOS DEL PERIODO" value={formatCOP(saasMetrics.revenue)} hint="Pagos aprobados" />
+              <Kpi label="MRR EN RIESGO" value={formatCOP(saasMetrics.mrrPastDue)} hint="Con pago pendiente" />
+              <Kpi label="CANCELACIÓN PROGRAMADA" value={formatCOP(saasMetrics.mrrPendingCancellation)} hint="MRR que termina al fin del periodo" />
+              <Kpi label="TICKETS ABIERTOS" value={String(saasMetrics.openSupportTickets)} hint={`${saasMetrics.failedPayments} pagos fallidos`} />
             </div>
 
-            {saasMetrics.pastDue > 0 && (
+            {saasMetrics.mrrPastDue > 0 && (
               <p className="text-sm console-title" role="status">
-                {saasMetrics.pastDue} {saasMetrics.pastDue === 1 ? "suscripción con pago pendiente" : "suscripciones con pago pendiente"}.{" "}
-                <a href="/plataforma/suscripciones?status=past_due" className="console-accent underline">Revisar</a>
+                Hay suscripciones con pago pendiente.{" "}
+                <Link href="/plataforma/suscripciones?status=past_due" className="console-accent underline">Revisar</Link>
               </p>
             )}
 
             <div className="console-card flex flex-col gap-3">
-              <p className="text-[11px] font-bold tracking-widest console-muted">MRR POR MES</p>
-              <MrrChart series={saasMetrics.series} />
+              <p className="text-[11px] font-bold tracking-widest console-muted">REGISTROS POR DÍA</p>
+              <DailyBarChart
+                points={saasMetrics.signupsByDay.map((d) => ({
+                  label: fmtDay(d.day, "short"),
+                  title: fmtDay(d.day, "long"),
+                  value: d.total,
+                }))}
+                unit="registros"
+                caption={`Registros por día, últimos ${saasMetrics.windowDays} días`}
+              />
             </div>
 
             <div className="console-card flex flex-col gap-2">

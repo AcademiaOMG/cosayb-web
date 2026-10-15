@@ -5,7 +5,7 @@ import type { PlanId, PaymentMethodId } from "@/lib/commerce/catalog"
 export type { PlanId, PaymentMethodId }
 
 /** Estado de la suscripción de una organización. */
-export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled" | "free"
+export type SubscriptionStatus = "trialing" | "active" | "past_due" | "canceled" | "free" | "pending"
 
 export interface PaymentMethodInfo {
   type: PaymentMethodId
@@ -17,9 +17,9 @@ export interface PaymentMethodInfo {
 }
 
 export interface PastDueInfo {
-  since: string
-  /** Fecha límite antes de bajar a Free. */
-  graceEndsAt: string
+  since: string | null
+  /** Fecha límite antes de bajar a Free (null si el API no la informa: se usa nextRetryAt). */
+  graceEndsAt: string | null
   attempts: number
   nextRetryAt: string | null
 }
@@ -54,7 +54,7 @@ export interface PlanChangePreview {
   requiresPaymentMethod: boolean
 }
 
-export type InvoiceStatus = "paid" | "open" | "failed" | "refunded"
+export type InvoiceStatus = "paid" | "open" | "failed" | "refunded" | "void"
 
 export interface Invoice {
   id: string
@@ -84,8 +84,8 @@ export interface AppNotification {
   readAt: string | null
 }
 
-export type TicketCategory = "cuenta" | "facturacion" | "tecnico" | "sugerencia" | "otro"
-export type TicketStatus = "open" | "pending" | "closed"
+export type TicketCategory = "general" | "billing" | "technical" | "account" | "other"
+export type TicketStatus = "open" | "in_progress" | "resolved" | "closed"
 
 export interface SupportTicketInput {
   name: string
@@ -93,6 +93,8 @@ export interface SupportTicketInput {
   category: TicketCategory
   subject: string
   message: string
+  /** Honeypot anti-bot: debe ir vacío. */
+  website?: string
 }
 
 export interface SupportTicket extends SupportTicketInput {
@@ -113,38 +115,39 @@ export interface PaymentMethodInput {
 
 // ── Plataforma (admin) ───────────────────────────────────────────────────────
 
-export interface MrrPoint {
-  /** YYYY-MM */
-  month: string
-  mrr: number
-  newSubscriptions: number
-  canceledSubscriptions: number
-}
-
+/** Espejo de GET /platform/metrics/saas (ventana de `windowDays`). */
 export interface PlatformSaasMetrics {
+  windowDays: number
   mrr: number
   arr: number
-  arpa: number
   activeSubscriptions: number
-  trialing: number
-  pastDue: number
-  newThisMonth: number
-  canceledThisMonth: number
-  /** 0–1 */
-  churnRate: number
+  mrrPastDue: number
+  mrrPendingCancellation: number
   byPlan: { plan: PlanId; subscriptions: number; mrr: number }[]
-  series: MrrPoint[]
+  newSignups: number
+  signupsByDay: { day: string; total: number }[]
+  newOrganizations: number
+  cancellations: number
+  /** Porcentaje 0–100. */
+  churnRatePercent: number
+  revenue: number
+  failedPayments: number
+  activeTrials: number
+  openSupportTickets: number
 }
 
 export interface PlatformSubscription {
   id: string
   organizationId: string
   organizationName: string
+  userEmail?: string | null
   plan: PlanId
   status: SubscriptionStatus
   amount: number
   currentPeriodEnd: string | null
   cancelAtPeriodEnd: boolean
+  failedAttempts?: number
+  nextRetryAt?: string | null
   createdAt: string
 }
 
@@ -165,10 +168,41 @@ export interface PlatformTicket extends SupportTicket {
   organizationName: string | null
 }
 
-export type OrgSupportAction =
-  | { type: "extend_trial"; days: number }
-  | { type: "change_plan"; plan: PlanId }
-  | { type: "mark_paid" }
+/** Cambio de plan por soporte (cortesía): requiere justificación de al menos 5 caracteres. */
+export interface OrgSupportAction {
+  plan: PlanId
+  justification: string
+}
+
+export interface OrgBilling {
+  subscriptions: PlatformSubscription[]
+  invoices: Invoice[]
+  payments: PlatformPayment[]
+}
+
+export interface PlanUsageItem {
+  feature: string
+  label: string
+  current: number
+  /** null = ilimitado; 0 = no incluido. */
+  limit: number | null
+  percent: number | null
+  atLimit: boolean
+}
+
+export interface PlanUsage {
+  membership: PlanId
+  items: PlanUsageItem[]
+}
+
+/** Qué operaciones soporta el backend activo; la UI se adapta (ver services.ts). */
+export interface SaasCapabilities {
+  /** inline = el cambio se confirma en Facturación; checkout = se redirige al checkout. */
+  planChange: "inline" | "checkout"
+  downgrade: boolean
+  paymentMethodUpdate: boolean
+  manualRetry: boolean
+}
 
 /** Datos exportables de la cuenta (descarga JSON). */
 export interface AccountExport {

@@ -32,7 +32,7 @@ describe("filterFaq", () => {
 })
 
 describe("validateTicket", () => {
-  const ok = { name: "Ana", email: "ana@x.co", category: "tecnico" as const, subject: "No carga", message: "La pantalla queda en blanco." }
+  const ok = { name: "Ana", email: "ana@x.co", category: "technical" as const, subject: "No carga", message: "La pantalla queda en blanco." }
 
   it("acepta un ticket completo", () => {
     expect(hasErrors(validateTicket(ok, true))).toBe(false)
@@ -44,7 +44,7 @@ describe("validateTicket", () => {
   })
 
   it("limita asunto y mensaje", () => {
-    expect(validateTicket({ ...ok, subject: "a".repeat(121) }, true).subject).toMatch(/Máximo/)
-    expect(validateTicket({ ...ok, message: "a".repeat(4001) }, true).message).toMatch(/Máximo/)
+    expect(validateTicket({ ...ok, subject: "a".repeat(201) }, true).subject).toMatch(/Máximo/)
+    expect(validateTicket({ ...ok, message: "a".repeat(5001) }, true).message).toMatch(/Máximo/)
   })
 })

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { AlertTriangle, CalendarClock, CreditCard, FileText, Receipt, RefreshCw } from "lucide-react"
 import Card from "@/components/ui/Card"
@@ -15,16 +16,17 @@ import PaymentMethodModal from "@/components/saas/PaymentMethodModal"
 import PlanChangeModal from "@/components/saas/PlanChangeModal"
 import { InvoiceStatusBadge, SubscriptionStatusBadge } from "@/components/saas/StatusBadge"
 import { PLAN_CATALOG, type PlanId } from "@/lib/commerce/catalog"
-import { daysUntil, planLabel } from "@/lib/saas/billing"
+import { checkoutPathForPlan, daysUntil, planLabel } from "@/lib/saas/billing"
 import { fmtDate, formatCOP } from "@/lib/saas/format"
 import { refreshBilling, useBillingOverview, useInvoices } from "@/lib/saas/hooks"
-import { isMockMode, saas, saasErrorMessage } from "@/lib/saas/services"
+import { capabilities, isMockMode, saas, saasErrorMessage } from "@/lib/saas/services"
 import { methodLabel } from "@/lib/saas/mockEngine"
 import type { Invoice } from "@/lib/saas/types"
 import { usePermissions } from "@/hooks/usePermissions"
 import { toast } from "@/lib/toast"
 
 const PLANS: PlanId[] = ["free", "pro", "academia"]
+const RANK: Record<PlanId, number> = { free: 0, pro: 1, academia: 2 }
 
 export default function FacturacionPage() {
   const { data: overview, error, isLoading, mutate } = useBillingOverview()
@@ -32,6 +34,7 @@ export default function FacturacionPage() {
   const { can } = usePermissions()
   const canManage = can("billing", "update") || can("billing", "read")
   const confirm = useConfirm()
+  const router = useRouter()
 
   const [target, setTarget] = useState<PlanId | null>(null)
   const [pmOpen, setPmOpen] = useState(false)
@@ -66,6 +69,25 @@ export default function FacturacionPage() {
       variant: "danger",
     })
     if (ok) await run("cancel", () => saas.billing.cancel(), "Suscripción cancelada")
+  }
+
+  /** Elegir un plan: inline (mock) o checkout (API real, que cobra en el checkout). */
+  async function choosePlan(id: PlanId) {
+    if (capabilities.planChange === "inline") {
+      setTarget(id)
+      return
+    }
+    if (id === "free") {
+      await handleCancel()
+      return
+    }
+    const path = checkoutPathForPlan(overview!, id)
+    if (path) router.push(path)
+  }
+
+  function planBlocked(id: PlanId): boolean {
+    // Sin cambio directo a un plan de pago menor (se hace cancelando y contratando de nuevo)
+    return !capabilities.downgrade && id !== "free" && RANK[id] < RANK[overview!.plan]
   }
 
   function handleRetry() {
@@ -108,16 +130,28 @@ export default function FacturacionPage() {
           <div className="flex-1 text-sm" style={{ color: "#78350F" }}>
             <p className="font-semibold">No pudimos cobrar tu suscripción</p>
             <p>
-              Tienes hasta el {fmtDate(overview.pastDue?.graceEndsAt)} ({daysUntil(overview.pastDue?.graceEndsAt)} días) para
-              regularizar el pago; si no, pasarás al plan Free.
+              {overview.pastDue?.graceEndsAt
+                ? `Tienes hasta el ${fmtDate(overview.pastDue.graceEndsAt)} (${daysUntil(overview.pastDue.graceEndsAt)} días) para regularizar el pago; si no, pasarás al plan Free.`
+                : overview.pastDue?.nextRetryAt
+                  ? `Reintentaremos el cobro el ${fmtDate(overview.pastDue.nextRetryAt)}. Si falla varias veces, tu plan pasará a Free.`
+                  : "Reintentaremos el cobro automáticamente. Si falla varias veces, tu plan pasará a Free."}
+              {!capabilities.paymentMethodUpdate && (
+                <> ¿Necesitas cambiar tu método de pago? <Link href="/soporte" className="underline font-semibold">Escríbenos</Link>.</>
+              )}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setPmOpen(true)}>Cambiar método</Button>
-            <Button size="sm" onClick={handleRetry} loading={busy === "retry"}>
-              <RefreshCw size={14} aria-hidden="true" /> Reintentar pago
-            </Button>
-          </div>
+          {(capabilities.paymentMethodUpdate || capabilities.manualRetry) && (
+            <div className="flex gap-2">
+              {capabilities.paymentMethodUpdate && (
+                <Button variant="ghost" size="sm" onClick={() => setPmOpen(true)}>Cambiar método</Button>
+              )}
+              {capabilities.manualRetry && (
+                <Button size="sm" onClick={handleRetry} loading={busy === "retry"}>
+                  <RefreshCw size={14} aria-hidden="true" /> Reintentar pago
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -205,18 +239,26 @@ export default function FacturacionPage() {
                 <Button
                   size="sm"
                   variant={current ? "ghost" : "primary"}
-                  disabled={current || scheduled || overview.status === "past_due" || !canManage}
-                  onClick={() => setTarget(id)}
+                  disabled={current || scheduled || overview.status === "past_due" || !canManage || planBlocked(id)}
+                  onClick={() => choosePlan(id)}
                   className="mt-auto"
+                  title={planBlocked(id) ? "Para bajar de plan cancela tu suscripción y contrata el plan menor al terminar el periodo." : undefined}
                 >
-                  {current ? "Plan actual" : scheduled ? "Programado" : id === "free" ? "Bajar a Free" : "Elegir"}
+                  {current
+                    ? "Plan actual"
+                    : scheduled
+                      ? "Programado"
+                      : id === "free"
+                        ? capabilities.downgrade ? "Bajar a Free" : "Cancelar y pasar a Free"
+                        : "Elegir"}
                 </Button>
               </div>
             )
           })}
         </div>
         <p className="mt-3 text-xs" style={{ color: "var(--text-muted)" }}>
-          Al subir de plan pagas el valor completo y tu periodo de 30 días empieza hoy. Al bajar, el cambio se aplica al terminar el periodo pagado.{" "}
+          Al subir de plan pagas el valor completo y tu periodo de 30 días empieza hoy. Al bajar, el cambio se aplica al terminar el periodo pagado.
+          {!capabilities.downgrade && " Para bajar a un plan de pago menor, cancela y contrátalo de nuevo cuando termine tu periodo."}{" "}
           <Link href="/planes" className="underline">Ver comparativa de planes</Link>.
         </p>
       </Card>
@@ -242,10 +284,15 @@ export default function FacturacionPage() {
               <p style={{ color: "var(--text-muted)" }}>Aún no has agregado un método de pago.</p>
             )}
           </div>
-          {canManage && (
+          {canManage && capabilities.paymentMethodUpdate ? (
             <Button variant="ghost" size="sm" onClick={() => setPmOpen(true)}>
               {overview.paymentMethod ? "Cambiar" : "Agregar método de pago"}
             </Button>
+          ) : (
+            <p className="text-xs max-w-xs" style={{ color: "var(--text-muted)" }}>
+              Tu método de pago se registra al contratar un plan.{" "}
+              <Link href="/soporte" className="underline">Escríbenos</Link> si necesitas cambiarlo.
+            </p>
           )}
         </div>
       </Card>

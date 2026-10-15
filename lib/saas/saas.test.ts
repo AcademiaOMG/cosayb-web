@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import {
-  addDays, billingNotice, brandFromCardNumber, daysUntil, luhnValid, parseExpiry, previewPlanChange,
+  addDays, billingNotice, checkoutPathForPlan, brandFromCardNumber, daysUntil, luhnValid, parseExpiry, previewPlanChange,
 } from "./billing"
 import {
   cancelSubscription, changePlan, createInitialState, markAllNotificationsRead, markNotificationRead,
@@ -63,6 +63,16 @@ describe("previewPlanChange", () => {
 
   it("mismo plan activo es «same»", () => {
     expect(previewPlanChange(paidState().billing, "pro", NOW).kind).toBe("same")
+  })
+})
+
+describe("checkoutPathForPlan", () => {
+  it("nueva compra, upgrade y bloqueos", () => {
+    expect(checkoutPathForPlan({ plan: "free", status: "free" }, "pro")).toBe("/checkout/subscription/pro")
+    expect(checkoutPathForPlan({ plan: "free", status: "trialing" }, "academia")).toBe("/checkout/subscription/academia")
+    expect(checkoutPathForPlan({ plan: "pro", status: "active" }, "academia")).toBe("/checkout/subscription/academia?mode=upgrade")
+    expect(checkoutPathForPlan({ plan: "pro", status: "active" }, "pro")).toBeNull()
+    expect(checkoutPathForPlan({ plan: "academia", status: "active" }, "pro")).toBeNull()
   })
 })
 
@@ -191,7 +201,7 @@ describe("mockEngine · notificaciones y soporte", () => {
   it("crea tickets con consecutivo", () => {
     const { state, ticket } = submitTicket(
       createInitialState(NOW),
-      { name: "Ana", email: "ana@x.co", category: "tecnico", subject: "Falla", message: "No carga" },
+      { name: "Ana", email: "ana@x.co", category: "technical", subject: "Falla", message: "No carga" },
       NOW,
     )
     expect(ticket.number).toBe("SUP-0001")

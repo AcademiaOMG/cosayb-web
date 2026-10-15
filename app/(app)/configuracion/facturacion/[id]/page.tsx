@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState"
 import { InvoiceStatusBadge } from "@/components/saas/StatusBadge"
 import { downloadJson } from "@/lib/saas/accountExport"
 import { fmtDate, formatCOP } from "@/lib/saas/format"
+import { INVOICE_STATUS_LABELS } from "@/lib/saas/billing"
 import { useInvoices } from "@/lib/saas/hooks"
 import { usePermissions } from "@/hooks/usePermissions"
 
@@ -70,7 +71,7 @@ export default function ReciboPage({ params }: { params: Promise<{ id: string }>
           <Field k="Facturado a" v={organization?.name ?? "—"} />
           <Field k="Periodo" v={invoice.periodStart ? `${fmtDate(invoice.periodStart, "short")} – ${fmtDate(invoice.periodEnd, "short")}` : "—"} />
           <Field k="Método de pago" v={invoice.paymentMethodLabel} />
-          <Field k="Estado" v={{ paid: "Pagada", open: "Pendiente", failed: "Fallida", refunded: "Reembolsada" }[invoice.status]} />
+          <Field k="Estado" v={INVOICE_STATUS_LABELS[invoice.status]} />
         </dl>
 
         <table className="w-full text-sm">

@@ -3,17 +3,25 @@
 //   NEXT_PUBLIC_SAAS_MODE=mock | real        (por defecto: mock)
 // El checkout y la suscripción inicial siguen en lib/commerce/services.ts, que ya
 // habla con el API (el pago simulado vive en el backend).
+// Las operaciones sobre entidades reales (borrar cuenta, organización, invitaciones,
+// uso del plan) no se simulan: viven en lib/saas/account.ts y siempre llaman al API.
 
+import { billingQueries } from "@/lib/commerce/services"
+import { buildAccountExport } from "./accountExport"
+import {
+  PAYMENT_STATUS_TO_API, SUB_STATUS_TO_API, invoiceFromApi, metricsFromApi, notificationFromApi, orgBillingFromApi,
+  overviewFromApi, platformPaymentFromApi, platformSubscriptionFromApi, platformTicketFromApi, previewFromOverview,
+  ticketFromApi, type RawInvoice, type RawMySubscription, type RawNotification, type RawPlatformPayment,
+  type RawPlatformSubscription, type RawSaasMetrics, type RawTicket,
+} from "./adapters"
 import * as engine from "./mockEngine"
 import * as platform from "./mockPlatform"
 import { loadMock, loadPlatformMock, mutateMock, mutatePlatformMock, resetMock } from "./mockStore"
-import { ENDPOINTS, json, put, qs, saasData } from "./real"
-import { buildAccountExport } from "./accountExport"
-import { billingQueries } from "@/lib/commerce/services"
+import { json, qs, saasData, saasFetch } from "./real"
 import type {
-  AccountExport, AppNotification, BillingOverview, Invoice, OrgSupportAction, PaymentMethodInput, PaymentStatus,
+  AccountExport, AppNotification, BillingOverview, Invoice, OrgBilling, OrgSupportAction, PaymentMethodInput,
   PlanChangePreview, PlanId, PlatformPayment, PlatformSaasMetrics, PlatformSubscription, PlatformTicket,
-  SubscriptionStatus, SupportTicket, SupportTicketInput, TicketStatus,
+  SaasCapabilities, SupportTicket, SupportTicketInput, TicketStatus,
 } from "./types"
 import { SaasError } from "./types"
 
@@ -49,10 +57,11 @@ export interface SaasServices {
     exportData(): Promise<AccountExport>
   }
   platform: {
-    metrics(): Promise<PlatformSaasMetrics>
+    metrics(days?: number): Promise<PlatformSaasMetrics>
     subscriptions(f?: platform.SubscriptionFilters): Promise<PlatformSubscription[]>
     payments(f?: platform.PaymentFilters): Promise<PlatformPayment[]>
-    orgAction(orgId: string, action: OrgSupportAction, seed?: { name: string; plan: PlanId }): Promise<void>
+    orgBilling(orgId: string): Promise<OrgBilling>
+    setOrgPlan(orgId: string, action: OrgSupportAction, seed?: { name: string; plan: PlanId }): Promise<void>
     tickets(status?: TicketStatus | "all"): Promise<PlatformTicket[]>
     setTicketStatus(id: string, status: TicketStatus): Promise<void>
   }
@@ -70,6 +79,8 @@ async function mock<T>(fn: () => T): Promise<T> {
   await wait(null)
   return fn()
 }
+
+// ── Mock ─────────────────────────────────────────────────────────────────────
 
 const mockServices: SaasServices = {
   billing: {
@@ -104,7 +115,7 @@ const mockServices: SaasServices = {
         // también llega a la bandeja de soporte de la plataforma
         mutatePlatformMock((p) => ({
           ...p,
-          tickets: [{ ...ticket, id: `u-${ticket.id}`, number: ticket.number, organizationName: null }, ...p.tickets],
+          tickets: [{ ...ticket, id: `u-${ticket.id}`, organizationName: null }, ...p.tickets],
         }))
         return ticket
       }),
@@ -119,11 +130,12 @@ const mockServices: SaasServices = {
     exportData: () => buildAccountExport(),
   },
   platform: {
-    metrics: () => mock(() => platform.computeMetrics(loadPlatformMock())),
+    metrics: (days) => mock(() => platform.computeMetrics(loadPlatformMock(), new Date(), days)),
     subscriptions: (f) => mock(() => platform.listSubscriptions(loadPlatformMock(), f)),
     payments: (f) => mock(() => platform.listPayments(loadPlatformMock(), f)),
-    orgAction: (orgId, action, seed) =>
-      mock(() => void mutatePlatformMock((s, now) => platform.applyOrgAction(s, orgId, action, now, seed))),
+    orgBilling: (orgId) => mock(() => platform.orgBilling(loadPlatformMock(), orgId)),
+    setOrgPlan: (orgId, action, seed) =>
+      mock(() => void mutatePlatformMock((s, now) => platform.applyOrgPlan(s, orgId, action, now, seed))),
     tickets: (status) =>
       mock(() => loadPlatformMock().tickets.filter((t) => (status && status !== "all" ? t.status === status : true))),
     setTicketStatus: (id, status) => mock(() => void mutatePlatformMock((s, now) => platform.setTicketStatus(s, id, status, now))),
@@ -134,49 +146,91 @@ const mockServices: SaasServices = {
   },
 }
 
+// ── Real (contrato: docs/SAAS_API_CONTRATO.md del repo del API) ─────────────
+
+const API = "/api/v1"
+const NOT_AVAILABLE = () => Promise.reject(new SaasError("NOT_AVAILABLE", "Esta función no está disponible todavía."))
+
+async function realOverview(): Promise<BillingOverview> {
+  return overviewFromApi(await saasData<RawMySubscription>(`${API}/billing/me/subscription`))
+}
+
 const realServices: SaasServices = {
   billing: {
-    overview: () => saasData<BillingOverview>(ENDPOINTS.billingOverview),
-    preview: (plan) => saasData<PlanChangePreview>(ENDPOINTS.billingPreview, json({ plan })),
-    changePlan: (plan) => saasData<BillingOverview>(ENDPOINTS.billingChangePlan, json({ plan })),
-    cancel: () => saasData<BillingOverview>(ENDPOINTS.billingCancel, json({})),
-    resume: () => saasData<BillingOverview>(ENDPOINTS.billingResume, json({})),
-    setPaymentMethod: (input) => saasData<BillingOverview>(ENDPOINTS.billingPaymentMethod, put(input)),
-    retryPayment: () => saasData<BillingOverview>(ENDPOINTS.billingRetry, json({})),
-    invoices: () => saasData<Invoice[]>(ENDPOINTS.invoices),
+    overview: realOverview,
+    // El API no tiene vista previa: se calcula igual que el cobro del checkout (plan completo, sin prorrateo)
+    preview: async (plan) => previewFromOverview(await realOverview(), plan),
+    // Subir de plan = checkout (ver capabilities.planChange); no hay endpoint de cambio directo
+    changePlan: () => Promise.reject(new SaasError("USE_CHECKOUT", "Para cambiar de plan usa el checkout.")),
+    cancel: async () => {
+      await saasData<unknown>(`${API}/billing/subscription/cancel`, json({}))
+      return realOverview()
+    },
+    resume: async () => {
+      await saasData<unknown>(`${API}/billing/subscription/resume`, json({}))
+      return realOverview()
+    },
+    setPaymentMethod: NOT_AVAILABLE,
+    retryPayment: NOT_AVAILABLE,
+    invoices: async () => (await saasData<RawInvoice[]>(`${API}/billing/invoices`)).map(invoiceFromApi),
   },
   notifications: {
-    list: () => saasData<AppNotification[]>(ENDPOINTS.notifications),
+    list: async () => (await saasData<RawNotification[]>(`${API}/notifications?limit=30`)).map(notificationFromApi),
     markRead: async (id) => {
-      await saasData<unknown>(`${ENDPOINTS.notifications}/${encodeURIComponent(id)}/read`, json({}))
+      await saasData<unknown>(`${API}/notifications/${encodeURIComponent(id)}/read`, json({}))
     },
     markAllRead: async () => {
-      await saasData<unknown>(ENDPOINTS.notificationsReadAll, json({}))
+      await saasData<unknown>(`${API}/notifications/read-all`, json({}))
     },
   },
   support: {
-    submit: (input) => saasData<SupportTicket>(ENDPOINTS.supportTickets, json(input)),
-    mine: () => saasData<SupportTicket[]>(ENDPOINTS.supportMine),
+    submit: async (input) => {
+      const created = await saasData<{ id: string; ticketNo: string; status: string }>(`${API}/support/contact`, json(input))
+      const now = new Date().toISOString()
+      return {
+        ...input, id: created.id, number: created.ticketNo, status: "open",
+        createdAt: now, updatedAt: now,
+      }
+    },
+    mine: async () => (await saasData<RawTicket[]>(`${API}/support/tickets`)).map(ticketFromApi),
   },
   account: {
-    exportData: () => saasData<AccountExport>(ENDPOINTS.accountExport),
+    // El API responde con el JSON como descarga; se lee el cuerpo tal cual
+    exportData: () => saasFetch<AccountExport>(`${API}/me/export`),
   },
   platform: {
-    metrics: () => saasData<PlatformSaasMetrics>(ENDPOINTS.platformMetrics),
-    subscriptions: (f) =>
-      saasData<PlatformSubscription[]>(
-        `${ENDPOINTS.platformSubscriptions}${qs({ status: f?.status as SubscriptionStatus | undefined, plan: f?.plan, search: f?.search })}`,
-      ),
-    payments: (f) =>
-      saasData<PlatformPayment[]>(
-        `${ENDPOINTS.platformPayments}${qs({ status: f?.status as PaymentStatus | undefined, search: f?.search })}`,
-      ),
-    orgAction: async (orgId, action) => {
-      await saasData<unknown>(`/api/v1/platform/organizations/${encodeURIComponent(orgId)}/support-action`, json(action))
+    metrics: async (days = 30) =>
+      metricsFromApi(await saasData<RawSaasMetrics>(`${API}/platform/metrics/saas${qs({ days })}`)),
+    subscriptions: async (f) => {
+      const q = qs({
+        status: f?.status && f.status !== "all" ? SUB_STATUS_TO_API[f.status] : undefined,
+        plan: f?.plan,
+        limit: 200,
+      })
+      const rows = (await saasData<RawPlatformSubscription[]>(`${API}/platform/subscriptions${q}`)).map(platformSubscriptionFromApi)
+      const term = f?.search?.trim().toLowerCase()
+      return term ? rows.filter((r) => r.organizationName.toLowerCase().includes(term)) : rows
     },
-    tickets: (status) => saasData<PlatformTicket[]>(`${ENDPOINTS.platformTickets}${qs({ status })}`),
+    payments: async (f) => {
+      const q = qs({ status: f?.status && f.status !== "all" ? PAYMENT_STATUS_TO_API[f.status] : undefined, limit: 200 })
+      const rows = (await saasData<RawPlatformPayment[]>(`${API}/platform/payments${q}`)).map(platformPaymentFromApi)
+      const term = f?.search?.trim().toLowerCase()
+      return term
+        ? rows.filter((r) => r.organizationName.toLowerCase().includes(term) || r.invoiceNumber.toLowerCase().includes(term))
+        : rows
+    },
+    orgBilling: async (orgId) =>
+      orgBillingFromApi(await saasData(`${API}/platform/organizations/${encodeURIComponent(orgId)}/billing`)),
+    setOrgPlan: async (orgId, action) => {
+      await saasData<unknown>(`${API}/platform/organizations/${encodeURIComponent(orgId)}/plan`, json(action))
+    },
+    tickets: async (status) =>
+      (await saasData<RawTicket[]>(`${API}/platform/support/tickets${qs({ status, limit: 200 })}`)).map(platformTicketFromApi),
     setTicketStatus: async (id, status) => {
-      await saasData<unknown>(`${ENDPOINTS.platformTickets}/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ status }) })
+      await saasData<unknown>(`${API}/platform/support/tickets/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      })
     },
   },
   dev: {
@@ -185,7 +239,12 @@ const realServices: SaasServices = {
   },
 }
 
+const MOCK_CAPABILITIES: SaasCapabilities = { planChange: "inline", downgrade: true, paymentMethodUpdate: true, manualRetry: true }
+// Real: el API cobra por checkout; no hay cambio directo de plan, ni actualización de método, ni reintento manual
+const REAL_CAPABILITIES: SaasCapabilities = { planChange: "checkout", downgrade: false, paymentMethodUpdate: false, manualRetry: false }
+
 export const saas: SaasServices = getSaasMode() === "real" ? realServices : mockServices
+export const capabilities: SaasCapabilities = getSaasMode() === "real" ? REAL_CAPABILITIES : MOCK_CAPABILITIES
 
 /** Mensaje legible para mostrar al usuario a partir de cualquier error. */
 export function saasErrorMessage(err: unknown, fallback = "No pudimos completar la operación. Inténtalo de nuevo."): string {
@@ -195,4 +254,3 @@ export function saasErrorMessage(err: unknown, fallback = "No pudimos completar 
 }
 
 export type { SubscriptionFilters, PaymentFilters } from "./mockPlatform"
-export { describeAction } from "./mockPlatform"

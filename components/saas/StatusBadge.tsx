@@ -31,7 +31,8 @@ export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
 
 const TICKET_LABELS: Record<TicketStatus, [string, BadgeVariant]> = {
   open: ["Abierto", "warning"],
-  pending: ["En curso", "accent"],
+  in_progress: ["En curso", "accent"],
+  resolved: ["Resuelto", "success"],
   closed: ["Cerrado", "muted"],
 }
 
