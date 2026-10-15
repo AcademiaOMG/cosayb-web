@@ -23,3 +23,49 @@ describe("consent", () => {
     expect(readCookie("a=1; b=2", CONSENT_COOKIE)).toBeNull()
   })
 })
+
+describe("store de consentimiento (con un document.cookie simulado)", () => {
+  // Simula lo esencial de document.cookie: guarda «nombre=valor» y descarta los atributos
+  function fakeBrowser() {
+    const jar = new Map<string, string>()
+    const doc = {
+      get cookie() {
+        return [...jar].map(([k, v]) => `${k}=${v}`).join("; ")
+      },
+      set cookie(s: string) {
+        const [pair] = s.split(";")
+        const i = pair.indexOf("=")
+        jar.set(pair.slice(0, i).trim(), pair.slice(i + 1))
+      },
+    }
+    Object.assign(globalThis, { document: doc, location: { protocol: "http:" } })
+    return () => {
+      delete (globalThis as Record<string, unknown>).document
+      delete (globalThis as Record<string, unknown>).location
+    }
+  }
+
+  it("guardar «solo necesarias» y «aceptar todas» se refleja al leer y avisa a los suscriptores", async () => {
+    const restore = fakeBrowser()
+    try {
+      const { getConsent, setConsent, subscribeConsent } = await import("./consent")
+      let avisos = 0
+      const off = subscribeConsent(() => { avisos++ })
+      expect(getConsent()).toBeNull()
+
+      setConsent(false)
+      expect(getConsent()?.analytics).toBe(false)
+      expect(avisos).toBe(1)
+
+      setConsent(true)
+      expect(getConsent()?.analytics).toBe(true)
+      expect(avisos).toBe(2)
+
+      // useSyncExternalStore exige el MISMO objeto mientras nada cambie (si no, entra en bucle)
+      expect(getConsent()).toBe(getConsent())
+      off()
+    } finally {
+      restore()
+    }
+  })
+})
