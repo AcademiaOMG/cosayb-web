@@ -50,6 +50,35 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntry> = {
   },
 }
 
+/** Comparativa de planes para /planes. `true`/`false` = incluido/no incluido; texto = matiz. */
+export interface ComparisonRow {
+  label: string
+  values: Record<PlanId, boolean | string>
+}
+
+export const PLAN_COMPARISON: ComparisonRow[] = [
+  { label: "Calculadoras (valoración, punto de equilibrio, factor de rendimiento)", values: { free: "Básicas", pro: "Completas", academia: "Completas" } },
+  { label: "Inventario de ingredientes", values: { free: "Con límite", pro: "Ilimitado", academia: "Ilimitado" } },
+  { label: "Recetas y menús", values: { free: "Con límite", pro: "Ilimitados", academia: "Ilimitados" } },
+  { label: "Banco de recetas base (+1.000)", values: { free: false, pro: true, academia: true } },
+  { label: "Exportación a PDF y Excel", values: { free: false, pro: true, academia: true } },
+  { label: "Equipo e invitaciones", values: { free: "Básico", pro: "Ampliado", academia: "Ampliado" } },
+  { label: "Roles personalizados", values: { free: false, pro: true, academia: true } },
+  { label: "Roles académicos (docente, estudiante)", values: { free: false, pro: false, academia: true } },
+  { label: "Cursos y certificación", values: { free: false, pro: false, academia: true } },
+  { label: "Consultoría mensual 1:1", values: { free: false, pro: false, academia: true } },
+  { label: "Soporte", values: { free: "Centro de ayuda", pro: "Prioritario", academia: "Prioritario" } },
+]
+
+export const PLAN_FAQ: { q: string; a: string }[] = [
+  { q: "¿Necesito tarjeta para empezar?", a: "No. Creas tu cuenta y tienes 14 días de prueba con funciones Pro, sin tarjeta." },
+  { q: "¿Puedo cancelar cuando quiera?", a: "Sí. Cancelas desde Configuración > Facturación y conservas el plan hasta el final del periodo ya pagado." },
+  { q: "¿Qué pasa si subo o bajo de plan?", a: "Al subir pagas el valor completo del nuevo plan y empieza un periodo de 30 días. Al bajar, el cambio aplica al terminar el periodo pagado." },
+  { q: "¿Qué medios de pago aceptan?", a: "Tarjeta débito o crédito, PSE y Nequi / Daviplata, en pesos colombianos (COP)." },
+  { q: "¿Qué pasa si un cobro falla?", a: "Te avisamos dentro de la plataforma y por correo y reintentamos el cobro. Tienes 5 días para actualizar tu método de pago antes de pasar a Free; tus datos se conservan." },
+  { q: "¿Hay reembolso?", a: "Sí: el primer cobro de un plan de pago es reembolsable dentro de los 7 días. Mira la política de reembolso." },
+]
+
 export const PAYMENT_METHODS: Array<{ id: PaymentMethodId; label: string }> = [
   { id: "tarjeta", label: "Tarjeta débito/crédito" },
   { id: "pse", label: "PSE" },

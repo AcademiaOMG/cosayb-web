@@ -19,6 +19,24 @@ const API_BASE_URL =
 // ─── Fetcher genérico ─────────────────────────────────────────────────────────
 import { getActiveOrgId } from "@/lib/activeOrg"
 
+/** Error del API con el estado HTTP y el código de negocio (p. ej. MEMBERSHIP_LIMIT_REACHED). */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+    public body?: unknown,
+  ) {
+    super(message)
+    this.name = "ApiError"
+  }
+}
+
+/** El plan actual no permite la acción (límite alcanzado o función no incluida): la salida es mejorar el plan. */
+export function isPlanLimitError(err: unknown): err is ApiError {
+  return err instanceof ApiError && (err.code === "MEMBERSHIP_LIMIT_REACHED" || err.code === "FEATURE_NOT_AVAILABLE")
+}
+
 async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -38,10 +56,20 @@ async function fetchAPI<T>(
   if (!response.ok) {
     const text = await response.text().catch(() => "")
     let message = response.statusText
+    let code: string | undefined
+    let parsed: unknown
     try {
       const body = JSON.parse(text)
+      parsed = body
+      code = typeof body.code === "string" ? body.code : undefined
       if (body.error) message = body.error
       else if (body.message) message = body.message
+      // 409 = conflicto («está en uso, quítala de...»): el detalle dice qué hacer, el título no
+      if (response.status === 409 && body.message) message = body.message
+      // Límite o función fuera del plan: el detalle ("permite un máximo de 20") y la salida valen más que el título
+      if ((code === "MEMBERSHIP_LIMIT_REACHED" || code === "FEATURE_NOT_AVAILABLE") && body.message) {
+        message = `${body.message} Mejora tu plan para continuar.`
+      }
       if (body.details?.fieldErrors) {
         const fields = Object.entries(body.details.fieldErrors)
           .map(([k, v]) => `${k}: ${(v as string[]).join(", ")}`)
@@ -51,7 +79,7 @@ async function fetchAPI<T>(
     } catch {
       if (text) message = text
     }
-    throw new Error(message)
+    throw new ApiError(message, response.status, code, parsed)
   }
 
   return response.json() as Promise<T>
@@ -134,16 +162,6 @@ export async function updateIngrediente(
 /** DELETE /api/v1/ingredients/:id — requiere sesión */
 export async function deleteIngrediente(id: string): Promise<void> {
   return fetchAPI(`/api/v1/ingredients/${id}`, { method: "DELETE" })
-}
-
-/** POST /api/v1/ingredients/import — requiere sesión; evita duplicados por nombre */
-export async function importIngredientes(
-  ingredientes: Array<{ name: string; costPerUnit: number; weightGrams: number }>
-): Promise<ApiResponse<{ inserted: number; skipped: number }>> {
-  return fetchAPI("/api/v1/ingredients/import", {
-    method: "POST",
-    body: JSON.stringify({ ingredients: ingredientes }),
-  })
 }
 
 // ─── Factores de Rendimiento ──────────────────────────────────────────────────
@@ -303,12 +321,6 @@ export async function importPublicRecipes(): Promise<{ data: { imported: number;
 export async function getRecipeCost(id: string, materialCostPct?: number): Promise<{ data: RecipeCostResult }> {
   const params = materialCostPct != null ? `?materialCostPct=${materialCostPct}` : ""
   return fetchAPI(`/api/v1/recipes/${id}/cost${params}`)
-}
-
-/** GET /api/v1/recipes/banco — recetas del banco global (isPublic = true) */
-export async function getBancoRecipes(search?: string): Promise<{ data: Recipe[] }> {
-  const q = search ? `?search=${encodeURIComponent(search)}` : ''
-  return fetchAPI(`/api/v1/recipes/banco${q}`)
 }
 
 /** POST /api/v1/recipes/importar-banco/:id — clona una receta del banco en el tenant */

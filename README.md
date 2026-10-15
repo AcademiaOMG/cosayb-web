@@ -37,6 +37,10 @@ El frontend arranca en `http://localhost:3002`.
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | URL del backend API | `http://localhost:3005` |
 | `NEXT_PUBLIC_FRONTEND_URL` | URL del frontend | `http://localhost:3002` |
+| `NEXT_PUBLIC_SAAS_MODE` | `mock` (demo local) o `real` (API) para facturación, notificaciones, soporte y métricas | `mock` en desarrollo, `real` en producción |
+| `NEXT_PUBLIC_SENTRY_DSN` | Reporte de errores opcional | vacío |
+
+Lista completa en `.env.example`. Operación y despliegue: `docs/RUNBOOK_WEB.md`. Backlog SaaS: `docs/SAAS_BACKLOG_WEB.md`.
 
 ## Scripts
 
@@ -127,7 +131,10 @@ El archivo `proxy.ts` controla el acceso:
 |---|---|
 | `/` | Pública (landing) |
 | `/login` | Pública |
-| `/register` | Pública |
+| `/register`, `/forgot-password`, `/reset-password`, `/verify-email` | Públicas (auth con correo y contraseña + Google) |
+| `/planes`, `/ayuda`, `/contacto`, `/terms`, `/privacy`, `/refunds`, `/cookies` | Públicas |
+| `/configuracion/facturacion`, `/soporte`, `/notificaciones`, `/cuenta` | Requieren sesión |
+| `/plataforma/*` | Requiere sesión y rol de plataforma |
 | `/onboarding` | Requiere sesión |
 | `/inventario` | Requiere sesión + onboarding |
 | `/recetas` | Requiere sesión + onboarding |

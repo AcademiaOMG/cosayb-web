@@ -14,7 +14,7 @@ import {
   type CheckoutState,
   type StepId,
 } from "@/lib/commerce/machine"
-import { subscriptionService } from "@/lib/commerce/services"
+import { subscriptionService, billingQueries } from "@/lib/commerce/services"
 import { clearPendingCheckout } from "@/lib/commerce/pending"
 import type { PlanIntent } from "@/lib/commerce/planState"
 import type { SubscriptionResult } from "@/lib/commerce/types"
@@ -435,7 +435,39 @@ function Review({
   )
 }
 
+/** PSE/Nequi con pasarela real: el pago se confirma después (webhook). Consulta hasta que quede ACTIVA. */
+function PendingScreen({ result }: { result: SubscriptionResult }) {
+  const { data } = useSWR("billing/my-subscription/poll", () => billingQueries.mySubscription(), {
+    refreshInterval: 3000,
+    revalidateOnFocus: false,
+  })
+  const sub = data?.subscription
+  if (sub?.operationNo === result.operationNo && sub.status === "ACTIVE") {
+    return <SuccessScreen result={{ ...result, status: "ACTIVE" }} />
+  }
+  const failed = sub?.operationNo === result.operationNo && sub.status === "CANCELLED"
+  return (
+    <main className="min-h-screen bg-[#F5F0E8] px-4 py-10 text-[#12213A]">
+      <div className="mx-auto max-w-2xl rounded-3xl border border-[#DDD6C8] bg-white p-8 text-center shadow-sm" role="status" aria-live="polite">
+        <h1 className="text-3xl font-extrabold">{failed ? "No pudimos confirmar tu pago" : "Estamos confirmando tu pago"}</h1>
+        <p className="mt-2 text-[#4A4438]">
+          {failed
+            ? "El pago no fue aprobado. Puedes intentarlo de nuevo con otro método."
+            : "Esto puede tardar unos segundos. No cierres esta página; te avisaremos cuando tu plan esté activo."}
+        </p>
+        <p className="mt-4 text-xs text-[#7A6E60]">Número de operación {result.operationNo}</p>
+        {failed && (
+          <div className="mt-6">
+            <SuccessLink href="/planes" label="Volver a planes" primary />
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}
+
 function SuccessScreen({ result }: { result: SubscriptionResult }) {
+  if (result.status === "PENDING") return <PendingScreen result={result} />
   const entry = PLAN_CATALOG[result.plan]
   const date = new Date(result.createdAt).toLocaleDateString("es-CO", {
     day: "2-digit",
@@ -458,13 +490,16 @@ function SuccessScreen({ result }: { result: SubscriptionResult }) {
           <div><span className="text-[#7A6E60]">Método</span><p className="font-semibold">{result.methodLabel}</p></div>
         </div>
 
-        <p className="mt-4 text-xs text-[#7A6E60]">
-          Esta operación corresponde a una simulación. No se realizó ningún cobro real.
-        </p>
+        {result.simulated && (
+          <p className="mt-4 text-xs text-[#7A6E60]">
+            Esta operación corresponde a una simulación. No se realizó ningún cobro real.
+          </p>
+        )}
+        {result.invoiceNo && <p className="mt-2 text-xs text-[#7A6E60]">Recibo {result.invoiceNo}</p>}
 
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <SuccessLink href="/dashboard" label="Ir a mi cuenta" primary />
-          <SuccessLink href="/subscription" label="Ver mi suscripción" />
+          <SuccessLink href="/configuracion/facturacion" label="Ver mi facturación" />
         </div>
       </div>
     </main>

@@ -1,17 +1,16 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import LegalPage, { type LegalSection } from "@/components/landing/LegalPage"
 
 export const metadata: Metadata = {
   title: "Términos y Condiciones",
-  description: "Términos y condiciones de uso del servicio de Academia OMG.",
-  robots: { index: false, follow: false },
+  description: "Términos y condiciones de uso, planes, facturación y cancelación del servicio CO$AYB de Academia OMG.",
+  alternates: { canonical: "/terms" },
 }
 
-const sections = [
+const sections: LegalSection[] = [
   {
     title: "Aceptación de los términos",
-    body: "Al registrarte y usar CO$AYB, aceptas estos Términos y Condiciones en su totalidad. Si no estás de acuerdo con alguna parte, te pedimos que no uses el servicio.",
+    body: "Al registrarte y usar CO$AYB, aceptas estos Términos y Condiciones en su totalidad. Si no estás de acuerdo con alguna parte, te pedimos que no uses el servicio. Debes ser mayor de edad y tener capacidad legal para contratar.",
   },
   {
     title: "Descripción del servicio",
@@ -19,23 +18,38 @@ const sections = [
   },
   {
     title: "Cuenta de usuario",
-    body: "Para usar CO$AYB debes crear una cuenta con información verídica. Eres responsable de mantener la confidencialidad de tu contraseña y de todas las actividades realizadas desde tu cuenta. Debes notificarnos inmediatamente cualquier acceso no autorizado.",
+    body: "Para usar CO$AYB debes crear una cuenta con información verídica y verificar tu correo electrónico. Eres responsable de mantener la confidencialidad de tu contraseña y de todas las actividades realizadas desde tu cuenta. Debes notificarnos inmediatamente cualquier acceso no autorizado. Puedes cerrar tus sesiones activas desde Mi cuenta > Seguridad.",
   },
   {
-    title: "Planes y pagos",
-    body: "CO$AYB ofrece un período de prueba gratuita de 14 días. Después, el uso continuo del servicio requiere un plan de pago. El valor y las características de cada plan están descritos en la sección de inversión de nuestra página. Los pagos son mensuales y se procesan de forma automática.",
+    title: "Organizaciones y equipo",
+    body: "Cada negocio funciona como una organización. El propietario es responsable de las personas que invita, de los roles que les asigna y de la suscripción de la organización. Los límites de usuarios dependen del plan contratado.",
   },
   {
-    title: "Política de cancelación",
-    body: "Puedes cancelar tu suscripción en cualquier momento desde tu perfil. La cancelación será efectiva al finalizar el período de facturación en curso. No realizamos reembolsos por períodos ya facturados.",
+    title: "Planes, precios y facturación",
+    body: [
+      "CO$AYB ofrece un período de prueba gratuita de 14 días y planes de pago mensuales (Pro y Academia). Los valores vigentes, en pesos colombianos (COP), se muestran en la página de planes antes de contratar.",
+      "La suscripción se renueva automáticamente cada mes hasta que la canceles. Recibirás el recibo de cada cobro en Configuración > Facturación. Los cambios de plan se aplican de inmediato y el valor se ajusta de forma proporcional al tiempo restante del periodo.",
+    ],
   },
   {
-    title: "Propiedad intelectual",
-    body: "El código, diseño, marca CO$AYB y el banco de ingredientes son propiedad de Academia OMG. Los datos que tú ingresas (recetas, ingredientes personalizados, costos) son de tu propiedad y puedes exportarlos en cualquier momento.",
+    title: "Pagos fallidos",
+    body: "Si un cobro no se puede procesar, tu suscripción pasa a estado «pago pendiente» y te avisaremos dentro de la plataforma. Tienes 5 días para actualizar tu método de pago; si el pago no se regulariza, tu organización pasará al plan Free y conservarás tus datos con las limitaciones de ese plan.",
+  },
+  {
+    title: "Cancelación y reembolsos",
+    body: "Puedes cancelar tu suscripción en cualquier momento desde Configuración > Facturación. La cancelación será efectiva al finalizar el período de facturación en curso y seguirás usando el plan hasta entonces. Los reembolsos se rigen por la Política de reembolso.",
+  },
+  {
+    title: "Propiedad intelectual y tus datos",
+    body: "El código, diseño, marca CO$AYB y el banco de ingredientes son propiedad de Academia OMG. Los datos que tú ingresas (recetas, ingredientes personalizados, costos) son de tu propiedad: puedes exportarlos en cualquier momento desde Mi cuenta y eliminarlos al cerrar tu cuenta.",
   },
   {
     title: "Uso aceptable",
-    body: "Te comprometes a no usar CO$AYB para actividades ilegales, no intentar acceder a cuentas de otros usuarios, no realizar ingeniería inversa sobre el software, y no usar el servicio de forma que afecte su disponibilidad para otros usuarios.",
+    body: "Te comprometes a no usar CO$AYB para actividades ilegales, no intentar acceder a cuentas de otros usuarios, no realizar ingeniería inversa sobre el software, y no usar el servicio de forma que afecte su disponibilidad para otros usuarios. Podemos suspender cuentas que incumplan estas reglas.",
+  },
+  {
+    title: "Disponibilidad y soporte",
+    body: "Trabajamos para mantener el servicio disponible, pero no garantizamos que funcione sin interrupciones. El soporte se presta por el formulario del Centro de ayuda y por correo; el plan Pro y Academia tienen atención prioritaria.",
   },
   {
     title: "Limitación de responsabilidad",
@@ -53,62 +67,13 @@ const sections = [
 
 export default function TermsPage() {
   return (
-    <div>
-      {/* ─── HERO ─────────────────────────────────────────────────── */}
-      <section className="bg-[#12213A] py-16 sm:py-24 px-6 sm:px-10 lg:px-16">
-        <div className="max-w-4xl mx-auto">
-          <h1
-            className="font-display font-extrabold text-[#F5F0E8] leading-[1.05] mb-4"
-            style={{ fontSize: "clamp(2.2rem, 5vw, 3.5rem)" }}
-          >
-            Términos y{" "}
-            <span className="text-[#7AAEFF]">Condiciones</span>
-          </h1>
-          <p className="font-body text-lg text-[#8FA0BC]">
-            Última actualización: julio de 2026
-          </p>
-        </div>
-      </section>
-
-      {/* ─── CONTENT ──────────────────────────────────────────────── */}
-      <section className="bg-[#F5F0E8] py-10 sm:py-16 px-6 sm:px-10 lg:px-16">
-        <div className="max-w-4xl mx-auto">
-          <p className="font-body text-base text-[#4A4438] leading-relaxed mb-10 max-w-3xl">
-            Al acceder y usar la plataforma CO$AYB, aceptas los siguientes términos y condiciones.
-            Léelos cuidadosamente antes de crear tu cuenta.
-          </p>
-
-          <div className="flex flex-col gap-6">
-            {sections.map(({ title, body }, i) => (
-              <div
-                key={title}
-                className="bg-white rounded-2xl p-6 sm:p-8 border border-[#DDD6C8]"
-              >
-                <div className="flex items-start gap-4">
-                  <span className="shrink-0 w-8 h-8 rounded-lg bg-[#DEEAFF] flex items-center justify-center font-body font-bold text-sm text-[#1B4FD8]">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <h2 className="font-body font-bold text-[#12213A] text-lg mb-2">{title}</h2>
-                    <p className="font-body text-sm text-[#4A4438] leading-relaxed">{body}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Footer CTA */}
-          <div className="mt-12 pt-8 border-t border-[#DDD6C8]">
-            <p className="font-body text-sm text-[#7A6E60] mb-4">
-              ¿Tienes preguntas sobre estos términos?
-            </p>
-            <Link href="/contacto" className="btn-spx btn-spx-dark">
-              Contáctanos
-              <ArrowRight size={16} className="btn-arrow" />
-            </Link>
-          </div>
-        </div>
-      </section>
-    </div>
+    <LegalPage
+      title="Términos y"
+      highlight="Condiciones"
+      updated="octubre de 2026"
+      intro="Al acceder y usar la plataforma CO$AYB, aceptas los siguientes términos y condiciones. Léelos cuidadosamente antes de crear tu cuenta."
+      sections={sections}
+      ctaText="¿Tienes preguntas sobre estos términos?"
+    />
   )
 }

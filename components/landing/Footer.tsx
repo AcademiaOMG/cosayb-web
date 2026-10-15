@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
+import CookiePreferencesLink from "@/components/legal/CookiePreferencesLink"
 
 const footerSections = [
   {
@@ -8,6 +9,7 @@ const footerSections = [
       { label: "Cómo funciona", href: "/#como-funciona" },
       { label: "Demo", href: "/#demo" },
       { label: "Inversión", href: "/#precios" },
+      { label: "Planes y comparativa", href: "/planes" },
     ],
   },
   {
@@ -22,6 +24,7 @@ const footerSections = [
     title: "Recursos",
     links: [
       { label: "Blog", href: "/blog" },
+      { label: "Centro de ayuda", href: "/ayuda" },
       { label: "Preguntas Frecuentes", href: "/#faq" },
     ],
   },
@@ -37,6 +40,7 @@ const footerSections = [
     links: [
       { label: "Política de privacidad", href: "/privacy" },
       { label: "Términos y condiciones", href: "/terms" },
+      { label: "Política de reembolso", href: "/refunds" },
       { label: "Política de cookies", href: "/cookies" },
     ],
   },
@@ -134,6 +138,7 @@ export default function Footer() {
           © 2026 Academia OMG. Todos los derechos reservados.
         </p>
         <div className="flex items-center gap-4">
+          <CookiePreferencesLink className="font-body text-xs text-[#6B85A8] hover:text-[#7AAEFF] transition-colors underline" />
           {socialLinks.map(({ label, href, icon }) => (
             <a
               key={label}

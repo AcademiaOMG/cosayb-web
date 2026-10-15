@@ -22,7 +22,7 @@ export default function ValoracionPage() {
   useHelpAvailable()
   const { can, hasFeature, featureLockedMessage, isLoading: permsLoading } = usePermissions()
 
-  const { data: history = [], isLoading, mutate } = useSWR(
+  const { data: history = [], isLoading, error: historyError, mutate } = useSWR(
     "valuations",
     () => getValuations().then((r) => r.data ?? []),
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
@@ -140,6 +140,8 @@ export default function ValoracionPage() {
         <HistoryView
           history={history}
           isLoading={isLoading}
+          error={!!historyError}
+          onRetry={() => void mutate()}
           canCreate={can("valuations", "create")}
           onNewCalculation={goToCalculator}
           onView={setViewingValuation}

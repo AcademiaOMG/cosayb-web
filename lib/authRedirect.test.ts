@@ -7,6 +7,15 @@ import {
   DEFAULT_POST_LOGIN_PATH,
 } from "./authRedirect"
 
+describe("safeReturnTo (caracteres de control)", () => {
+  it("rechaza tab/salto de línea: el navegador los elimina y '/\\t/evil.com' pasa a '//evil.com'", () => {
+    expect(safeReturnTo("/\t/evil.com")).toBeNull()
+    expect(safeReturnTo("/\n/evil.com")).toBeNull()
+    expect(safeReturnTo("/\r/evil.com")).toBeNull()
+    expect(safeReturnTo("/ok\u0000")).toBeNull()
+  })
+})
+
 describe("safeReturnTo", () => {
   it("acepta rutas internas", () => {
     expect(safeReturnTo("/recetas?x=1")).toBe("/recetas?x=1")

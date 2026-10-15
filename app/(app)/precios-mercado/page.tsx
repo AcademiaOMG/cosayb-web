@@ -9,9 +9,9 @@ import Modal from "@/components/ui/Modal"
 import Badge from "@/components/ui/Badge"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { usePermissions } from "@/hooks/usePermissions"
+import { fetchAPI } from "@/lib/api"
 import ModuleLocked from "@/components/app/ModuleLocked"
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 const PAGE_SIZE = 50
 
 interface PriceRow {
@@ -266,12 +266,15 @@ export default function PreciosMercadoPage() {
     ...(source && { source }),
   })
 
-  const { data, isLoading } = useSWR<{ data: PriceRow[] }>(
+  // fetchAPI envía el negocio activo (el módulo se habilita según su plan) y lanza si el API responde un error
+  const { data, isLoading, error } = useSWR<{ data: PriceRow[] }>(
     `precios-mercado?${params}`,
-    () => fetch(`${API}/api/v1/precios-mercado?${params}`, { credentials: "include" })
-      .then((r) => r.json()),
+    () => fetchAPI<{ data: PriceRow[] }>(`/api/v1/precios-mercado?${params}`),
     { keepPreviousData: true }
   )
+  const emptyText = error
+    ? "No pudimos cargar los precios. Revisa tu conexión e inténtalo de nuevo."
+    : "No se encontraron resultados"
 
   const rows = data?.data ?? []
   const hasMore = rows.length === PAGE_SIZE
@@ -428,7 +431,7 @@ export default function PreciosMercadoPage() {
               {!isLoading && rows.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-16 text-center text-sm" style={{ color: "var(--text-muted)" }}>
-                    No se encontraron resultados
+                    {emptyText}
                   </td>
                 </tr>
               )}
@@ -454,7 +457,7 @@ export default function PreciosMercadoPage() {
               className="rounded-2xl px-4 py-12 text-center text-sm"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)", color: "var(--text-muted)" }}
             >
-              No se encontraron resultados
+              {emptyText}
             </li>
           )
         )}

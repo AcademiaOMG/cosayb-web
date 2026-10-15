@@ -19,9 +19,17 @@ import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
 import {
   User, Mail, Clock, ShieldCheck, KeyRound, Globe, Building2,
-  AlertTriangle, Monitor, LogOut, ExternalLink, Trash2, Check,
+  AlertTriangle, Monitor, LogOut, ExternalLink, Trash2, Check, Download,
 } from "lucide-react"
 import type { Plan } from "@/types/domain"
+import { validatePassword, validateEmail, normalizeEmail, authErrorMessage, translateAuthError } from "@/lib/auth/validation"
+import { saas, saasErrorMessage } from "@/lib/saas/services"
+import {
+  blockingOrgsFrom, deleteAccount, listSessions, revokeOtherSessions, revokeSession, type BlockingOrg,
+} from "@/lib/saas/account"
+import { SaasError } from "@/lib/saas/types"
+import { downloadJson } from "@/lib/saas/accountExport"
+import { useBillingOverview } from "@/lib/saas/hooks"
 
 /**
  * Mi cuenta — perfil PERSONAL del usuario, organizado en secciones
@@ -245,9 +253,106 @@ function useAuthAccounts() {
 function SeguridadTab() {
   return (
     <div className="flex flex-col gap-6">
+      <EmailCard />
       <PasswordCard />
       <SessionsCard />
     </div>
+  )
+}
+
+function EmailCard() {
+  const { data: session } = authClient.useSession()
+  const user = session?.user
+  const [newEmail, setNewEmail] = useState("")
+  const [error, setError] = useState<string | undefined>()
+  const [saving, setSaving] = useState(false)
+  const [resending, setResending] = useState(false)
+
+  if (!user) return null
+
+  async function handleChangeEmail() {
+    const err = validateEmail(newEmail)
+    setError(err ?? undefined)
+    if (err) return
+    if (normalizeEmail(newEmail) === user!.email.toLowerCase()) {
+      setError("Ese ya es tu correo actual.")
+      return
+    }
+    setSaving(true)
+    try {
+      const { error: apiError } = await authClient.changeEmail({
+        newEmail: normalizeEmail(newEmail),
+        callbackURL: `${window.location.origin}/cuenta`,
+      })
+      if (apiError) {
+        toast.error("No se pudo cambiar el correo", { description: authErrorMessage(apiError) })
+      } else {
+        toast.success("Revisa tu correo actual", { description: "Te enviamos un enlace para aprobar el cambio; luego verificaremos el nuevo correo." })
+        setNewEmail("")
+      }
+    } catch {
+      toast.error("No se pudo cambiar el correo", { description: "Revisa tu conexión e inténtalo de nuevo." })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleResend() {
+    setResending(true)
+    try {
+      const { error: apiError } = await authClient.sendVerificationEmail({
+        email: user!.email,
+        callbackURL: `${window.location.origin}/verify-email?verified=1`,
+      })
+      if (apiError) throw new Error(apiError.message)
+      toast.success("Te enviamos un nuevo correo de verificación.")
+    } catch {
+      toast.error("No pudimos reenviar el correo. Inténtalo más tarde.")
+    } finally {
+      setResending(false)
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3 mb-5">
+        <Mail size={18} style={{ color: "var(--accent)" }} />
+        <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
+          CORREO
+        </p>
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
+          <span className="font-medium break-all">{user.email}</span>
+          {user.emailVerified ? (
+            <span className="inline-flex items-center gap-1 text-xs" style={{ color: "var(--success)" }}>
+              <Check size={12} aria-hidden="true" /> Verificado
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2 text-xs" style={{ color: "var(--warning)" }}>
+              Sin verificar
+              <button type="button" onClick={handleResend} disabled={resending} className="underline" style={{ color: "var(--accent)" }}>
+                {resending ? "Enviando…" : "Reenviar verificación"}
+              </button>
+            </span>
+          )}
+        </div>
+        <Input
+          label="Nuevo correo"
+          type="email"
+          autoComplete="email"
+          value={newEmail}
+          onChange={(e) => { setNewEmail(e.target.value); setError(undefined) }}
+          error={error}
+          hint="Primero confirmas desde tu correo actual y después verificamos el nuevo."
+        />
+        <div className="flex justify-end">
+          <Button onClick={handleChangeEmail} disabled={saving || !newEmail}>
+            {saving ? "Enviando..." : "Cambiar correo"}
+          </Button>
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -262,8 +367,9 @@ function PasswordCard() {
 
   async function handleChangePassword() {
     setMsg(null)
-    if (newPassword.length < 8) {
-      setMsg("La nueva contraseña debe tener al menos 8 caracteres.")
+    const pwError = validatePassword(newPassword)
+    if (pwError) {
+      setMsg(pwError)
       return
     }
     if (newPassword !== confirmPassword) {
@@ -278,11 +384,8 @@ function PasswordCard() {
         revokeOtherSessions: true,
       })
       if (error) {
-        const wrongPassword = /invalid.?password|incorrect|wrong/i.test(`${error.code ?? ""} ${error.message ?? ""}`)
         toast.error("No se pudo cambiar la contraseña", {
-          description: wrongPassword
-            ? "La contraseña actual no es correcta. Revísala e inténtalo de nuevo."
-            : "Inténtalo de nuevo en unos segundos.",
+          description: translateAuthError(error) ?? "Inténtalo de nuevo en unos segundos.",
         })
       } else {
         toast.success("Contraseña actualizada", { description: "Cerramos tus otras sesiones por seguridad." })
@@ -324,7 +427,7 @@ function PasswordCard() {
               type="password"
               value={newPassword}
               onChange={(e) => { setNewPassword(e.target.value); setMsg(null) }}
-              hint="Mínimo 8 caracteres"
+              hint="Mínimo 10 caracteres, con letras y números"
             />
             <Input
               label="Confirmar nueva contraseña"
@@ -364,28 +467,16 @@ function PasswordCard() {
         >
           <Globe size={16} style={{ color: "var(--text-muted)" }} />
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Inicias sesión con Google — no tienes una contraseña que gestionar aquí.
+            Inicias sesión con Google — no tienes una contraseña. Si quieres una para entrar también con tu correo,{" "}
+            <Link href="/forgot-password" className="underline" style={{ color: "var(--accent)" }}>
+              créala con el enlace de recuperación
+            </Link>
+            .
           </p>
         </div>
       )}
     </Card>
   )
-}
-
-function parseUserAgent(ua: string | null | undefined): string {
-  if (!ua) return "Dispositivo desconocido"
-  const os = /Windows/.test(ua) ? "Windows"
-    : /Mac OS X/.test(ua) ? "macOS"
-    : /Android/.test(ua) ? "Android"
-    : /iPhone|iPad/.test(ua) ? "iOS"
-    : /Linux/.test(ua) ? "Linux"
-    : "dispositivo"
-  const browser = /Edg\//.test(ua) ? "Edge"
-    : /Chrome\//.test(ua) ? "Chrome"
-    : /Firefox\//.test(ua) ? "Firefox"
-    : /Safari\//.test(ua) ? "Safari"
-    : "Navegador"
-  return `${browser} en ${os}`
 }
 
 function timeAgo(value: string | Date): string {
@@ -400,40 +491,38 @@ function timeAgo(value: string | Date): string {
 }
 
 function SessionsCard() {
-  const { data: sessionData } = authClient.useSession()
-  const { data: sessions, mutate } = useSWR(
-    "auth-sessions",
-    () => authClient.listSessions().then((r) => r.data ?? []),
-    { revalidateOnFocus: false }
-  )
-  const [revokingToken, setRevokingToken] = useState<string | null>(null)
+  const { data: sessions, error, mutate } = useSWR("account-sessions", () => listSessions(), { revalidateOnFocus: false })
+  const [revokingId, setRevokingId] = useState<string | null>(null)
   const [revokingOthers, setRevokingOthers] = useState(false)
 
-  async function handleRevoke(token: string) {
-    setRevokingToken(token)
+  async function handleRevoke(id: string) {
+    setRevokingId(id)
     try {
-      await authClient.revokeSession({ token })
+      await revokeSession(id)
       await mutate()
+      toast.success("Sesión cerrada")
+    } catch (err) {
+      toast.error("No se pudo cerrar la sesión", { description: saasErrorMessage(err) })
     } finally {
-      setRevokingToken(null)
+      setRevokingId(null)
     }
   }
 
   async function handleRevokeOthers() {
     setRevokingOthers(true)
     try {
-      await authClient.revokeOtherSessions()
+      const r = await revokeOtherSessions()
       await mutate()
+      toast.success(r.revoked ? `Cerramos ${r.revoked} sesión(es)` : "No había otras sesiones")
+    } catch (err) {
+      toast.error("No se pudieron cerrar las sesiones", { description: saasErrorMessage(err) })
     } finally {
       setRevokingOthers(false)
     }
   }
 
-  const currentToken = sessionData?.session?.token
-  const sorted = sessions
-    ? [...sessions].sort((a, b) => (a.token === currentToken ? -1 : b.token === currentToken ? 1 : 0))
-    : []
-  const hasOthers = sorted.some((s) => s.token !== currentToken)
+  const sorted = sessions ? [...sessions].sort((x, y) => Number(y.current) - Number(x.current)) : []
+  const hasOthers = sorted.some((x) => !x.current)
 
   return (
     <Card>
@@ -451,48 +540,48 @@ function SessionsCard() {
         )}
       </div>
 
-      {!sessions ? (
+      {error ? (
+        <p className="text-sm" role="alert" style={{ color: "var(--text-muted)" }}>
+          No pudimos cargar tus sesiones.{" "}
+          <button type="button" className="underline" style={{ color: "var(--accent)" }} onClick={() => mutate()}>
+            Reintentar
+          </button>
+        </p>
+      ) : !sessions ? (
         <div className="animate-pulse rounded-xl h-14" style={{ background: "var(--bg-primary)" }} />
       ) : (
         <div className="flex flex-col gap-2">
-          {sorted.map((s) => {
-            const isCurrent = s.token === currentToken
-            return (
-              <div
-                key={s.id}
-                className="flex items-center gap-3 px-3.5 py-3 rounded-xl"
-                style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
-              >
-                <Monitor size={16} style={{ color: "var(--text-muted)" }} className="shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
-                    {parseUserAgent(s.userAgent)}
-                    {isCurrent && (
-                      <span
-                        className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-                        style={{ background: "#DCFCE7", color: "#166534" }}
-                      >
-                        Esta sesión
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {timeAgo(s.updatedAt ?? s.createdAt)}
-                  </p>
-                </div>
-                {!isCurrent && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRevoke(s.token)}
-                    loading={revokingToken === s.token}
-                  >
-                    Cerrar
-                  </Button>
-                )}
+          {sorted.map((x) => (
+            <div
+              key={x.id}
+              className="flex items-center gap-3 px-3.5 py-3 rounded-xl"
+              style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
+            >
+              <Monitor size={16} style={{ color: "var(--text-muted)" }} className="shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                  {x.device || "Dispositivo desconocido"}
+                  {x.current && (
+                    <span
+                      className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                      style={{ background: "#DCFCE7", color: "#166534" }}
+                    >
+                      Esta sesión
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  {x.ipAddress ? `${x.ipAddress} · ` : ""}
+                  {timeAgo(x.createdAt)}
+                </p>
               </div>
-            )
-          })}
+              {!x.current && (
+                <Button variant="ghost" size="sm" onClick={() => handleRevoke(x.id)} loading={revokingId === x.id}>
+                  Cerrar
+                </Button>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </Card>
@@ -665,6 +754,8 @@ function CuentaTab() {
         </div>
       </Card>
 
+      <ExportDataCard />
+
       <div
         className="rounded-2xl p-6 flex flex-col gap-4"
         style={{ background: "var(--bg-surface)", border: "1px solid #FECACA" }}
@@ -681,57 +772,79 @@ function CuentaTab() {
   )
 }
 
-function DeleteAccountSection() {
-  const { data: ownedOrgs } = useSWR(
-    "owned-organizations",
-    () => getOwnedOrganizations().then((r) => r.data),
-    { revalidateOnFocus: false }
+function ExportDataCard() {
+  const [exporting, setExporting] = useState(false)
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const data = await saas.account.exportData()
+      const stamp = new Date().toISOString().slice(0, 10)
+      downloadJson(`cosayb-datos-${stamp}.json`, data)
+      toast.success("Exportación lista", { description: "Descargamos un archivo JSON con tus datos." })
+    } catch (err) {
+      toast.error("No se pudieron exportar tus datos", { description: saasErrorMessage(err) })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3 mb-4">
+        <Download size={18} style={{ color: "var(--accent)" }} />
+        <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
+          TUS DATOS
+        </p>
+      </div>
+      <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
+        Descarga una copia de tu perfil, ingredientes, recetas, menús y cálculos en formato JSON. Tus datos son tuyos.
+      </p>
+      <Button variant="ghost" onClick={handleExport} loading={exporting}>
+        <Download size={14} />
+        Exportar mis datos
+      </Button>
+    </Card>
   )
+}
+
+function DeleteAccountSection() {
+  const { data: billing } = useBillingOverview()
+  const { loaded, hasPassword } = useAuthAccounts()
+  const { data: profile } = useSWR("my-profile", () => getMyProfile().then((r) => r.data), { revalidateOnFocus: false })
+  const { data: ownedOrgs } = useSWR("owned-organizations", () => getOwnedOrganizations().then((r) => r.data), {
+    revalidateOnFocus: false,
+  })
   const [confirming, setConfirming] = useState(false)
-  const [confirmText, setConfirmText] = useState("")
+  const [confirmEmail, setConfirmEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [blocking, setBlocking] = useState<BlockingOrg[]>([])
 
-  if (ownedOrgs === undefined) {
-    return <p className="text-sm" style={{ color: "var(--text-muted)" }}>Verificando…</p>
-  }
-
-  if (ownedOrgs.length > 0) {
-    const names = ownedOrgs.map((o) => o.name).join(", ")
-    return (
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-semibold" style={{ color: "#991B1B" }}>
-          No puedes eliminar tu cuenta todavía
-        </p>
-        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          Eres el propietario de {ownedOrgs.length === 1 ? "este negocio" : "estos negocios"}:{" "}
-          <strong style={{ color: "var(--text-primary)" }}>{names}</strong>. Antes debes transferir la
-          propiedad a otro miembro del equipo, o eliminar completamente la organización.
-        </p>
-        <div>
-          <Link href="/configuracion/equipo">
-            <Button variant="ghost" size="sm">
-              Ir a Equipo
-              <ExternalLink size={13} />
-            </Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
+  const email = profile?.email ?? ""
+  const emailOk = !!email && confirmEmail.trim().toLowerCase() === email.toLowerCase()
+  const canSubmit = emailOk && (!hasPassword || password.length > 0) && !deleting
 
   async function handleDelete() {
     setDeleting(true)
     setError(null)
+    setBlocking([])
     try {
-      const { error: err } = await authClient.deleteUser()
-      if (err) {
-        setError(err.message ?? "No se pudo eliminar la cuenta.")
-        return
-      }
+      await deleteAccount({ confirmEmail: confirmEmail.trim(), password: hasPassword ? password : undefined })
+      clearSWRCache()
+      setActiveOrgId(null)
+      try { await authClient.signOut() } catch { /* la sesión ya no existe */ }
       window.location.replace("/login")
-    } catch {
-      setError("No se pudo eliminar la cuenta.")
+    } catch (err) {
+      if (err instanceof SaasError && err.code === "OWNS_ORG_WITH_MEMBERS") {
+        setBlocking(blockingOrgsFrom(err.details))
+        setError("Antes debes transferir la propiedad o eliminar estos negocios con más miembros.")
+      } else if (err instanceof SaasError && err.code === "INVALID_PASSWORD") {
+        setError("La contraseña no es correcta.")
+      } else {
+        setError(saasErrorMessage(err, "No se pudo eliminar la cuenta."))
+      }
     } finally {
       setDeleting(false)
     }
@@ -742,6 +855,24 @@ function DeleteAccountSection() {
       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
         Esto elimina tu cuenta personal de forma permanente. No se puede deshacer.
       </p>
+      <ul className="list-disc pl-5 text-sm flex flex-col gap-1" style={{ color: "var(--text-secondary)" }}>
+        <li>Se borran tu perfil, tus sesiones y tus datos personales (máximo 30 días).</li>
+        <li>Te recomendamos exportar tus datos antes de continuar.</li>
+        {ownedOrgs && ownedOrgs.length > 0 && (
+          <li>
+            Eres propietario de <strong>{ownedOrgs.map((o) => o.name).join(", ")}</strong>: los negocios donde eres el único
+            miembro se eliminan contigo. Si tienen más miembros, transfiere la propiedad primero en{" "}
+            <Link href="/configuracion/equipo" className="underline">Equipo</Link>.
+          </li>
+        )}
+        {billing && billing.plan !== "free" && billing.status !== "canceled" && (
+          <li>
+            Tienes una suscripción {billing.plan === "pro" ? "Pro" : "Academia"} activa: se cancelará y no habrá más cobros.
+            Los reembolsos se rigen por la <Link href="/refunds" className="underline">política de reembolso</Link>.
+          </li>
+        )}
+        <li>Conservamos las facturas que la ley nos obliga a guardar.</li>
+      </ul>
 
       {!confirming ? (
         <div>
@@ -756,20 +887,44 @@ function DeleteAccountSection() {
           style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}
         >
           <p className="text-sm" style={{ color: "#7F1D1D" }}>
-            Escribe <strong>ELIMINAR</strong> para confirmar. Esta acción no se puede deshacer.
+            Para confirmar escribe tu correo <strong>{email || "…"}</strong>
+            {hasPassword ? " y tu contraseña" : ""}. Esta acción no se puede deshacer.
           </p>
-          <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="ELIMINAR" aria-label="Escribe ELIMINAR para confirmar" />
-          {error && <p className="text-xs" style={{ color: "#EF4444" }}>{error}</p>}
+          <Input
+            value={confirmEmail}
+            onChange={(e) => setConfirmEmail(e.target.value)}
+            placeholder={email}
+            type="email"
+            autoComplete="off"
+            aria-label="Escribe tu correo para confirmar"
+          />
+          {loaded && hasPassword && (
+            <Input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              autoComplete="current-password"
+              aria-label="Tu contraseña"
+              placeholder="Tu contraseña"
+            />
+          )}
+          {error && <p className="text-xs" role="alert" style={{ color: "#B91C1C" }}>{error}</p>}
+          {blocking.length > 0 && (
+            <ul className="text-xs flex flex-col gap-1" style={{ color: "#7F1D1D" }}>
+              {blocking.map((o) => (
+                <li key={o.id}>{o.name} · {o.members} miembros</li>
+              ))}
+            </ul>
+          )}
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => { setConfirming(false); setConfirmText(""); setError(null) }}>
+            <Button
+              variant="ghost"
+              className="w-full sm:w-auto"
+              onClick={() => { setConfirming(false); setConfirmEmail(""); setPassword(""); setError(null); setBlocking([]) }}
+            >
               Cancelar
             </Button>
-            <Button
-              variant="danger"
-              className="w-full sm:w-auto"
-              disabled={confirmText !== "ELIMINAR" || deleting}
-              onClick={handleDelete}
-            >
+            <Button variant="danger" className="w-full sm:w-auto" disabled={!canSubmit} onClick={handleDelete}>
               {deleting ? "Eliminando..." : "Eliminar mi cuenta definitivamente"}
             </Button>
           </div>

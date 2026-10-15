@@ -4,13 +4,14 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import PageHeader from "@/components/ui/PageHeader"
 import { usePermissions } from "@/hooks/usePermissions"
-import { Users, Palette, CreditCard, ScrollText, ShieldCheck } from "lucide-react"
+import { Users, Palette, CreditCard, ScrollText, ShieldCheck, Receipt } from "lucide-react"
 
 /**
  * Configuración del NEGOCIO — cada dominio es su propia ruta:
  *   /configuracion/equipo     miembros + invitaciones + límites
  *   /configuracion/marca      identidad del negocio
  *   /configuracion/membresia  plan, trial, features
+ *   /configuracion/facturacion suscripción, método de pago, facturas
  *
  * La sub-navegación se filtra por permisos: un manager ve solo Equipo
  * (lectura); Marca y Membresía son exclusivas de quien administra la org.
@@ -40,6 +41,12 @@ export default function ConfiguracionLayout({
       href: "/configuracion/membresia",
       label: "Membresía",
       icon: CreditCard,
+      visible: can("billing", "read"),
+    },
+    {
+      href: "/configuracion/facturacion",
+      label: "Facturación",
+      icon: Receipt,
       visible: can("billing", "read"),
     },
     {

@@ -5,6 +5,13 @@ const PUBLIC_ROUTES = [
   "/",
   "/login",
   "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/verify-email-sent",
+  "/planes",
+  "/refunds",
+  "/ayuda",
   "/onboarding",
   "/nosotros",
   "/contacto",
@@ -30,6 +37,8 @@ const PROTECTED_PREFIXES = [
   "/ajustes",
   "/configuracion",
   "/cuenta",
+  "/soporte",
+  "/notificaciones",
 ];
 
 const SESSION_COOKIE_NAMES = [

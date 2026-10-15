@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import { Barlow, Barlow_Condensed, Inter, JetBrains_Mono, Manrope, Cormorant_Garamond } from "next/font/google"
 import SWRProvider from "@/components/SWRProvider"
 import FeedbackProvider from "@/components/FeedbackProvider"
+import CookieBanner from "@/components/legal/CookieBanner"
+import MonitoringInit from "@/components/MonitoringInit"
 import "./globals.css"
 
 const barlowCondensed = Barlow_Condensed({
@@ -107,21 +109,12 @@ export const metadata: Metadata = {
     title: "Academia OMG — Costos de Alimentos y Bebidas para Negocios Gastronómicos",
     description:
       "Calcula el costo real de cada receta, aplica tus costos fijos y conoce el precio exacto de venta para ser rentable. Para negocios gastronómicos en Colombia.",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "CO$AYB — Software de Costos de Alimentos y Bebidas para Negocios Gastronómicos en Colombia",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "CO$AYB — Software de Costos de Alimentos y Bebidas",
     description:
       "Calcula el costo real de cada receta y conoce el precio exacto de venta. Para negocios gastronómicos en Colombia.",
-    images: ["/og-image.png"],
     creator: "@academiaomg",
     site: "@academiaomg",
   },
@@ -132,9 +125,6 @@ export const metadata: Metadata = {
       { url: "/logo-white.png", type: "image/png", sizes: "any" },
     ],
     apple: "/logo.png",
-  },
-  alternates: {
-    canonical: siteUrl,
   },
   category: "software",
 }
@@ -150,9 +140,17 @@ export default function RootLayout({
       className={`${barlowCondensed.variable} ${calcBarlow.variable} ${calcCondensed.variable} ${inter.variable} ${jetbrainsMono.variable} ${manrope.variable} ${cormorantGaramond.variable}`}
     >
       <body>
+        <a
+          href="#contenido"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#12213A] focus:shadow-lg"
+        >
+          Saltar al contenido
+        </a>
         <SWRProvider>{children}</SWRProvider>
         {/* Notificaciones y confirmaciones globales (único punto de montaje) */}
         <FeedbackProvider />
+        <CookieBanner />
+        <MonitoringInit />
       </body>
     </html>
   )

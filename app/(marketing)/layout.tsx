@@ -23,6 +23,38 @@ export const metadata: Metadata = {
   },
 }
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      name: "Academia OMG",
+      url: siteUrl,
+      logo: `${siteUrl}/logo.png`,
+      email: "hola@cosayb.co",
+      sameAs: [
+        "https://facebook.com/academiaomg",
+        "https://instagram.com/academiaomg",
+        "https://youtube.com/@academiaomg",
+        "https://linkedin.com/company/academiaomg",
+      ],
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "CO$AYB",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      inLanguage: "es-CO",
+      url: siteUrl,
+      offers: [
+        { "@type": "Offer", name: "Free", price: "0", priceCurrency: "COP" },
+        { "@type": "Offer", name: "Pro", price: "30000", priceCurrency: "COP" },
+        { "@type": "Offer", name: "Academia", price: "50000", priceCurrency: "COP" },
+      ],
+    },
+  ],
+}
+
 export default function MarketingLayout({
   children,
 }: {
@@ -34,7 +66,8 @@ export default function MarketingLayout({
       style={{ background: "var(--bg-primary)" }}
     >
       <Nav />
-      <main className="flex-1">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <main id="contenido" tabIndex={-1} className="flex-1 outline-none">
         <TransitionWrapper>{children}</TransitionWrapper>
       </main>
       <Footer />

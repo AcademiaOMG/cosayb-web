@@ -1,6 +1,10 @@
+import type { Metadata } from "next"
 import AppShell from "@/components/app/AppShell"
 import { UpgradeModalProvider } from "@/components/app/settings/UpgradeModalProvider"
 import UpgradeModal from "@/components/app/settings/UpgradeModal"
+
+// La app autenticada nunca se indexa
+export const metadata: Metadata = { robots: { index: false, follow: false } }
 
 // AppShell ya monta <SessionGuard /> internamente (components/app/AppShell.tsx) —
 // no duplicarlo aquí: dos instancias en el mismo árbol compiten entre sí por el

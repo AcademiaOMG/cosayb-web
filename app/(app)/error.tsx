@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import Button from "@/components/ui/Button"
+import { reportError } from "@/lib/monitoring"
 
 export default function AppError({
   error,
@@ -12,6 +13,7 @@ export default function AppError({
 }) {
   useEffect(() => {
     console.error("App error:", error)
+    reportError(error, { where: "app/(app)/error.tsx", digest: error.digest })
   }, [error])
 
   return (

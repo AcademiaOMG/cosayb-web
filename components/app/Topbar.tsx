@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { ChevronDown, Check, Shield, HelpCircle } from "lucide-react"
 import PlanBadge from "./settings/PlanBadge"
+import NotificationBell from "./NotificationBell"
 import type { Plan } from "@/types/domain"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailableSnapshot } from "@/hooks/useHelpAvailable"
@@ -153,7 +154,9 @@ export default function Topbar({
         </div>
       </div>
 
-      {/* Right: help button (only visible when a page has a help modal) */}
+      {/* Right: notificaciones + ayuda de la página (solo si hay modal de ayuda) */}
+      <div className="flex items-center gap-2">
+      <NotificationBell />
       {helpAvailable && (
         <button
           onClick={() => window.dispatchEvent(new Event("open-help"))}
@@ -176,6 +179,7 @@ export default function Topbar({
           <HelpCircle size={18} />
         </button>
       )}
+      </div>
     </header>
   )
 }

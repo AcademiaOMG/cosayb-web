@@ -44,7 +44,14 @@ export default function OrderPage() {
                 <Row k="Producto" v={BOOK.title} />
                 <Row k="Formato" v={data.format === "fisico" ? "Físico" : "Digital"} />
                 <Row k="Valor" v={formatCOP(data.amount)} />
-                <Row k="Estado" v={data.status === "PAID_SIMULATED" ? "Pagada (simulado)" : data.status} />
+                <Row
+                  k="Estado"
+                  v={
+                    ({ PAID_SIMULATED: "Pagada (simulado)", PAID: "Pagada", PENDING: "Procesando pago", CANCELLED: "Cancelada" } as Record<string, string>)[
+                      data.status
+                    ] ?? data.status
+                  }
+                />
                 <Row k="Método" v={data.method.toUpperCase()} />
                 <Row
                   k="Fecha"

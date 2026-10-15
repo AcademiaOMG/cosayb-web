@@ -1,5 +1,6 @@
 "use client"
 
+import ErrorState from "@/components/ui/ErrorState"
 import useSWR, { useSWRConfig } from "swr"
 import { useCallback, useEffect, useRef, useState } from "react"
 import PageHeader from "@/components/ui/PageHeader"
@@ -1028,7 +1029,7 @@ export default function MenuPage() {
   const { can, hasFeature, featureLockedMessage, isLoading: permsLoading } = usePermissions()
   const revalidateOnboarding = useRevalidateOnboarding()
   const { mutate: globalMutate } = useSWRConfig()
-  const { data: menus = [], isLoading: menusLoading, mutate: mutateMenus } = useSWR(
+  const { data: menus = [], isLoading: menusLoading, error: menusError, mutate: mutateMenus } = useSWR(
     "menus",
     () => getMenus().then((r) => r.data ?? []),
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
@@ -1209,6 +1210,8 @@ export default function MenuPage() {
 
       {menusLoading ? (
             <MenuListSkeleton />
+          ) : menusError && menus.length === 0 ? (
+            <ErrorState title="No pudimos cargar tus menús" onRetry={() => void mutateMenus()} />
           ) : menus.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
