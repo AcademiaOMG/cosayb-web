@@ -1,114 +1,159 @@
 "use client"
 
-import ErrorState from "@/components/ui/ErrorState"
+import { Suspense } from "react"
+import { useRouter } from "next/navigation"
 import useSWR from "swr"
-import { useState } from "react"
-import Link from "next/link"
+import { Users } from "lucide-react"
+import Badge from "@/components/ui/Badge"
+import EmptyState from "@/components/ui/EmptyState"
+import ErrorState from "@/components/ui/ErrorState"
+import FilterMenu, { ActiveFilterChips, type FilterGroup } from "@/components/ui/FilterMenu"
+import LoadingBlock from "@/components/ui/LoadingBlock"
+import PageHeader from "@/components/ui/PageHeader"
+import Table, { type Column } from "@/components/ui/Table"
+import { ExportButton, Pagination, QuickTabs, SearchBox, SortSelect } from "@/components/plataforma/clientes/ListControls"
+import { useUrlFilters } from "@/components/plataforma/clientes/useUrlFilters"
 import { usePermissions } from "@/hooks/usePermissions"
-import { platformListUsers } from "@/lib/api"
-import { Search, ChevronRight } from "lucide-react"
+import { downloadClientsCsv, lastSeenLabel, listClientUsers, parseUserFilters, toUrlParams, withFilter, type ClientUser, type UserFilters } from "@/lib/plataforma/clientes"
+import { roleLabel } from "@/lib/plataforma/labels"
+import { fmtDate } from "@/lib/saas/format"
 
-export default function UsuariosPage() {
+const LIMIT = 25
+
+function UsuariosLista() {
+  const router = useRouter()
   const { platformCan } = usePermissions()
-  const [search, setSearch] = useState("")
-  const { data, isLoading, error, mutate: retry } = useSWR(["platform-users", search], () =>
-    platformListUsers(search || undefined)
-  )
-
   const canRead = platformCan("platform_users", "read")
+  const [filters, setFilters] = useUrlFilters(parseUserFilters, toUrlParams)
+  const { data, error, isLoading, mutate } = useSWR(["clientes-users", toUrlParams(filters)], () => listClientUsers(filters, LIMIT), {
+    keepPreviousData: true,
+    revalidateOnFocus: false,
+  })
+  const c = data?.counts
+  const change = (patch: Partial<UserFilters>) => setFilters(withFilter(filters, patch))
+  const view = filters.verified === "no" ? "unverified" : (filters.kind ?? "all")
+  const setView = (v: string) =>
+    change({
+      kind: v === "team" || v === "client" || v === "no_business" ? v : undefined,
+      verified: v === "unverified" ? "no" : undefined,
+    })
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold console-title">Usuarios</h1>
-        <p className="text-sm console-muted mt-1">
-          {data ? `${data.total} usuarios registrados` : "Cargando…"}
-        </p>
-      </div>
+  const groups: FilterGroup[] = [
+    {
+      id: "verified",
+      label: "Correo",
+      value: filters.verified,
+      onChange: (verified) => change({ verified: verified as UserFilters["verified"] }),
+      options: [
+        { value: "yes", label: "Verificado", count: c?.verified },
+        { value: "no", label: "Sin verificar", count: c?.unverified },
+      ],
+    },
+  ]
 
-      <div className="relative" style={{ maxWidth: 340 }}>
-        <Search size={14} className="console-muted" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-        <input
-          type="search"
-          placeholder="Buscar por email…" aria-label="Buscar por email"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="console-input w-full text-sm"
-          style={{ height: 38, paddingLeft: 34, paddingRight: 12 }}
-        />
-      </div>
-
-      {error && !data && <ErrorState title="No pudimos cargar los usuarios" onRetry={() => void retry()} />}
-      {isLoading && !data && (
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="animate-pulse console-row" style={{ height: 62 }} />
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-2">
-        {(data?.data ?? []).map((u) => {
-          const row = (
-            <div
-              className="console-row flex items-center gap-4 px-4 py-3.5"
-              style={{ cursor: canRead ? "pointer" : "default" }}
-            >
-              <div
-                className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold shrink-0"
-                style={{ background: "var(--accent-light)", color: "var(--accent)" }}
-              >
-                {u.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold console-title truncate">{u.name}</p>
-                <p className="text-xs console-muted truncate">{u.email}</p>
-              </div>
-
-              {/* Roles actuales del usuario */}
-              <div className="flex gap-1.5 flex-wrap justify-end shrink-0" style={{ maxWidth: 320 }}>
-                {u.platformRoles.map((r) => (
-                  <span
-                    key={r}
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide"
-                    style={{ background: "var(--accent-light)", color: "var(--accent)" }}
-                  >
-                    {r.replace("platform_", "⚡ ")}
-                  </span>
-                ))}
-                {u.orgRoles.map((r, i) => (
-                  <span
-                    key={`${r.orgName}-${i}`}
-                    className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                    style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", border: "1px solid var(--border-light)" }}
-                    title={r.orgName ?? undefined}
-                  >
-                    {r.roleName}{r.orgName ? ` · ${r.orgName}` : ""}
-                  </span>
-                ))}
-                {u.platformRoles.length === 0 && u.orgRoles.length === 0 && (
-                  <span className="text-[10px] console-muted">sin roles</span>
-                )}
-              </div>
-
-              <span className="text-xs console-muted shrink-0">
-                {new Date(u.createdAt).toLocaleDateString("es-CO")}
-              </span>
-              {canRead && <ChevronRight size={16} className="console-muted" />}
+  const columns: Column[] = [
+    {
+      key: "name",
+      header: "Usuario",
+      render: (_v, row) => {
+        const u = row as unknown as ClientUser
+        return (
+          <div className="min-w-0">
+            <p className="text-sm font-semibold console-title truncate">{u.name}</p>
+            <p className="text-xs console-muted truncate">{u.email}</p>
+          </div>
+        )
+      },
+    },
+    { key: "emailVerified", header: "Correo", render: (v) => <Badge variant={v ? "success" : "warning"}>{v ? "Verificado" : "Sin verificar"}</Badge> },
+    {
+      key: "platformRoles",
+      header: "Rol",
+      render: (_v, row) => {
+        const u = row as unknown as ClientUser
+        if (u.platformRoles.length > 0) {
+          return (
+            <div className="flex flex-wrap gap-1.5">
+              {u.platformRoles.map((r) => <Badge key={r} variant="accent">{roleLabel(r)}</Badge>)}
             </div>
           )
+        }
+        const names = [...new Set(u.orgRoles.map((r) => roleLabel(r.roleSlug)))]
+        return <span className="text-sm console-muted">{names.length ? names.join(", ") : "Sin rol"}</span>
+      },
+    },
+    { key: "businessCount", header: "Negocios" },
+    { key: "lastActivityAt", header: "Último acceso", render: (v) => lastSeenLabel(v as string | null) },
+    { key: "createdAt", header: "Registro", render: (v) => fmtDate(v as string, "short") },
+  ]
 
-          return canRead ? (
-            <Link key={u.id} href={`/plataforma/usuarios/${u.id}`}>{row}</Link>
-          ) : (
-            <div key={u.id}>{row}</div>
-          )
-        })}
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Usuarios"
+        subtitle={data ? `${c?.all ?? 0} usuarios registrados` : "Cargando…"}
+        action={<ExportButton onExport={() => downloadClientsCsv("users", filters)} />}
+      />
 
-        {data && data.data.length === 0 && (
-          <p className="text-sm text-center py-10 console-muted">Sin resultados.</p>
-        )}
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchBox value={filters.search} onChange={(search) => change({ search })} placeholder="Buscar por nombre o correo…" label="Buscar usuario" />
+        <FilterMenu groups={groups} ariaLabel="Filtrar usuarios" />
+        <div className="ml-auto">
+          <SortSelect
+            value={filters.sort}
+            dir={filters.dir}
+            options={[
+              { value: "created", label: "Fecha de registro" },
+              { value: "name", label: "Nombre" },
+              { value: "activity", label: "Último acceso" },
+            ]}
+            onChange={(sort, dir) => change({ sort, dir })}
+          />
+        </div>
       </div>
+      <ActiveFilterChips groups={groups} />
+
+      <QuickTabs
+        ariaLabel="Vistas rápidas"
+        tabs={[
+          { id: "all", label: "Todos", count: c?.all, active: view === "all", onSelect: () => setView("all") },
+          { id: "client", label: "Con negocio", count: c?.client, active: view === "client", onSelect: () => setView("client") },
+          { id: "no_business", label: "Sin negocio", count: c?.noBusiness, active: view === "no_business", onSelect: () => setView("no_business") },
+          { id: "team", label: "Equipo de la plataforma", count: c?.team, active: view === "team", onSelect: () => setView("team") },
+          { id: "unverified", label: "Sin verificar", count: c?.unverified, active: view === "unverified", onSelect: () => setView("unverified") },
+        ]}
+      />
+
+      {error && !data ? (
+        <ErrorState title="No pudimos cargar los usuarios" onRetry={() => void mutate()} />
+      ) : isLoading && !data ? (
+        <LoadingBlock label="Cargando usuarios…" />
+      ) : (
+        <>
+          <Table
+            columns={columns}
+            data={(data?.data ?? []) as unknown as Record<string, unknown>[]}
+            rowKey="id"
+            onRowClick={canRead ? (row) => router.push(`/plataforma/usuarios/${row.id as string}`) : undefined}
+            emptyState={
+              <EmptyState
+                icon={<Users size={32} aria-hidden="true" />}
+                title="No encontramos usuarios"
+                description="Prueba con otra búsqueda o quita algún filtro."
+              />
+            }
+          />
+          <Pagination page={filters.page} total={data?.total ?? 0} limit={LIMIT} onPage={(page) => setFilters({ ...filters, page })} />
+        </>
+      )}
     </div>
+  )
+}
+
+export default function UsuariosPage() {
+  return (
+    <Suspense fallback={<LoadingBlock />}>
+      <UsuariosLista />
+    </Suspense>
   )
 }
