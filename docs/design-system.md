@@ -118,3 +118,38 @@ Todo diálogo debe usar `Modal` (no `fixed inset-0` propios). Comportamiento est
 - `aria-labelledby` con id único por instancia (`useId`), así que se pueden anidar modales.
 - Variantes: por defecto `max-w-lg`; `wide` (3xl); `xwide` (5xl, calculadoras); `blur` para overlay desenfocado.
 - Excepciones intencionales sin Modal: bloqueos de `SessionGuard` (no descartables) y el menú móvil de `Nav` (no es un diálogo).
+
+## Panel de la plataforma (`/plataforma`)
+
+La consola de administración usa el mismo diseño que la app: `app/plataforma/layout.tsx` la envuelve en `.app-theme-neutral` y monta `components/plataforma/PlatformShell.tsx` (barra lateral navy en escritorio, menú desplegable en móvil, barra superior con migas de pan, nombre y rol del usuario, «Volver a mi negocio» y «Cerrar sesión»; `#contenido` + enlace «Saltar al contenido» global).
+
+- **Navegación y permisos**: `lib/plataforma/nav.ts` (`NAV_GROUPS`, `visibleGroups(roles)`, `landingRedirect`, `breadcrumbsFor`). Para agregar una sección, se añade ahí con sus roles; barra lateral, menú móvil y migas la toman sola.
+- **Textos**: los roles, permisos, acciones de auditoría y funciones se muestran con `lib/plataforma/labels.ts`. Nunca un código técnico en pantalla.
+- **Clases heredadas** (siguen funcionando, con el diseño nuevo): `console-card` (vidrio sutil), `console-title`, `console-muted`, `console-accent`, `console-input` (con foco visible), `console-row`. En páginas nuevas preferir las primitivas de abajo.
+- **Estados**: `app/plataforma/{loading,error,not-found}.tsx` usan `LoadingBlock` y `ErrorState`; los permisos insuficientes, `AccessDenied`.
+
+### Primitivas (`components/plataforma/`)
+
+```tsx
+<PlatformPage title="Organizaciones" description="Negocios registrados en CO$AYB." actions={<Button>Nueva</Button>}>
+  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <StatCard label="Negocios activos" value="128" hint="+3 este mes" icon={Building2} href="/plataforma/organizaciones" />
+  </div>
+  <DataToolbar
+    search={{ value: q, onChange: setQ, placeholder: "Buscar por nombre o correo" }}
+    filters={<select className="console-input h-10 px-3 text-sm">…</select>}
+    actions={<Button variant="ghost">Exportar</Button>}
+    summary={`${rows.length} resultados`}
+  />
+  <StatusPill tone="success">Activa</StatusPill>
+</PlatformPage>
+```
+
+| Componente | Props |
+|---|---|
+| `PlatformPage` | `title`, `description?`, `actions?`, `children`. Título h1 + contenido con `gap-6`. |
+| `StatCard` | `label`, `value`, `hint?`, `icon?` (lucide), `href?` (toda la tarjeta enlaza). Vidrio sutil. |
+| `DataToolbar` | `search? {value,onChange,placeholder?,label?}`, `filters?`, `actions?`, `summary?` (anunciado con `role="status"`). |
+| `StatusPill` | `tone?: "success"\|"warning"\|"danger"\|"info"\|"neutral"`, `dot?`, `children` (texto en español; el color nunca es el único canal). |
+
+Accesibilidad: foco visible (`plat-focus`/`plat-link`/`plat-btn`), `aria-current="page"` en la sección activa y en la última miga, menú móvil con trampa de foco y `Esc`, objetivos táctiles de 44 px.
