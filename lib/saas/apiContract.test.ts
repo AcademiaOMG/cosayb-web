@@ -117,3 +117,24 @@ describe("contrato real web↔API", () => {
     expect(m.signupsByDay.length).toBeGreaterThan(0)
   })
 })
+
+describe("errores del API", () => {
+  it("un 403 de permisos llega como SaasError HTTP_403 (la consola lo distingue de un fallo de red)", async () => {
+    const { saasFetch } = await import("./real")
+    const { SaasError } = await import("./types")
+    const original = globalThis.fetch
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ error: "Sin permisos de plataforma", required: "read:platform_metrics" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      })) as typeof fetch
+    try {
+      const err = await saasFetch("/api/v1/platform/metrics/saas").catch((e: unknown) => e)
+      expect(err).toBeInstanceOf(SaasError)
+      expect((err as InstanceType<typeof SaasError>).code).toBe("HTTP_403")
+      expect((err as Error).message).toBe("Sin permisos de plataforma")
+    } finally {
+      globalThis.fetch = original
+    }
+  })
+})

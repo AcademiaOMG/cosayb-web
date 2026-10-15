@@ -9,7 +9,11 @@ import DailyBarChart from "@/components/saas/DailyBarChart"
 import ErrorState from "@/components/ui/ErrorState"
 import { fmtDay, formatCOP } from "@/lib/saas/format"
 import { saas } from "@/lib/saas/services"
+import { SaasError } from "@/lib/saas/types"
 import { planLabel } from "@/lib/saas/billing"
+
+/** 403 del API = el rol no tiene el permiso; reintentar no sirve. */
+const isForbidden = (err: unknown) => err instanceof SaasError && err.code === "HTTP_403"
 
 export default function MetricasPage() {
   const { data } = useSWR("platform-metrics", () =>
@@ -86,7 +90,14 @@ export default function MetricasPage() {
         </div>
 
         {saasError ? (
-          <ErrorState title="No pudimos cargar las métricas de ingresos" onRetry={() => retrySaas()} />
+          isForbidden(saasError) ? (
+            <ErrorState
+              title="Tu rol no incluye las métricas de ingresos"
+              description="Pide acceso a un administrador de la plataforma si lo necesitas."
+            />
+          ) : (
+            <ErrorState title="No pudimos cargar las métricas de ingresos" onRetry={() => retrySaas()} />
+          )
         ) : !saasMetrics ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => <div key={i} className="console-card animate-pulse" style={{ height: 92 }} />)}
