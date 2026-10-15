@@ -64,6 +64,13 @@ describe("Punto de Equilibrio — header con pestañas", () => {
     expect(html).toContain("Historial")
     // Vista inicial: la calculadora, no el historial
     expect(html).toContain("Calculadora de punto de equilibrio")
+    // La calculadora del kit; el boleto NO existe hasta pulsar Calcular
+    expect(html).toContain("calc-device")
+    // Paso 1: se agregan costos a una lista; «Calcular» está en el paso 2
+    expect(html).toContain(">Agregar a la lista</button>")
+    expect(html).toContain("Sin costos todavía")
+    expect(html).not.toContain("Unidades para cubrir costos al mes")
+    expect(html).not.toContain("calc-receipt-print")
     expect(html).not.toContain("Unidades al mes")
     expect(html).not.toContain("Exportar Excel")
   })
@@ -74,7 +81,8 @@ describe("Punto de Equilibrio — header con pestañas", () => {
     // Sin datos de ejemplo ni del historial: lista vacía y total en cero
     expect(html).not.toContain('aria-label="Quitar Arriendo"')
     expect(html).not.toContain("6.585.000")
-    expect(html).toContain("Aún no has agregado costos")
+    expect(html).not.toContain("Agrega al menos un costo fijo")
+    expect(html).not.toContain("Listo para guardar")
     expect(html).not.toContain("Empezar en blanco")
   })
 })

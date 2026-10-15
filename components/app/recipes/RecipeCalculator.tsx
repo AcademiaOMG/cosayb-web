@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, Plus, Trash2 } from "lucide-react"
 import Button from "@/components/ui/Button"
 import SearchableSelect from "@/components/ui/SearchableSelect"
 import {
@@ -22,9 +22,10 @@ import {
   type EntryOptions,
 } from "@/lib/calculator/entry"
 import { formatCOP, formatCOPDecimals, formatNumber, formatPercent } from "@/lib/calculator/format"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
 import {
   defaultServingWeight,
-  moveLine,
   priceTape,
   solveRecipeTape,
   type CostLookup,
@@ -405,12 +406,11 @@ export default function RecipeCalculator({
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  // El rollo baja solo al agregar una línea
-  const linesRef = useRef<HTMLOListElement>(null)
-  useEffect(() => {
-    const el = linesRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [lines.length])
+  // La lista se muestra en orden alfabético
+  const sortedLines = useMemo(
+    () => [...tape.lines].sort((a, b) => a.line.name.localeCompare(b.line.name, "es", { sensitivity: "base" })),
+    [tape.lines],
+  )
 
   // Al cambiar de paso: arriba del asistente y con el foco en la pregunta (teclado y lectores de pantalla;
   // en el celular el botón "Siguiente" queda al fondo y el paso nuevo se vería a media altura).
@@ -580,7 +580,9 @@ export default function RecipeCalculator({
       onSaved({ name: payload.name, created: !isEditing })
     } catch (e) {
       savingRef.current = false
-      setSaveError(e instanceof Error ? e.message : "No se pudo guardar la receta.")
+      toast.error(isEditing ? "No se pudo actualizar la receta" : "No se pudo crear la receta", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo. Tus datos siguen aquí."),
+      })
     } finally {
       setSaving(false)
     }
@@ -658,15 +660,35 @@ export default function RecipeCalculator({
 
   /** Lo ya decidido, a la vista en los pasos siguientes */
   const recap = (withServings: boolean) => (
-    <p className="rw-recap">
-      <strong>«{name.trim()}»</strong> · {summary} · costo {formatCOP(tape.rawCost)}
-      {withServings && hasServings && (
-        <>
-          {" "}
-          · {plural(servingsNum ?? 0, "porción", "porciones")} · margen {formatPercent(marginNum, 0)}
-        </>
-      )}
-    </p>
+    <section className="rw-recap" aria-label={`Resumen de «${name.trim()}»`}>
+      <p className="rw-recap-name">{name.trim()}</p>
+      <dl className="rw-recap-stats">
+        <div>
+          <dt>Ingredientes</dt>
+          <dd>{lines.length}</dd>
+        </div>
+        <div>
+          <dt>Peso total</dt>
+          <dd>{grams(tape.totalGrams)}</dd>
+        </div>
+        <div>
+          <dt>Costo</dt>
+          <dd>{formatCOP(tape.rawCost)}</dd>
+        </div>
+        {withServings && hasServings && (
+          <>
+            <div>
+              <dt>Porciones</dt>
+              <dd>{servingsNum ?? 0}</dd>
+            </div>
+            <div>
+              <dt>Margen</dt>
+              <dd>{formatPercent(marginNum, 0)}</dd>
+            </div>
+          </>
+        )}
+      </dl>
+    </section>
   )
 
   const warnUnpriced = (unpricedNames.length > 0 || pendingCount > 0) && (
@@ -856,20 +878,6 @@ export default function RecipeCalculator({
           </CalcDevice>
             </div>
             <div className="rw-col-side">
-          {lines.length === 0 ? (
-            <ol className="rw-howto">
-              <li>Elige un ingrediente de la lista.</li>
-              <li>Escribe con el teclado cuántos gramos lleva.</li>
-              <li>
-                Pulsa <strong>Agregar</strong>. Repite con cada ingrediente.
-              </li>
-            </ol>
-          ) : (
-            <p className="rw-help">
-              Cuando termines, pulsa <strong>Siguiente</strong>.
-            </p>
-          )}
-
           {catalog.ingredients.length === 0 && pickKind === "ingredient" && (
             <div role="status" className="rw-warn">
               <AlertTriangle size={14} className="shrink-0 mt-0.5" />
@@ -900,8 +908,8 @@ export default function RecipeCalculator({
             {lines.length === 0 ? (
               <p className="rt-empty">Los ingredientes que agregues irán apareciendo aquí con su costo.</p>
             ) : (
-              <ol ref={linesRef} className="rt-lines" aria-label="Ingredientes agregados">
-                {tape.lines.map((p, idx) => (
+              <ol className="rt-lines" aria-label="Ingredientes agregados">
+                {sortedLines.map((p, idx) => (
                   <li key={p.line.key} className="rt-line">
                     <span className="rt-n">{idx + 1}</span>
                     <div className="rt-main">
@@ -919,12 +927,6 @@ export default function RecipeCalculator({
                       {p.cost != null ? formatCOP(p.cost) : p.pending ? "…" : "sin costo"}
                     </span>
                     <div className="rt-actions">
-                      <button type="button" className="rt-icon-btn" aria-label={`Subir ${p.line.name}`} disabled={idx === 0} onClick={() => setLines((prev) => moveLine(prev, idx, idx - 1))}>
-                        <ChevronUp size={14} />
-                      </button>
-                      <button type="button" className="rt-icon-btn" aria-label={`Bajar ${p.line.name}`} disabled={idx === lines.length - 1} onClick={() => setLines((prev) => moveLine(prev, idx, idx + 1))}>
-                        <ChevronDown size={14} />
-                      </button>
                       <button type="button" className="rt-icon-btn is-danger" aria-label={`Quitar ${p.line.name}`} onClick={() => removeLine(p.line.key)}>
                         <Trash2 size={13} />
                       </button>
@@ -1126,18 +1128,6 @@ export default function RecipeCalculator({
               revealKey={result.pricePerServing}
             />
           </CalcDevice>
-          <div className="rw-adjust">
-            <Button variant="ghost" type="button" onClick={() => goStep(2)}>
-              Cambiar ingredientes
-            </Button>
-            <Button variant="ghost" type="button" onClick={() => goStep(3)}>
-              Cambiar porciones o margen
-            </Button>
-            <Button variant="ghost" type="button" onClick={() => goStep(4)}>
-              Cambiar % de materia prima
-            </Button>
-          </div>
-
           <details className="rw-details" open={!!(boot.servingWeight || editRecipe?.description) || undefined}>
             <summary>Detalles opcionales (peso por porción, descripción)</summary>
             <div className="flex flex-col gap-3 pt-3">
@@ -1176,11 +1166,6 @@ export default function RecipeCalculator({
           {saveError && (
             <p className="text-sm" role="alert" style={{ color: "#B42020" }}>
               {saveError}
-            </p>
-          )}
-          {saved && (
-            <p className="text-sm flex items-center gap-1.5" role="status" style={{ color: "#166534" }}>
-              <CheckCircle2 size={14} /> {isEditing ? "Receta actualizada" : "Receta creada"}
             </p>
           )}
           <Button id="btn-save-recipe" variant="primary" onClick={handleSave} loading={saving} disabled={saved} className="w-full">

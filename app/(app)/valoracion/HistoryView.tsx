@@ -1,9 +1,8 @@
 "use client"
 
-import Table from "@/components/ui/Table"
-import IndicatorPill from "@/components/ui/IndicatorPill"
-import { Calculator, Eye, Pencil, Plus } from "lucide-react"
-import type { Valuation, ValuationIndicator, ValuationRefType } from "@/types/domain"
+import DataList, { RowAction } from "@/components/ui/DataList"
+import { Calculator, Pencil, Plus } from "lucide-react"
+import type { Valuation } from "@/types/domain"
 import { fmt, fmtPct, refLabel } from "./lib"
 
 function HistorySkeleton() {
@@ -83,92 +82,51 @@ export default function HistoryView({
     )
   }
 
+  const date = (iso: string) =>
+    new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+
   return (
-    <Table
+    <DataList
+      ariaLabel="Valoraciones guardadas"
+      rows={history}
+      rowKey={(v) => v.id}
+      onOpen={onView}
+      openLabel={(v) => `Ver valoración ${v.name}`}
+      actionsWidth="5.5rem"
       columns={[
-        {
-          key: "name",
-          label: "Nombre",
-          render: (v) => (
-            <span className="font-medium" style={{ color: "var(--text-primary)" }}>{v as string}</span>
-          ),
-        },
-        {
-          key: "indicator",
-          label: "Indicador",
-          render: (v) => <IndicatorPill indicator={v as ValuationIndicator} />,
-        },
-        {
-          key: "pctMateriaprima",
-          label: "% MP",
-          render: (v) => <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>{fmtPct(v as string)}</span>,
-        },
-        {
-          key: "costMateriaprima",
-          label: "Costo MP",
-          render: (v) => <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>{fmt(v as string)}</span>,
-        },
-        {
-          key: "suggestedPrice",
-          label: "Precio sugerido",
-          render: (v) => <span className="font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(v as string)}</span>,
-        },
-        {
-          key: "actualPrice",
-          label: "Precio real",
-          render: (v) => v
-            ? <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>{fmt(v as string)}</span>
-            : <span style={{ color: "var(--text-muted)" }}>—</span>,
-        },
-        {
-          key: "refType",
-          label: "Tipo",
-          render: (v) => (
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--bg-secondary)", color: "var(--text-muted)" }}>
-              {refLabel(v as ValuationRefType)}
-            </span>
-          ),
-        },
-        {
-          key: "createdAt",
-          label: "Fecha",
-          render: (v) => (
-            <span className="text-sm" style={{ color: "var(--text-muted)" }}>
-              {new Date(v as string).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
-            </span>
-          ),
-        },
-        {
-          key: "id",
-          label: "",
-          render: (_, row) => {
-            const valuation = row as unknown as Valuation
-            return (
-              <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => onView(valuation)}
-                  title="Ver valoración"
-                  className="p-1.5 transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ color: "var(--text-muted)", borderRadius: "var(--radius-sm)" }}
-                >
-                  <Eye size={14} />
-                </button>
-                <button
-                  onClick={() => onReuse(valuation)}
-                  title="Reutilizar como base para un nuevo cálculo"
-                  className="p-1.5 transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ color: "var(--text-muted)", borderRadius: "var(--radius-sm)" }}
-                >
-                  <Pencil size={14} />
-                </button>
-              </div>
-            )
-          },
-        },
+        { label: "Valoración", width: "minmax(0,1fr)", render: (v) => <span className="font-semibold" style={{ color: "var(--text-primary)" }} title={v.name}>{v.name}</span> },
+        { label: "Origen", width: "7.5rem", render: (v) => refLabel(v.refType) },
+        { label: "Costo materia prima", width: "9rem", align: "right", render: (v) => fmt(v.costMateriaprima) },
+        { label: "% materia prima", width: "7.5rem", align: "right", render: (v) => fmtPct(v.pctMateriaprima) },
+        { label: "Precio sugerido", width: "9rem", align: "right", strong: true, render: (v) => fmt(v.suggestedPrice) },
+        { label: "Precio real", width: "8rem", align: "right", render: (v) => (v.actualPrice ? fmt(v.actualPrice) : "—") },
+        { label: "Fecha", width: "7.5rem", render: (v) => date(v.createdAt) },
       ]}
-      data={history as unknown as Record<string, unknown>[]}
-      rowKey="id"
-      onRowClick={(row) => onView(row as unknown as Valuation)}
+      actions={(v) => (
+        <>
+          <RowAction label={`Reutilizar ${v.name} como base de un nuevo cálculo`} onClick={() => onReuse(v)}>
+            <Pencil size={14} />
+          </RowAction>
+        </>
+      )}
+      mobile={(v) => (
+        <div className="flex flex-col gap-2.5">
+          <span className="line-clamp-2 text-[15px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{v.name}</span>
+          <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden tabular-nums" style={{ background: "var(--border-light)", borderRadius: "var(--radius-md)" }}>
+            <div className="flex flex-col gap-0.5 px-3 py-2" style={{ background: "var(--bg-primary)" }}>
+              <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Costo materia prima</dt>
+              <dd className="m-0 text-[15px]" style={{ color: "var(--text-secondary)" }}>{fmt(v.costMateriaprima)}</dd>
+            </div>
+            <div className="flex flex-col gap-0.5 px-3 py-2" style={{ background: "var(--bg-primary)" }}>
+              <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Precio sugerido</dt>
+              <dd className="m-0 text-[15px] font-bold" style={{ color: "var(--text-primary)" }}>{fmt(v.suggestedPrice)}</dd>
+            </div>
+          </dl>
+          <p className="m-0 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+            {refLabel(v.refType)} · {fmtPct(v.pctMateriaprima)} materia prima · {date(v.createdAt)}
+          </p>
+        </div>
+      )}
     />
   )
 }

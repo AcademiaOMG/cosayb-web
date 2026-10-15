@@ -12,7 +12,9 @@ function render(props?: Partial<Parameters<typeof MenuCalculator>[0]>) {
       itemCount={2}
       costoPorcion={12500}
       recipes={[{ id: "r1", name: "Bandeja paisa" }]}
-      ingredients={[{ id: "i1", name: "Gaseosa 400ml" }]}
+      extras={[{ id: "i1", name: "Gaseosa 400ml", unit: "und" }]}
+      catalog={[]}
+      onExtraCreated={noop}
       onChange={noop}
       onAddItem={noop}
       onCalculate={noop}
@@ -31,7 +33,8 @@ describe("Calculadora del módulo Menú", () => {
     expect(html).toContain("% MATERIA PRIMA")
     expect(html).toContain("GRAMOS POR PORCIÓN")
     expect(html).toContain("Recetas")
-    expect(html).toContain("Ingredientes")
+    expect(html).toContain("Extras")
+    expect(html).not.toContain("Ingredientes")
     expect(html).toContain("Agregar a la lista")
     expect(html).not.toContain("Agregar extra")
     expect(html).toContain("Calcular")

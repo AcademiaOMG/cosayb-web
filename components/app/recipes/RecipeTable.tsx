@@ -17,7 +17,7 @@ const MATERIAL_COST_PCT = 30
 
 /** Columnas en desktop, compartidas por la cabecera y las filas para que queden alineadas. */
 export const RECIPE_COLUMNS =
-  "md:grid-cols-[minmax(0,1fr)_8.5rem_5.5rem_6.5rem_7.5rem_7.5rem_2.5rem] xl:grid-cols-[minmax(0,1fr)_9.5rem_6.5rem_7.5rem_9rem_9rem_3rem]"
+  "md:grid-cols-[minmax(0,1fr)_8rem_6.5rem_5rem_6rem_6.5rem_6.5rem_2.5rem] xl:grid-cols-[minmax(0,1fr)_9rem_8rem_6rem_7rem_8.5rem_8.5rem_3rem]"
 
 export function RecipeTableHeader() {
   const cell = "text-xs font-semibold"
@@ -29,6 +29,7 @@ export function RecipeTableHeader() {
     >
       <span className={cell}>Receta</span>
       <span className={cell}>Tipo</span>
+      <span className={cell}>Origen</span>
       <span className={`${cell} text-right`}>Porciones</span>
       <span className={`${cell} text-right`}>Ingredientes</span>
       <span className={`${cell} text-right`}>Costo por porción</span>
@@ -63,39 +64,26 @@ function Money({ value, loading, strong }: { value: number | null; loading: bool
   )
 }
 
-/** Etiqueta en palabras: de dónde viene la receta (solo se marca la del banco). */
-function Tag({ children, title }: { children: React.ReactNode; title: string }) {
-  return (
-    <span
-      title={title}
-      className="shrink-0 px-1.5 py-px text-[11px] font-semibold leading-4"
-      style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)", borderRadius: "6px" }}
-    >
-      {children}
-    </span>
-  )
-}
-
 interface RecipeRowProps {
   recipe: Recipe
   onOpen: (recipe: Recipe) => void
   /** Sin handler = usuario sin permiso → la acción no se renderiza */
   onDelete?: (recipe: Recipe) => void
+  /** ¿La receta es del negocio activo? Solo entonces se ofrece eliminar (la API lo valida también). */
+  canModify: (recipe: Recipe) => boolean
 }
 
-const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete }: RecipeRowProps) {
+const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete, canModify }: RecipeRowProps) {
   const servings = parseInt(recipe.servings, 10) || 0
   const itemCount = recipe.itemCount ?? recipe.items?.length ?? 0
   const { cost, price, loading } = useRecipeMoney(recipe.id, itemCount > 0)
   const isPublic = recipe.isPublic ?? false
-  // La API no permite eliminar recetas base: no se ofrece un botón que siempre fallaría
-  const canDelete = !isPublic && !recipe.isBase && !!onDelete
+  // Propiedad real: la receta es de mi negocio (el tipo "preparación base" no bloquea)
+  const canDelete = canModify(recipe) && !!onDelete
 
   const typeLabel = recipeTypeLabel(recipe.isBase)
   const typeHint = recipe.isBase ? RECIPE_TYPE.base.hint : RECIPE_TYPE.dish.hint
-  const lockedReason = isPublic ? RECIPE_CANT_DELETE.banco : recipe.isBase ? RECIPE_CANT_DELETE.base : null
-  // Móvil: el tipo y el origen van en la línea de detalle; en escritorio el tipo tiene su columna.
-  const origin = isPublic ? <Tag title={RECIPE_ORIGIN.banco.hint}>{RECIPE_ORIGIN.banco.tag}</Tag> : null
+  const lockedReason = canDelete ? null : isPublic ? RECIPE_CANT_DELETE.banco : RECIPE_CANT_DELETE.ajena
 
   return (
     <li className="group relative list-none transition-colors even:bg-[var(--bg-primary)]/60 hover:bg-[var(--accent-light)]/50 focus-within:bg-[var(--accent-light)]/50">
@@ -107,38 +95,52 @@ const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete }: RecipeRo
         aria-label={`Ver receta ${recipe.name}`}
       />
 
-      {/* ── Mobile: dos líneas, el precio sugerido manda ─────────────────── */}
-      <div className="pointer-events-none relative flex items-center gap-3 px-4 py-3 md:hidden">
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      {/* ── Mobile: nombre, dos cifras con etiqueta y pie con tipo y porciones ── */}
+      <div className="pointer-events-none relative flex flex-col gap-2.5 px-4 py-3.5 md:hidden">
+        <div className="flex items-start justify-between gap-2">
           <span className="line-clamp-2 text-[15px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
             {recipe.name}
           </span>
-          <span className="flex flex-wrap items-center gap-1.5 text-[13px] tabular-nums" style={{ color: "var(--text-muted)" }}>
-            <span title={typeHint}>{typeLabel}</span> · {servings} porción{servings !== 1 ? "es" : ""} · {itemCount} ingrediente{itemCount !== 1 ? "s" : ""}
-            {origin}
-          </span>
+          <ChevronRight size={16} aria-hidden="true" className="mt-0.5 shrink-0" style={{ color: "var(--border-medium)" }} />
         </div>
-        <div className="flex shrink-0 flex-col items-end tabular-nums">
-          <span className="text-[15px]">
-            <Money value={price} loading={loading} strong />
-          </span>
-          <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-            cuesta <Money value={cost} loading={loading} />
-          </span>
-        </div>
-        <ChevronRight size={16} aria-hidden="true" style={{ color: "var(--border-medium)" }} />
+
+        <dl
+          className="m-0 grid grid-cols-2 gap-px overflow-hidden tabular-nums"
+          style={{ background: "var(--border-light)", borderRadius: "var(--radius-md)" }}
+        >
+          <div className="flex flex-col gap-0.5 px-3 py-2" style={{ background: "var(--bg-primary)" }}>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+              Costo por porción
+            </dt>
+            <dd className="m-0 text-[15px]">
+              <Money value={cost} loading={loading} />
+            </dd>
+          </div>
+          <div className="flex flex-col gap-0.5 px-3 py-2" style={{ background: "var(--bg-primary)" }}>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+              Precio sugerido
+            </dt>
+            <dd className="m-0 text-[15px]">
+              <Money value={price} loading={loading} strong />
+            </dd>
+          </div>
+        </dl>
+
+        <p className="m-0 text-[12.5px]" style={{ color: "var(--text-muted)" }} title={typeHint}>
+          {typeLabel} · {servings} porción{servings !== 1 ? "es" : ""}
+        </p>
       </div>
 
       {/* ── Desktop: columnas alineadas, números a la derecha ────────────── */}
       <div className={`pointer-events-none relative hidden items-center gap-4 px-5 md:grid ${RECIPE_COLUMNS}`} style={{ minHeight: 52 }}>
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-semibold" style={{ color: "var(--text-primary)" }} title={recipe.name}>
-            {recipe.name}
-          </span>
-          {origin}
-        </div>
+        <span className="truncate text-sm font-semibold" style={{ color: "var(--text-primary)" }} title={recipe.name}>
+          {recipe.name}
+        </span>
         <span className="text-sm" style={{ color: "var(--text-secondary)" }} title={typeHint}>
           {typeLabel}
+        </span>
+        <span className="text-sm" style={{ color: "var(--text-secondary)" }} title={isPublic ? RECIPE_ORIGIN.banco.hint : RECIPE_ORIGIN.own.hint}>
+          {isPublic ? RECIPE_ORIGIN.banco.label : RECIPE_ORIGIN.own.label}
         </span>
         <span className="text-right text-sm tabular-nums" style={{ color: "var(--text-secondary)" }}>
           {servings}
@@ -188,7 +190,7 @@ const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete }: RecipeRo
   )
 })
 
-export default function RecipeTable({ recipes, onOpen, onDelete }: { recipes: Recipe[] } & Omit<RecipeRowProps, "recipe">) {
+export default function RecipeTable({ recipes, onOpen, onDelete, canModify }: { recipes: Recipe[] } & Omit<RecipeRowProps, "recipe">) {
   return (
     <div
       className="overflow-hidden"
@@ -197,7 +199,50 @@ export default function RecipeTable({ recipes, onOpen, onDelete }: { recipes: Re
       <RecipeTableHeader />
       <ul aria-label="Recetas">
         {recipes.map((recipe) => (
-          <RecipeRow key={recipe.id} recipe={recipe} onOpen={onOpen} onDelete={onDelete} />
+          <RecipeRow key={recipe.id} recipe={recipe} onOpen={onOpen} onDelete={onDelete} canModify={canModify} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
+ * Esqueleto con la estructura real de la tabla: misma cabecera, mismas columnas
+ * (RECIPE_COLUMNS), misma altura de fila (52 px) y, en móvil, las dos líneas de
+ * nombre/detalle + precio. Así no hay salto de layout al llegar los datos.
+ */
+export function RecipeTableSkeleton({ rows = 8 }: { rows?: number }) {
+  const bar = "rounded-md"
+  const fill = { background: "var(--bg-secondary)" } as const
+  return (
+    <div
+      className="overflow-hidden"
+      style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)" }}
+      aria-busy="true"
+      aria-label="Cargando recetas"
+    >
+      <RecipeTableHeader />
+      <ul className="animate-pulse">
+        {Array.from({ length: rows }).map((_, i) => (
+          <li key={i} className="list-none even:bg-[var(--bg-primary)]/60">
+            {/* Móvil */}
+            <div className="flex flex-col gap-2.5 px-4 py-3.5 md:hidden">
+              <div className={`h-4 ${bar}`} style={{ ...fill, width: `${55 + ((i * 13) % 30)}%` }} />
+              <div className={`h-12 w-full ${bar}`} style={fill} />
+              <div className={`h-3 w-2/3 ${bar}`} style={fill} />
+            </div>
+            {/* Escritorio */}
+            <div className={`hidden items-center gap-4 px-5 md:grid ${RECIPE_COLUMNS}`} style={{ minHeight: 52 }}>
+              <div className={`h-3.5 ${bar}`} style={{ ...fill, width: `${40 + ((i * 17) % 35)}%` }} />
+              <div className={`h-3.5 w-20 ${bar}`} style={fill} />
+              <div className={`h-3.5 w-16 ${bar}`} style={fill} />
+              <div className={`ml-auto h-3.5 w-6 ${bar}`} style={fill} />
+              <div className={`ml-auto h-3.5 w-6 ${bar}`} style={fill} />
+              <div className={`ml-auto h-3.5 w-16 ${bar}`} style={fill} />
+              <div className={`ml-auto h-3.5 w-20 ${bar}`} style={fill} />
+              <span />
+            </div>
+          </li>
         ))}
       </ul>
     </div>

@@ -29,7 +29,7 @@ export default function UsuariosPage() {
         <Search size={14} className="console-muted" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
         <input
           type="search"
-          placeholder="Buscar por email…"
+          placeholder="Buscar por email…" aria-label="Buscar por email"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="console-input w-full text-sm"

@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect, useCallback, startTransition } from "react"
+import { useState, useEffect, useCallback, useRef, startTransition } from "react"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
 import { Plus } from "lucide-react"
 import { createIngrediente, updateIngrediente, fetchAPI } from "@/lib/api"
+import { toast } from "@/lib/toast"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import type { Ingredient, IngredientForm } from "@/types/ingredient"
 
 interface IngredientFormModalProps {
@@ -30,7 +32,13 @@ export default function IngredientFormModal({
     weightGrams: "",
   })
   const [saving, setSaving] = useState(false)
+  // Guard síncrono contra doble envío (el estado `saving` se actualiza en el
+  // siguiente render; dos clics seguidos podían crear el ingrediente dos veces).
+  // Tras un guardado exitoso queda bloqueado hasta que el modal se reabra.
+  const submitLock = useRef(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [priceSource, setPriceSource] = useState<string | null>(null)
+  const confirm = useConfirm()
   const handlePriceAccept = useCallback((pricePerUnit: number, weightGrams: number, source: string) => {
     setForm((f) => ({
       ...f,
@@ -39,10 +47,10 @@ export default function IngredientFormModal({
     }))
     setPriceSource(source)
   }, [])
-  const [priceSource, setPriceSource] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
+    submitLock.current = false
     if (editing) {
       startTransition(() => {
         setForm({
@@ -60,11 +68,35 @@ export default function IngredientFormModal({
     }
   }, [open, editing])
 
+  // Hay cambios sin guardar respecto al estado con el que se abrió el modal
+  const dirty = editing
+    ? form.name !== editing.name ||
+      form.costPerUnit !== String(editing.costPerUnit) ||
+      form.weightGrams !== String(editing.weightGrams)
+    : !!(form.name.trim() || form.costPerUnit || form.weightGrams)
+
+  async function requestClose() {
+    if (saving || submitLock.current) return
+    if (dirty) {
+      const ok = await confirm({
+        title: "Descartar cambios",
+        description: "Tienes cambios sin guardar. Si cierras, se perderán.",
+        confirmLabel: "Descartar",
+        cancelLabel: "Seguir editando",
+        variant: "danger",
+      })
+      if (!ok) return
+    }
+    onClose()
+  }
+
   async function handleSave() {
+    if (submitLock.current) return
     if (!form.name.trim() || !form.costPerUnit || !form.weightGrams) {
       setFormError("Todos los campos son obligatorios")
       return
     }
+    submitLock.current = true
     setSaving(true)
     setFormError(null)
 
@@ -87,8 +119,10 @@ export default function IngredientFormModal({
       })
 
       onSaved()
+      toast.success(editing ? "Ingrediente actualizado" : "Ingrediente creado", { description: payload.name })
       setTimeout(() => onClose(), 350)
     } catch (err: unknown) {
+      submitLock.current = false
       setFormError(err instanceof Error ? err.message : String(err))
     } finally {
       setSaving(false)
@@ -100,11 +134,11 @@ export default function IngredientFormModal({
   return (
     <Modal
       open
-      onClose={onClose}
+      onClose={() => void requestClose()}
       title={isEditing ? "Editar ingrediente" : "Nuevo ingrediente"}
       footer={
         <div className="flex gap-3 justify-end">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={() => void requestClose()}>
             Cancelar
           </Button>
           <Button variant="primary" loading={saving} onClick={handleSave}>

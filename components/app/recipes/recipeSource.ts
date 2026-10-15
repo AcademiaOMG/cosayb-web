@@ -1,5 +1,6 @@
 import type { Ingrediente as Ingredient, Recipe } from "@/types/domain"
 import type { RecipeItemPayload } from "@/lib/api"
+import { onlyRecipeIngredients } from "@/lib/menuExtras"
 import { createRecipe, updateRecipe, getRecipeById, getBaseRecipes, getRecipeCost, fetchAPI } from "@/lib/api"
 
 export interface RecipePayload {
@@ -44,10 +45,11 @@ export const TENANT_SOURCE: RecipeFormDataSource = {
     // "No hay ingredientes" como si el negocio no tuviera ninguno). Las recetas
     // base sí son opcionales.
     const [ingRes, baseRes] = await Promise.all([
-      fetchAPI("/api/v1/ingredients"),
+      fetchAPI("/api/v1/ingredients?kind=ingredient"),
       getBaseRecipes().catch(() => ({ data: [] as Recipe[] })),
     ])
-    return { ingredients: (ingRes as { data: Ingredient[] }).data ?? [], baseRecipes: baseRes.data ?? [] }
+    // Filtro también en cliente: funciona con un API anterior que ignore ?kind=
+    return { ingredients: onlyRecipeIngredients((ingRes as { data: Ingredient[] }).data ?? []), baseRecipes: baseRes.data ?? [] }
   },
   loadRecipe: (id) => getRecipeById(id).then((r) => r.data),
   create: (payload) => createRecipe(payload),

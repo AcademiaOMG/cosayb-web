@@ -1,156 +1,446 @@
-/* Ajustes de layout propios del módulo; la piel del aparato vive en calculator.css */
+/* Punto de equilibrio: la calculadora del kit (CalcDevice) en UNA columna, con dos
+   pasos (Costos fijos → Tu producto). A su lado (o debajo si no cabe) va la lista de
+   costos que se arma al agregar y, al calcular, el boleto de resultados.
+   Todo se adapta al ANCHO DISPONIBLE (container query), no al de la pantalla. */
 
-/* Paso 1 dentro del aparato: nombre libre + monto (registro del kit).
-   La lista de costos agregados vive FUERA, en la columna derecha. */
-.fixedSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.fixedNameBox {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  border: 3px solid var(--calc-bezel, #14150F);
-  border-radius: 12px;
-  padding: 9px 12px 10px;
-  background: var(--calc-lcd-off, #21241E);
-}
-.fixedNameBox:focus-within {
-  background: var(--calc-lcd, #C7D6B9);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2), 0 0 0 2px #7CE07C;
-}
-.fixedNameLabel {
-  font-family: inherit;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--calc-lcd, #C7D6B9);
-}
-.fixedNameBox:focus-within .fixedNameLabel {
-  color: var(--calc-ink-soft, #3B4A34);
-}
-.fixedName {
+.stage {
+  container-type: inline-size;
   width: 100%;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 0;
-  font-family: var(--calc-mono, var(--font-jetbrains-mono), monospace);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--calc-lcd, #C7D6B9);
-}
-.fixedName::placeholder {
-  color: #6E7A66;
-  font-weight: 600;
-}
-.fixedNameBox:focus-within .fixedName {
-  color: var(--calc-ink, #1E2B18);
-}
-.fixedNameBox:focus-within .fixedName::placeholder {
-  color: #7A8570;
 }
 
-/* Lista de costos agregados (columna derecha, sobre la superficie de la página) */
-.fixedList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 24px;
+  width: 100%;
+  max-width: var(--calc-device-w);
+  margin: 0 auto;
+  justify-items: center;
+}
+.left,
+.side {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   min-width: 0;
+  width: 100%;
 }
-.fixedItem {
+.device {
+  container: bedev / inline-size;
+  min-width: 0;
+  width: 100%;
+}
+.answer {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* En angosto, sin resultado la respuesta no ocupa lugar; en ancho se ve la pregunta, su explicación y el recuadro punteado (sin ranura de impresora) */
+.answer[data-state="idle"] {
+  display: none;
+}
+/* Boleto precargado: aparece ya impreso, sin animación de entrada */
+.still :global(.calc-receipt-print) {
+  animation: none;
+}
+
+.questionHint {
+  display: none;
+  margin: 8px 0 0;
+  max-width: 48ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.question {
+  margin-bottom: 14px;
+}
+.questionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+/* Cabe la lista + boleto junto a la calculadora: calculadora a la izquierda, lista y
+   boleto a la derecha, alineados por arriba. Si no cabe, quedan DEBAJO con el ancho de la calculadora. */
+@container (min-width: 860px) {
+  .workspace {
+    /* Sin tope de ancho: lista y boleto aprovechan todo el espacio a la derecha, como en Menú */
+    max-width: none;
+    margin: 0;
+    justify-items: stretch;
+    align-items: start;
+    grid-template-columns: var(--calc-device-w) minmax(0, 1fr);
+    column-gap: 32px;
+  }
+  .answer[data-state="idle"] {
+    display: flex;
+  }
+  .questionHint {
+    display: block;
+  }
+  .questionTitle {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+}
+
+/* ── Pasos ── */
+.steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.stepTab {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  text-align: left;
   border: 1px solid var(--border-light);
-  border-radius: 10px;
-  background: var(--bg-secondary);
-  font-size: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.stepTab[data-current] {
+  background: var(--accent-light);
+  border-color: var(--accent);
   color: var(--text-primary);
+}
+.stepTab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.stepNum {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.stepTab[data-current] .stepNum,
+.stepNum[data-done] {
+  background: var(--accent);
+  color: #fff;
+}
+.stepText {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
-.fixedItemName {
-  flex: 1;
+.stepTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.stepSub {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Dentro de la carcasa ── */
+.product {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 3px;
+}
+.keypad :global(.calc-keypad) {
+  gap: 6px 8px;
+}
+@media (max-height: 860px) {
+  .keypad :global(.calc-key-num),
+  .keypad :global(.calc-key-fn) {
+    height: 38px;
+  }
+  .device :global(.calc-key-equals) {
+    height: 40px;
+  }
+}
+
+/* El rubro se elige con teclas de función (las azul acero, como las de arriba en una
+   calculadora científica): rejilla de 3 columnas, rotulado corto en mayúsculas. La tecla
+   elegida queda HUNDIDA (como un interruptor enclavado) y las que ya tienen monto
+   llevan una luz piloto apagada/encendida en la esquina. */
+.rubros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px 7px;
+  padding: 0 3px;
+}
+/* Teclas bajitas, como la fila de funciones de una científica */
+.rubros :global(.calc-slot) {
+  border-radius: 9px;
+  padding: 2px 2px 5px;
+}
+.rubros :global(.calc-key.calc-key-fn) {
+  height: 26px;
+  padding: 0 3px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rubros :global(.calc-key.calc-key-fn)[aria-pressed="true"] {
+  transform: translateY(2px);
+  filter: brightness(0.94);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.16),
+    0 0 0 var(--side),
+    0 2px 0 var(--side2);
+}
+/* Luz piloto: verde = es el rubro elegido (la tecla además queda hundida) */
+.rubros :global(.calc-key.calc-key-fn)::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+.rubros :global(.calc-key.calc-key-fn)[aria-pressed="true"]::after {
+  background: #3ddc84;
+  box-shadow: inset 0 -1px 1px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+.keyLabel {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.rubros :global(.calc-key.calc-key-fn) {
+  gap: 4px;
+}
+.newSlot {
+  grid-column: 1 / -1;
+}
+
+/* Nombre de un concepto nuevo: recuadro tipo LCD bajo las teclas */
+.rename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 3px;
+}
+.renameInput {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  outline: none;
+  background: linear-gradient(180deg, var(--lcd-2, #adbb98), var(--lcd-1, #c6d2b1));
+  color: var(--lcd-ink, #1a2314);
+  font-weight: 700;
+  /* 16 px: Safari iOS no hace zoom al enfocar */
+  font-size: 16px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--ring, #9db6ff);
+}
+.renameOk {
+  flex: none;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--print-hi, #eaeffc);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.renameOk:hover {
+  background: rgba(157, 182, 255, 0.28);
+}
+.renameOk:focus-visible {
+  outline: 2px solid var(--ring, #9db6ff);
+  outline-offset: 2px;
+}
+
+.status {
+  margin: 0;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--print, rgba(208, 218, 242, 0.68));
+}
+.status[data-tone="error"] {
+  color: #ffb4ab;
   font-weight: 600;
 }
-.fixedItemAmount {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
+
+/* ── Lista de costos fijos (a la derecha) ── */
+.costsCard {
+  animation: costIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  padding: 16px 18px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
 }
-.fixedItemRemove {
-  flex-shrink: 0;
+.costsHead {
   display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.costsTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.costsTotal {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.costsEmpty {
+  margin: 12px 0 0;
+  padding: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  border: 1.5px dashed var(--border-medium);
+  border-radius: var(--radius-md);
+}
+.costsList {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+@keyframes costIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.costRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px dashed var(--border-light);
+  animation: costIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.costRow:first-child {
+  border-top: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .costRow {
+    animation: none;
+  }
+}
+.costName {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.costAmount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.costRemove {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--border-light);
+  padding: 0;
+  border: 0;
   border-radius: 8px;
-  background: var(--bg-surface);
-  color: #DC2626;
+  background: transparent;
+  color: var(--text-muted);
   cursor: pointer;
 }
-.fixedItemRemove:hover {
-  background: rgba(220, 38, 38, 0.08);
-  border-color: rgba(220, 38, 38, 0.35);
+.costRemove:hover {
+  background: #fef2f2;
+  color: #b42020;
 }
-.fixedItemRemove:focus-visible {
+.costRemove:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
-/* Los dos datos del producto son registros grandes: uno por fila en móvil angosto */
-.product :global(.calc-registers) {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* Modal de detalle: costos fijos plegables — mismo patrón visual que
-   .rd-more del modal de recetas (renglón "Ver ..." siempre visible + ▼/▲). */
-.fixedDetails > summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent);
-  text-align: center;
-  border: 1px dashed var(--border-medium);
-  transition: background 0.15s;
-}
-.fixedDetails > summary::-webkit-details-marker {
-  display: none;
-}
-.fixedDetails > summary:hover {
-  background: var(--accent-light);
-}
-.fixedDetails > summary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-.fixedDetails[open] > summary::after {
-  content: " ▲";
-  font-size: 10px;
-}
-.fixedDetails:not([open]) > summary::after {
-  content: " ▼";
-  font-size: 10px;
-}
-.fixedDetailsBody {
+/* ── Boleto ── */
+.split {
+  margin-top: 6px;
+  padding: 10px 0 2px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 8px;
+}
+.splitTitle {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 2px;
+}
+.heroValue {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 40px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+.heroValue[data-empty="true"] {
+  color: var(--text-muted);
+}
+
+.rubros :global(.calc-key.calc-key-fn) svg {
+  width: 11px;
+  height: 11px;
 }

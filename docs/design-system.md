@@ -8,7 +8,7 @@ Dentro de `app/(app)/...` aplica `.app-theme-neutral`, que sobreescribe fondos, 
 | Rol | Token | Valor (app autenticada) |
 |---|---|---|
 | Fondo página / secundario / superficie | `--bg-primary` / `--bg-secondary` / `--bg-surface` | `#EFF2F6` / `#E8EBF0` / `#FFFFFF` |
-| Texto | `--text-primary` / `--text-secondary` / `--text-muted` | `#12213A` / `#4B5563` / `#8890A0` |
+| Texto | `--text-primary` / `--text-secondary` / `--text-muted` | `#12213A` / `#4B5563` / `#5F6A7A` |
 | Acento | `--accent`, `-hover`, `-light`, `-text` | `#1B4FD8`, `#1540B0`, `#DEEAFF`, `#1434A4` |
 | Bordes | `--border-light` / `--border-medium` | `#E2E5EA` / `#CBD2DA` |
 | Estados | `--success` / `--warning` / `--error` (`--error-hover`) | `#10B981` / `#F59E0B` / `#B42020` (`#8F1A1A`) |
@@ -59,3 +59,62 @@ Contraste: texto `--text-primary` / `--text-secondary` sobre ambos niveles.
 ## Estados con tokens
 
 `Button` (danger) e `Input` (error) usan `--error` / `--error-hover`. Otros archivos aún tienen esos hex literales; migrarlos a los tokens es seguro (mismos valores).
+
+## Notificaciones (`toast`)
+
+Sistema **único y global**: un solo `<FeedbackProvider />` montado en `app/layout.tsx` (no montar otro). El store es independiente de React (`lib/toast.ts`), así que se puede llamar desde cualquier handler, hook o utilidad.
+
+```tsx
+import { toast } from "@/lib/toast"
+
+toast.success("Receta guardada")
+toast.error("No se pudo eliminar el ingrediente", { description: "Intenta de nuevo en unos segundos." })
+toast.warning("Tu plan está por vencer")
+toast.info("Importamos 12 ingredientes")
+```
+
+| Aspecto | Regla |
+|---|---|
+| Ubicación | Móvil: arriba y centrado (abajo está la barra flotante). ≥sm: abajo a la derecha. `z-70`, sobre modales. |
+| Duración | success 4 s · info 5 s · warning 6 s · error 8 s. `{ duration: 0 }` = no se cierra sola. Pausa al hover/foco. |
+| Jerarquía | Tarjeta blanca con borde izquierdo e icono del color semántico (`--success`, `--error`, `--warning`, `--accent`). Máx. 4 simultáneas. |
+| Deduplicación | Mismo tipo + mensaje mientras sigue visible → no se apila: muestra `×N` y reinicia el tiempo. `{ id }` para agrupar a mano. |
+| Accesibilidad | `error`/`warning` → `role="alert"` (assertive); `success`/`info` → `role="status"` (polite). Cierre con botón; el texto lleva prefijo sr-only del tipo. |
+| Animación | `.toast-in` / `.toast-out` (200/160 ms); desactivada con `prefers-reduced-motion`. |
+
+**No usar** mensajes inline verdes/rojos improvisados (`setMsg`, `bg-[#F0FDF4]`, `#166534`…) ni `alert()` para confirmar un resultado. Los errores de validación de un campo siguen siendo inline en el propio campo (`Input error`); el toast es para el resultado de una acción.
+
+## Confirmaciones (`useConfirm`)
+
+Solo para acciones **destructivas o sensibles**: eliminar, descartar cambios sin guardar, cerrar sesión en todos los dispositivos. **Nunca** para confirmar un guardado.
+
+```tsx
+import { useConfirm } from "@/components/ui/ConfirmDialog"
+
+const confirm = useConfirm()
+
+async function onDelete(recipe: Recipe) {
+  const ok = await confirm({
+    title: "Eliminar receta",
+    itemName: recipe.name,                       // qué se eliminará, destacado
+    description: "Esta acción no se puede deshacer.",
+    confirmLabel: "Eliminar",                    // por defecto: "Eliminar" (danger) / "Confirmar"
+    variant: "danger",                           // rojo; "default" para acciones no destructivas
+  })
+  if (!ok) return
+  await deleteRecipe(recipe.id)
+  toast.success(`Receta «${recipe.name}» eliminada`)
+}
+```
+
+Construido sobre `components/ui/Modal.tsx`: el foco inicial cae en **Cancelar**, Esc/backdrop/X cancelan (resuelve `false`), trap de foco y restauración del foco al cerrar. Peticiones simultáneas se encolan. Fuera de componentes: `confirmDialog(options)` de `lib/confirm.ts`.
+
+## Modales (`components/ui/Modal.tsx`)
+
+Todo diálogo debe usar `Modal` (no `fixed inset-0` propios). Comportamiento estándar:
+
+- **Animación en todos**: overlay fundido (220 ms) + panel con leve subida/escala (entrada 220 ms, salida 160 ms con desmontaje diferido). `animate={false}` solo para casos excepcionales. `prefers-reduced-motion` la elimina (CSS y sin espera de salida).
+- Esc cierra solo el modal superior (pila), trap de Tab/Shift+Tab, foco inicial en `[data-autofocus]` → botón «Cerrar» → panel, y el foco vuelve al disparador. El scroll del body se libera al cerrar el último modal abierto.
+- `aria-labelledby` con id único por instancia (`useId`), así que se pueden anidar modales.
+- Variantes: por defecto `max-w-lg`; `wide` (3xl); `xwide` (5xl, calculadoras); `blur` para overlay desenfocado.
+- Excepciones intencionales sin Modal: bloqueos de `SessionGuard` (no descartables) y el menú móvil de `Nav` (no es un diálogo).

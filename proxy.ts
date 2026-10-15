@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildLoginUrl } from "@/lib/authRedirect";
 
 const PUBLIC_ROUTES = [
   "/",
@@ -71,7 +72,10 @@ export function proxy(req: NextRequest) {
     );
 
     if (!hasSession) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      // Conserva la ruta pedida: tras autenticarse vuelve ahí (deep link), no a un paso intermedio
+      return NextResponse.redirect(
+        new URL(buildLoginUrl(pathname, req.nextUrl.search), req.url),
+      );
     }
   }
 

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { Calculator, History } from "lucide-react"
 import Modal from "@/components/ui/Modal"
 import PageHeader from "@/components/ui/PageHeader"
+import ViewTransition from "@/components/ui/ViewTransition"
 import { usePermissions } from "@/hooks/usePermissions"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
@@ -126,6 +127,7 @@ export default function ValoracionPage() {
         }
       />
 
+      <ViewTransition key={tab}>
       {tab === "calculator" ? (
         <CalculatorFlow
           key={flowKey}
@@ -144,6 +146,7 @@ export default function ValoracionPage() {
           onReuse={reuseValuation}
         />
       )}
+      </ViewTransition>
 
       <ValuationViewModal
         valuation={viewingValuation}

@@ -17,6 +17,10 @@ export interface Ingrediente {
   priceSource?: string | null
   sipsaMatchName?: string | null
   category?: string | null
+  /** 'extra' = vaso, plato, bebida, acompañamiento… (por defecto 'ingredient') */
+  kind?: "ingredient" | "extra"
+  /** Unidad base: g | ml | und | porcion (por defecto 'g') */
+  unit?: "g" | "ml" | "und" | "porcion"
 }
 
 export interface YieldFactorWasteItem {
@@ -161,7 +165,7 @@ export interface RecetaLineaCosto {
   costoPorcionEnMenu: number
   costoTotalEnMenu: number
   tipo?: "recipe" | "ingredient"
-  unidad?: "g" | "und"
+  unidad?: "g" | "ml" | "und" | "porcion"
 }
 
 export type MenuIndicator = "MUY_BUENO" | "REGULAR" | "MALO"

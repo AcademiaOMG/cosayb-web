@@ -69,7 +69,7 @@ export default function RecipePickerModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Buscar receta"
-              className="h-10 w-full rounded-xl pl-9 pr-9 text-sm outline-none"
+              className="h-10 w-full rounded-xl pl-9 pr-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               style={{
                 background: "var(--bg-surface)",
                 border: "1px solid var(--border-light)",

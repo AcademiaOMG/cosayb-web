@@ -34,23 +34,51 @@ export const BREAK_EVEN_FIELD_META: Record<BreakEvenField, { label: string; lcd:
 
 const REQUIRED: BreakEvenField[] = ["fixedCosts", "salePrice", "variableCost"]
 
-/** El costo variable puede ser 0 (un producto sin insumos); los otros dos no. */
+const isNum = (n: number | null | undefined): n is number => typeof n === "number" && Number.isFinite(n)
+
+/** Faltan datos: vacío (null/undefined/NaN). El costo variable puede ser 0 (un producto sin insumos); los otros dos no. */
 export function missingBreakEvenInputs(v: BreakEvenInputs): BreakEvenField[] {
-  return REQUIRED.filter((f) => (f === "variableCost" ? v[f] == null : v[f] == null || v[f] === 0))
+  return REQUIRED.filter((f) => (f === "variableCost" ? !isNum(v[f]) : !isNum(v[f]) || v[f] === 0))
+}
+
+/** Datos escritos pero imposibles (negativos). Se revisa solo cuando nada falta. */
+export function invalidBreakEvenInputs(v: BreakEvenInputs): BreakEvenField[] {
+  return REQUIRED.filter((f) => isNum(v[f]) && (v[f] as number) < 0)
 }
 
 export function describeBreakEvenMissing(fields: BreakEvenField[]): string {
   return `Falta ${fields.map((f) => BREAK_EVEN_FIELD_META[f].missing).join(" y ")}`
 }
 
+/** Margen de contribución por unidad = precio − costo variable (J7 del Excel). null si falta alguno. */
+export function contributionMarginOf(salePrice: number | null, variableCost: number | null): number | null {
+  return isNum(salePrice) && isNum(variableCost) ? salePrice - variableCost : null
+}
+
+/**
+ * Hoja PUNTOEKILIBRIO: unidades al mes = costos fijos ÷ (precio − costo variable);
+ * al día ÷ 30; ventas = unidades × precio. Sin redondeos (el Excel solo los
+ * muestra con 2 decimales). Si no puede calcularse devuelve ok:false: nunca un número.
+ * (El Excel, ante margen 0, deja la celda vacía con IFERROR; con margen negativo
+ * mostraría unidades negativas, que aquí se rechazan.)
+ */
 export function solveBreakEven(v: BreakEvenInputs): BreakEvenOutcome {
   const missing = missingBreakEvenInputs(v)
   if (missing.length > 0) {
     return { ok: false, reason: "missing", field: missing[0], message: describeBreakEvenMissing(missing) }
   }
-  const fixedCosts = v.fixedCosts!
-  const salePrice = v.salePrice!
-  const variableCost = v.variableCost!
+  const negative = invalidBreakEvenInputs(v)
+  if (negative.length > 0) {
+    return {
+      ok: false,
+      reason: "invalid",
+      field: negative[0],
+      message: `${BREAK_EVEN_FIELD_META[negative[0]].label} no puede ser negativo`,
+    }
+  }
+  const fixedCosts = v.fixedCosts as number
+  const salePrice = v.salePrice as number
+  const variableCost = v.variableCost as number
 
   const contributionMargin = salePrice - variableCost
   if (contributionMargin <= 0) {
@@ -64,6 +92,10 @@ export function solveBreakEven(v: BreakEvenInputs): BreakEvenOutcome {
 
   const unitsPerMonth = fixedCosts / contributionMargin
   const unitsPerDay = unitsPerMonth / BREAK_EVEN_DAYS
+  const revenuePerMonth = unitsPerMonth * salePrice
+  if (![unitsPerMonth, unitsPerDay, revenuePerMonth].every(Number.isFinite)) {
+    return { ok: false, reason: "invalid", field: "fixedCosts", message: "Las cifras son demasiado grandes para calcular" }
+  }
   return {
     ok: true,
     fixedCosts,
@@ -72,9 +104,30 @@ export function solveBreakEven(v: BreakEvenInputs): BreakEvenOutcome {
     contributionMargin,
     unitsPerMonth,
     unitsPerDay,
-    revenuePerMonth: unitsPerMonth * salePrice,
-    revenuePerDay: unitsPerDay * salePrice,
+    revenuePerMonth,
+    revenuePerDay: revenuePerMonth / BREAK_EVEN_DAYS,
   }
+}
+
+/**
+ * Hoja PUNTOEKILIBRIOPROMEDIO (varios productos): precio y costo variable
+ * promedio = ventas y costos variables del mes ÷ número de productos; luego la
+ * misma fórmula. Aún sin pantalla: pendiente de confirmar con negocio.
+ */
+export function solveBreakEvenAverage(v: {
+  fixedCosts: number | null
+  products: number | null
+  totalSales: number | null
+  totalVariableCosts: number | null
+}): BreakEvenOutcome {
+  if (!isNum(v.products) || v.products <= 0) {
+    return { ok: false, reason: "missing", field: "salePrice", message: "Falta el número de productos" }
+  }
+  return solveBreakEven({
+    fixedCosts: v.fixedCosts,
+    salePrice: isNum(v.totalSales) ? v.totalSales / v.products : null,
+    variableCost: isNum(v.totalVariableCosts) ? v.totalVariableCosts / v.products : null,
+  })
 }
 
 // ─── Rubros de costos fijos (celdas E7:E16 de la hoja PUNTOEKILIBRIO) ────────

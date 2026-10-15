@@ -5,7 +5,6 @@ import { useState, useMemo, useEffect } from "react"
 import { usePermissions } from "@/hooks/usePermissions"
 import RecipeCalculatorView from "@/components/app/recipes/RecipeCalculatorView"
 import type { RecipeFormDataSource } from "@/components/app/recipes/recipeSource"
-import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import Pagination from "@/components/app/inventario/Pagination"
 import type { Recipe } from "@/types/domain"
@@ -14,7 +13,10 @@ import {
   bancoListRecipes, bancoGetRecipe, bancoCreateRecipe, bancoUpdateRecipe,
   bancoDeleteRecipe, bancoListIngredients,
 } from "@/lib/api"
-import { Search, Plus, Pencil, Trash2, ChefHat, BookMarked, Users, CheckCircle2, AlertCircle, X } from "lucide-react"
+import { Search, Plus, Pencil, Trash2, ChefHat, BookMarked, Users } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Content Studio — recetas del banco público.
@@ -62,9 +64,7 @@ export default function BancoRecetasPage() {
 
   const [view, setView] = useState<"list" | "calculator">("list")
   const [editId, setEditId] = useState<string | null>(null)
-  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null)
-  const [deleting] = useState(false)
+  const confirm = useConfirm()
 
   const totalPages = useMemo(
     () => (data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1),
@@ -77,32 +77,36 @@ export default function BancoRecetasPage() {
   }, [view])
 
   function openCreate() {
-    setNotice(null)
     setEditId(null)
     setView("calculator")
   }
 
   function openEdit(id: string) {
-    setNotice(null)
     setEditId(id)
     setView("calculator")
   }
 
   function handleSaved(info: { name: string; created: boolean }) {
     void mutate()
-    setNotice({ tone: "ok", text: info.created ? `Receta «${info.name}» creada en el banco.` : `Receta «${info.name}» actualizada.` })
+    toast.success(info.created ? "Receta creada en el banco" : "Receta actualizada", { description: info.name })
     setView("list")
   }
 
   function changeType(v: BancoRecipeType) { setType(v); setPage(1) }
   function changeSearch(v: string) { setSearch(v); setPage(1) }
 
-  async function handleDelete() {
-    if (!deleteTarget || !data) return
-    const id = deleteTarget.id
-    setDeleteTarget(null) // cerrar de inmediato — la card desaparece al instante
+  async function handleDelete(target: Recipe) {
+    if (!data) return
+    const ok = await confirm({
+      title: "Eliminar receta del banco",
+      itemName: target.name,
+      description: "Dejará de estar disponible para todos los negocios. La acción queda auditada.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
+    const id = target.id
     const optimistic = { ...data, data: data.data.filter((r) => r.id !== id), total: data.total - 1 }
-    setNotice(null)
     // Si era la última receta de esta página, retroceder en vez de dejar "Sin resultados"
     if (optimistic.data.length === 0 && page > 1) setPage(page - 1)
     try {
@@ -110,10 +114,12 @@ export default function BancoRecetasPage() {
         async () => { await bancoDeleteRecipe(id); return optimistic },
         { optimisticData: optimistic, rollbackOnError: true, revalidate: true }
       )
-      setNotice({ tone: "ok", text: `Receta «${deleteTarget.name}» eliminada del banco.` })
+      toast.success("Receta eliminada del banco", { description: target.name })
     } catch (e) {
       // rollback automático: la card reaparece; ahora además se explica por qué
-      setNotice({ tone: "error", text: e instanceof Error && e.message ? e.message : "No se pudo eliminar la receta." })
+      toast.error("No se pudo eliminar la receta", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     }
   }
 
@@ -146,24 +152,6 @@ export default function BancoRecetasPage() {
         )}
       </div>
 
-      {notice && (
-        <div
-          role={notice.tone === "error" ? "alert" : "status"}
-          className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-          style={
-            notice.tone === "ok"
-              ? { background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#166534" }
-              : { background: "#FEF2F2", border: "1px solid #FECACA", color: "#B42020" }
-          }
-        >
-          {notice.tone === "ok" ? <CheckCircle2 size={16} className="shrink-0" /> : <AlertCircle size={16} className="shrink-0" />}
-          <span className="flex-1">{notice.text}</span>
-          <button type="button" aria-label="Cerrar aviso" onClick={() => setNotice(null)} className="shrink-0 rounded p-0.5 hover:opacity-70">
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
       {/* Filtros + búsqueda */}
       <div className="flex gap-3 flex-wrap items-center">
         <div
@@ -194,7 +182,7 @@ export default function BancoRecetasPage() {
           <Search size={14} className="console-muted" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
           <input
             type="search"
-            placeholder="Buscar receta…"
+            placeholder="Buscar receta…" aria-label="Buscar receta"
             value={search}
             onChange={(e) => changeSearch(e.target.value)}
             className="console-input w-full text-sm"
@@ -236,7 +224,7 @@ export default function BancoRecetasPage() {
                 key={recipe.id}
                 recipe={recipe}
                 onEdit={canUpdate ? () => openEdit(recipe.id) : undefined}
-                onDelete={canDelete ? () => setDeleteTarget(recipe) : undefined}
+                onDelete={canDelete ? () => void handleDelete(recipe) : undefined}
               />
             ))}
           </div>
@@ -245,23 +233,6 @@ export default function BancoRecetasPage() {
         </>
       )}
 
-      {/* Confirmar eliminación */}
-      <Modal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="Eliminar receta del banco"
-        footer={
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
-            <Button variant="danger" loading={deleting} onClick={handleDelete}>Eliminar</Button>
-          </div>
-        }
-      >
-        <p style={{ color: "var(--text-secondary)" }}>
-          ¿Eliminar <strong style={{ color: "var(--text-primary)" }}>{deleteTarget?.name}</strong> del banco público?
-          Dejará de estar disponible para todos los negocios. La acción queda auditada.
-        </p>
-      </Modal>
     </div>
   )
 }

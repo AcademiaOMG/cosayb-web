@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useRef, useCallback } from "react"
+import { useEffect, useId, useRef, useState, useCallback } from "react"
 import type React from "react"
 import { X } from "lucide-react"
 
@@ -15,113 +15,162 @@ export interface ModalProps {
   wide?: boolean
   /** Ventana de trabajo (calculadoras con dos columnas): max-w-5xl y más alta */
   xwide?: boolean
-  /** Entrada suave (fundido + leve subida) */
+  /**
+   * Entrada/salida animada (fundido + leve subida y escala). Activa por
+   * defecto en TODOS los modales; pasar `animate={false}` para desactivarla.
+   * Respeta prefers-reduced-motion (ver globals.css).
+   */
   animate?: boolean
   /** Overlay con fondo desenfocado (backdrop-blur) tras el contenido */
   blur?: boolean
+  /** id del elemento que describe el diálogo (aria-describedby) */
+  describedBy?: string
+  /** Fondo gris de la página (como el resto de la app): lo que va encima es blanco con sombra y se separa */
+  tinted?: boolean
 }
 
-export default function Modal({ isOpen, open, onClose, title, children, footer, wide, xwide, animate, blur }: ModalProps) {
+/** Duración de la animación de salida (debe coincidir con .modal-*-out en globals.css). */
+const EXIT_MS = 160
+
+// Pila de modales abiertos: solo el de arriba responde a Esc / Tab, y el
+// scroll del body se libera únicamente cuando se cierra el último.
+const modalStack: string[] = []
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+}
+
+export default function Modal({ isOpen, open, onClose, title, children, footer, wide, xwide, animate = true, blur, describedBy, tinted }: ModalProps) {
   const visible = typeof open === "boolean" ? open : !!isOpen
+  const uid = useId()
+  const titleId = `modal-title-${uid}`
   const panelRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
-
-  // Entrada animada: el panel "nace" desde el elemento que se pulsó (la tarjeta) y crece hasta su sitio
-  useLayoutEffect(() => {
-    if (!visible || !animate) return
-    const panel = panelRef.current
-    const trigger = document.activeElement as HTMLElement | null
-    if (!panel || !trigger || trigger === document.body) return
-    const t = trigger.getBoundingClientRect()
-    const p = panel.getBoundingClientRect()
-    panel.style.setProperty("--mo-dx", `${t.left + t.width / 2 - (p.left + p.width / 2)}px`)
-    panel.style.setProperty("--mo-dy", `${t.top + t.height / 2 - (p.top + p.height / 2)}px`)
-  }, [visible, animate])
-
-  // Store the element that had focus before the modal opened
+  const onCloseRef = useRef(onClose)
   useEffect(() => {
-    if (visible) {
-      previousFocusRef.current = document.activeElement as HTMLElement
-    }
-  }, [visible])
+    onCloseRef.current = onClose
+  })
 
-  // Focus the close button or first interactive element when modal opens
+  // Montaje diferido: al cerrar, el modal permanece en el DOM lo justo para
+  // reproducir la animación de salida y luego se desmonta.
+  const [mounted, setMounted] = useState(visible)
+  if (visible && !mounted) setMounted(true)
+  const closing = !visible && mounted
+
+  useEffect(() => {
+    if (visible || !mounted) return
+    const ms = animate && !prefersReducedMotion() ? EXIT_MS : 0
+    const timer = setTimeout(() => setMounted(false), ms)
+    return () => clearTimeout(timer)
+  }, [visible, mounted, animate])
+
+  // Guardar el foco previo y enfocar el primer control al abrir
   useEffect(() => {
     if (!visible) return
+    previousFocusRef.current = document.activeElement as HTMLElement
     const timer = setTimeout(() => {
       const panel = panelRef.current
       if (!panel) return
-      // Try to focus the close button, then the panel itself
-      const closeBtn = panel.querySelector<HTMLButtonElement>("[aria-label='Cerrar']")
-      if (closeBtn) {
-        closeBtn.focus()
-      } else {
-        panel.focus()
-      }
+      // Si un control del panel ya tomó el foco (p. ej. un input con autoFocus), no se lo quitamos
+      const active = document.activeElement
+      if (active && active !== panel && panel.contains(active)) return
+      // Prioridad: [data-autofocus] (p. ej. "Cancelar" en confirmaciones) → botón Cerrar → panel
+      const target =
+        panel.querySelector<HTMLElement>("[data-autofocus]") ??
+        panel.querySelector<HTMLElement>("[aria-label='Cerrar']")
+      if (target) target.focus()
+      else panel.focus()
     }, 0)
     return () => clearTimeout(timer)
   }, [visible])
 
-  // Focus trap
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      onClose()
-      return
-    }
+  // Esc + trap de foco (solo el modal superior de la pila)
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (modalStack[modalStack.length - 1] !== uid) return
 
-    if (e.key !== "Tab") return
-
-    const panel = panelRef.current
-    if (!panel) return
-
-    const focusable = panel.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-    )
-    if (focusable.length === 0) return
-
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
-
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
+      if (e.key === "Escape") {
+        e.stopPropagation()
+        onCloseRef.current()
+        return
       }
-    } else {
-      if (document.activeElement === last) {
+
+      if (e.key !== "Tab") return
+
+      const panel = panelRef.current
+      if (!panel) return
+
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) {
+        e.preventDefault()
+        panel.focus()
+        return
+      }
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+
+      if (e.shiftKey) {
+        if (active === first || active === panel) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else if (active === last) {
         e.preventDefault()
         first.focus()
       }
-    }
-  }, [onClose])
+    },
+    [uid]
+  )
 
   useEffect(() => {
     if (!visible) return
+    modalStack.push(uid)
     document.addEventListener("keydown", handleKeyDown)
     document.body.style.overflow = "hidden"
+    // Bloquea también el scroll de <main> (el contenedor que realmente se desplaza en AppShell)
+    const mainEl = document.querySelector<HTMLElement>("main")
+    if (mainEl) mainEl.style.overflowY = "hidden"
     return () => {
       document.removeEventListener("keydown", handleKeyDown)
-      document.body.style.overflow = ""
-      // Restore focus to the element that had it before the modal
+      const i = modalStack.indexOf(uid)
+      if (i >= 0) modalStack.splice(i, 1)
+      if (modalStack.length === 0) {
+        document.body.style.overflow = ""
+        const m = document.querySelector<HTMLElement>("main")
+        if (m) m.style.overflowY = ""
+      }
+      // Devolver el foco al elemento que lo tenía antes de abrir
       previousFocusRef.current?.focus()
     }
-  }, [visible, handleKeyDown])
+  }, [visible, handleKeyDown, uid])
 
-  if (!visible) return null
+  if (!mounted) return null
+
+  const phase = animate ? (closing ? "out" : "in") : null
+  // Modal sobre otra modal: sin desenfoque y con un velo más suave. Dos capas de blur seguidas
+  // le emborronan los bordes a la de abajo.
+  const nested = modalStack.length > 0 && modalStack.indexOf(uid) !== 0
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? "modal-title" : undefined}
+      aria-labelledby={title ? titleId : undefined}
+      aria-describedby={describedBy}
+      aria-hidden={closing ? true : undefined}
+      inert={closing ? true : undefined}
     >
       {/* Overlay */}
       <div
-        className={`absolute inset-0${animate ? " modal-overlay-in" : ""}`}
+        className={`absolute inset-0${phase ? ` modal-overlay-${phase}` : ""}`}
         style={{
-          background: "rgba(18, 33, 58, 0.5)",
-          ...(blur
+          background: nested ? "rgba(18, 33, 58, 0.38)" : "rgba(18, 33, 58, 0.5)",
+          ...(blur && !nested
             ? { backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }
             : {}),
         }}
@@ -133,42 +182,46 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative z-10 w-full flex flex-col ${xwide ? "max-h-[92vh]" : "max-h-[85vh]"} overflow-hidden outline-none${animate ? " modal-panel-in" : ""} ${xwide ? "max-w-5xl" : wide ? "max-w-3xl" : "max-w-lg"}`}
+        className={`relative z-10 w-full flex flex-col ${xwide ? "max-h-[92vh]" : "max-h-[85vh]"} overflow-hidden outline-none${phase ? ` modal-panel-${phase}` : ""} ${xwide ? "max-w-5xl" : wide ? "max-w-3xl" : "max-w-lg"}`}
         style={{
-          background: "var(--bg-surface)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "var(--shadow-md)",
+          // Cristal líquido: superficie translúcida sobre el velo, sin contorno; el borde de luz va en el sombreado
+          background: tinted ? "rgba(239, 242, 246, 0.94)" : "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(32px) saturate(180%)",
+          WebkitBackdropFilter: "blur(32px) saturate(180%)",
+          borderRadius: 28,
+          boxShadow:
+            "0 44px 90px -24px rgba(16, 24, 40, 0.5), 0 10px 28px rgba(16, 24, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95)",
         }}
       >
         {/* Header — fixed */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-0 shrink-0">
+        <div className="flex items-center justify-between gap-4 px-7 pt-6 pb-1 shrink-0">
           {title && (
             <h2
-              id="modal-title"
-              className="text-lg font-semibold"
-              style={{ color: "var(--text-primary)" }}
+              id={titleId}
+              className="font-display text-[21px] font-extrabold leading-tight"
+              style={{ color: "var(--text-primary)", letterSpacing: "-0.015em" }}
             >
               {title}
             </h2>
           )}
           <button
             onClick={onClose}
-            className="ml-auto rounded-lg p-1.5 transition-colors"
-            style={{ color: "var(--text-muted)" }}
+            className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            style={{ color: "var(--text-secondary)", background: "rgba(16, 24, 40, 0.05)" }}
             aria-label="Cerrar"
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-7 py-4">
           {children}
         </div>
 
         {/* Footer — fixed */}
         {footer && (
-          <div className="px-6 pb-6 pt-4 shrink-0">
+          <div className="px-7 pb-6 pt-3 shrink-0">
             {footer}
           </div>
         )}

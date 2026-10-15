@@ -61,8 +61,12 @@ async function measureOverflow(page: Page, route: string): Promise<OverflowRepor
   }, route)
 }
 
+const WIDTHS = [320, 360, 390, 768] as const
+
+for (const width of WIDTHS)
 for (const route of ROUTES) {
-  test(`sin scroll horizontal en ${route}`, async ({ page }, testInfo) => {
+  test(`sin scroll horizontal en ${route} a ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 844 })
     await page.goto(route, { waitUntil: "load" })
 
     // Sesión inválida / onboarding pendiente = cobertura no válida → fallar.

@@ -87,6 +87,33 @@ export async function createIngrediente(
   })
 }
 
+/**
+ * POST /api/v1/ingredients con kind='extra' — crea un extra (vaso, plato, bebida…) desde el menú.
+ * weightGrams = contenido del empaque en `unit`. Responde 409 si ya existe un nombre equivalente.
+ */
+export async function createExtra(
+  data: { name: string; unit: "g" | "ml" | "und" | "porcion"; costPerUnit: number; weightGrams: number }
+): Promise<ApiResponse<Ingrediente>> {
+  return fetchAPI("/api/v1/ingredients", {
+    method: "POST",
+    body: JSON.stringify({ ...data, kind: "extra" }),
+  })
+}
+
+/**
+ * PUT /api/v1/ingredients/:id para un extra (kind inmutable). Cambiar `unit` de un extra
+ * usado en menús responde 409 EXTRA_UNIT_IN_USE (el mensaje del API viene en español).
+ */
+export async function updateExtra(
+  id: string,
+  data: { name: string; unit: "g" | "ml" | "und" | "porcion"; costPerUnit: number; weightGrams: number }
+): Promise<ApiResponse<Ingrediente>> {
+  return fetchAPI(`/api/v1/ingredients/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
 /** PUT /api/v1/ingredients/:id — requiere sesión; solo campos propios */
 export async function updateIngrediente(
   id: string,
@@ -307,7 +334,7 @@ export interface MenuItemPayload {
   recipeId?: string
   ingredientId?: string
   cantidadGramos?: number     // recetas: gramos por persona
-  cantidadUnidades?: number   // ingredientes sueltos: unidades por persona
+  cantidadUnidades?: number   // ingredientes sueltos / extras: cantidad por persona (en la unidad del extra)
   orden?: number
 }
 
@@ -324,7 +351,7 @@ export interface CreateMenuPayload {
 export interface ListaCompraItem {
   ingredientId: string
   nombre: string
-  unidad: "g" | "und"
+  unidad: "g" | "ml" | "und" | "porcion"
   cantidad: number
   costo: number
 }

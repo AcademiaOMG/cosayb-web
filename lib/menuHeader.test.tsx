@@ -55,29 +55,35 @@ function renderPage(menus: unknown[], permissions = authzContext.permissions) {
 // Rol que puede listar menús pero no crearlos: no tiene calculadora
 const READ_ONLY = ["list:menus", "read:menus"]
 
-describe("Menús — header con pestañas", () => {
-  it("muestra las pestañas Calculadora/Historial y arranca en la calculadora", () => {
+describe("Menús — la lista es la vista principal", () => {
+  it("arranca en la lista de menús con el botón «Nuevo menú» (sin pestañas ni calculadora a la vista)", () => {
     const html = renderPage([])
 
     expect(html).toContain("Menús")
-    expect(html).toContain("Calculadora")
-    expect(html).toContain("Historial")
-    // La calculadora (pantalla + botón Calcular) es lo primero que se ve
-    expect(html).toContain("Calculadora del menú")
-    expect(html).not.toContain("No hay menús creados")
-    expect(html).not.toContain("Nuevo menú")
+    expect(html).toContain("No hay menús creados")
+    expect(html).toContain("Nuevo menú")
+    expect(html).not.toContain("Historial")
+    // La calculadora vive en una ventana que solo se abre al crear o editar
+    expect(html).not.toContain("Calculadora del menú")
+    // Un menú no es un evento
+    expect(html).not.toContain("evento")
   })
 
-  it("sin permiso para crear arranca en el historial", () => {
+  it("sin permiso para crear no hay botón «Nuevo menú»", () => {
     const html = renderPage([], READ_ONLY)
 
     expect(html).toContain("No hay menús creados")
+    expect(html).not.toContain("Nuevo menú")
     expect(html).not.toContain("Calculadora del menú")
   })
 
-  it("lista los menús guardados en el historial", () => {
-    const html = renderPage([menuRecord], READ_ONLY)
+  it("lista los menús guardados con columnas en plata y sin fecha ni indicador", () => {
+    const html = renderPage([{ ...menuRecord, recetasCount: 3 }], READ_ONLY)
 
     expect(html).toContain("Menú de prueba")
+    for (const col of ["Platos", "Personas", "Costo por porción", "Precio por persona", "Precio total"]) {
+      expect(html).toContain(col)
+    }
+    for (const gone of ["Fecha evento", "% MP", "Indicador"]) expect(html).not.toContain(gone)
   })
 })

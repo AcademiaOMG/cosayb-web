@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { CalendarDays, Undo2 } from "lucide-react"
+import { Undo2 } from "lucide-react"
 import { saveFactorRendimientoAsIngrediente } from "@/lib/api"
 import Button from "@/components/ui/Button"
-import { CalcBreakdown, CalcPanel, useSolverCalculator, type CalcPanelField } from "@/components/calculator"
+import { CalcPanel, CalcReceipt, ReceiptDivider, ReceiptHero, ReceiptRow, useSolverCalculator, type CalcPanelField } from "@/components/calculator"
+import { toast } from "@/lib/toast"
 import { formatMoneyEntry, parseEntry, type EntryOptions } from "@/lib/calculator/entry"
 import { formatCOP, formatCOPDecimals, formatPercent } from "@/lib/calculator/format"
 import {
@@ -62,8 +63,8 @@ const toRaw = (n: number | null | undefined, decimals: boolean) =>
   n == null || !Number.isFinite(n) || n <= 0 ? "" : decimals ? String(Number(n.toFixed(2))) : String(Math.round(n))
 
 const VARIANTS: { key: YieldVariant; label: string }[] = [
-  { key: "bfactor", label: "Carnes, pescados, mariscos" },
-  { key: "bfactorveg", label: "Verduras, frutas, hortalizas" },
+  { key: "bfactor", label: "Proteínas" },
+  { key: "bfactorveg", label: "Vegetales" },
 ]
 
 const LAST_VARIANT_KEY = "cosayb.yieldFactor.lastVariant"
@@ -222,7 +223,7 @@ export default function YieldFactorCalculator({
 
   let tone: "idle" | "error" | "result" = "idle"
   let value = formatCOPDecimals(0)
-  let sub: string = missing.length > 0 ? describeYieldMissing(missing) : "Pulsa Calcular"
+  let sub: string = missing.length > 0 ? describeYieldMissing(missing) : "Listo para calcular"
   let announce = ""
   if (result) {
     tone = "result"
@@ -234,6 +235,15 @@ export default function YieldFactorCalculator({
     sub = error.message
     announce = error.message
   }
+
+  // Aviso visible de lo que está mal: tras pulsar Calcular (faltan datos / no cuadra) y, sin esperar,
+  // cuando las bajas ya igualan o superan el peso total (el error más común).
+  const liveInvalid = calc.preview && !calc.preview.ok && calc.preview.reason === "invalid" ? calc.preview : null
+  const notice = error?.message ?? liveInvalid?.message ?? null
+  const errorMessage = error?.message
+  useEffect(() => {
+    if (errorMessage) toast.warning("No se puede calcular todavía", { description: errorMessage, id: "yield-calc-blocked" })
+  }, [errorMessage])
 
   async function handleSave(alsoIngredient: boolean) {
     if (!result || savingRef.current) return
@@ -288,23 +298,12 @@ export default function YieldFactorCalculator({
     }
   }
 
-  const [entryDate] = useState(() => new Date(editingFactor?.createdAt ?? Date.now()).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }))
-
   return (
     <>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,400px)_minmax(0,1fr)] md:items-start">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,var(--calc-device-w))_minmax(0,1fr)] md:grid-rows-[auto_1fr] md:items-start">
         {/* Tipo y nombre primero: en el celular se ven antes que la calculadora */}
         <div className="flex flex-col gap-3 min-w-0 md:col-start-2 md:row-start-1">
-          <p className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
-            <CalendarDays size={13} aria-hidden="true" />
-            Fecha de entrada: <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{entryDate}</span>
-          </p>
-
-          <Step n={1} title="¿Qué tipo de ingrediente es?">
+          <Step title="¿Qué tipo de ingrediente es?">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="group" aria-label="Tipo de ingrediente">
               {VARIANTS.map((v) => {
                 const on = variant === v.key
@@ -342,7 +341,7 @@ export default function YieldFactorCalculator({
             )}
           </Step>
 
-          <Step n={2} title="Nombre del ingrediente" htmlFor="yield-name">
+          <Step title="Nombre del ingrediente" htmlFor="yield-name">
             <input
               ref={nameRef}
               id="yield-name"
@@ -392,33 +391,40 @@ export default function YieldFactorCalculator({
         </div>
 
         <div className="flex flex-col gap-3 min-w-0 md:col-start-2 md:row-start-2">
-          <Step n={3} title="Calcula">
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              En la calculadora escribe lo que pagaste, el peso y lo que se pierde ({wasteNames.join(", ").toLowerCase()}). Luego pulsa{" "}
-              <strong>Calcular</strong>.
-            </p>
-          </Step>
-
+          {notice && (
+            <div
+              role="alert"
+              className="anim-pop rounded-2xl px-4 py-3 text-sm font-medium"
+              style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B" }}
+            >
+              {notice}
+            </div>
+          )}
           {result ? (
-            <Step n={4} title="Revisa y guarda">
-              <div className="flex flex-col gap-3">
-                <CalcBreakdown
-                  rows={[
-                    { label: "Costo del gramo (sin bajas)", value: formatCOPDecimals(result.costPerGram) },
-                    ...WASTE_FIELDS.flatMap((f, i) =>
-                      (calc.inputs[f] ?? 0) > 0
-                        ? [{ label: `Costo de ${wasteNames[i].toLowerCase()}`, value: formatCOP(result.wasteCosts[f]) }]
-                        : [],
-                    ),
-                    {
-                      label: `Total baja (${result.wasteWeight.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g)`,
-                      value: formatCOP(result.wasteCost),
-                    },
-                    { label: "Nuevo peso útil", value: `${result.netWeight.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g` },
-                    { label: "Nuevo costo del gramo", value: formatCOPDecimals(result.newCostPerGram), strong: true },
-                    { label: "Rendimiento total", value: formatPercent(result.yieldFactor * 100, 2), strong: true },
-                  ]}
-                />
+            <div className="flex flex-col gap-3">
+                <CalcReceipt title="Factor de rendimiento">
+                  <ReceiptRow label="Costo total" value={formatCOP(calc.inputs.totalCost ?? 0)} />
+                  <ReceiptRow label="Peso total" value={`${(calc.inputs.totalWeight ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 2 })} g`} />
+                  <ReceiptRow label="Costo del gramo (sin bajas)" value={formatCOPDecimals(result.costPerGram)} />
+
+                  <ReceiptDivider />
+
+                  {WASTE_FIELDS.flatMap((f, i) =>
+                    (calc.inputs[f] ?? 0) > 0
+                      ? [<ReceiptRow key={f} label={wasteNames[i]} value={`${(calc.inputs[f] ?? 0).toLocaleString("es-CO", { maximumFractionDigits: 2 })} g · ${formatCOP(result.wasteCosts[f])}`} />]
+                      : [],
+                  )}
+                  <ReceiptRow
+                    label="Total que se pierde"
+                    value={`${result.wasteWeight.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g · ${formatCOP(result.wasteCost)}`}
+                  />
+                  <ReceiptRow label="Peso útil" value={`${result.netWeight.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g`} />
+                  <ReceiptRow label="Rendimiento" value={formatPercent(result.yieldFactor * 100, 2)} />
+
+                  <ReceiptDivider />
+
+                  <ReceiptHero label="Nuevo costo por gramo" value={formatCOPDecimals(result.newCostPerGram)} />
+                </CalcReceipt>
 
                 {saveError && (
                   <p className="text-sm" role="alert" style={{ color: "#DC2626" }}>
@@ -444,16 +450,10 @@ export default function YieldFactorCalculator({
                   </button>
                 )}
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                  «Guardar como ingrediente» crea además en Inventario el ingrediente «{ingredientName.trim() || "nombre"} (LIMPIO)», con el peso útil y el nuevo
-                  costo por gramo, listo para usar en recetas.
+                  «Guardar como ingrediente» crea en Inventario «{ingredientName.trim() || "nombre"} (LIMPIO)», con el peso útil y el nuevo costo por gramo.
                 </p>
-              </div>
-            </Step>
-          ) : (
-            <p className="text-xs px-1" style={{ color: "var(--text-muted)" }}>
-              Cuando calcules, aquí verás el desglose y podrás guardar el ingrediente.
-            </p>
-          )}
+            </div>
+          ) : null}
         </div>
       </div>
     </>
@@ -461,34 +461,25 @@ export default function YieldFactorCalculator({
 }
 
 /** Paso numerado: tarjeta con el número en un círculo y su título. */
-function Step({ n, title, htmlFor, children }: { n: number; title: string; htmlFor?: string; children: ReactNode }) {
-  const heading = (
-    <>
-      <span
-        aria-hidden="true"
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold shrink-0"
-        style={{ background: "var(--accent)", color: "white" }}
-      >
-        {n}
-      </span>
-      {title}
-    </>
-  )
-  const cls = "flex items-center gap-2 text-sm font-semibold"
+function Step({ title, htmlFor, children }: { title: string; htmlFor?: string; children: ReactNode }) {
+  const heading = title
+  const cls = "flex items-center gap-2 text-sm font-semibold min-w-0"
   return (
     <section
       className="rounded-2xl p-3.5 flex flex-col gap-2.5"
       style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
     >
-      {htmlFor ? (
-        <label htmlFor={htmlFor} className={cls} style={{ color: "var(--text-primary)" }}>
-          {heading}
-        </label>
-      ) : (
-        <p className={cls} style={{ color: "var(--text-primary)" }}>
-          {heading}
-        </p>
-      )}
+      <div className="flex items-center justify-between gap-3">
+        {htmlFor ? (
+          <label htmlFor={htmlFor} className={cls} style={{ color: "var(--text-primary)" }}>
+            {heading}
+          </label>
+        ) : (
+          <p className={cls} style={{ color: "var(--text-primary)" }}>
+            {heading}
+          </p>
+        )}
+      </div>
       {children}
     </section>
   )

@@ -1,25 +1,27 @@
 "use client"
 
-import useSWR from "swr"
+import useSWR, { useSWRConfig } from "swr"
 import { useState, useMemo, useEffect } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
-import Input from "@/components/ui/Input"
 import QuotaBanner from "@/components/app/inventario/QuotaBanner"
 import IngredientSearchBar from "@/components/app/inventario/IngredientSearchBar"
-import IngredientFilters from "@/components/app/inventario/IngredientFilters"
+import FilterMenu, { ActiveFilterChips, type FilterGroup } from "@/components/ui/FilterMenu"
 import IngredientList from "@/components/app/inventario/IngredientList"
 import IngredientDetailModal from "@/components/app/inventario/IngredientDetailModal"
 import IngredientFormModal from "@/components/app/inventario/IngredientFormModal"
-import PriceSuggestion from "@/components/app/inventario/PriceSuggestion"
 import { displayName, normalizeForSearch } from "@/components/app/inventario/format"
 import { Plus } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
 import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
+import ExtraCreateModal from "../menu/ExtraCreateModal"
 import { fetchAPI } from "@/lib/api"
-import type { Ingredient, IngredientForm, IngredientOriginFilter } from "@/types/ingredient"
+import type { Ingredient, IngredientOriginFilter } from "@/types/ingredient"
 import ModuleLocked from "@/components/app/ModuleLocked"
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -43,6 +45,7 @@ export default function InventarioPage() {
   // ── Permisos y plan ───────────────────────────────────────────────────────
   const { can, organization, hasFeature, featureLockedMessage } = usePermissions()
   const revalidateOnboarding = useRevalidateOnboarding()
+  const { mutate: globalMutate } = useSWRConfig()
   const plan = organization?.membership === "free" ? "free" : "pro"
   const canUpdate = can("ingredients", "update")
   const canDelete = can("ingredients", "delete")
@@ -55,13 +58,13 @@ export default function InventarioPage() {
   // ── Modal: create / edit ──────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Ingredient | null>(null)
+  const [editingExtra, setEditingExtra] = useState<Ingredient | null>(null)
 
   // ── Modal: detail ─────────────────────────────────────────────────────────
   const [detail, setDetail] = useState<Ingredient | null>(null)
 
-  // ── Modal: delete ─────────────────────────────────────────────────────────
-  const [deleteTarget, setDeleteTarget] = useState<Ingredient | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  // ── Eliminar (confirmación global) ────────────────────────────────────────
+  const confirm = useConfirm()
 
   // ── Modal: help ──────────────────────────────────────────────────────────
   const [helpOpen, setHelpOpen] = useState(false)
@@ -133,29 +136,37 @@ export default function InventarioPage() {
   }
 
   function openEdit(ingredient: Ingredient) {
+    // Los extras se editan con el formulario de extras (nombre, unidad, costo del empaque y contenido)
+    if (ingredient.kind === "extra") {
+      setEditingExtra(ingredient)
+      setDetail(null)
+      return
+    }
     setEditing(ingredient)
     setModalOpen(true)
   }
 
-  async function handleSave() {
-    setModalOpen(false)
-    await mutate()
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return
-    setDeleting(true)
+  async function handleDelete(target: Ingredient) {
+    const name = displayName(target.name)
+    const ok = await confirm({
+      title: "Eliminar ingrediente",
+      itemName: name,
+      description: "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
     try {
-      await fetchAPI(`/api/v1/ingredients/${deleteTarget.id}`, {
+      await fetchAPI(`/api/v1/ingredients/${target.id}`, {
         method: "DELETE",
       })
-      setDeleteTarget(null)
       await mutate()
       revalidateOnboarding()
-    } catch {
-      setDeleteTarget(null)
-    } finally {
-      setDeleting(false)
+      toast.success("Ingrediente eliminado", { description: name })
+    } catch (e) {
+      toast.error("No se pudo eliminar el ingrediente", {
+        description: friendlyError(e, "Inténtalo de nuevo en unos segundos."),
+      })
     }
   }
 
@@ -163,6 +174,19 @@ export default function InventarioPage() {
   if (!hasFeature("module_ingredients")) {
     return <ModuleLocked message={featureLockedMessage("module_ingredients")} />
   }
+
+  const filterGroups: FilterGroup[] = [
+    {
+      id: "origin",
+      label: "Origen",
+      options: [
+        { value: "own", label: "Propios", count: filterCounts.own },
+        { value: "base", label: "Banco general", count: filterCounts.base },
+      ],
+      value: originFilter === "all" ? undefined : originFilter,
+      onChange: (v) => handleFilterChange((v as IngredientOriginFilter | undefined) ?? "all"),
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -201,13 +225,10 @@ export default function InventarioPage() {
         {!error && (
           <div className="flex items-center gap-2">
             <IngredientSearchBar value={search} onChange={handleSearchChange} />
-            <IngredientFilters
-              active={originFilter}
-              onChange={handleFilterChange}
-              counts={filterCounts}
-            />
+            <FilterMenu groups={filterGroups} ariaLabel="Filtrar ingredientes" />
           </div>
         )}
+        {!error && <ActiveFilterChips groups={filterGroups} />}
 
         {/* Listado (loading / error / vacío / filas + paginación) */}
         <IngredientList
@@ -223,7 +244,7 @@ export default function InventarioPage() {
           onPageChange={handlePageChange}
           onOpen={setDetail}
           onEdit={canUpdate ? openEdit : undefined}
-          onDelete={canDelete ? setDeleteTarget : undefined}
+          onDelete={canDelete ? handleDelete : undefined}
           onRetry={() => void mutate()}
           onClearFilters={clearFilters}
         />
@@ -233,7 +254,7 @@ export default function InventarioPage() {
         ingredient={detail}
         onClose={() => setDetail(null)}
         onEdit={canUpdate ? openEdit : undefined}
-        onDelete={canDelete ? setDeleteTarget : undefined}
+        onDelete={canDelete ? handleDelete : undefined}
       />
 
       <IngredientFormModal
@@ -246,28 +267,19 @@ export default function InventarioPage() {
         editing={editing}
       />
 
-      {/* ── Modal: delete ────────────────────────────────────────────────── */}
-      <Modal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="Eliminar ingrediente"
-        footer={
-          <div className="flex gap-3 justify-end">
-            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
-              Cancelar
-            </Button>
-            <Button variant="danger" loading={deleting} onClick={handleDelete}>
-              Eliminar
-            </Button>
-          </div>
-        }
-      >
-        <p style={{ color: "var(--text-secondary)" }}>
-          ¿Estás seguro de que quieres eliminar{" "}
-          <strong style={{ color: "var(--text-primary)" }}>{deleteTarget ? displayName(deleteTarget.name) : ""}</strong>
-          ? Esta acción no se puede deshacer.
-        </p>
-      </Modal>
+      <ExtraCreateModal
+        open={!!editingExtra}
+        editing={editingExtra}
+        existing={items}
+        onClose={() => setEditingExtra(null)}
+        onUpdated={() => {
+          setEditingExtra(null)
+          void mutate()
+          // Los costos del menú dependen del extra: refresca su catálogo y la lista de menús
+          void globalMutate("ingredients-catalog-menu")
+          void globalMutate("menus")
+        }}
+      />
 
       {/* ── Modal: help ──────────────────────────────────────────────────── */}
       <Modal
@@ -276,7 +288,7 @@ export default function InventarioPage() {
         title="Inventario"
       >
         <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-          <p>En esta seccion podra gestionar el inventario de ingredientes de manera eficiente.</p>
+          <p>En esta sección podrá gestionar el inventario de ingredientes de manera eficiente.</p>
 
           <div>
             <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Funcionalidades:</p>
@@ -287,7 +299,7 @@ export default function InventarioPage() {
               </li>
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>
-                <span><strong>Verificar existencia:</strong> Usa la barra de busqueda para verificar si un ingrediente ya existe antes de crearlo.</span>
+                <span><strong>Verificar existencia:</strong> Usa la barra de búsqueda para verificar si un ingrediente ya existe antes de crearlo.</span>
               </li>
               <li className="flex gap-2">
                 <span style={{ color: "var(--accent)" }}>•</span>
@@ -309,7 +321,7 @@ export default function InventarioPage() {
           </div>
 
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            <strong>Nota:</strong> La informacion se basa en promedios de mercado. Trabaja unicamente en las casillas indicadas e ingresa la informacion correspondiente.
+            <strong>Nota:</strong> La información se basa en promedios de mercado. Trabaja únicamente en las casillas indicadas e ingresa la información correspondiente.
           </p>
         </div>
       </Modal>

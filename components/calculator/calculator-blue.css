@@ -6,7 +6,7 @@
 
 /* ─── Kit de calculadora física ───────────────────────────────────────────
    Una calculadora de bolsillo real, no un formulario con sombras: carcasa con
-   grosor, pantalla LCD de 7 segmentos, teclas que se hunden y suenan. Ver
+   grosor, pantalla LCD de 7 segmentos, teclas que se hunden. Ver
    .claude/calculadora-fisica_skill (SKILL.md y references/).
 
    Una sola luz arriba a la izquierda: brillos arriba/izquierda, sombras
@@ -35,6 +35,8 @@
 
   position: relative;
   width: 100%;
+  max-width: var(--calc-device-w, 420px);
+  margin-inline: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -67,7 +69,7 @@
   background: linear-gradient(113deg, rgba(255, 255, 255, 0.09) 0, rgba(255, 255, 255, 0.02) 32%, rgba(255, 255, 255, 0) 33%);
 }
 
-/* ── Encabezado grabado: marca ficticia, sonido y celda solar ─────────── */
+/* ── Encabezado grabado: marca ficticia y celda solar ─────────── */
 .calc-skin-blue .calc-top {
   display: flex;
   justify-content: space-between;
@@ -104,24 +106,6 @@
     linear-gradient(180deg, #2d2840, #14101f 58%, #201c32);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 0 2px #070b18, 0 1px 0 2px rgba(255, 255, 255, 0.14);
 }
-.calc-skin-blue .calc-sound {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid rgba(208, 218, 242, 0.22);
-  background: rgba(0, 0, 0, 0.28);
-  color: var(--print-hi);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.calc-skin-blue .calc-sound[aria-pressed="false"] { color: var(--print); opacity: 0.7; }
-.calc-skin-blue .calc-sound:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
-
 /* ── Pantalla principal (LCD con el resultado) ────────────────────────── */
 .calc-display.calc-skin-blue, .calc-skin-blue .calc-display { position: relative; }
 
@@ -188,14 +172,7 @@
 /* Sin valor todavía: el cero atenuado */
 .calc-skin-blue .calc-seg.is-dim .s.on { fill-opacity: 0.4; }
 
-/* Revelado del resultado: parpadeo de LCD, no un fundido */
-@keyframes calc-flash {
-  0% { opacity: 0; }
-  60% { opacity: 0; }
-  100% { opacity: 1; }
-}
-.calc-display.calc-skin-blue.is-result .calc-mainrow, .calc-skin-blue .calc-display.is-result .calc-mainrow { animation: calc-flash 0.22s steps(3, end); }
-
+/* El resultado aparece de golpe, como en una calculadora real: sin conteo ni parpadeo */
 .calc-display.calc-skin-blue.is-sm .calc-mainrow, .calc-skin-blue .calc-display.is-sm .calc-mainrow { min-height: 40px; }
 .calc-display.calc-skin-blue.is-sm .calc-unit, .calc-skin-blue .calc-display.is-sm .calc-unit { font-size: 20px; }
 .calc-display.calc-skin-blue.is-sm .calc-main, .calc-skin-blue .calc-display.is-sm .calc-main { flex-basis: 190px; }
@@ -453,8 +430,8 @@
    queda siempre visible. Depende del ancho disponible, no de la pantalla. */
 .calc-skin-blue .calc-edit-slot { display: none; }
 .calc-skin-blue .calc-edit-key { font-size: 14px; gap: 8px; }
-/* 719px: mismo corte en que .valuation-workspace pasa a dos columnas */
-@container calc-stage (max-width: 719px) {
+/* 799px: mismo corte en que .valuation-workspace pasa a dos columnas */
+@container calc-stage (max-width: 799px) {
   .calc-device.calc-skin-blue.is-resting .calc-keypad-slot,
   .calc-device.calc-skin-blue.is-resting .calc-slot:has(.calc-key-equals) {
     display: none;

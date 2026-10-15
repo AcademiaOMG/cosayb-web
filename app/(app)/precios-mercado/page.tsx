@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import useSWR from "swr"
 import { Search, Store, MapPin, Scale, DollarSign } from "lucide-react"
 import PageHeader from "@/components/ui/PageHeader"
+import FilterMenu, { ActiveFilterChips, type FilterGroup } from "@/components/ui/FilterMenu"
 import Modal from "@/components/ui/Modal"
 import Badge from "@/components/ui/Badge"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
@@ -295,6 +296,32 @@ export default function PreciosMercadoPage() {
     return <ModuleLocked message={featureLockedMessage("module_marketPrices")} />
   }
 
+  const filterGroups: FilterGroup[] = [
+    {
+      id: "source",
+      label: "Supermercado",
+      options: [
+        { value: "exito", label: "Éxito" },
+        { value: "makro", label: "Makro" },
+      ],
+      value: source || undefined,
+      onChange: (v) => handleFilter("source", v ?? ""),
+    },
+    {
+      id: "city",
+      label: "Ciudad",
+      options: [
+        { value: "bogota", label: "Bogotá" },
+        { value: "medellin", label: "Medellín" },
+        { value: "cali", label: "Cali" },
+        { value: "barranquilla", label: "Barranquilla" },
+        { value: "cartagena", label: "Cartagena" },
+      ],
+      value: city || undefined,
+      onChange: (v) => handleFilter("city", v ?? ""),
+    },
+  ]
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -313,10 +340,10 @@ export default function PreciosMercadoPage() {
           />
           <input
             type="search"
-            placeholder="Buscar ingrediente…"
+            placeholder="Buscar ingrediente…" aria-label="Buscar ingrediente"
             value={search}
             onChange={handleSearch}
-            className="w-full rounded-xl py-2.5 pl-9 pr-4 text-sm outline-none"
+            className="w-full rounded-xl py-2.5 pl-9 pr-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             style={{
               background: "var(--bg-surface)",
               border: "1px solid var(--border-light)",
@@ -325,41 +352,10 @@ export default function PreciosMercadoPage() {
           />
         </div>
 
-        {/* Supermercado */}
-        <select
-          value={source}
-          onChange={(e) => handleFilter("source", e.target.value)}
-          className="rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-light)",
-            color: source ? "var(--text-primary)" : "var(--text-muted)",
-          }}
-        >
-          <option value="">Todos los supermercados</option>
-          <option value="exito">Éxito</option>
-          <option value="makro">Makro</option>
-        </select>
-
-        {/* Ciudad */}
-        <select
-          value={city}
-          onChange={(e) => handleFilter("city", e.target.value)}
-          className="rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-light)",
-            color: city ? "var(--text-primary)" : "var(--text-muted)",
-          }}
-        >
-          <option value="">Todas las ciudades</option>
-          <option value="bogota">Bogotá</option>
-          <option value="medellin">Medellín</option>
-          <option value="cali">Cali</option>
-          <option value="barranquilla">Barranquilla</option>
-          <option value="cartagena">Cartagena</option>
-        </select>
+        <FilterMenu groups={filterGroups} ariaLabel="Filtrar precios" />
       </div>
+
+      <ActiveFilterChips groups={filterGroups} />
 
       {/* Tabla (desktop) */}
       <div

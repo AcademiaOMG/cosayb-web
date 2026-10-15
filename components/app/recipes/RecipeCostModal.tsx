@@ -155,10 +155,10 @@ export default function RecipeCostModal({
                 Análisis de rentabilidad
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <label className="text-xs" style={{ color: "var(--text-muted)" }}>
+                <label htmlFor="recipe-cost-mp-pct" className="text-xs" style={{ color: "var(--text-muted)" }}>
                   % Materia Prima:
                 </label>
-                <input
+                <input id="recipe-cost-mp-pct"
                   type="number"
                   min="1"
                   max="99"

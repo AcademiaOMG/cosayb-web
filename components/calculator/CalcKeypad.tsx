@@ -3,8 +3,6 @@
 import { useEffect, useRef } from "react"
 import { Delete } from "lucide-react"
 import type { EntryKey } from "@/lib/calculator/entry"
-import { playKeyDown, playKeyUp } from "@/lib/calculator/sound"
-import { keySoundProps } from "./useKeySound"
 import "./calculator.css"
 
 /** Tecla física → data-k de la tecla en pantalla que se hunde mientras se pulsa. */
@@ -26,7 +24,7 @@ function isOutsideTyping(target: EventTarget | null) {
  * Teclado numérico. Escribe sobre el dato activo sin robarle el foco
  * (preventDefault en mousedown), así el teclado físico y el de pantalla se
  * pueden alternar sin volver a seleccionar el campo. La tecla en pantalla se
- * hunde (y suena) mientras se pulsa la del teclado físico.
+ * hunde mientras se pulsa la del teclado físico.
  *
  * Teclas de función con nombre en palabras ("Limpiar"), no siglas de
  * calculadora (C / AC). Incluye "000" porque en pesos casi todo precio
@@ -57,13 +55,11 @@ export default function CalcKeypad({
       if (!btn || btn.disabled) return
       btn.classList.add("down")
       held.current.add(e.key)
-      playKeyDown()
     }
     function up(e: KeyboardEvent) {
       const k = keyboardToKey(e.key)
       if (!k || !held.current.delete(e.key)) return
       pad!.querySelector(`[data-k="${k}"]`)?.classList.remove("down")
-      playKeyUp()
     }
     window.addEventListener("keydown", down)
     window.addEventListener("keyup", up)
@@ -83,7 +79,6 @@ export default function CalcKeypad({
         className={`calc-key calc-key-num${span2 ? " calc-key-span-2" : ""}`}
         onMouseDown={keep}
         onClick={() => onKey({ type: "digit", digit: d })}
-        {...keySoundProps}
       >
         {d}
       </button>
@@ -100,7 +95,6 @@ export default function CalcKeypad({
           aria-disabled={rest.disabled || undefined}
           className={`calc-key calc-key-fn${word ? " calc-key-word" : ""}${className ? ` ${className}` : ""}`}
           onMouseDown={keep}
-          {...keySoundProps}
           {...rest}
         />
       </div>

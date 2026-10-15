@@ -17,6 +17,9 @@ import {
   CUSTOM_ROLE_MODULES,
 } from "@/lib/api"
 import { Lock, Plus, Pencil, Trash2, Users } from "lucide-react"
+import { toast } from "@/lib/toast"
+import { friendlyError } from "@/lib/errorMessage"
+import { useConfirm } from "@/components/ui/ConfirmDialog"
 
 const DEFAULT_LOCKED_MESSAGE = "Roles personalizados no está disponible en tu plan actual."
 
@@ -38,6 +41,7 @@ export default function RolesPage() {
   const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const confirm = useConfirm()
 
   if (!unlocked) {
     const message = featureLockedMessage("custom_roles") || DEFAULT_LOCKED_MESSAGE
@@ -90,16 +94,37 @@ export default function RolesPage() {
       }
       setModalOpen(false)
       await mutate()
+      toast.success(editingId ? "Rol actualizado" : "Rol creado", { description: name.trim() })
+    } catch (e) {
+      toast.error(editingId ? "No se pudo actualizar el rol" : "No se pudo crear el rol", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setSaving(false)
     }
   }
 
-  async function handleDelete(id: string) {
-    setDeletingId(id)
+  async function handleDelete(role: { id: string; name: string; memberCount: number }) {
+    const ok = await confirm({
+      title: "Eliminar rol",
+      itemName: role.name,
+      description:
+        role.memberCount > 0
+          ? `Hay ${role.memberCount} ${role.memberCount === 1 ? "miembro" : "miembros"} con este rol. Esta acción no se puede deshacer.`
+          : "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    })
+    if (!ok) return
+    setDeletingId(role.id)
     try {
-      await deleteCustomRole(id)
+      await deleteCustomRole(role.id)
       await mutate()
+      toast.success("Rol eliminado", { description: role.name })
+    } catch (e) {
+      toast.error("No se pudo eliminar el rol", {
+        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+      })
     } finally {
       setDeletingId(null)
     }
@@ -149,7 +174,7 @@ export default function RolesPage() {
                   <Pencil size={14} />
                 </button>
                 <button
-                  onClick={() => handleDelete(r.id)}
+                  onClick={() => void handleDelete(r)}
                   disabled={deletingId === r.id}
                   className="p-2 rounded-lg"
                   style={{ color: "#DC2626", background: "transparent", border: "none", cursor: "pointer" }}

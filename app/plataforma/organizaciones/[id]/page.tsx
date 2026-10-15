@@ -204,7 +204,7 @@ export default function OrganizacionDetallePage({
               </select>
               <input
                 type="text"
-                placeholder="Motivo (mínimo 10 caracteres, queda en auditoría)"
+                placeholder="Motivo (mínimo 10 caracteres, queda en auditoría)" aria-label="Motivo (mínimo 10 caracteres, queda en auditoría)"
                 value={impersonateReason}
                 onChange={(e) => setImpersonateReason(e.target.value)}
                 className="console-input text-sm px-3"
@@ -262,7 +262,7 @@ export default function OrganizacionDetallePage({
               </p>
               <input
                 type="text"
-                placeholder="Justificación (queda en auditoría)"
+                placeholder="Justificación (queda en auditoría)" aria-label="Justificación (queda en auditoría)"
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
                 className="console-input text-sm px-3"

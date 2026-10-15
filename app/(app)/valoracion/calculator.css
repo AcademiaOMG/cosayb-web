@@ -1,3 +1,4 @@
+@import "../../../components/calculator/calcReceipt.css"; /* el recibo impreso vive en el kit */
 /* ─── Recibo impreso de la valoración (desglose) ──────────────────────────
    Complemento de la piel de calculadora física: el cuerpo, la pantalla, los
    registros y las teclas viven en @/components/calculator (reutilizables).
@@ -32,7 +33,7 @@
     "answer";
   row-gap: 16px;
   width: 100%;
-  max-width: 440px;
+  max-width: var(--calc-device-w);
   margin: 0 auto;
   justify-items: center;
 }
@@ -48,8 +49,8 @@
   margin-top: 20px;
 }
 
-/* Sin resultado, en angosto la respuesta no ocupa lugar: el aparato ya
-   dice qué falta; la pregunta vuelve como título del recibo. */
+/* Sin resultado la respuesta no ocupa lugar: el aparato ya dice qué falta; la pregunta
+   y el recibo aparecen solo al calcular. */
 .valuation-answer[data-state="idle"] { display: none; }
 .valuation-question-hint { display: none; }
 
@@ -82,13 +83,14 @@
 
 /* Tablet / laptop angosta con barra lateral: ya caben las dos columnas,
    con el aparato en su tamaño de celular. */
-@container calc-stage (min-width: 720px) {
+@container calc-stage (min-width: 800px) {
   .valuation-workspace {
-    max-width: 1040px;
-    margin: 0 auto;
-    justify-items: center;
+    /* Sin tope de ancho: la respuesta aprovecha todo el espacio a la derecha, como en Menú */
+    max-width: none;
+    margin: 0;
+    justify-items: stretch;
     align-items: start;
-    grid-template-columns: 380px minmax(0, 1fr);
+    grid-template-columns: var(--calc-device-w) minmax(0, 1fr);
     grid-template-rows: auto 1fr;
     grid-template-areas:
       "switch answer"
@@ -97,11 +99,13 @@
     row-gap: 18px;
   }
 
+  /* Sin resultado se ve la pregunta, su explicación y el recuadro punteado (sin la ranura de la
+     impresora: esa solo aparece cuando hay recibo). Igual que en Punto de Equilibrio. */
   .valuation-answer,
   .valuation-answer[data-state="idle"] {
     display: flex;
     margin-top: 0;
-    max-width: 460px;
+    max-width: none;
   }
 
   .valuation-question { margin-bottom: 24px; }
@@ -111,8 +115,6 @@
 
 @container calc-stage (min-width: 900px) {
   .valuation-workspace {
-    max-width: 1100px;
-    grid-template-columns: 420px minmax(0, 1fr);
     column-gap: 64px;
     row-gap: 20px;
   }
@@ -190,131 +192,9 @@
   text-wrap: balance;
 }
 
-/* ── Resultado — una tarjeta que aparece suave (sin impresora) ─────────── */
-.calc-printer { position: relative; }
-.calc-printer-slot { display: none; }
-.calc-printer-mask { overflow: visible; }
-
-@keyframes calc-print-out {
-  from { opacity: 0; transform: translateY(14px) scale(0.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.calc-receipt-print {
-  animation: calc-print-out 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .calc-receipt-print { animation: none; }
-}
-
-/* ── Desglose ─────────────────────────────────────────────────────────── */
-.calc-receipt {
-  background:
-    radial-gradient(90% 60% at 100% 0%, rgba(27, 79, 216, 0.06) 0%, transparent 70%),
-    #fff;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 22px 22px 18px;
-  box-shadow: var(--shadow-md);
-  font-family: var(--font-body), var(--font-inter), system-ui, sans-serif;
-  color: var(--text-primary);
-}
-
-.calc-receipt-torn { display: none; }
-
-.calc-indicator-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  padding: 5px 12px 5px 10px;
-  border-radius: 999px;
-}
-
-.calc-receipt-title {
-  font-family: var(--font-display), system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-align: left;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.calc-receipt-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 14px;
-  padding: 6px 0;
-}
-
-.calc-receipt-row-label {
-  white-space: nowrap;
-  color: var(--text-secondary);
-}
-
-.calc-receipt-row-leader {
-  flex: 1;
-  min-width: 8px;
-  border-bottom: 1px dashed var(--border-light);
-  transform: translateY(-3px);
-}
-
-.calc-receipt-row-value {
-  white-space: nowrap;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.calc-receipt-divider {
-  border: none;
-  border-top: 1px solid var(--border-light);
-  margin: 10px 0;
-}
-
-.calc-receipt-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding-top: 2px;
-}
-
-.calc-receipt-total-label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.calc-receipt-total-value {
-  font-family: var(--font-display), system-ui, sans-serif;
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--accent-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.calc-receipt-pct {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-left: 6px;
-}
-
-@media (max-width: 640px) {
-  .calc-receipt { padding: 18px 16px 14px; }
-  .calc-receipt-row { font-size: 13px; }
-  .calc-receipt-pct { margin-left: 4px; }
-}
-
 /* ── Sin scroll en pantallas bajas: todo escala con el alto de la ventana ──
    (solo en la vista de dos columnas; en móvil se desplaza con normalidad) */
-@container calc-stage (min-width: 720px) {
+@container calc-stage (min-width: 800px) {
   @media (max-height: 940px) {
     .valuation-stage .calc-key-num, .valuation-stage .calc-key-fn { height: 40px; }
     .valuation-stage .calc-key-equals { height: 44px; }
@@ -322,7 +202,7 @@
     .valuation-question { margin-bottom: 14px; }
     .valuation-question-hint { display: none; }
     .valuation-question-title { font-size: 24px; }
-    .calc-receipt { padding: 16px 20px 12px; }
+    .calc-receipt { padding: 26px 20px 10px; }
     .calc-receipt-row { padding: 4px 0; }
   }
   @media (max-height: 800px) {
@@ -336,7 +216,7 @@
     .calc-receipt-row { padding: 2px 0; font-size: 13px; }
     .calc-receipt-divider { margin: 6px 0; }
     .calc-receipt-total-value { font-size: 22px; }
-    .calc-receipt { padding: 12px 18px 8px; }
+    .calc-receipt { padding: 24px 18px 8px; }
     .valuation-question { margin-bottom: 8px; }
   }
 }

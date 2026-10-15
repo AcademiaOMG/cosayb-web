@@ -1,72 +1,67 @@
-/* Kit de calculadora: dos pieles que conviven (verde = producción, azul = nueva).
-   Cada una vive bajo su clase .calc-skin-*; ver lib/calculator/skin.ts. */
-@import "./calculator-green.css";
+/* Kit de calculadora: una sola piel (azul), bajo la clase .calc-skin-blue. */
 @import "./calculator-blue.css";
 
+/* Ancho ÚNICO del aparato en todas las vistas (valoración, menú, punto de
+   equilibrio, factor de rendimiento, recetas). Cada vista usa esta variable en
+   la columna que lo aloja; la altura es libre. */
+:root { --calc-device-w: 420px; }
+
 /* ── Desglose bajo el aparato (CalcBreakdown) ────────────────────────────── */
+/* Misma tarjeta que el desglose de Valoración: aparece suave, filas con guía punteada. */
+@keyframes calc-breakdown-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 .calc-breakdown {
-  border-radius: 14px;
-  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  padding: 20px 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--bg-surface);
+  gap: 6px;
+  background:
+    radial-gradient(90% 60% at 100% 0%, rgba(27, 79, 216, 0.06) 0%, transparent 70%),
+    #fff;
   border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  animation: calc-breakdown-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calc-breakdown { animation: none; }
 }
 .calc-breakdown-title {
-  font-size: 11px;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
+  margin-bottom: 4px;
 }
 .calc-breakdown-row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13.5px;
-  padding-bottom: 6px;
-  border-bottom: 1px dashed var(--border-light);
+  gap: 8px;
+  font-size: 14px;
+  padding: 2px 0;
 }
-.calc-breakdown-row:last-child { border-bottom: none; padding-bottom: 0; }
-.calc-breakdown-row dt { color: var(--text-secondary); }
-.calc-breakdown-row dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; color: var(--text-primary); }
-.calc-breakdown-row.is-strong dd { color: var(--accent-text); font-weight: 700; }
-
-/* ── Selector temporal de diseño (verde / azul) ──────────────────────────── */
-.calc-skin-switch {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 40;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-light);
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--bg-surface);
-  font-size: 12px;
-}
-/* Móvil: por encima de la barra de pestañas flotante */
-@media (max-width: 1023px) {
-  .calc-skin-switch { bottom: 96px; }
-}
-.calc-skin-switch-label { padding: 0 8px 0 10px; color: var(--text-muted); font-weight: 600; }
-.calc-skin-switch-opt {
-  border: 0;
-  border-radius: 999px;
-  padding: 4px 12px;
-  font: inherit;
-  font-weight: 600;
+.calc-breakdown-row dt {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
   color: var(--text-secondary);
-  background: transparent;
-  cursor: pointer;
 }
-.calc-skin-switch-opt[aria-pressed="true"] {
-  color: var(--accent-text);
-  background: var(--accent-light);
+.calc-breakdown-row dt::after {
+  content: "";
+  flex: 1;
+  min-width: 8px;
+  border-bottom: 1px dashed var(--border-light);
+  transform: translateY(-3px);
 }
-.calc-skin-switch-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.calc-breakdown-row dd { margin: 0; white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; color: var(--text-primary); }
+.calc-breakdown-row.is-strong dd { color: var(--accent-text); font-weight: 700; font-family: var(--font-display), system-ui, sans-serif; font-size: 16px; }
+@media (max-width: 640px) {
+  .calc-breakdown { padding: 18px 16px 14px; }
+  .calc-breakdown-row { font-size: 13px; }
+}

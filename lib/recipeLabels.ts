@@ -38,8 +38,8 @@ export function recipeTypeLabel(isBase: boolean) {
   return isBase ? RECIPE_TYPE.base.label : RECIPE_TYPE.dish.label
 }
 
-/** Por qué no hay botón de eliminar en esta receta */
+/** Por qué no hay botón de eliminar/editar en esta receta */
 export const RECIPE_CANT_DELETE = {
-  base: "Las preparaciones base no se pueden eliminar: otras recetas pueden estar usándolas.",
   banco: "Las recetas del banco no se pueden eliminar. Copia una a tu negocio para modificarla.",
+  ajena: "Esta receta no es de tu negocio, no puedes modificarla.",
 } as const

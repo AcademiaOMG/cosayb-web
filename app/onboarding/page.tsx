@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
-import { authClient } from "@/lib/auth"
+import { fetchOrgState, decideOnboardingPage, resolveOnboardingFinishPath, buildLoginUrl, ONBOARDING_PATH } from "@/lib/authRedirect"
 import { setActiveOrgId } from "@/lib/activeOrg"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
@@ -33,6 +33,9 @@ export default function OnboardingPage() {
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("new") === "1"
   )
+  const [returnToParam] = useState(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("returnTo") : null
+  )
   const [step, setStep] = useState<Step>(1)
   const [orgName, setOrgName] = useState("")
   const [city, setCity] = useState("")
@@ -44,63 +47,29 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     async function check() {
-      try {
-        const { data } = await authClient.getSession()
-
-        if (!data?.session) {
-          router.replace("/login")
-          return
-        }
-
-        // Flujo "crear otro negocio": mostrar siempre el formulario
-        if (isNewOrgFlow) {
-          setChecking(false)
-          return
-        }
-
-        // Identidades de plataforma van directo a la consola — nunca ven onboarding
-        try {
-          const ctxRes = await fetch(`${API}/api/v1/me/context`, { credentials: "include" })
-          if (ctxRes.ok) {
-            const ctxBody = await ctxRes.json()
-            if (ctxBody.data?.identityType === "platform") {
-              router.replace("/plataforma")
-              return
-            }
-          }
-        } catch {
-          // sin contexto — continuar flujo normal
-        }
-
-        // Fast path: cookie local indica que el onboarding ya fue completado
-        if (document.cookie.includes("cosayb.onboarding=true")) {
-          router.replace("/dashboard")
-          return
-        }
-
-        // Verificar en backend si ya completó onboarding
-        try {
-          const res = await fetch(`${API}/api/v1/organizations/me`, { credentials: "include" })
-          if (res.ok) {
-            const body = await res.json()
-            if (body.data?.onboardingCompleted) {
-              setOnboardingCookie()
-              router.replace("/dashboard")
-              return
-            }
-          }
-        } catch {
-          // API no disponible — mostrar form (usuario sí está autenticado)
-        }
-
-        setChecking(false)
-      } catch {
-        setChecking(false)
+      // Fuente única: /api/v1/me/context (la cookie caché de Better Auth puede mentir).
+      const r = await fetchOrgState(API)
+      if (r.status === "invalid") {
+        router.replace(buildLoginUrl(ONBOARDING_PATH, window.location.search))
+        return
       }
+      // API no disponible → mostrar el formulario (el POST fallará con mensaje claro)
+      if (r.status === "ok") {
+        const decision = decideOnboardingPage(r.state, isNewOrgFlow)
+        if (decision === "platform") {
+          router.replace("/plataforma")
+          return
+        }
+        if (decision === "dashboard") {
+          router.replace(resolveOnboardingFinishPath(returnToParam))
+          return
+        }
+      }
+      setChecking(false)
     }
 
     check()
-  }, [router])
+  }, [router, isNewOrgFlow, returnToParam])
 
   function handleStep1() {
     if (!orgName.trim()) return
@@ -175,7 +144,7 @@ export default function OnboardingPage() {
 
       // 4. Setear cookie y aterrizar en el dashboard del negocio
       setOnboardingCookie()
-      window.location.href = "/dashboard"
+      window.location.href = resolveOnboardingFinishPath(returnToParam)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Ocurrió un error inesperado")
     } finally {
@@ -233,18 +202,13 @@ export default function OnboardingPage() {
               onKeyDown={(e) => e.key === "Enter" && handleStep1()}
             />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+              <label htmlFor="onboarding-city" className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
                 Ciudad principal
               </label>
-              <select
+              <select id="onboarding-city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-all"
-                style={{
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-light)",
-                  color: city ? "var(--text-primary)" : "var(--text-muted)",
-                }}
+                className={`ui-native-select${city ? "" : " is-placeholder"}`}
               >
                 <option value="">Selecciona tu ciudad</option>
                 {CITIES.map((c) => (
