@@ -9,7 +9,7 @@ import { ArrowLeft, Shield, Building2, Mail, Users, UserPlus } from "lucide-reac
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
-import { roleLabel } from "@/lib/plataforma/labels"
+import { membershipLabel, roleDescription, roleLabel } from "@/lib/plataforma/labels"
 import { getUserActivity } from "@/lib/plataforma/clientes"
 import ActivityList from "@/components/plataforma/clientes/ActivityList"
 import SectionTabs from "@/components/plataforma/clientes/SectionTabs"
@@ -115,7 +115,7 @@ function AddOrgMembership({
                   }}
                 >
                   {org.name}
-                  <span className="text-xs console-muted ml-2">{org.membership}</span>
+                  <span className="text-xs console-muted ml-2">Plan {membershipLabel(org.membership)}</span>
                 </button>
               ))}
             </div>
@@ -266,7 +266,7 @@ function OrgRoleCard({
               <p className="text-sm font-semibold" style={{ color: active ? "var(--accent)" : "var(--text-primary)" }}>
                 {roleLabel(role.slug)}
               </p>
-              <p className="text-xs console-muted mt-0.5">{role.description}</p>
+              <p className="text-xs console-muted mt-0.5">{roleDescription(role.slug)}</p>
             </button>
           )
         })}
@@ -496,7 +496,7 @@ export default function UsuarioDetallePage({
                 >
                   {roleLabel(role.slug)}
                 </p>
-                <p className="text-xs console-muted mt-0.5">{role.description}</p>
+                <p className="text-xs console-muted mt-0.5">{roleDescription(role.slug)}</p>
               </button>
             )
           })}
