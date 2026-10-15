@@ -36,6 +36,7 @@ const AUDIT = [
   "platform.banco.ingredient_create", "platform.banco.ingredient_update", "platform.banco.ingredient_delete",
   "platform.banco.recipe_create", "platform.banco.recipe_update", "platform.banco.recipe_delete",
   "platform.billing.payment_view", "platform.billing.subscription_view", "platform.organization.activity_view", "platform.organization.extend_trial", "platform.organization.note_add", "platform.organization.note_delete", "platform.organization.overview_view", "platform.organization.reactivate", "platform.organization.resend_invitation", "platform.organization.suspend", "platform.organization.team_view", "platform.organizations.export", "platform.users.export", "platform.support.ticket_reply", "platform.user.activity_view", "platform.user.revoke_sessions", "platform.user.send_password_reset", "platform.user.sessions_view", "platform.membership.set_roles", "platform.membership.update_feature", "platform.organization.billing_view",
+  "platform.vigilancia.security_view",
   "platform.organization.change_plan", "platform.organization.read", "platform.organization.update",
   "platform.organizationRole.delete", "platform.role.create", "platform.role.set_permissions",
   "platform.support.ticket_update", "platform.user.add_org_membership", "platform.user.read",
@@ -47,7 +48,7 @@ const AUDIT = [
 const AUDIT_RESOURCES = [
   "book_order", "enrollment", "invitations", "members", "organization", "platform_billing", "platform_memberships",
   "platform_organizations", "platform_roles", "platform_support", "platform_users", "publicIngredients",
-  "publicRecipes", "session", "subscription", "support_ticket", "tenant_data", "user",
+  "publicRecipes", "security", "session", "subscription", "support_ticket", "tenant_data", "user",
 ]
 // Permisos reales de la tabla `permissions` (acción:recurso)
 const PERMISSIONS = [
