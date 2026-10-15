@@ -11,8 +11,9 @@ import type { Ingrediente } from "@/types/domain"
 import {
   bancoListIngredients, bancoCreateIngredient,
   bancoUpdateIngredient, bancoDeleteIngredient,
+  bancoSyncPrices, bancoSyncPricesStatus,
 } from "@/lib/api"
-import { Search, Plus, Pencil, Trash2, Carrot, Scale, DollarSign } from "lucide-react"
+import { Search, Plus, Pencil, Trash2, Carrot, Scale, DollarSign, RefreshCw } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
@@ -40,6 +41,40 @@ export default function BancoIngredientesPage() {
   )
 
   function changeSearch(v: string) { setSearch(v); setPage(1) }
+
+  // ── Actualización manual de precios de mercado (Éxito + Makro) ──
+  const [syncMsg, setSyncMsg] = useState<{ text: string; error: boolean } | null>(null)
+  const { data: syncPrices, mutate: mutateSyncPrices } = useSWR(
+    "banco-sync-prices-status",
+    bancoSyncPricesStatus,
+    {
+      // 5s mientras corre la sincronización, 60s en reposo
+      refreshInterval: (latest) => (latest?.data.progress?.phase === "running" ? 5_000 : 60_000),
+      revalidateOnFocus: false,
+    }
+  )
+  const exitoAge = syncPrices?.data.sources.exito?.maxAgeMinutes ?? null
+  const makroAge = syncPrices?.data.sources.makro?.maxAgeMinutes ?? null
+  const syncProgress = syncPrices?.data.progress
+  const isSyncing = syncProgress?.phase === "running"
+  const progressPct =
+    syncProgress && syncProgress.total > 0
+      ? Math.min(100, Math.round((syncProgress.done / syncProgress.total) * 100))
+      : 0
+
+  async function handleSyncPrices() {
+    setSyncMsg(null)
+    try {
+      await bancoSyncPrices()
+      // El progreso vivo (barra) sustituye cualquier mensaje de éxito
+      void mutateSyncPrices()
+    } catch (err) {
+      setSyncMsg({
+        text: err instanceof Error ? err.message : "No se pudo iniciar la sincronización.",
+        error: true,
+      })
+    }
+  }
 
   // ── Form crear/editar ──
   const [formOpen, setFormOpen] = useState(false)
@@ -128,12 +163,61 @@ export default function BancoIngredientesPage() {
           <p className="text-sm console-muted mt-1">
             {data ? `${data.total} ingredientes disponibles para importar` : "Cargando…"}
           </p>
+          {syncPrices && (
+            <div className="mt-1 flex flex-col gap-1" style={{ width: 280, maxWidth: "100%" }}>
+              {isSyncing && syncProgress ? (
+                <>
+                  <p className="text-xs console-muted">
+                    Sincronizando precios: {syncProgress.current ?? "iniciando…"} (
+                    {syncProgress.done}/{syncProgress.total})
+                  </p>
+                  <div
+                    className="h-1 rounded-full overflow-hidden"
+                    style={{ background: "var(--border-light)" }}
+                    role="progressbar"
+                    aria-valuenow={progressPct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="h-1 rounded-full"
+                      style={{
+                        width: `${progressPct}%`,
+                        background: "var(--accent)",
+                        transition: "width 0.4s ease",
+                      }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs console-muted">
+                  Precios de mercado: Éxito {exitoAge === null ? "sin datos" : `hace ${exitoAge} min`} · Makro{" "}
+                  {makroAge === null ? "sin datos" : `hace ${makroAge} min`} ·{" "}
+                  <span style={{ color: syncPrices.data.isFresh ? "#16A34A" : "#B45309" }}>
+                    {syncPrices.data.isFresh ? "frescos" : "desactualizados"}
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
+          {syncMsg && (
+            <p className="text-xs mt-1" style={{ color: syncMsg.error ? "#EF4444" : "var(--text-muted)" }}>
+              {syncMsg.text}
+            </p>
+          )}
         </div>
-        {canCreate && (
-          <Button variant="primary" onClick={openCreate}>
-            <Plus size={15} /> Nuevo ingrediente
-          </Button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {canUpdate && (
+            <Button variant="ghost" onClick={handleSyncPrices} disabled={isSyncing}>
+              <RefreshCw size={15} /> {isSyncing ? "Sincronizando…" : "Actualizar precios"}
+            </Button>
+          )}
+          {canCreate && (
+            <Button variant="primary" onClick={openCreate}>
+              <Plus size={15} /> Nuevo ingrediente
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="relative" style={{ maxWidth: 360 }}>
