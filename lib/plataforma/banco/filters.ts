@@ -26,16 +26,16 @@ export interface FiltroIngredientes {
   orden: OrdenIngredientes
 }
 
-export function origenIngrediente(i: Pick<IngredienteBanco, "organizationId">): "banco" | "negocio" {
-  return i.organizationId ? "negocio" : "banco"
+export function origenIngrediente(i: object): "banco" | "negocio" {
+  return (i as { organizationId?: string | null }).organizationId ? "negocio" : "banco"
 }
 
-export function filtrarIngredientes(
-  items: IngredienteBanco[],
+export function filtrarIngredientes<T extends IngredienteBanco>(
+  items: T[],
   f: FiltroIngredientes,
-  problemas: (i: IngredienteBanco) => ProblemaIngrediente[],
+  problemas: (i: T) => ProblemaIngrediente[],
   ahora = Date.now()
-): IngredienteBanco[] {
+): T[] {
   const q = normalizeForSearch(f.busqueda)
   const out = items.filter((i) => {
     if (q && !normalizeForSearch(i.name).includes(q)) return false
@@ -48,8 +48,8 @@ export function filtrarIngredientes(
     if (f.problema && !problemas(i).includes(f.problema)) return false
     return true
   })
-  const cmpNombre = (a: IngredienteBanco, b: IngredienteBanco) => a.name.localeCompare(b.name, "es")
-  const precio = (i: IngredienteBanco) => {
+  const cmpNombre = (a: T, b: T) => a.name.localeCompare(b.name, "es")
+  const precio = (i: T) => {
     const p = costPerGramOf(i)
     return Number.isFinite(p) ? p : 0
   }
@@ -72,12 +72,12 @@ export interface FiltroRecetas {
   orden: OrdenRecetas
 }
 
-export function filtrarRecetas(
-  items: RecetaBanco[],
+export function filtrarRecetas<T extends RecetaBanco>(
+  items: T[],
   f: FiltroRecetas,
-  problemas: (r: RecetaBanco) => ProblemaReceta[],
+  problemas: (r: T) => ProblemaReceta[],
   costos?: Map<string, CostoReceta>
-): RecetaBanco[] {
+): T[] {
   const q = normalizeForSearch(f.busqueda)
   const out = items.filter((r) => {
     if (f.tipo === "base" && !r.isBase) return false
@@ -86,8 +86,8 @@ export function filtrarRecetas(
     if (f.problema && !problemas(r).includes(f.problema)) return false
     return true
   })
-  const cmpNombre = (a: RecetaBanco, b: RecetaBanco) => a.name.localeCompare(b.name, "es")
-  const costo = (r: RecetaBanco) => costos?.get(r.id)?.costoPorPorcion ?? -1
+  const cmpNombre = (a: T, b: T) => a.name.localeCompare(b.name, "es")
+  const costo = (r: T) => costos?.get(r.id)?.costoPorPorcion ?? -1
   switch (f.orden) {
     case "costo_desc": return out.sort((a, b) => costo(b) - costo(a) || cmpNombre(a, b))
     case "costo_asc": return out.sort((a, b) => costo(a) - costo(b) || cmpNombre(a, b))

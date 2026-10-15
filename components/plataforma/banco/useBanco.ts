@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR, { useSWRConfig } from "swr"
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import type { Ingrediente, Recipe } from "@/types/domain"
 import { bancoGetRecipe, bancoListIngredients, bancoListRecipes } from "@/lib/api"
 import {
@@ -131,9 +131,6 @@ export function useBanco() {
     await Promise.all([ing.mutate(), rec.mutate()])
     void mutateGlobal((k) => Array.isArray(k) && k[0] === KEY_DET)
   }, [ing, rec, mutateGlobal])
-
-  const ref = useRef({ recargarTodo })
-  ref.current = { recargarTodo }
 
   return {
     ingredientes,

@@ -1,423 +1,420 @@
 "use client"
 
-import useSWR from "swr"
-import { useState, useMemo } from "react"
+import { useMemo, useState } from "react"
+import { Plus, Pencil, Trash2, Copy, Upload, Download, Carrot } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
-import Modal from "@/components/ui/Modal"
+import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
-import Input from "@/components/ui/Input"
+import EmptyState from "@/components/ui/EmptyState"
+import ErrorState from "@/components/ui/ErrorState"
 import Pagination from "@/components/app/inventario/Pagination"
+import type { FilterGroup } from "@/components/ui/FilterMenu"
+import { displayName, formatCOP, formatGrams, formatPerGram } from "@/components/app/inventario/format"
 import type { Ingrediente } from "@/types/domain"
-import {
-  bancoListIngredients, bancoCreateIngredient,
-  bancoUpdateIngredient, bancoDeleteIngredient,
-  bancoSyncPrices, bancoSyncPricesStatus,
-} from "@/lib/api"
-import { Search, Plus, Pencil, Trash2, Carrot, Scale, DollarSign, RefreshCw } from "lucide-react"
+import { bancoDeleteIngredient } from "@/lib/api"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
+import { useBanco } from "@/components/plataforma/banco/useBanco"
+import BancoTable, { AccionFila, Aviso, type BancoColumn } from "@/components/plataforma/banco/BancoTable"
+import BancoToolbar from "@/components/plataforma/banco/BancoToolbar"
+import { BarraSeleccion, PanelCalidad, type ChequeoCalidad } from "@/components/plataforma/banco/BancoBarras"
+import IngredienteFormModal, { type FormularioIngrediente } from "@/components/plataforma/banco/IngredienteFormModal"
+import ImportarIngredientesModal from "@/components/plataforma/banco/ImportarIngredientesModal"
+import SincronizarPrecios from "@/components/plataforma/banco/SincronizarPrecios"
+import { descargarCsv, fechaParaArchivo } from "@/components/plataforma/banco/descargar"
+import {
+  filtrarIngredientes, origenIngrediente, paginar, type FiltroIngredientes, type OrdenIngredientes,
+} from "@/lib/plataforma/banco/filters"
+import { PROBLEMA_INGREDIENTE_TEXTO, type ProblemaIngrediente } from "@/lib/plataforma/banco/quality"
+import { construirCsv } from "@/lib/plataforma/banco/csv"
+import { ejecutarEnLote } from "@/lib/plataforma/banco/lote"
+import { haceFecha } from "@/lib/plataforma/banco/tiempo"
 
-const PAGE_SIZE = 24
+const PAGE_SIZE = 25
+
+const ORDENES: { value: OrdenIngredientes; label: string }[] = [
+  { value: "nombre", label: "Nombre (A-Z)" },
+  { value: "precio_desc", label: "Más caros por gramo" },
+  { value: "precio_asc", label: "Más baratos por gramo" },
+  { value: "reciente", label: "Modificados hace poco" },
+]
+
+const UNIDADES: Record<string, string> = { g: "Gramos", ml: "Mililitros", und: "Unidades", porcion: "Porciones" }
+
+const FILTRO_VACIO: FiltroIngredientes = { busqueda: "", orden: "nombre" }
 
 export default function BancoIngredientesPage() {
   const { platformCan } = usePermissions()
-  const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
-
-  const { data, isLoading, error, mutate } = useSWR(
-    ["banco-ingredients", search, page],
-    () => bancoListIngredients(search || undefined, page, PAGE_SIZE),
-    { keepPreviousData: true, revalidateOnFocus: false }
-  )
-
   const canCreate = platformCan("publicIngredients", "create")
   const canUpdate = platformCan("publicIngredients", "update")
   const canDelete = platformCan("publicIngredients", "delete")
-
-  const totalPages = useMemo(
-    () => (data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1),
-    [data]
-  )
-
-  function changeSearch(v: string) { setSearch(v); setPage(1) }
-
-  // ── Actualización manual de precios de mercado (Éxito + Makro) ──
-  const [syncMsg, setSyncMsg] = useState<{ text: string; error: boolean } | null>(null)
-  const { data: syncPrices, mutate: mutateSyncPrices } = useSWR(
-    "banco-sync-prices-status",
-    bancoSyncPricesStatus,
-    {
-      // 5s mientras corre la sincronización, 60s en reposo
-      refreshInterval: (latest) => (latest?.data.progress?.phase === "running" ? 5_000 : 60_000),
-      revalidateOnFocus: false,
-    }
-  )
-  const exitoAge = syncPrices?.data.sources.exito?.maxAgeMinutes ?? null
-  const makroAge = syncPrices?.data.sources.makro?.maxAgeMinutes ?? null
-  const syncProgress = syncPrices?.data.progress
-  const isSyncing = syncProgress?.phase === "running"
-  const progressPct =
-    syncProgress && syncProgress.total > 0
-      ? Math.min(100, Math.round((syncProgress.done / syncProgress.total) * 100))
-      : 0
-
-  async function handleSyncPrices() {
-    setSyncMsg(null)
-    try {
-      await bancoSyncPrices()
-      // El progreso vivo (barra) sustituye cualquier mensaje de éxito
-      void mutateSyncPrices()
-    } catch (err) {
-      setSyncMsg({
-        text: err instanceof Error ? err.message : "No se pudo iniciar la sincronización.",
-        error: true,
-      })
-    }
-  }
-
-  // ── Form crear/editar ──
-  const [formOpen, setFormOpen] = useState(false)
-  const [editing, setEditing] = useState<Ingrediente | null>(null)
-  const [name, setName] = useState("")
-  const [costPerUnit, setCostPerUnit] = useState("")
-  const [weightGrams, setWeightGrams] = useState("")
-  const [saving, setSaving] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-
-  function openCreate() {
-    setEditing(null)
-    setName(""); setCostPerUnit(""); setWeightGrams("")
-    setFormError(null)
-    setFormOpen(true)
-  }
-
-  function openEdit(ing: Ingrediente) {
-    setEditing(ing)
-    setName(ing.name)
-    setCostPerUnit(ing.costPerUnit)
-    setWeightGrams(ing.weightGrams)
-    setFormError(null)
-    setFormOpen(true)
-  }
-
-  async function handleSave() {
-    setFormError(null)
-    const cost = parseFloat(costPerUnit)
-    const weight = parseFloat(weightGrams)
-    if (!name.trim()) return setFormError("El nombre es requerido.")
-    if (isNaN(cost) || cost <= 0) return setFormError("El costo debe ser positivo.")
-    if (isNaN(weight) || weight <= 0) return setFormError("El peso debe ser positivo.")
-
-    setSaving(true)
-    try {
-      if (editing) {
-        await bancoUpdateIngredient(editing.id, { name: name.trim(), costPerUnit: cost, weightGrams: weight })
-      } else {
-        await bancoCreateIngredient({ name: name.trim(), costPerUnit: cost, weightGrams: weight })
-      }
-      setFormOpen(false)
-      await mutate()
-      toast.success(editing ? "Ingrediente actualizado" : "Ingrediente creado en el banco", { description: name.trim() })
-    } catch (err) {
-      setFormError(friendlyError(err, "No se pudo guardar el ingrediente. Revisa tu conexión e inténtalo de nuevo."))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // ── Eliminar ──
   const confirm = useConfirm()
 
-  async function handleDelete(target: Ingrediente) {
-    if (!data) return
+  const banco = useBanco()
+  const { ingredientes, problemasDeIngrediente, usos } = banco
+
+  const [filtro, setFiltro] = useState<FiltroIngredientes>(FILTRO_VACIO)
+  const [claveBusqueda, setClaveBusqueda] = useState(0)
+  const [pagina, setPagina] = useState(1)
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set())
+  const [eliminando, setEliminando] = useState(false)
+  const [formulario, setFormulario] = useState<FormularioIngrediente | null>(null)
+  const [importando, setImportando] = useState(false)
+
+  function cambiar(parcial: Partial<FiltroIngredientes>) {
+    setFiltro((f) => ({ ...f, ...parcial }))
+    setPagina(1)
+  }
+  function limpiarFiltros() {
+    setFiltro(FILTRO_VACIO)
+    setClaveBusqueda((k) => k + 1)
+    setPagina(1)
+  }
+
+  // ── Datos derivados ──
+  const filtrados = useMemo(
+    () => (ingredientes ? filtrarIngredientes(ingredientes, filtro, problemasDeIngrediente) : []),
+    [ingredientes, filtro, problemasDeIngrediente]
+  )
+  const vista = paginar(filtrados, pagina, PAGE_SIZE)
+
+  const cuentas = useMemo(() => {
+    const c: Record<ProblemaIngrediente, number> = { duplicado: 0, sin_precio: 0, precio_alto: 0, precio_bajo: 0, sin_uso: 0 }
+    for (const i of ingredientes ?? []) for (const p of problemasDeIngrediente(i)) c[p]++
+    return c
+  }, [ingredientes, problemasDeIngrediente])
+
+  const unidades = useMemo(() => [...new Set((ingredientes ?? []).map((i) => i.unit ?? "g"))], [ingredientes])
+  const hayNegocio = (ingredientes ?? []).some((i) => origenIngrediente(i) === "negocio")
+  const hayBanco = (ingredientes ?? []).some((i) => origenIngrediente(i) === "banco")
+
+  const chequeos: ChequeoCalidad[] = (
+    [
+      ["duplicado", "Ingredientes repetidos", "Mismo nombre escrito igual (sin importar mayúsculas ni tildes).", "alta"],
+      ["sin_precio", "Sin precio", "Costo o peso en cero: rompe el costo de las recetas.", "alta"],
+      ["precio_alto", "Precio muy alto", "Más de $500.000 por kilo. Suele ser un cero de más.", "alta"],
+      ["precio_bajo", "Precio muy bajo", "Menos de $100 por kilo. Revisa el costo o el peso.", "media"],
+      ["sin_uso", "No se usan en ninguna receta", "Sobran o falta crear la receta que los usa.", "media"],
+    ] as const
+  ).map(([id, texto, ayuda, gravedad]) => ({
+    id,
+    texto,
+    ayuda,
+    gravedad,
+    cuenta: id === "sin_uso" && !usos ? null : cuentas[id],
+    activo: filtro.problema === id,
+    onClick: () => cambiar({ problema: filtro.problema === id ? undefined : id }),
+  }))
+
+  const grupos: FilterGroup[] = [
+    {
+      id: "problema",
+      label: "Revisión",
+      options: (Object.keys(PROBLEMA_INGREDIENTE_TEXTO) as ProblemaIngrediente[])
+        .filter((p) => p !== "sin_uso" || usos)
+        .map((p) => ({ value: p, label: PROBLEMA_INGREDIENTE_TEXTO[p], count: cuentas[p] })),
+      value: filtro.problema,
+      onChange: (v) => cambiar({ problema: v as ProblemaIngrediente | undefined }),
+    },
+    {
+      id: "actualizacion",
+      label: "Última modificación",
+      options: [
+        { value: "reciente", label: "Últimos 30 días" },
+        { value: "viejo", label: "Hace más de 30 días" },
+      ],
+      value: filtro.actualizacion,
+      onChange: (v) => cambiar({ actualizacion: v as FiltroIngredientes["actualizacion"] }),
+    },
+  ]
+  if (unidades.length > 1) {
+    grupos.push({
+      id: "unidad",
+      label: "Unidad",
+      options: unidades.map((u) => ({ value: u, label: UNIDADES[u] ?? "Otra unidad" })),
+      value: filtro.unidad,
+      onChange: (v) => cambiar({ unidad: v }),
+    })
+  }
+  if (hayNegocio && hayBanco) {
+    grupos.push({
+      id: "origen",
+      label: "Origen",
+      options: [
+        { value: "banco", label: "Creados por la plataforma" },
+        { value: "negocio", label: "Compartidos por un negocio" },
+      ],
+      value: filtro.origen,
+      onChange: (v) => cambiar({ origen: v as FiltroIngredientes["origen"] }),
+    })
+  }
+
+  // ── Selección ──
+  function alternar(id: string) {
+    setSeleccion((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  }
+  function alternarPagina(marcar: boolean) {
+    setSeleccion((s) => {
+      const n = new Set(s)
+      vista.items.forEach((i) => (marcar ? n.add(i.id) : n.delete(i.id)))
+      return n
+    })
+  }
+
+  // ── Exportar ──
+  function exportar(lista: Ingrediente[]) {
+    descargarCsv(
+      `ingredientes-banco-${fechaParaArchivo()}.csv`,
+      construirCsv(
+        ["nombre", "costo", "peso_gramos"],
+        lista.map((i) => [i.name, parseFloat(i.costPerUnit), parseFloat(i.weightGrams)])
+      )
+    )
+    toast.success(`${lista.length} ${lista.length === 1 ? "ingrediente exportado" : "ingredientes exportados"}`)
+  }
+
+  // ── Eliminar (uno o varios) ──
+  async function eliminar(objetivos: Ingrediente[]) {
+    if (objetivos.length === 0) return
+    const enRecetas = usos ? objetivos.filter((o) => (usos.ingredientes.get(o.id) ?? 0) > 0) : []
+    const totalUsos = usos ? objetivos.reduce((s, o) => s + (usos.ingredientes.get(o.id) ?? 0), 0) : 0
+    const aviso = !usos
+      ? "Aún no se terminó de revisar qué recetas los usan; si alguna los usa, quedará sin ese ingrediente."
+      : enRecetas.length > 0
+      ? `${enRecetas.length === 1 ? "Se usa" : `${enRecetas.length} se usan`} en ${totalUsos} ${totalUsos === 1 ? "línea de receta" : "líneas de recetas"} del banco: esas recetas quedarán sin ese componente y su costo bajará.`
+      : "Ninguna receta del banco los usa."
     const ok = await confirm({
-      title: "Eliminar ingrediente del banco",
-      itemName: target.name,
-      description: "Las recetas del banco que lo usan quedarán sin este componente. La acción queda auditada.",
-      confirmLabel: "Eliminar",
+      title: objetivos.length === 1 ? "Eliminar ingrediente del banco" : `Eliminar ${objetivos.length} ingredientes del banco`,
+      itemName: objetivos.length === 1 ? displayName(objetivos[0].name) : `${objetivos.length} ingredientes seleccionados`,
+      description: `${aviso} Esta acción no se puede deshacer y queda registrada en la auditoría. Los negocios que ya importaron recetas conservan sus propias copias.`,
+      confirmLabel: objetivos.length === 1 ? "Eliminar" : `Eliminar ${objetivos.length}`,
       variant: "danger",
     })
     if (!ok) return
-    const id = target.id
-    const optimistic = { ...data, data: data.data.filter((i) => i.id !== id), total: data.total - 1 }
-    try {
-      await mutate(
-        async () => { await bancoDeleteIngredient(id); return optimistic },
-        { optimisticData: optimistic, rollbackOnError: true, revalidate: true }
-      )
-      toast.success("Ingrediente eliminado del banco", { description: target.name })
-    } catch (e) {
-      // rollback automático: la card reaparece
-      toast.error("No se pudo eliminar el ingrediente", {
-        description: friendlyError(e, "Revisa tu conexión e inténtalo de nuevo."),
+    setEliminando(true)
+    const r = await ejecutarEnLote(objetivos, (o) => bancoDeleteIngredient(o.id), undefined, (e) => friendlyError(e, "Error al eliminar."))
+    setEliminando(false)
+    await banco.recargarTodo()
+    setSeleccion((s) => {
+      const n = new Set(s)
+      r.hechos.forEach((o) => n.delete(o.id))
+      return n
+    })
+    if (r.hechos.length > 0) {
+      toast.success(r.hechos.length === 1 ? "Ingrediente eliminado del banco" : `${r.hechos.length} ingredientes eliminados del banco`)
+    }
+    if (r.fallidos.length > 0) {
+      toast.error(`No se pudo eliminar ${r.fallidos.length} ${r.fallidos.length === 1 ? "ingrediente" : "ingredientes"}`, {
+        description: r.fallidos[0].motivo,
       })
     }
   }
 
+  const seleccionados = (ingredientes ?? []).filter((i) => seleccion.has(i.id))
+
+  const columnas: BancoColumn<Ingrediente>[] = [
+    {
+      label: "Ingrediente",
+      width: "minmax(0,1fr)",
+      render: (i) => (
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate font-semibold" style={{ color: "var(--text-primary)" }} title={i.name}>{displayName(i.name)}</span>
+          <Avisos problemas={problemasDeIngrediente(i)} />
+        </span>
+      ),
+    },
+    { label: "Costo por gramo", width: "9rem", align: "right", strong: true, render: (i) => formatPerGram(i.costPerGram) },
+    { label: "Costo de compra", width: "8rem", align: "right", render: (i) => formatCOP(i.costPerUnit) },
+    { label: "Peso de compra", width: "7rem", align: "right", render: (i) => formatGrams(i.weightGrams) },
+    {
+      label: "En recetas",
+      width: "6rem",
+      align: "right",
+      render: (i) => (usos ? usos.ingredientes.get(i.id) ?? 0 : "…"),
+    },
+    { label: "Modificado", width: "8rem", render: (i) => haceFecha(i.updatedAt) ?? "—" },
+  ]
+
+  function acciones(i: Ingrediente) {
+    return (
+      <>
+        {canCreate && (
+          <AccionFila
+            label={`Duplicar ${displayName(i.name)}`}
+            onClick={() => setFormulario({ editando: null, plantilla: { name: `${i.name} (copia)`, costPerUnit: i.costPerUnit, weightGrams: i.weightGrams } })}
+          >
+            <Copy size={15} />
+          </AccionFila>
+        )}
+        {canUpdate && (
+          <AccionFila label={`Editar ${displayName(i.name)}`} onClick={() => setFormulario({ editando: i })}>
+            <Pencil size={15} />
+          </AccionFila>
+        )}
+        {canDelete && (
+          <AccionFila label={`Eliminar ${displayName(i.name)}`} peligro onClick={() => void eliminar([i])}>
+            <Trash2 size={15} />
+          </AccionFila>
+        )}
+      </>
+    )
+  }
+
+  const hayFiltros = !!filtro.busqueda || !!filtro.problema || !!filtro.unidad || !!filtro.origen || !!filtro.actualizacion
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold console-title">Banco público · Ingredientes</h1>
-          <p className="text-sm console-muted mt-1">
-            {data ? `${data.total} ingredientes disponibles para importar` : "Cargando…"}
-          </p>
-          {syncPrices && (
-            <div className="mt-1 flex flex-col gap-1" style={{ width: 280, maxWidth: "100%" }}>
-              {isSyncing && syncProgress ? (
-                <>
-                  <p className="text-xs console-muted">
-                    Sincronizando precios: {syncProgress.current ?? "iniciando…"} (
-                    {syncProgress.done}/{syncProgress.total})
-                  </p>
-                  <div
-                    className="h-1 rounded-full overflow-hidden"
-                    style={{ background: "var(--border-light)" }}
-                    role="progressbar"
-                    aria-valuenow={progressPct}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                  >
-                    <div
-                      className="h-1 rounded-full"
-                      style={{
-                        width: `${progressPct}%`,
-                        background: "var(--accent)",
-                        transition: "width 0.4s ease",
-                      }}
-                    />
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Ingredientes del banco"
+        subtitle={
+          ingredientes
+            ? `${ingredientes.length.toLocaleString("es-CO")} ingredientes que los negocios pueden usar en sus recetas.`
+            : "Cargando el banco…"
+        }
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => exportar(filtrados)} disabled={filtrados.length === 0}>
+              <Download size={15} aria-hidden="true" /> <span className="hidden sm:inline">Exportar</span>
+            </Button>
+            {canCreate && (
+              <Button variant="ghost" onClick={() => setImportando(true)} disabled={!ingredientes}>
+                <Upload size={15} aria-hidden="true" /> <span className="hidden sm:inline">Importar</span>
+              </Button>
+            )}
+            {canCreate && (
+              <Button variant="primary" onClick={() => setFormulario({ editando: null })}>
+                <Plus size={16} aria-hidden="true" /> <span className="hidden sm:inline">Nuevo ingrediente</span>
+                <span className="sm:hidden">Nuevo</span>
+              </Button>
+            )}
+          </div>
+        }
+      />
+
+      <SincronizarPrecios ingredientes={ingredientes} puedeActualizar={canUpdate} recargar={banco.recargarIngredientes} />
+
+      {ingredientes && <PanelCalidad chequeos={chequeos} revisando={banco.revisando} />}
+
+      {banco.error ? (
+        <ErrorState
+          title="No pudimos cargar el banco"
+          description="Revisa tu conexión e inténtalo de nuevo."
+          onRetry={() => void banco.recargarTodo()}
+        />
+      ) : (
+        <>
+          <BancoToolbar
+            busquedaInicial={filtro.busqueda}
+            claveBusqueda={claveBusqueda}
+            placeholder="Buscar ingrediente"
+            etiquetaBusqueda="Buscar ingrediente por nombre"
+            onBusqueda={(v) => cambiar({ busqueda: v })}
+            grupos={grupos}
+            orden={filtro.orden}
+            opcionesOrden={ORDENES}
+            onOrden={(o) => cambiar({ orden: o })}
+          />
+
+          {banco.cargando ? (
+            <div className="animate-pulse overflow-hidden" aria-busy="true" aria-label="Cargando ingredientes" style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)" }}>
+              {Array.from({ length: 8 }).map((_, k) => (
+                <div key={k} className="px-5 py-4"><div className="h-3.5 rounded-md" style={{ width: `${40 + ((k * 17) % 30)}%`, background: "var(--bg-secondary)" }} /></div>
+              ))}
+            </div>
+          ) : filtrados.length === 0 ? (
+            <EmptyState
+              icon={<Carrot size={36} />}
+              title={hayFiltros ? "Ningún ingrediente coincide" : "El banco todavía no tiene ingredientes"}
+              description={hayFiltros ? "Prueba con otra búsqueda o quita algún filtro." : "Crea el primero o importa una lista desde un archivo CSV."}
+              action={hayFiltros ? <Button variant="ghost" size="sm" onClick={limpiarFiltros}>Ver todos los ingredientes</Button> : undefined}
+            />
+          ) : (
+            <div className="flex flex-col gap-3">
+              <BancoTable
+                rows={vista.items}
+                rowKey={(i) => i.id}
+                columns={columnas}
+                seleccion={canDelete ? seleccion : undefined}
+                onToggle={canDelete ? alternar : undefined}
+                onToggleTodas={canDelete ? alternarPagina : undefined}
+                actions={acciones}
+                actionsWidth="7.5rem"
+                ariaLabel="Ingredientes del banco"
+                rowLabel={(i) => displayName(i.name)}
+                mobile={(i) => (
+                  <div className="flex flex-col gap-0.5">
+                    <span className="flex flex-wrap items-center gap-1.5 text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {displayName(i.name)}
+                      <Avisos problemas={problemasDeIngrediente(i)} />
+                    </span>
+                    <span className="text-[13px] tabular-nums" style={{ color: "var(--text-muted)" }}>
+                      {formatCOP(i.costPerUnit)} por {formatGrams(i.weightGrams)} · {formatPerGram(i.costPerGram)}/g
+                    </span>
                   </div>
-                </>
-              ) : (
-                <p className="text-xs console-muted">
-                  Precios de mercado: Éxito {exitoAge === null ? "sin datos" : `hace ${exitoAge} min`} · Makro{" "}
-                  {makroAge === null ? "sin datos" : `hace ${makroAge} min`} ·{" "}
-                  <span style={{ color: syncPrices.data.isFresh ? "#16A34A" : "#B45309" }}>
-                    {syncPrices.data.isFresh ? "frescos" : "desactualizados"}
-                  </span>
+                )}
+              />
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-[13px] tabular-nums" style={{ color: "var(--text-muted)" }} aria-live="polite">
+                  {filtrados.length <= PAGE_SIZE
+                    ? `${filtrados.length} ${filtrados.length === 1 ? "ingrediente" : "ingredientes"}`
+                    : `${((vista.pagina - 1) * PAGE_SIZE + 1).toLocaleString("es-CO")}–${((vista.pagina - 1) * PAGE_SIZE + vista.items.length).toLocaleString("es-CO")} de ${filtrados.length.toLocaleString("es-CO")}`}
                 </p>
-              )}
+                <Pagination currentPage={vista.pagina} totalPages={vista.paginas} onPageChange={(p) => { setPagina(p); document.querySelector("main")?.scrollTo({ top: 0, behavior: "smooth" }) }} />
+              </div>
             </div>
           )}
-          {syncMsg && (
-            <p className="text-xs mt-1" style={{ color: syncMsg.error ? "#EF4444" : "var(--text-muted)" }}>
-              {syncMsg.text}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {canUpdate && (
-            <Button variant="ghost" onClick={handleSyncPrices} disabled={isSyncing}>
-              <RefreshCw size={15} /> {isSyncing ? "Sincronizando…" : "Actualizar precios"}
-            </Button>
-          )}
-          {canCreate && (
-            <Button variant="primary" onClick={openCreate}>
-              <Plus size={15} /> Nuevo ingrediente
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="relative" style={{ maxWidth: 360 }}>
-        <Search size={14} className="console-muted" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-        <input
-          type="search"
-          placeholder="Buscar ingrediente…" aria-label="Buscar ingrediente"
-          value={search}
-          onChange={(e) => changeSearch(e.target.value)}
-          className="console-input w-full text-sm"
-          style={{ height: 40, paddingLeft: 34, paddingRight: 12 }}
-        />
-      </div>
-
-      {/* Grid de cards */}
-      {isLoading && !data && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 16 }}>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <div key={i} className="animate-pulse console-card" style={{ height: 120 }} />
-          ))}
-        </div>
-      )}
-
-      {error && !data && (
-        <div className="text-center py-16">
-          <p className="text-sm console-muted mb-3">No se pudieron cargar los ingredientes del banco.</p>
-          <Button variant="ghost" onClick={() => void mutate()}>Reintentar</Button>
-        </div>
-      )}
-
-      {data && data.data.length === 0 && (
-        <div className="text-center py-16">
-          <Carrot size={36} className="console-muted mx-auto mb-3" />
-          <p className="text-sm console-muted">
-            {search ? "Sin resultados para esta búsqueda." : "El banco no tiene ingredientes todavía."}
-          </p>
-        </div>
-      )}
-
-      {data && data.data.length > 0 && (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 16, opacity: isLoading ? 0.6 : 1, transition: "opacity 0.15s" }}>
-            {data.data.map((ing) => (
-              <BancoIngredientCard
-                key={ing.id}
-                ingredient={ing}
-                onEdit={canUpdate ? () => openEdit(ing) : undefined}
-                onDelete={canDelete ? () => void handleDelete(ing) : undefined}
-              />
-            ))}
-          </div>
-
-          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
 
-      {/* Modal crear/editar */}
-      <Modal
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={editing ? "Editar ingrediente del banco" : "Nuevo ingrediente del banco"}
-        footer={
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Button variant="ghost" onClick={() => setFormOpen(false)}>Cancelar</Button>
-            <Button variant="primary" loading={saving} onClick={handleSave}>
-              {editing ? "Guardar cambios" : "Crear ingrediente"}
-            </Button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <Input
-            label="Nombre"
-            placeholder="Ej. HARINA DE TRIGO"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Costo de compra (COP)"
-              type="number"
-              min="0"
-              placeholder="Ej. 5000"
-              value={costPerUnit}
-              onChange={(e) => setCostPerUnit(e.target.value)}
-            />
-            <Input
-              label="Peso (gramos)"
-              type="number"
-              min="0"
-              placeholder="Ej. 1000"
-              value={weightGrams}
-              onChange={(e) => setWeightGrams(e.target.value)}
-            />
-          </div>
-          {costPerUnit && weightGrams && parseFloat(weightGrams) > 0 && (
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Costo por gramo: <strong>${(parseFloat(costPerUnit) / parseFloat(weightGrams)).toFixed(4)}/g</strong>
-            </p>
-          )}
-          {formError && <p className="text-xs" style={{ color: "#EF4444" }}>{formError}</p>}
-        </div>
-      </Modal>
+      <BarraSeleccion
+        cantidad={seleccionados.length}
+        singular="ingrediente"
+        plural="ingredientes"
+        onLimpiar={() => setSeleccion(new Set())}
+        onExportar={() => exportar(seleccionados)}
+        onEliminar={canDelete ? () => void eliminar(seleccionados) : undefined}
+        eliminando={eliminando}
+      />
 
+      <IngredienteFormModal
+        abierto={!!formulario}
+        formulario={formulario ?? { editando: null }}
+        existentes={ingredientes ?? []}
+        onClose={() => setFormulario(null)}
+        onGuardado={({ nombre, creado }) => {
+          setFormulario(null)
+          void banco.recargarTodo()
+          toast.success(creado ? "Ingrediente creado en el banco" : "Ingrediente actualizado", { description: nombre })
+        }}
+      />
+
+      <ImportarIngredientesModal
+        abierto={importando}
+        existentes={ingredientes ?? []}
+        onClose={() => setImportando(false)}
+        onTerminado={({ creados, actualizados, fallidos }) => {
+          void banco.recargarTodo()
+          if (creados + actualizados > 0) toast.success("Importación terminada", { description: `${creados} creados, ${actualizados} actualizados${fallidos ? `, ${fallidos} con error` : ""}.` })
+        }}
+      />
     </div>
   )
 }
 
-// ─── Card de ingrediente del banco ───────────────────────────────────────────
-
-function BancoIngredientCard({
-  ingredient,
-  onEdit,
-  onDelete,
-}: {
-  ingredient: Ingrediente
-  onEdit?: () => void
-  onDelete?: () => void
-}) {
-  const costPerUnit = parseFloat(ingredient.costPerUnit)
-  const weightGrams = parseFloat(ingredient.weightGrams)
-  const costPerGram = parseFloat(ingredient.costPerGram)
-
+function Avisos({ problemas }: { problemas: ProblemaIngrediente[] }) {
+  const visibles = problemas.filter((p) => p !== "sin_uso")
+  if (visibles.length === 0) return null
   return (
-    <article
-      className="flex flex-col gap-3 rounded-2xl p-4 transition-all"
-      style={{
-        background: "var(--bg-surface)",
-        border: "1px solid var(--border-light)",
-        height: 168, // tamaño FIJO: todas las cards iguales
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 16px rgba(18,33,58,0.10)"
-        e.currentTarget.style.borderColor = "var(--border-medium)"
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = ""
-        e.currentTarget.style.borderColor = "var(--border-light)"
-      }}
-    >
-      {/* Header: icono + nombre + acciones SIEMPRE visibles */}
-      <div className="flex items-center gap-2.5">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: "#F0FDF4" }}
-        >
-          <Carrot size={15} style={{ color: "#16A34A" }} />
-        </div>
-        <h3
-          className="flex-1 text-sm font-semibold leading-snug min-w-0 truncate"
-          style={{ color: "var(--text-primary)" }}
-          title={ingredient.name}
-        >
-          {ingredient.name}
-        </h3>
-
-        <div className="flex gap-1 shrink-0">
-          {onEdit && (
-            <button
-              onClick={onEdit}
-              title="Editar ingrediente"
-              className="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
-              style={{ color: "var(--accent)", background: "var(--accent-light)", border: "none", cursor: "pointer" }}
-            >
-              <Pencil size={12} />
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={onDelete}
-              title="Eliminar ingrediente"
-              className="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
-              style={{ color: "#B42020", background: "#FEF2F2", border: "none", cursor: "pointer" }}
-            >
-              <Trash2 size={12} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Datos de compra */}
-      <div className="flex items-center gap-4">
-        <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
-          <DollarSign size={11} /> ${costPerUnit.toLocaleString("es-CO")}
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
-          <Scale size={11} /> {weightGrams.toLocaleString("es-CO")} g
-        </span>
-      </div>
-
-      {/* Costo por gramo — anclado abajo */}
-      <div
-        className="flex items-center justify-between rounded-xl px-3 py-2 mt-auto"
-        style={{ background: "var(--accent-light)" }}
-      >
-        <span className="text-xs" style={{ color: "var(--accent-text)" }}>Costo por gramo</span>
-        <span className="text-xs font-bold font-mono" style={{ color: "var(--accent-text)" }}>
-          ${costPerGram.toFixed(4)}/g
-        </span>
-      </div>
-    </article>
+    <>
+      {visibles.map((p) => (
+        <Aviso key={p} tono={p === "precio_bajo" ? "muted" : "warning"}>{PROBLEMA_INGREDIENTE_TEXTO[p]}</Aviso>
+      ))}
+    </>
   )
 }
