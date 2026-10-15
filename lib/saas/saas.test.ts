@@ -4,7 +4,7 @@ import {
 } from "./billing"
 import {
   cancelSubscription, changePlan, createInitialState, markAllNotificationsRead, markNotificationRead,
-  resumeSubscription, retryPayment, setPaymentMethod, simulatePaymentFailure, submitTicket,
+  resumeSubscription, retryPayment, setPaymentMethod, simulatePaymentFailure, submitTicket, syncFromReal,
 } from "./mockEngine"
 import { SaasError } from "./types"
 import type { PaymentMethodInput } from "./types"
@@ -139,6 +139,40 @@ describe("mockEngine · ciclo de suscripción", () => {
     expect(billingNotice(s.billing, NOW)).toBeNull()
     const late = billingNotice(s.billing, addDays(NOW, 7))
     expect(late?.message).toMatch(/termina en 2 días/)
+  })
+})
+
+describe("mockEngine · sincronización con la suscripción real", () => {
+  const real = {
+    isTrialing: false,
+    trialExpired: false,
+    trialEndsAt: null,
+    subscription: { operationNo: "SUB-1", plan: "pro", amount: 30000, status: "ACTIVE", method: "pse", createdAt: "2026-10-01T10:00:00Z" },
+  }
+
+  it("incorpora la suscripción activa una sola vez", () => {
+    let s = syncFromReal(createInitialState(NOW), real, NOW)
+    expect(s.billing).toMatchObject({ plan: "pro", status: "active", amount: 30000 })
+    expect(s.billing.paymentMethod?.brand).toBe("PSE")
+    expect(s.invoices).toHaveLength(1)
+    expect(s.invoices[0].description).toMatch(/SUB-1/)
+    expect(daysUntil(s.billing.currentPeriodEnd, NOW)).toBe(16)
+    s = syncFromReal(s, real, NOW)
+    expect(s.invoices).toHaveLength(1)
+  })
+
+  it("avanza el periodo si la compra es más vieja que 30 días", () => {
+    const old = { ...real, subscription: { ...real.subscription, createdAt: "2026-08-01T10:00:00Z" } }
+    const s = syncFromReal(createInitialState(NOW), old, NOW)
+    expect(daysUntil(s.billing.currentPeriodEnd, NOW)).toBeGreaterThan(0)
+    expect(daysUntil(s.billing.currentPeriodEnd, NOW)).toBeLessThanOrEqual(30)
+  })
+
+  it("refleja la prueba real cuando no hay plan de pago", () => {
+    const trial = { isTrialing: true, trialExpired: false, trialEndsAt: "2026-10-20T00:00:00Z", subscription: null }
+    expect(syncFromReal(createInitialState(NOW), trial, NOW).billing.trialEndsAt).toBe("2026-10-20T00:00:00Z")
+    const expired = { isTrialing: false, trialExpired: true, trialEndsAt: null, subscription: null }
+    expect(syncFromReal(createInitialState(NOW), expired, NOW).billing.status).toBe("free")
   })
 })
 

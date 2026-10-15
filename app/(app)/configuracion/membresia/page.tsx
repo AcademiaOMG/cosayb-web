@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import useSWR from "swr"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
@@ -117,7 +118,10 @@ export default function MembresiaPage() {
             </div>
           </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <Link href="/configuracion/facturacion" className="text-sm font-medium underline" style={{ color: "var(--accent)" }}>
+              Ver facturación y recibos
+            </Link>
             <Button variant="primary" onClick={() => openUpgradeModal()} className="flex items-center gap-2">
               <ArrowUpRight size={14} />
               {displayPlan === "free" ? "Mejorar plan" : "Cambiar plan"}

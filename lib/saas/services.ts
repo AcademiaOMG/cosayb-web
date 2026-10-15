@@ -9,6 +9,7 @@ import * as platform from "./mockPlatform"
 import { loadMock, loadPlatformMock, mutateMock, mutatePlatformMock, resetMock } from "./mockStore"
 import { ENDPOINTS, json, put, qs, saasData } from "./real"
 import { buildAccountExport } from "./accountExport"
+import { billingQueries } from "@/lib/commerce/services"
 import type {
   AccountExport, AppNotification, BillingOverview, Invoice, OrgSupportAction, PaymentMethodInput, PaymentStatus,
   PlanChangePreview, PlanId, PlatformPayment, PlatformSaasMetrics, PlatformSubscription, PlatformTicket,
@@ -72,7 +73,12 @@ async function mock<T>(fn: () => T): Promise<T> {
 
 const mockServices: SaasServices = {
   billing: {
-    overview: () => mock(() => loadMock().billing),
+    overview: async () => {
+      // Incorpora la suscripción real del checkout (si el API responde); si no, sigue con lo local
+      const real = await billingQueries.mySubscription().catch(() => null)
+      if (real) mutateMock((s, now) => engine.syncFromReal(s, real, now))
+      return mock(() => loadMock().billing)
+    },
     preview: (plan) => mock(() => engine.preview(loadMock(), plan, new Date())),
     changePlan: (plan) => mock(() => mutateMock((s, now) => engine.changePlan(s, plan, now)).billing),
     cancel: () => mock(() => mutateMock((s, now) => engine.cancelSubscription(s, now)).billing),

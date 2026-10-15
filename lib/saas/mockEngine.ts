@@ -13,6 +13,8 @@ import type {
 import { SaasError } from "./types"
 
 export interface MockState {
+  /** operationNo de la suscripción real ya incorporada (ver syncFromReal). */
+  adopted: string | null
   billing: BillingOverview
   invoices: Invoice[]
   notifications: AppNotification[]
@@ -25,6 +27,7 @@ const iso = (d: Date) => d.toISOString()
 export function createInitialState(now: Date = new Date()): MockState {
   const trialEnds = addDays(now, TRIAL_DAYS - 5)
   return {
+    adopted: null,
     billing: {
       plan: "free",
       status: "trialing",
@@ -232,6 +235,76 @@ export function retryPayment(state: MockState, now: Date): MockState {
     },
   }
   return pushNotification(next, "billing", "Pago recibido", "Regularizamos tu suscripción. ¡Gracias!", "/configuracion/facturacion", now)
+}
+
+/** Lo mínimo que se necesita de GET /billing/me/subscription (lib/commerce/services). */
+export interface RealSubscriptionSnapshot {
+  isTrialing: boolean
+  trialExpired: boolean
+  trialEndsAt: string | null
+  subscription: {
+    operationNo: string
+    plan: string
+    amount: number
+    status: string
+    method: string
+    createdAt: string
+  } | null
+}
+
+const METHOD_BRANDS: Record<string, string> = { tarjeta: "Tarjeta", pse: "PSE", nequi: "Nequi" }
+
+/**
+ * Incorpora al estado mock la suscripción REAL creada por el checkout existente
+ * (que habla con el API), para que /planes → checkout → Facturación sea coherente.
+ * Idempotente: solo actúa una vez por operación.
+ */
+export function syncFromReal(state: MockState, real: RealSubscriptionSnapshot, now: Date): MockState {
+  const sub = real.subscription
+  if (sub && sub.status === "ACTIVE" && (sub.plan === "pro" || sub.plan === "academia") && state.adopted !== sub.operationNo) {
+    const plan = sub.plan as PlanId
+    // el periodo vigente: avanza de a PERIOD_DAYS desde la compra hasta cubrir «ahora»
+    let start = new Date(sub.createdAt)
+    while (addDays(start, PERIOD_DAYS) <= now) start = addDays(start, PERIOD_DAYS)
+    const end = addDays(start, PERIOD_DAYS)
+    const type = (["tarjeta", "pse", "nequi"].includes(sub.method) ? sub.method : "tarjeta") as PaymentMethodInput["type"]
+    const method: PaymentMethodInfo = { type, brand: METHOD_BRANDS[type] ?? "Tarjeta", last4: null, expMonth: null, expYear: null }
+    let next: MockState = {
+      ...state,
+      adopted: sub.operationNo,
+      billing: {
+        ...state.billing,
+        plan,
+        status: "active",
+        amount: sub.amount,
+        trialEndsAt: null,
+        currentPeriodStart: iso(start),
+        currentPeriodEnd: iso(end),
+        cancelAtPeriodEnd: false,
+        scheduledPlan: null,
+        paymentMethod: state.billing.paymentMethod ?? method,
+        pastDue: null,
+      },
+    }
+    next = addInvoice(next, {
+      description: `Plan ${planLabel(plan)} — mensual (operación ${sub.operationNo})`,
+      amount: sub.amount,
+      status: "paid",
+      periodStart: start,
+      periodEnd: end,
+    }, new Date(sub.createdAt)).state
+    return pushNotification(next, "billing", `Plan ${planLabel(plan)} activo`, "Tu pago fue confirmado.", "/configuracion/facturacion", now)
+  }
+  // Sin suscripción de pago: refleja la prueba real mientras el estado local no tenga plan de pago
+  if (state.billing.plan === "free" && !state.adopted) {
+    if (real.isTrialing && real.trialEndsAt && state.billing.trialEndsAt !== real.trialEndsAt) {
+      return { ...state, billing: { ...state.billing, status: "trialing", trialEndsAt: real.trialEndsAt } }
+    }
+    if (!real.isTrialing && real.trialExpired && state.billing.status === "trialing") {
+      return { ...state, billing: { ...state.billing, status: "free", trialEndsAt: null } }
+    }
+  }
+  return state
 }
 
 export function markNotificationRead(state: MockState, id: string, now: Date): MockState {

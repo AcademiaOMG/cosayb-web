@@ -17,7 +17,7 @@ Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho e
 |---|---|---|
 | A1 | Login con correo y contraseña (además de Google) | done |
 | A2 | Registro con nombre, correo, contraseña, aceptación de términos | done |
-| A3 | Verificación de correo (pantalla + reenvío + aviso en la app) | partial |
+| A3 | Verificación de correo (pantalla + reenvío + aviso en la app) | done |
 | A4 | Olvidé mi contraseña / restablecer contraseña | done |
 | A5 | Cambiar contraseña y cambiar correo (Mi cuenta > Seguridad) | done |
 | A6 | Sesiones activas (listar, cerrar una, cerrar otras) | done |
@@ -30,12 +30,12 @@ Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho e
 | ID | Brecha | Estado |
 |---|---|---|
 | B1 | Capa `lib/saas` (tipos, servicios mock/real, tests) | done |
-| B2 | Facturación en Configuración: plan actual, próximo cobro, estado | todo |
-| B3 | Upgrade/downgrade con resumen de prorrateo | todo |
-| B4 | Cancelar suscripción (efectiva al final del periodo) y reactivar | todo |
-| B5 | Método de pago simulado (ver, cambiar tarjeta) | todo |
-| B6 | Historial de facturas y recibo imprimible/descargable | todo |
-| B7 | Estado `past_due`: banner global, aviso en facturación, reintento de pago | todo |
+| B2 | Facturación en Configuración: plan actual, próximo cobro, estado | done |
+| B3 | Upgrade/downgrade con resumen de prorrateo | done |
+| B4 | Cancelar suscripción (efectiva al final del periodo) y reactivar | done |
+| B5 | Método de pago simulado (ver, cambiar tarjeta) | done |
+| B6 | Historial de facturas y recibo imprimible/descargable | done |
+| B7 | Estado `past_due`: banner global, aviso en facturación, reintento de pago | done |
 | B8 | Comparativa de planes en `/planes` (tabla de funciones) y FAQ de precios | todo |
 | B9 | Pantalla `/subscription` alineada con el nuevo flujo (enlaces a facturación) | todo |
 
