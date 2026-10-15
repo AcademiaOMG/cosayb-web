@@ -1013,6 +1013,35 @@ export async function bancoDeleteIngredient(id: string): Promise<{ message: stri
   return fetchAPI(`/api/v1/platform/banco/ingredients/${id}`, { method: "DELETE" })
 }
 
+export interface SyncPricesFreshness {
+  maxAgeMinutes: number | null
+  minAgeMinutes: number | null
+}
+
+export interface SyncPricesProgress {
+  phase: "idle" | "running" | "completed" | "failed"
+  current: string | null
+  done: number
+  total: number
+  startedAt: string | null
+  finishedAt: string | null
+}
+
+export interface SyncPricesStatus {
+  sources: Record<string, SyncPricesFreshness>
+  isFresh: boolean
+  checkedAt: string
+  progress?: SyncPricesProgress
+}
+
+export async function bancoSyncPrices(): Promise<{ data: { status: "started" } }> {
+  return fetchAPI("/api/v1/platform/banco/ingredients/sync-prices", { method: "POST" })
+}
+
+export async function bancoSyncPricesStatus(): Promise<{ data: SyncPricesStatus }> {
+  return fetchAPI("/api/v1/platform/banco/ingredients/sync-prices/status")
+}
+
 export async function platformGetMetrics(): Promise<{
   data: {
     totalOrganizations: number
