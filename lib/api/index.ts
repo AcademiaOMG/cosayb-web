@@ -164,16 +164,6 @@ export async function deleteIngrediente(id: string): Promise<void> {
   return fetchAPI(`/api/v1/ingredients/${id}`, { method: "DELETE" })
 }
 
-/** POST /api/v1/ingredients/import — requiere sesión; evita duplicados por nombre */
-export async function importIngredientes(
-  ingredientes: Array<{ name: string; costPerUnit: number; weightGrams: number }>
-): Promise<ApiResponse<{ inserted: number; skipped: number }>> {
-  return fetchAPI("/api/v1/ingredients/import", {
-    method: "POST",
-    body: JSON.stringify({ ingredients: ingredientes }),
-  })
-}
-
 // ─── Factores de Rendimiento ──────────────────────────────────────────────────
 
 export async function getFactoresRendimiento(variant?: string): Promise<ListResponse<FactorRendimiento>> {
@@ -331,12 +321,6 @@ export async function importPublicRecipes(): Promise<{ data: { imported: number;
 export async function getRecipeCost(id: string, materialCostPct?: number): Promise<{ data: RecipeCostResult }> {
   const params = materialCostPct != null ? `?materialCostPct=${materialCostPct}` : ""
   return fetchAPI(`/api/v1/recipes/${id}/cost${params}`)
-}
-
-/** GET /api/v1/recipes/banco — recetas del banco global (isPublic = true) */
-export async function getBancoRecipes(search?: string): Promise<{ data: Recipe[] }> {
-  const q = search ? `?search=${encodeURIComponent(search)}` : ''
-  return fetchAPI(`/api/v1/recipes/banco${q}`)
 }
 
 /** POST /api/v1/recipes/importar-banco/:id — clona una receta del banco en el tenant */
