@@ -24,11 +24,13 @@ import type {
   SaasCapabilities, SupportTicket, SupportTicketInput, TicketStatus,
 } from "./types"
 import { SaasError } from "./types"
+import { resolveSaasMode, type SaasMode } from "./mode"
 
-export type SaasMode = "mock" | "real"
+export type { SaasMode }
 
 export function getSaasMode(): SaasMode {
-  return process.env.NEXT_PUBLIC_SAAS_MODE === "real" ? "real" : "mock"
+  // Las dos variables se leen literales para que Next las incruste en el build del cliente
+  return resolveSaasMode(process.env.NEXT_PUBLIC_SAAS_MODE, process.env.NODE_ENV)
 }
 
 export const isMockMode = () => getSaasMode() === "mock"

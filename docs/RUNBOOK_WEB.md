@@ -24,7 +24,7 @@ Ver `.env.example`. Las `NEXT_PUBLIC_*` se incrustan **en el build**: cambiarlas
 | `API_URL` | no | URL del API vista desde el servidor de Next (proxy de auth) |
 | `NEXT_PUBLIC_FRONTEND_URL` | sí en prod | sitemap, robots, canónicos |
 | `NEXT_PUBLIC_SESSION_IDLE_MINUTES` | no | debe coincidir con el API |
-| `NEXT_PUBLIC_SAAS_MODE` | sí | `mock` (demo) o `real` |
+| `NEXT_PUBLIC_SAAS_MODE` | no | `mock` (demo) o `real`. Si falta: desarrollo = mock, **producción = real** |
 | `NEXT_PUBLIC_SENTRY_DSN` | no | activa el reporte de errores |
 | `NEXT_PUBLIC_APP_ENV`, `NEXT_PUBLIC_RELEASE` | no | etiquetas del reporte |
 
