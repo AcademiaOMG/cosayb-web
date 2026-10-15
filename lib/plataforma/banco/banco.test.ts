@@ -4,6 +4,8 @@ import {
   type IngredienteBanco, type RecetaBanco, type DetalleRecetas,
 } from "./quality"
 import { parseCsv, parseNumeroEs, validarImportacionIngredientes, resumenImportacion, construirCsv } from "./csv"
+import { haceMinutos, haceFecha, compararPrecios } from "./tiempo"
+import { ejecutarEnLote } from "./lote"
 import { filtrarIngredientes, filtrarRecetas, paginar } from "./filters"
 
 const ing = (id: string, name: string, cost = "1000", weight = "1000", extra: Partial<IngredienteBanco> = {}): IngredienteBanco => ({
@@ -176,5 +178,38 @@ describe("filtros y orden", () => {
     const p = paginar([1, 2, 3, 4, 5], 9, 2)
     expect(p).toEqual({ items: [5], paginas: 3, pagina: 3 })
     expect(paginar([], 1, 10)).toEqual({ items: [], paginas: 1, pagina: 1 })
+  })
+})
+
+describe("operaciones en lote", () => {
+  it("sigue ante fallos y los reporta", async () => {
+    const avances: number[] = []
+    const r = await ejecutarEnLote(
+      [1, 2, 3],
+      async (n) => { if (n === 2) throw new Error("No se pudo") },
+      (h) => avances.push(h)
+    )
+    expect(r.hechos).toEqual([1, 3])
+    expect(r.fallidos).toEqual([{ item: 2, motivo: "No se pudo" }])
+    expect(avances).toEqual([1, 2, 3])
+  })
+})
+
+describe("tiempo y cambios de precios", () => {
+  it("escribe el tiempo transcurrido", () => {
+    expect(haceMinutos(0.2)).toBe("hace un momento")
+    expect(haceMinutos(5)).toBe("hace 5 min")
+    expect(haceMinutos(180)).toBe("hace 3 h")
+    expect(haceMinutos(60 * 24)).toBe("hace 1 día")
+    expect(haceMinutos(60 * 24 * 3)).toBe("hace 3 días")
+    expect(haceFecha(null)).toBeNull()
+    expect(haceFecha("2026-10-15T10:00:00Z", new Date("2026-10-15T10:30:00Z").getTime())).toBe("hace 30 min")
+  })
+  it("cuenta lo que subió, bajó y es nuevo", () => {
+    const antes = new Map([["a", 100], ["b", 100], ["c", 100]])
+    const r = compararPrecios(antes, [
+      { id: "a", costPerUnit: "100.00" }, { id: "b", costPerUnit: "120" }, { id: "c", costPerUnit: "90" }, { id: "d", costPerUnit: "5" },
+    ])
+    expect(r).toEqual({ cambiaron: 2, subieron: 1, bajaron: 1, nuevos: 1 })
   })
 })
