@@ -311,14 +311,19 @@ export function metricsFromApi(raw: RawSaasMetrics): PlatformSaasMetrics {
   }
 }
 
+/** GET /platform/organizations/:id/billing: el nombre llega una vez en `organization`, no en cada fila. */
 export function orgBillingFromApi(raw: {
-  subscriptions: RawPlatformSubscription[]
+  organization?: { name: string } | null
+  subscriptions: (Omit<RawPlatformSubscription, "organizationName"> & { organizationName?: string })[]
   invoices: RawInvoice[]
   payments: RawPlatformPayment[]
 }): OrgBilling {
+  const orgName = raw.organization?.name
   return {
-    subscriptions: (raw.subscriptions ?? []).map(platformSubscriptionFromApi),
+    subscriptions: (raw.subscriptions ?? []).map((s) =>
+      platformSubscriptionFromApi({ ...s, organizationName: s.organizationName ?? orgName ?? "—" }),
+    ),
     invoices: (raw.invoices ?? []).map(invoiceFromApi),
-    payments: (raw.payments ?? []).map(platformPaymentFromApi),
+    payments: (raw.payments ?? []).map((p) => platformPaymentFromApi({ ...p, organizationName: p.organizationName ?? orgName })),
   }
 }
