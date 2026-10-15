@@ -36,8 +36,8 @@ Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho e
 | B5 | Método de pago simulado (ver, cambiar tarjeta) | done |
 | B6 | Historial de facturas y recibo imprimible/descargable | done |
 | B7 | Estado `past_due`: banner global, aviso en facturación, reintento de pago | done |
-| B8 | Comparativa de planes en `/planes` (tabla de funciones) y FAQ de precios | todo |
-| B9 | Pantalla `/subscription` alineada con el nuevo flujo (enlaces a facturación) | todo |
+| B8 | Comparativa de planes en `/planes` (tabla de funciones) y FAQ de precios | done |
+| B9 | Pantalla `/subscription` alineada con el nuevo flujo (enlaces a facturación) | done |
 
 ## P1 — Cuenta, organización y datos
 

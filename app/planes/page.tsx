@@ -3,10 +3,10 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
-import { ArrowRight, Check, Loader2, ShieldCheck } from "lucide-react"
+import { ArrowRight, Check, Loader2, Minus, ShieldCheck } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { getCurrentPlan } from "@/lib/api"
-import { PLAN_CATALOG, formatCOP, type PlanId, type PaidPlanId } from "@/lib/commerce/catalog"
+import { PLAN_CATALOG, PLAN_COMPARISON, PLAN_FAQ, formatCOP, type PlanId, type PaidPlanId } from "@/lib/commerce/catalog"
 import { setPendingCheckout } from "@/lib/commerce/pending"
 import { fetchCommerceSession } from "@/lib/commerce/session"
 import { resolvePlanIntent, planCtaLabel, type PlanContext } from "@/lib/commerce/planState"
@@ -76,7 +76,7 @@ export default function PlanesPage() {
             Elige el plan que encaja con tu negocio
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base text-[#4A4438]">
-            Adquisición realista con autenticación, validaciones y confirmación. El pago es simulado — no hay cobro real.
+            14 días de prueba sin tarjeta, precios en pesos colombianos y cancelación cuando quieras.
           </p>
         </div>
 
@@ -158,6 +158,78 @@ export default function PlanesPage() {
             })}
           </div>
         )}
+
+        <section aria-labelledby="comparativa" className="mt-16">
+          <h2 id="comparativa" className="font-display text-2xl font-extrabold text-center sm:text-3xl">
+            Compara los planes
+          </h2>
+          <div className="mt-6 overflow-x-auto rounded-3xl border border-[#DDD6C8] bg-white">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <caption className="sr-only">Comparativa de funciones por plan</caption>
+              <thead>
+                <tr className="border-b border-[#DDD6C8] bg-[#FAF8F4]">
+                  <th scope="col" className="px-5 py-4 font-semibold">Funciones</th>
+                  {ORDER.map((id) => (
+                    <th key={id} scope="col" className="px-5 py-4 text-center font-semibold">
+                      {PLAN_CATALOG[id].label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {PLAN_COMPARISON.map((row) => (
+                  <tr key={row.label} className="border-b border-[#EFE9DD] last:border-0">
+                    <th scope="row" className="px-5 py-3.5 font-normal text-[#12213A]">{row.label}</th>
+                    {ORDER.map((id) => {
+                      const v = row.values[id]
+                      return (
+                        <td key={id} className="px-5 py-3.5 text-center text-[#4A4438]">
+                          {v === true ? (
+                            <>
+                              <Check className="mx-auto h-4 w-4 text-[#1B4FD8]" aria-hidden="true" />
+                              <span className="sr-only">Incluido</span>
+                            </>
+                          ) : v === false ? (
+                            <>
+                              <Minus className="mx-auto h-4 w-4 text-[#B7AE9C]" aria-hidden="true" />
+                              <span className="sr-only">No incluido</span>
+                            </>
+                          ) : (
+                            v
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-center text-xs text-[#7A6E60]">
+            Los límites exactos de tu plan se muestran en Configuración &gt; Membresía.
+          </p>
+        </section>
+
+        <section aria-labelledby="faq-precios" className="mt-16 mx-auto max-w-3xl">
+          <h2 id="faq-precios" className="font-display text-2xl font-extrabold text-center sm:text-3xl">
+            Preguntas sobre precios
+          </h2>
+          <div className="mt-6 flex flex-col gap-3">
+            {PLAN_FAQ.map(({ q, a }) => (
+              <details key={q} className="group rounded-2xl border border-[#DDD6C8] bg-white px-5 py-4">
+                <summary className="cursor-pointer list-none font-semibold text-[#12213A] flex items-center justify-between gap-4">
+                  {q}
+                  <span aria-hidden="true" className="text-[#1B4FD8] transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-[#4A4438]">{a}</p>
+              </details>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-sm text-[#4A4438]">
+            ¿Más dudas? Revisa el <Link href="/ayuda" className="font-semibold text-[#1B4FD8] underline">centro de ayuda</Link>{" "}
+            o la <Link href="/refunds" className="font-semibold text-[#1B4FD8] underline">política de reembolso</Link>.
+          </p>
+        </section>
 
         <div className="mt-10 flex items-center justify-center gap-3 text-sm text-[#4A4438]">
           <ShieldCheck className="h-4 w-4 text-[#1B4FD8]" />
