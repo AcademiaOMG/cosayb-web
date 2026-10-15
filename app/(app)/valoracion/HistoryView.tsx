@@ -1,5 +1,6 @@
 "use client"
 
+import ErrorState from "@/components/ui/ErrorState"
 import DataList, { RowAction } from "@/components/ui/DataList"
 import { Calculator, Pencil, Plus } from "lucide-react"
 import type { Valuation } from "@/types/domain"
@@ -37,6 +38,8 @@ function HistorySkeleton() {
 export default function HistoryView({
   history,
   isLoading,
+  error,
+  onRetry,
   canCreate,
   onNewCalculation,
   onView,
@@ -44,12 +47,16 @@ export default function HistoryView({
 }: {
   history: Valuation[]
   isLoading: boolean
+  /** Falló la carga: se avisa en vez de mostrar «no hay valoraciones» como si no existieran. */
+  error?: boolean
+  onRetry?: () => void
   canCreate: boolean
   onNewCalculation: () => void
   onView: (v: Valuation) => void
   onReuse: (v: Valuation) => void
 }) {
   if (isLoading) return <HistorySkeleton />
+  if (error && history.length === 0) return <ErrorState title="No pudimos cargar tus valoraciones" onRetry={onRetry} />
 
   if (history.length === 0) {
     return (

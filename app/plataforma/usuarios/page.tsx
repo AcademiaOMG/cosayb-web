@@ -1,5 +1,6 @@
 "use client"
 
+import ErrorState from "@/components/ui/ErrorState"
 import useSWR from "swr"
 import { useState } from "react"
 import Link from "next/link"
@@ -10,7 +11,7 @@ import { Search, ChevronRight } from "lucide-react"
 export default function UsuariosPage() {
   const { platformCan } = usePermissions()
   const [search, setSearch] = useState("")
-  const { data, isLoading } = useSWR(["platform-users", search], () =>
+  const { data, isLoading, error, mutate: retry } = useSWR(["platform-users", search], () =>
     platformListUsers(search || undefined)
   )
 
@@ -37,6 +38,7 @@ export default function UsuariosPage() {
         />
       </div>
 
+      {error && !data && <ErrorState title="No pudimos cargar los usuarios" onRetry={() => void retry()} />}
       {isLoading && !data && (
         <div className="flex flex-col gap-2">
           {[1, 2, 3, 4, 5].map((i) => (

@@ -1,11 +1,12 @@
 "use client"
 
+import ErrorState from "@/components/ui/ErrorState"
 import useSWR from "swr"
 import { platformListAudit } from "@/lib/api"
 import { ScrollText } from "lucide-react"
 
 export default function AuditoriaPage() {
-  const { data, isLoading } = useSWR("platform-audit", () =>
+  const { data, isLoading, error, mutate: retry } = useSWR("platform-audit", () =>
     platformListAudit().then((r) => r.data)
   )
 
@@ -18,6 +19,7 @@ export default function AuditoriaPage() {
         </p>
       </div>
 
+      {error && !data && <ErrorState title="No pudimos cargar la auditoría" onRetry={() => void retry()} />}
       {isLoading && !data && (
         <div className="flex flex-col gap-2">
           {[1, 2, 3, 4, 5, 6].map((i) => (

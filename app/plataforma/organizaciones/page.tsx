@@ -1,5 +1,6 @@
 "use client"
 
+import ErrorState from "@/components/ui/ErrorState"
 import useSWR from "swr"
 import { useState } from "react"
 import Link from "next/link"
@@ -16,7 +17,7 @@ const TIER_STYLE: Record<string, { bg: string; color: string }> = {
 export default function OrganizacionesPage() {
   const { platformCan } = usePermissions()
   const [search, setSearch] = useState("")
-  const { data, isLoading } = useSWR(["platform-orgs", search], () =>
+  const { data, isLoading, error, mutate: retry } = useSWR(["platform-orgs", search], () =>
     platformListOrgs(search || undefined)
   )
 
@@ -43,6 +44,7 @@ export default function OrganizacionesPage() {
         />
       </div>
 
+      {error && !data && <ErrorState title="No pudimos cargar las organizaciones" onRetry={() => void retry()} />}
       {isLoading && !data && (
         <div className="flex flex-col gap-2">
           {[1, 2, 3, 4, 5].map((i) => (

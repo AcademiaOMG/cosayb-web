@@ -1,5 +1,6 @@
 "use client"
 
+import ErrorState from "@/components/ui/ErrorState"
 import useSWR from "swr"
 import { useState, useMemo } from "react"
 import Card from "@/components/ui/Card"
@@ -46,7 +47,7 @@ export default function EquipoPage() {
   const canManage = can("members", "update")
   const canInvite = can("invitations", "create")
 
-  const { data: members = [], mutate: mutateMembers } = useSWR(
+  const { data: members = [], isLoading: membersLoading, error: membersError, mutate: mutateMembers } = useSWR(
     "org-members",
     () => getMembers().then((r) => r.data ?? []),
     { revalidateOnFocus: false }
@@ -324,7 +325,13 @@ export default function EquipoPage() {
               </div>
             )
           })}
-          {members.length === 0 && (
+          {membersLoading && (
+            <p className="text-sm text-center py-4" style={{ color: "var(--text-muted)" }}>Cargando equipo…</p>
+          )}
+          {membersError && members.length === 0 && (
+            <ErrorState title="No pudimos cargar el equipo" onRetry={() => void mutateMembers()} />
+          )}
+          {!membersLoading && !membersError && members.length === 0 && (
             <p className="text-sm text-center py-4" style={{ color: "var(--text-muted)" }}>
               No hay miembros registrados.
             </p>
