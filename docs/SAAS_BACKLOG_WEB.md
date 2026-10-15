@@ -43,8 +43,8 @@ Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho e
 
 | ID | Brecha | Estado |
 |---|---|---|
-| C1 | Exportar mis datos (JSON) desde Mi cuenta | todo |
-| C2 | Eliminar cuenta: hoy solo Better Auth; añadir aviso de qué se borra y de suscripción activa | todo |
+| C1 | Exportar mis datos (JSON) desde Mi cuenta | done |
+| C2 | Eliminar cuenta: hoy solo Better Auth; añadir aviso de qué se borra y de suscripción activa | done |
 | C3 | Equipo/invitaciones/roles | done (ya existía en `/configuracion/equipo` y `/roles`; sin cambios) |
 | C4 | Ajustes de organización (nombre/marca) | done (ya existía en `/configuracion/marca`) |
 | C5 | Onboarding hasta el primer resultado (checklist) | done (ya existía: `useOnboardingChecklist`, `SidebarChecklist`) |

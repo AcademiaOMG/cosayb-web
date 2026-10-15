@@ -19,10 +19,13 @@ import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
 import {
   User, Mail, Clock, ShieldCheck, KeyRound, Globe, Building2,
-  AlertTriangle, Monitor, LogOut, ExternalLink, Trash2, Check,
+  AlertTriangle, Monitor, LogOut, ExternalLink, Trash2, Check, Download,
 } from "lucide-react"
 import type { Plan } from "@/types/domain"
 import { validatePassword, validateEmail, normalizeEmail, authErrorMessage } from "@/lib/auth/validation"
+import { saas, saasErrorMessage } from "@/lib/saas/services"
+import { downloadJson } from "@/lib/saas/accountExport"
+import { useBillingOverview } from "@/lib/saas/hooks"
 
 /**
  * Mi cuenta — perfil PERSONAL del usuario, organizado en secciones
@@ -768,6 +771,8 @@ function CuentaTab() {
         </div>
       </Card>
 
+      <ExportDataCard />
+
       <div
         className="rounded-2xl p-6 flex flex-col gap-4"
         style={{ background: "var(--bg-surface)", border: "1px solid #FECACA" }}
@@ -784,7 +789,44 @@ function CuentaTab() {
   )
 }
 
+function ExportDataCard() {
+  const [exporting, setExporting] = useState(false)
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const data = await saas.account.exportData()
+      const stamp = new Date().toISOString().slice(0, 10)
+      downloadJson(`cosayb-datos-${stamp}.json`, data)
+      toast.success("Exportación lista", { description: "Descargamos un archivo JSON con tus datos." })
+    } catch (err) {
+      toast.error("No se pudieron exportar tus datos", { description: saasErrorMessage(err) })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3 mb-4">
+        <Download size={18} style={{ color: "var(--accent)" }} />
+        <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
+          TUS DATOS
+        </p>
+      </div>
+      <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
+        Descarga una copia de tu perfil, ingredientes, recetas, menús y cálculos en formato JSON. Tus datos son tuyos.
+      </p>
+      <Button variant="ghost" onClick={handleExport} loading={exporting}>
+        <Download size={14} />
+        Exportar mis datos
+      </Button>
+    </Card>
+  )
+}
+
 function DeleteAccountSection() {
+  const { data: billing } = useBillingOverview()
   const { data: ownedOrgs } = useSWR(
     "owned-organizations",
     () => getOwnedOrganizations().then((r) => r.data),
@@ -845,6 +887,17 @@ function DeleteAccountSection() {
       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
         Esto elimina tu cuenta personal de forma permanente. No se puede deshacer.
       </p>
+      <ul className="list-disc pl-5 text-sm flex flex-col gap-1" style={{ color: "var(--text-secondary)" }}>
+        <li>Se borran tu perfil, tus sesiones y tus datos personales (máximo 30 días).</li>
+        <li>Te recomendamos exportar tus datos antes de continuar.</li>
+        {billing && billing.plan !== "free" && billing.status !== "canceled" && (
+          <li>
+            Tienes una suscripción {billing.plan === "pro" ? "Pro" : "Academia"} activa: se cancelará y no habrá más cobros.
+            Los reembolsos se rigen por la <Link href="/refunds" className="underline">política de reembolso</Link>.
+          </li>
+        )}
+        <li>Conservamos las facturas que la ley nos obliga a guardar.</li>
+      </ul>
 
       {!confirming ? (
         <div>
