@@ -3,6 +3,7 @@ import {
   AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES, FEATURE_INFO, PERMISSION_ACTIONS, PERMISSION_RESOURCES, ROLE_INFO,
   auditActionLabel, auditSentence, featureLabel, formatFeatureValue, humanize, parseLimitInput,
   permissionDescription, permissionLabel, platformStatusLabel, roleDescription, roleLabel,
+  moduleLabel, usageActionLabel, authEventLabel, authMethodLabel, authFailureLabel,
 } from "./labels"
 
 // Listas de códigos reales del API (authz.constants.ts, base de datos y logAudit).
@@ -169,5 +170,22 @@ describe("límites de membresía", () => {
     expect(parseLimitInput("2.5").ok).toBe(false)
     expect(parseLimitInput("abc").ok).toBe(false)
     expect(parseLimitInput("99999999").ok).toBe(false)
+  })
+})
+
+describe("textos de telemetría", () => {
+  it("cada módulo, acción y evento de autenticación conocido tiene su texto en español", () => {
+    expect(moduleLabel("break_even")).toBe("Punto de equilibrio")
+    expect(moduleLabel("yield_factors")).toBe("Factor de rendimiento")
+    expect(usageActionLabel("create")).toBe("Creó")
+    expect(authEventLabel("login_failed")).toBe("Intento fallido de inicio de sesión")
+    expect(authMethodLabel("google")).toBe("Google")
+    expect(authMethodLabel(null)).toBe("—")
+    expect(authFailureLabel("INVALID_EMAIL_OR_PASSWORD")).toBe("Correo o contraseña incorrectos")
+    expect(authFailureLabel(null)).toBe("Sin motivo registrado")
+  })
+  it("un código desconocido se humaniza y nunca llega crudo", () => {
+    expect(moduleLabel("new_module")).toBe("New module")
+    expect(authEventLabel("some_event")).toBe("Some event")
   })
 })

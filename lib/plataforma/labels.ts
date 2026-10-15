@@ -480,3 +480,81 @@ export function auditSentence(input: { action: string; actorName?: string | null
   const target = input.targetName?.trim()
   return target && prep ? `${actor} ${what} ${prep} ${target}` : `${actor} ${what}`
 }
+
+// ─── Telemetría: accesos, uso por módulo y eventos de autenticación ─────────
+
+/** Módulo del producto (`usage_events.module`) → nombre que ve el cliente en su menú. */
+export const USAGE_MODULE_LABELS: Record<string, string> = {
+  ingredients: "Inventario de ingredientes",
+  recipes: "Recetas",
+  menus: "Menús",
+  yield_factors: "Factor de rendimiento",
+  valuations: "Valoración A&B",
+  break_even: "Punto de equilibrio",
+  market_prices: "Precios de mercado",
+  dashboard: "Inicio",
+  billing: "Facturación",
+  team: "Equipo",
+  settings: "Configuración",
+  exports: "Exportaciones",
+  other: "Otros",
+}
+
+export function moduleLabel(module: string): string {
+  return USAGE_MODULE_LABELS[module] ?? humanize(module)
+}
+
+/** Acción sobre un módulo (`usage_events.action`) en pasado: «Consultó», «Creó»… */
+export const USAGE_ACTION_LABELS: Record<string, string> = {
+  view: "Consultó",
+  create: "Creó",
+  update: "Modificó",
+  delete: "Eliminó",
+  export: "Exportó",
+}
+
+export function usageActionLabel(action: string): string {
+  return USAGE_ACTION_LABELS[action] ?? humanize(action)
+}
+
+/** Evento de autenticación (`auth_events.type`) → frase. */
+export const AUTH_EVENT_LABELS: Record<string, string> = {
+  login_success: "Inició sesión",
+  login_failed: "Intento fallido de inicio de sesión",
+  signup: "Se registró",
+  logout: "Cerró sesión",
+  password_reset_requested: "Pidió restablecer la contraseña",
+  password_changed: "Cambió la contraseña",
+  email_verified: "Verificó su correo",
+  session_revoked: "Se cerró una de sus sesiones",
+  account_deleted: "Eliminó su cuenta",
+  rate_limited: "Bloqueado un rato por demasiados intentos",
+}
+
+export function authEventLabel(type: string): string {
+  return AUTH_EVENT_LABELS[type] ?? humanize(type)
+}
+
+export const AUTH_METHOD_LABELS: Record<string, string> = {
+  password: "Correo y contraseña",
+  google: "Google",
+}
+
+export function authMethodLabel(method: string | null | undefined): string {
+  if (!method) return "—"
+  return AUTH_METHOD_LABELS[method] ?? humanize(method)
+}
+
+/** Motivo de un intento fallido (`auth_events.reason`). */
+export const AUTH_FAILURE_LABELS: Record<string, string> = {
+  INVALID_EMAIL_OR_PASSWORD: "Correo o contraseña incorrectos",
+  EMAIL_NOT_VERIFIED: "Correo sin verificar",
+  USER_NOT_FOUND: "No existe una cuenta con ese correo",
+  INVALID_PASSWORD: "Contraseña incorrecta",
+  TOO_MANY_REQUESTS: "Demasiados intentos",
+}
+
+export function authFailureLabel(reason: string | null | undefined): string {
+  if (!reason) return "Sin motivo registrado"
+  return AUTH_FAILURE_LABELS[reason] ?? humanize(reason)
+}
