@@ -1,6 +1,6 @@
 /** Validaciones puras de los formularios de autenticación (sin dependencias de UI). */
 
-export const PASSWORD_MIN_LENGTH = 8
+export const PASSWORD_MIN_LENGTH = 10
 export const PASSWORD_MAX_LENGTH = 128
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -17,7 +17,7 @@ export function validateEmail(raw: string): string | null {
   return null
 }
 
-/** Reglas: 8–128 caracteres, con al menos una letra y un número. */
+/** Reglas: 10–128 caracteres, con al menos una letra y un número. */
 export function validatePassword(pw: string): string | null {
   if (!pw) return "Ingresa una contraseña."
   if (pw.length < PASSWORD_MIN_LENGTH) return `Usa al menos ${PASSWORD_MIN_LENGTH} caracteres.`

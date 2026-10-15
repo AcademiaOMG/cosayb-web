@@ -18,10 +18,10 @@ describe("validateEmail", () => {
 describe("validatePassword", () => {
   it("exige longitud y mezcla", () => {
     expect(validatePassword("")).toBeTruthy()
-    expect(validatePassword("abc123")).toMatch(/al menos 8/)
-    expect(validatePassword("abcdefgh")).toMatch(/letras y números/)
-    expect(validatePassword("12345678")).toMatch(/letras y números/)
-    expect(validatePassword("abcd1234")).toBeNull()
+    expect(validatePassword("abc12")).toMatch(/al menos 10/)
+    expect(validatePassword("abcdefghij")).toMatch(/letras y números/)
+    expect(validatePassword("1234567890")).toMatch(/letras y números/)
+    expect(validatePassword("abcdefg1234")).toBeNull()
     expect(validatePassword("a1".repeat(70))).toMatch(/máximo/)
   })
 })
@@ -37,7 +37,7 @@ describe("passwordStrength", () => {
   it("escala de 0 a 3", () => {
     expect(passwordStrength("").score).toBe(0)
     expect(passwordStrength("abc").score).toBe(0)
-    expect(passwordStrength("abcd1234").score).toBeLessThanOrEqual(1)
+    expect(passwordStrength("abcdefg1234").score).toBeLessThanOrEqual(1)
     expect(passwordStrength("Abcdefgh1234!").score).toBe(3)
   })
 })

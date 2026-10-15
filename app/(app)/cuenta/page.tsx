@@ -423,7 +423,7 @@ function PasswordCard() {
               type="password"
               value={newPassword}
               onChange={(e) => { setNewPassword(e.target.value); setMsg(null) }}
-              hint="Mínimo 8 caracteres, con letras y números"
+              hint="Mínimo 10 caracteres, con letras y números"
             />
             <Input
               label="Confirmar nueva contraseña"

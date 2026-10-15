@@ -89,7 +89,7 @@ function ResetForm() {
           autoComplete="new-password"
           showStrength
           error={errors.password}
-          hint="Mínimo 8 caracteres, con letras y números."
+          hint="Mínimo 10 caracteres, con letras y números."
         />
         <PasswordInput
           label="Confirma la contraseña"

@@ -29,7 +29,7 @@ Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho e
 
 | ID | Brecha | Estado |
 |---|---|---|
-| B1 | Capa `lib/saas` (tipos, servicios mock/real, tests) | todo |
+| B1 | Capa `lib/saas` (tipos, servicios mock/real, tests) | done |
 | B2 | Facturación en Configuración: plan actual, próximo cobro, estado | todo |
 | B3 | Upgrade/downgrade con resumen de prorrateo | todo |
 | B4 | Cancelar suscripción (efectiva al final del periodo) y reactivar | todo |

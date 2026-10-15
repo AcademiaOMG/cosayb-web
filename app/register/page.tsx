@@ -170,7 +170,7 @@ function RegisterForm() {
           autoComplete="new-password"
           showStrength
           error={errors.password}
-          hint="Mínimo 8 caracteres, con letras y números."
+          hint="Mínimo 10 caracteres, con letras y números."
         />
         <div className="flex flex-col gap-1">
           <label className="flex items-start gap-2 text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>

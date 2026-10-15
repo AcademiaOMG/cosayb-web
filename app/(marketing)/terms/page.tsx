@@ -33,7 +33,7 @@ const sections: LegalSection[] = [
   },
   {
     title: "Pagos fallidos",
-    body: "Si un cobro no se puede procesar, tu suscripción pasa a estado «pago pendiente» y te avisaremos dentro de la plataforma. Tienes 7 días para actualizar tu método de pago; si el pago no se regulariza, tu organización pasará al plan Free y conservarás tus datos con las limitaciones de ese plan.",
+    body: "Si un cobro no se puede procesar, tu suscripción pasa a estado «pago pendiente» y te avisaremos dentro de la plataforma. Tienes 5 días para actualizar tu método de pago; si el pago no se regulariza, tu organización pasará al plan Free y conservarás tus datos con las limitaciones de ese plan.",
   },
   {
     title: "Cancelación y reembolsos",
