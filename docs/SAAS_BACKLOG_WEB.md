@@ -47,6 +47,10 @@ Rama: `feat/saas-web`. Estado: `todo` · `doing` · `done` · `partial` (hecho e
 | C2 | Eliminar cuenta: hoy solo Better Auth; añadir aviso de qué se borra y de suscripción activa | done |
 | C3 | Equipo/invitaciones/roles | done (ya existía en `/configuracion/equipo` y `/roles`; sin cambios) |
 | C4 | Ajustes de organización (nombre/marca) | done (ya existía en `/configuracion/marca`) |
+| C6 | Salir del negocio, transferir propiedad, eliminar negocio y reenviar invitación (`OrgDangerZone`, Equipo) | done |
+| C7 | Uso del plan vs límites en Facturación (`GET /billing/usage`) | done |
+| C8 | Borrar cuenta contra `DELETE /me` (correo + contraseña, 409 con negocios bloqueantes) y sesiones activas por `/me/sessions` | done |
+| C9 | Actividad de la organización con la auditoría nueva (`/organizations/me/audit`) y respaldo al registro anterior | done |
 | C5 | Onboarding hasta el primer resultado (checklist) | done (ya existía: `useOnboardingChecklist`, `SidebarChecklist`) |
 
 ## P1 — Soporte y comunicación
@@ -91,6 +95,19 @@ Ya existe: métricas básicas, organizaciones, usuarios, roles, membresías, ban
 | E4 | Tests unitarios de la capa saas, validaciones y utilidades nuevas | done |
 | E6 | Deuda: 33 errores de las reglas React Compiler en checkout, menú y marca (degradados a aviso por archivo en `eslint.config.mjs`) | todo |
 | E5 | Actualizar README (rutas nuevas, variables) | done |
+
+## Alineación con el contrato del API
+
+El contrato `SAAS_API_CONTRATO.md` (repo del API) se publicó durante el trabajo; el modo `real` se adaptó a él.
+
+| ID | Tema | Estado |
+|---|---|---|
+| Z1 | Adaptadores puros contrato → UI (`lib/saas/adapters.ts`) con pruebas; bloque `realServices` en `services.ts` | done |
+| Z2 | Capacidades por backend: en real no hay cambio directo de plan, bajar a plan menor, actualizar método ni reintento manual; la UI se adapta (subir = checkout, bajar a Free = cancelar) | done |
+| Z3 | Pago pendiente de PSE/Nequi (`PENDING`): pantalla «confirmando tu pago» con sondeo hasta `ACTIVE` | done |
+| Z4 | Plataforma: métricas `/platform/metrics/saas` (sin serie de MRR: se grafican registros por día), suscripciones, pagos, tickets, `/organizations/:id/plan` con justificación, `/organizations/:id/billing`, reenviar verificación | done |
+| Z5 | Ruta `/verify-email-sent` esperada por el API | done |
+| Z6 | Tokenización de la pasarela real (`paymentSourceId`): el tipo ya lo admite; falta el widget del proveedor (ver X1) | blocked |
 
 ## Pendiente / fuera de alcance web
 

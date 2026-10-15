@@ -2,9 +2,9 @@ import type { PaidPlanId, BookFormat, PaymentMethodId, PlanId } from "./catalog"
 
 // ── Contratos de las operaciones comerciales (espejo del backend billing) ────
 
-export type SubscriptionStatus = "PENDING" | "ACTIVE" | "CANCELLED"
+export type SubscriptionStatus = "PENDING" | "ACTIVE" | "PAST_DUE" | "CANCELLED"
 export type PaymentStatus = "PENDING" | "PROCESSING" | "APPROVED" | "FAILED"
-export type OrderStatus = "PENDING" | "PAID_SIMULATED" | "CANCELLED"
+export type OrderStatus = "PENDING" | "PAID_SIMULATED" | "PAID" | "CANCELLED"
 export type EnrollmentStatus = "PENDING" | "REGISTERED" | "CONTACTED"
 
 export interface CustomerData {
@@ -29,7 +29,11 @@ export interface SubscriptionResult {
   organizationId: string
   createdAt: string
   paymentId: string
-  simulated: true
+  /** Número de factura (OMG-INV-…) cuando el pago ya fue aprobado. */
+  invoiceNo?: string
+  currentPeriodEnd?: string | null
+  /** true con el proveedor de pago simulado. */
+  simulated: boolean
 }
 
 export interface BookOrderResult {
@@ -43,7 +47,7 @@ export interface BookOrderResult {
   buyer: { name: string; email: string; phone: string; city: string; country: string }
   createdAt: string
   paymentId: string
-  simulated: true
+  simulated: boolean
 }
 
 export interface EnrollmentResult {

@@ -49,7 +49,14 @@ export default function SubscriptionPage() {
               {data?.subscription ? (
                 <div className="mt-6 space-y-1 rounded-2xl border border-[#DDD6C8] bg-white p-6 text-sm">
                   <Row k="Valor" v={`${formatCOP(data.subscription.amount)} / mes`} />
-                  <Row k="Estado" v={data.subscription.status === "ACTIVE" ? "Activa" : data.subscription.status} />
+                  <Row
+                    k="Estado"
+                    v={
+                      ({ ACTIVE: "Activa", PAST_DUE: "Pago pendiente", CANCELLED: "Cancelada", PENDING: "Procesando pago" } as Record<string, string>)[
+                        data.subscription.status
+                      ] ?? data.subscription.status
+                    }
+                  />
                   <Row k="Método" v={data.subscription.method.toUpperCase()} />
                   <Row
                     k="Desde"

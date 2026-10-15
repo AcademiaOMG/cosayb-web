@@ -13,6 +13,7 @@ import ErrorState from "@/components/ui/ErrorState"
 import LoadingBlock from "@/components/ui/LoadingBlock"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
 import PaymentMethodModal from "@/components/saas/PaymentMethodModal"
+import UsageCard from "@/components/saas/UsageCard"
 import PlanChangeModal from "@/components/saas/PlanChangeModal"
 import { InvoiceStatusBadge, SubscriptionStatusBadge } from "@/components/saas/StatusBadge"
 import { PLAN_CATALOG, type PlanId } from "@/lib/commerce/catalog"
@@ -207,6 +208,8 @@ export default function FacturacionPage() {
           )}
         </div>
       </Card>
+
+      <UsageCard />
 
       {/* Cambiar de plan */}
       <Card>

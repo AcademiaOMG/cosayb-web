@@ -81,6 +81,8 @@ export interface SubscriptionCheckoutInput {
   plan: PaidPlanId
   method: PaymentMethodId
   cardLast4: string | null
+  /** Token/fuente de pago de la pasarela real (nunca el PAN/CVV). */
+  paymentSourceId?: string
   customer: CustomerData
   businessName?: string | null
   idempotencyKey: string
@@ -154,6 +156,12 @@ export interface MySubscription {
     method: string
     previousPlan: string | null
     createdAt: string
+    cardLast4?: string | null
+    currentPeriodStart?: string | null
+    currentPeriodEnd?: string | null
+    cancelAtPeriodEnd?: boolean
+    nextRetryAt?: string | null
+    failedAttempts?: number
   } | null
 }
 

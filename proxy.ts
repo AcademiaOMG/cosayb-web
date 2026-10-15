@@ -8,6 +8,7 @@ const PUBLIC_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  "/verify-email-sent",
   "/planes",
   "/refunds",
   "/ayuda",

@@ -216,6 +216,8 @@ export class SaasError extends Error {
   constructor(
     public code: string,
     message: string,
+    /** Cuerpo de error del API (p. ej. `blocking` en 409 OWNS_ORG_WITH_MEMBERS). */
+    public details?: unknown,
   ) {
     super(message)
     this.name = "SaasError"

@@ -34,15 +34,19 @@ export async function saasFetch<T>(endpoint: string, init: RequestInit = {}): Pr
   if (!res.ok) {
     let code = `HTTP_${res.status}`
     let message = "No pudimos completar la operación. Inténtalo nuevamente."
+    let details: unknown
     try {
       const body = await res.json()
+      details = body
       if (body.code) code = body.code
       if (body.error) message = body.error
       else if (body.message) message = body.message
     } catch {
       /* respuesta no JSON */
     }
-    throw new SaasError(code, message)
+    const requestId = res.headers.get("X-Request-Id")
+    if (res.status >= 500 && requestId) message += ` (ref. ${requestId})`
+    throw new SaasError(code, message, details)
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>

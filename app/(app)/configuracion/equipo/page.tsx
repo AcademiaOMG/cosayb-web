@@ -10,6 +10,9 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
+import OrgDangerZone from "@/components/saas/OrgDangerZone"
+import { resendInvitation } from "@/lib/saas/account"
+import { authClient } from "@/lib/auth"
 import {
   getMembers, updateMemberRole, removeMember,
   getInvitations, sendInvitation, revokeInvitation,
@@ -17,7 +20,7 @@ import {
 } from "@/lib/api"
 import type { OrgMember, Invitation } from "@/lib/api"
 import {
-  Shield, UserMinus, Send, XCircle, MoreVertical,
+  Shield, UserMinus, Send, XCircle, MoreVertical, RotateCw,
   Mail, Clock, CheckCircle2, Users,
 } from "lucide-react"
 
@@ -38,7 +41,8 @@ function roleColor(slug: string) {
 }
 
 export default function EquipoPage() {
-  const { can, featureLimit } = usePermissions()
+  const { can, featureLimit, isOwner, organization } = usePermissions()
+  const { data: session } = authClient.useSession()
   const canManage = can("members", "update")
   const canInvite = can("invitations", "create")
 
@@ -137,6 +141,18 @@ export default function EquipoPage() {
       })
     } finally {
       setSending(false)
+    }
+  }
+
+  async function handleResend(inv: Invitation) {
+    try {
+      await resendInvitation(inv.id)
+      await mutateInvitations()
+      toast.success("Invitación reenviada", { description: inv.email })
+    } catch (err) {
+      toast.error("No se pudo reenviar la invitación", {
+        description: friendlyError(err, "Inténtalo de nuevo en unos segundos."),
+      })
     }
   }
 
@@ -352,6 +368,15 @@ export default function EquipoPage() {
                     {roleInfo.label}
                   </span>
                   <button
+                    onClick={() => void handleResend(inv)}
+                    className="p-1.5 rounded-lg shrink-0"
+                    style={{ color: "var(--accent)", border: "none", background: "transparent", cursor: "pointer" }}
+                    title="Reenviar invitación"
+                    aria-label={`Reenviar invitación a ${inv.email}`}
+                  >
+                    <RotateCw size={14} />
+                  </button>
+                  <button
                     onClick={() => void handleRevoke(inv)}
                     className="p-1.5 rounded-lg shrink-0"
                     style={{ color: "#EF4444", border: "none", background: "transparent", cursor: "pointer" }}
@@ -448,6 +473,14 @@ export default function EquipoPage() {
         </div>
       </Modal>
 
+      {organization && (
+        <OrgDangerZone
+          orgName={organization.name}
+          isOwner={isOwner}
+          members={members}
+          currentUserEmail={session?.user?.email}
+        />
+      )}
     </div>
   )
 }

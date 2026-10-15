@@ -9,6 +9,9 @@ import { ArrowLeft, Shield, Building2, Mail, Users, UserPlus } from "lucide-reac
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
+import { platformResendVerification } from "@/lib/saas/account"
+import { SaasError } from "@/lib/saas/types"
+import { saasErrorMessage } from "@/lib/saas/services"
 
 // Roles de plataforma visibles (sin Auditor ni Facturación — demasiado granulares)
 const PLATFORM_ROLES = [
@@ -372,6 +375,25 @@ export default function UsuarioDetallePage({
         <p className="text-sm console-muted mt-1 inline-flex items-center gap-1.5">
           <Mail size={12} /> {user.email}
         </p>
+        {canUpdate && (
+          <div className="mt-2">
+            <button
+              type="button"
+              className="text-xs underline console-accent"
+              onClick={async () => {
+                try {
+                  await platformResendVerification(user.id)
+                  toast.success("Correo de verificación reenviado", { description: user.email })
+                } catch (err) {
+                  if (err instanceof SaasError && err.code === "ALREADY_VERIFIED") toast.info("Este usuario ya verificó su correo.")
+                  else toast.error("No se pudo reenviar", { description: saasErrorMessage(err) })
+                }
+              }}
+            >
+              Reenviar verificación de correo
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Negocios — solo info + link */}
