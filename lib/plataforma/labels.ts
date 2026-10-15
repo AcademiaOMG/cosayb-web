@@ -569,3 +569,19 @@ export function authRevokeReasonLabel(reason: string | null | undefined): string
   if (!reason) return ""
   return AUTH_REVOKE_REASON_LABELS[reason] ?? humanize(reason)
 }
+
+// ─── Analítica de uso: pasos del embudo de activación ───────────────────────
+
+/** Paso del embudo (`funnel.steps[].key`) → lo que hicieron las personas en ese paso. */
+export const FUNNEL_STEP_LABELS: Record<string, string> = {
+  registered: "Se registraron",
+  verified: "Verificaron su correo",
+  organization: "Crearon su negocio",
+  content: "Cargaron su primer ingrediente o receta",
+  menu: "Armaron su primer menú",
+  paid: "Pasaron a un plan de pago",
+}
+
+export function funnelStepLabel(key: string): string {
+  return FUNNEL_STEP_LABELS[key] ?? humanize(key)
+}
