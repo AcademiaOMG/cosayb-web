@@ -170,7 +170,14 @@ const realServices: SaasServices = {
       await saasData<unknown>(`${API}/billing/subscription/resume`, json({}))
       return realOverview()
     },
-    setPaymentMethod: NOT_AVAILABLE,
+    // Si el cobro estaba fallido, el API reintenta al instante con el método nuevo (402 si lo rechazan)
+    setPaymentMethod: async (input) => {
+      await saasData<unknown>(
+        `${API}/billing/subscription/payment-method`,
+        json({ method: input.type, ...(input.type === "tarjeta" && input.last4 ? { cardLast4: input.last4 } : {}) }),
+      )
+      return realOverview()
+    },
     retryPayment: NOT_AVAILABLE,
     invoices: async () => (await saasData<RawInvoice[]>(`${API}/billing/invoices`)).map(invoiceFromApi),
   },
@@ -240,8 +247,9 @@ const realServices: SaasServices = {
 }
 
 const MOCK_CAPABILITIES: SaasCapabilities = { planChange: "inline", downgrade: true, paymentMethodUpdate: true, manualRetry: true }
-// Real: el API cobra por checkout; no hay cambio directo de plan, ni actualización de método, ni reintento manual
-const REAL_CAPABILITIES: SaasCapabilities = { planChange: "checkout", downgrade: false, paymentMethodUpdate: false, manualRetry: false }
+// Real: el API cobra por checkout; no hay cambio directo de plan. Cambiar el método ya reintenta el cobro,
+// por eso no hace falta un reintento manual aparte.
+const REAL_CAPABILITIES: SaasCapabilities = { planChange: "checkout", downgrade: false, paymentMethodUpdate: true, manualRetry: false }
 
 export const saas: SaasServices = getSaasMode() === "real" ? realServices : mockServices
 export const capabilities: SaasCapabilities = getSaasMode() === "real" ? REAL_CAPABILITIES : MOCK_CAPABILITIES
