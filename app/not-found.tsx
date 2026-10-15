@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useSyncExternalStore } from "react"
 import Link from "next/link"
 import { ArrowRight, GraduationCap, BookOpen, Phone, Newspaper, Laptop, LayoutDashboard, ArrowLeft } from "lucide-react"
 import { authClient } from "@/lib/auth"
@@ -15,11 +15,12 @@ const links = [
 
 export default function NotFound() {
   const { data: session } = authClient.useSession()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // false en el servidor y en la hidratación, true ya en el navegador (evita desajustes de SSR)
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
 
   const isLoggedIn = mounted && !!session?.user
 

@@ -97,7 +97,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             userInitial={userName.charAt(0).toUpperCase()}
           />
           <AppBanners />
-          <main className="flex-1 pb-[calc(6.75rem+env(safe-area-inset-bottom))] lg:pb-6 min-w-0 overflow-x-hidden overflow-y-auto" style={{ background: "var(--bg-primary)" }}>
+          <main id="contenido" tabIndex={-1} className="flex-1 outline-none pb-[calc(6.75rem+env(safe-area-inset-bottom))] lg:pb-6 min-w-0 overflow-x-hidden overflow-y-auto" style={{ background: "var(--bg-primary)" }}>
             {/* key=pathname: cada página nueva entra con su transición (el shell no se vuelve a montar) */}
             <div key={pathname} className="anim-view">
               <AppContainer>{children}</AppContainer>

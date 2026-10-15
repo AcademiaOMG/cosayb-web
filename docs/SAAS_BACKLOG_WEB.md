@@ -74,12 +74,12 @@ Ya existe: métricas básicas, organizaciones, usuarios, roles, membresías, ban
 
 | ID | Brecha | Estado |
 |---|---|---|
-| Q1 | `error.tsx` global, `global-error.tsx`, `loading.tsx` de raíz y 404 coherente | todo |
-| Q2 | SEO: metadata por página pública, `noindex` en app/auth/checkout, sitemap y robots correctos (`/planes`, `/ayuda`, `/refunds`; sin `/plataforma`), JSON-LD de Organization/SoftwareApplication | todo |
-| Q3 | Accesibilidad: skip-link, `lang`, foco visible, `aria-live` en formularios nuevos, contraste | todo |
-| Q4 | Rendimiento: `next.config` (headers de seguridad, compresión), sin fuentes duplicadas | todo |
+| Q1 | `error.tsx` global, `global-error.tsx`, `loading.tsx` de raíz y 404 coherente | done |
+| Q2 | SEO: metadata por página pública, `noindex` en app/auth/checkout, sitemap y robots correctos (`/planes`, `/ayuda`, `/refunds`; sin `/plataforma`), JSON-LD de Organization/SoftwareApplication | done |
+| Q3 | Accesibilidad: skip-link, `lang`, foco visible, `aria-live` en formularios nuevos, contraste | partial |
+| Q4 | Rendimiento: `next.config` (headers de seguridad, compresión), sin fuentes duplicadas | done |
 | Q5 | Estados vacíos/carga/error coherentes en pantallas nuevas (`EmptyState`, `LoadingSpinner`, bloque de error con reintento) | todo |
-| Q6 | Sentry opcional por env (`NEXT_PUBLIC_SENTRY_DSN`) sin dependencia dura | todo |
+| Q6 | Sentry opcional por env (`NEXT_PUBLIC_SENTRY_DSN`) sin dependencia dura | done |
 
 ## P2 — Ingeniería y operación
 
