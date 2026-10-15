@@ -14,7 +14,6 @@ const STATUS_OPTIONS: { id: PaymentStatus | "all"; label: string }[] = [
   { id: "paid", label: "Pagados" },
   { id: "failed", label: "Fallidos" },
   { id: "pending", label: "Pendientes" },
-  { id: "refunded", label: "Reembolsados" },
 ]
 
 export default function PagosPage() {
