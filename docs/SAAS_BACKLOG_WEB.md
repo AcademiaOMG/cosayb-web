@@ -78,18 +78,19 @@ Ya existe: métricas básicas, organizaciones, usuarios, roles, membresías, ban
 | Q2 | SEO: metadata por página pública, `noindex` en app/auth/checkout, sitemap y robots correctos (`/planes`, `/ayuda`, `/refunds`; sin `/plataforma`), JSON-LD de Organization/SoftwareApplication | done |
 | Q3 | Accesibilidad: skip-link, `lang`, foco visible, `aria-live` en formularios nuevos, contraste | partial |
 | Q4 | Rendimiento: `next.config` (headers de seguridad, compresión), sin fuentes duplicadas | done |
-| Q5 | Estados vacíos/carga/error coherentes en pantallas nuevas (`EmptyState`, `LoadingSpinner`, bloque de error con reintento) | todo |
+| Q5 | Estados vacíos/carga/error coherentes en pantallas nuevas (`EmptyState`, `LoadingSpinner`, bloque de error con reintento) | done |
 | Q6 | Sentry opcional por env (`NEXT_PUBLIC_SENTRY_DSN`) sin dependencia dura | done |
 
 ## P2 — Ingeniería y operación
 
 | ID | Brecha | Estado |
 |---|---|---|
-| E1 | `.env.example` (el `.gitignore` ignora `.env*`; se añade excepción) | todo |
-| E2 | CI `.github/workflows/ci.yml`: install, tsc, lint, tests, build | todo |
-| E3 | `docs/RUNBOOK_WEB.md` | todo |
-| E4 | Tests unitarios de la capa saas, validaciones y utilidades nuevas | todo |
-| E5 | Actualizar README (rutas nuevas, variables) | todo |
+| E1 | `.env.example` (el `.gitignore` ignora `.env*`; se añade excepción) | done |
+| E2 | CI `.github/workflows/ci.yml`: install, tsc, lint, tests, build | done |
+| E3 | `docs/RUNBOOK_WEB.md` | done |
+| E4 | Tests unitarios de la capa saas, validaciones y utilidades nuevas | done |
+| E6 | Deuda: 33 errores de las reglas React Compiler en checkout, menú y marca (degradados a aviso por archivo en `eslint.config.mjs`) | todo |
+| E5 | Actualizar README (rutas nuevas, variables) | done |
 
 ## Pendiente / fuera de alcance web
 
