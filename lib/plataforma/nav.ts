@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Building2, Users, Drama, ChefHat, Carrot, ScrollText,
-  Repeat, Wallet, LifeBuoy, CreditCard,
+  Repeat, Wallet, LifeBuoy, CreditCard, History, BarChart3, ShieldAlert,
   type LucideIcon,
 } from "lucide-react"
 
@@ -62,6 +62,23 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         href: "/plataforma/membresias", label: "Membresías", icon: CreditCard,
         roles: ["platform_owner", "platform_admin", "platform_billing", "platform_readonly"],
+      },
+    ],
+  },
+  {
+    label: "Actividad",
+    items: [
+      {
+        href: "/plataforma/accesos", label: "Accesos", icon: History,
+        roles: ["platform_owner", "platform_admin", "platform_auditor", "platform_readonly"],
+      },
+      {
+        href: "/plataforma/analitica", label: "Analítica de uso", icon: BarChart3,
+        roles: ["platform_owner", "platform_admin", "platform_readonly"],
+      },
+      {
+        href: "/plataforma/vigilancia", label: "Vigilancia", icon: ShieldAlert,
+        roles: ["platform_owner", "platform_admin", "platform_auditor"],
       },
     ],
   },
