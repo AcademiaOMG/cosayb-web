@@ -563,6 +563,7 @@ export function authFailureLabel(reason: string | null | undefined): string {
 export const AUTH_REVOKE_REASON_LABELS: Record<string, string> = {
   single_session: "al iniciar sesión en otro dispositivo",
   by_user: "la cerró la propia persona",
+  by_platform: "la cerró el equipo de CO$AYB",
 }
 
 export function authRevokeReasonLabel(reason: string | null | undefined): string {
