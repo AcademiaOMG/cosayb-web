@@ -2,7 +2,7 @@
 
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
-import Badge from "@/components/ui/Badge"
+import { ModalHero, Panel, RAISED, RowList, ShareRow, Stat, StatGrid } from "@/components/ui/ModalKit"
 import { saveFactorRendimientoAsIngrediente } from "@/lib/api"
 import { useState } from "react"
 import { toast } from "@/lib/toast"
@@ -61,7 +61,8 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Detalle del ingrediente"
+      title={factor.ingredientName}
+      tinted
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cerrar</Button>
@@ -74,101 +75,50 @@ export default function YieldFactorDetailModal({ isOpen, onClose, factor, onEdit
         </div>
       }
     >
-      <div className="flex flex-col gap-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>{factor.ingredientName}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant={factor.variant === "bfactor" ? "accent" : "success"}>
-                {factor.variant === "bfactor" ? "Proteína" : "Vegetal"}
-              </Badge>
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col gap-6 pb-2">
+        <ModalHero
+          label="Cada gramo que aprovechas te cuesta"
+          value={`${formatCOP(realCostPerGram)}/g`}
+          note={`${factor.variant === "bfactor" ? "Proteína" : "Vegetal"} · rendimiento ${percent(yieldFactor * 100)}`}
+        />
 
-        {/* Lo que compraste */}
-        <div className="rounded-xl p-3" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
-          <p className="text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Lo que compraste</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso completo</p>
-              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{grams(totalWeight)}</p>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Costo total</p>
-              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{formatCOP(totalCost)}</p>
-            </div>
-          </div>
-        </div>
+        <StatGrid cols={3}>
+          <Stat label="Peso útil" value={grams(netWeight)} hint={`de ${grams(totalWeight)} comprados`} />
+          <Stat label="Rendimiento" value={percent(yieldFactor * 100)} tone="accent" />
+          <Stat label="Costo de lo comprado" value={formatCOP(totalCost)} />
+        </StatGrid>
 
-        {/* Lo que se desechó */}
         {wasteSum > 0 && (
-          <div className="rounded-xl p-3" style={{ background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.12)" }}>
-            <p className="text-xs font-medium mb-1.5" style={{ color: "#B42020" }}>Lo que se desechó</p>
-            <div className="flex flex-col gap-1.5">
+          <Panel title="Lo que se pierde" aside={`${grams(wasteSum)} · ${percent((wasteSum / totalWeight) * 100)}`}>
+            <RowList>
               {factor.wasteItems.map((w) => (
-                <div key={w.id} className="flex justify-between text-sm">
-                  <span style={{ color: "var(--text-secondary)" }}>{w.name}</span>
-                  <span className="font-mono font-semibold" style={{ color: "#B42020" }}>-{grams(parseFloat(w.weightGrams))}</span>
-                </div>
+                <ShareRow
+                  key={w.id}
+                  name={w.name}
+                  amount={grams(parseFloat(w.weightGrams))}
+                  share={totalWeight > 0 ? parseFloat(w.weightGrams) / totalWeight : undefined}
+                />
               ))}
-              <div className="flex justify-between text-sm font-semibold pt-1" style={{ borderTop: "1px solid rgba(239,68,68,0.12)" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Total desechado</span>
-                <span className="font-mono" style={{ color: "#B42020" }}>-{grams(wasteSum)} ({percent((wasteSum / totalWeight) * 100)})</span>
-              </div>
-            </div>
-          </div>
+            </RowList>
+          </Panel>
         )}
 
-        {/* Lo que realmente tienes */}
-        <div className="rounded-xl p-3" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
-          <p className="text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Lo que realmente tienes</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Peso útil</p>
-              <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{grams(netWeight)}</p>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Rendimiento</p>
-              <p className="text-base font-bold" style={{ color: "var(--accent-text)" }}>{percent(yieldFactor * 100)}</p>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Costo por gramo</p>
-              <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{formatCOP(realCostPerGram)}/g</p>
-            </div>
+        <div className="flex flex-col items-stretch gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between" style={{ ...RAISED, borderRadius: 20 }}>
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-bold" style={{ color: "var(--text-primary)", letterSpacing: "-0.01em" }}>Úsalo en tus recetas</p>
+            <p className="mt-0.5 text-sm" style={{ color: "var(--text-muted)" }}>
+              Crea «{factor.ingredientName} (LIMPIO)» en Inventario con el peso útil y este costo por gramo.
+            </p>
           </div>
+          <Button variant="primary" onClick={handleSaveAsIngredient} disabled={isSaving} className="whitespace-nowrap">
+            {isSaving ? "Creando…" : "Crear en Inventario"}
+          </Button>
         </div>
 
-        {/* Fechas */}
-        <div className="rounded-xl p-3" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
-          <p className="text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Fechas</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Creado</p>
-              <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{formatDate(factor.createdAt)}</p>
-            </div>
-            <div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Última modificación</p>
-              <p className="text-xs font-medium" style={{ color: "var(--text-primary)" }}>{formatDate(factor.updatedAt)}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Guardar como ingrediente limpio */}
-        <div className="rounded-xl p-3" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}>
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Guardar como ingrediente limpio</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                Crea o actualiza un ingrediente en la tabla de Inventario con el peso útil y costo real calculados.
-              </p>
-            </div>
-            <Button variant="primary" onClick={handleSaveAsIngredient} disabled={isSaving} className="whitespace-nowrap">
-              {isSaving ? "Guardando..." : "Crear en Inventario"}
-            </Button>
-          </div>
-        </div>
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          Calculado el {formatDate(factor.createdAt)}
+          {factor.updatedAt !== factor.createdAt ? ` · editado el ${formatDate(factor.updatedAt)}` : ""}
+        </p>
       </div>
     </Modal>
   )

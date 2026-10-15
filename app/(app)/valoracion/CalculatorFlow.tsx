@@ -112,6 +112,12 @@ export default function CalculatorFlow({
                 result={result.pricing}
                 cost={result.costoMP}
                 margin={result.margin}
+                headline={result.mode === "precio-venta" ? undefined : "Así se arma el precio del plato"}
+                answer={
+                  result.mode === "precio-venta"
+                    ? undefined
+                    : { label: MODE_META[result.mode].title, value: result.mode === "porcentaje-mp" ? `${result.value.toFixed(1).replace(".", ",")} %` : fmt(result.value) }
+                }
               />
 
               <div className="valuation-actions">
@@ -127,11 +133,8 @@ export default function CalculatorFlow({
               </div>
             </>
           ) : (
-            <div className="calc-printer" aria-hidden>
-              <div className="calc-printer-slot" />
-              <div className="calc-receipt-placeholder">
-                El desglose aparecerá aquí cuando pulses Calcular
-              </div>
+            <div className="calc-receipt-placeholder" aria-hidden>
+              El desglose aparecerá aquí cuando pulses Calcular
             </div>
           )}
         </section>

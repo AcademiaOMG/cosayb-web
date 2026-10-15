@@ -701,3 +701,25 @@ html { scroll-behavior: smooth; }
     font-size: 16px;
   }
 }
+
+/* Entradas estándar para piezas que aparecen (menús, chips, tarjetas de resultado, avisos):
+   mismas curvas y duraciones en toda la app. */
+@keyframes anim-pop-in  { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes anim-rise-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.anim-pop  { animation: anim-pop-in 0.16s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-rise { animation: anim-rise-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .anim-pop, .anim-rise { animation: none; }
+}
+
+/* Cambio de página o de vista: entra con un fundido y una subida suave, bien visible pero corta. */
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+/* fill-mode "backwards" (no "both"): al terminar no queda ningún transform en el contenedor; si quedara, los
+   elementos position:fixed de adentro (las modales) se anclarían a él y no a la pantalla. */
+.anim-view { animation: view-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .anim-view { animation: none; }
+}

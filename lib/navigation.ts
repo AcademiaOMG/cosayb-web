@@ -46,7 +46,6 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Operación",
     items: [
       { href: "/inventario", label: "Inventario", icon: Package, resource: "ingredients", action: "list", feature: "module_ingredients" },
-      { href: "/factor-rendimiento", label: "Factor de Rendimiento", shortLabel: "Rendimiento", icon: Scale, resource: "yieldFactors", action: "list", feature: "module_yieldFactors" },
       { href: "/recetas", label: "Recetas", icon: ChefHat, resource: "recipes", action: "list", feature: "module_recipes" },
       { href: "/menu", label: "Menú", icon: UtensilsCrossed, resource: "menus", action: "list", feature: "module_menus" },
     ],
@@ -56,6 +55,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/valoracion", label: "Valoración A&B", shortLabel: "Valoración", icon: TrendingUp, resource: "valuations", action: "list", feature: "module_valuations" },
       { href: "/punto-equilibrio", label: "Punto de Equilibrio", shortLabel: "Equilibrio", icon: BarChart2, resource: "breakEven", action: "list", feature: "module_breakEven" },
+      { href: "/factor-rendimiento", label: "Factor de Rendimiento", shortLabel: "Rendimiento", icon: Scale, resource: "yieldFactors", action: "list", feature: "module_yieldFactors" },
       { href: "/precios-mercado", label: "Precios de mercado", shortLabel: "Precios", icon: Tag, resource: "organization", action: "read", feature: "module_marketPrices" },
     ],
   },

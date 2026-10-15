@@ -7,32 +7,61 @@
 :root { --calc-device-w: 420px; }
 
 /* ── Desglose bajo el aparato (CalcBreakdown) ────────────────────────────── */
+/* Misma tarjeta que el desglose de Valoración: aparece suave, filas con guía punteada. */
+@keyframes calc-breakdown-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 .calc-breakdown {
-  border-radius: 14px;
-  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  padding: 20px 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--bg-surface);
+  gap: 6px;
+  background:
+    radial-gradient(90% 60% at 100% 0%, rgba(27, 79, 216, 0.06) 0%, transparent 70%),
+    #fff;
   border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  animation: calc-breakdown-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calc-breakdown { animation: none; }
 }
 .calc-breakdown-title {
-  font-size: 11px;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
+  margin-bottom: 4px;
 }
 .calc-breakdown-row {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13.5px;
-  padding-bottom: 6px;
-  border-bottom: 1px dashed var(--border-light);
+  gap: 8px;
+  font-size: 14px;
+  padding: 2px 0;
 }
-.calc-breakdown-row:last-child { border-bottom: none; padding-bottom: 0; }
-.calc-breakdown-row dt { color: var(--text-secondary); }
-.calc-breakdown-row dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; color: var(--text-primary); }
-.calc-breakdown-row.is-strong dd { color: var(--accent-text); font-weight: 700; }
+.calc-breakdown-row dt {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-secondary);
+}
+.calc-breakdown-row dt::after {
+  content: "";
+  flex: 1;
+  min-width: 8px;
+  border-bottom: 1px dashed var(--border-light);
+  transform: translateY(-3px);
+}
+.calc-breakdown-row dd { margin: 0; white-space: nowrap; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; color: var(--text-primary); }
+.calc-breakdown-row.is-strong dd { color: var(--accent-text); font-weight: 700; font-family: var(--font-display), system-ui, sans-serif; font-size: 16px; }
+@media (max-width: 640px) {
+  .calc-breakdown { padding: 18px 16px 14px; }
+  .calc-breakdown-row { font-size: 13px; }
+}

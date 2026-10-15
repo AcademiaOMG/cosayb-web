@@ -66,8 +66,9 @@ describe("Punto de Equilibrio — header con pestañas", () => {
     expect(html).toContain("Calculadora de punto de equilibrio")
     // La calculadora del kit; el boleto NO existe hasta pulsar Calcular
     expect(html).toContain("calc-device")
-    expect(html).toContain(">Calcular</button>")
-    expect(html).toContain("El resultado aparecerá aquí cuando pulses Calcular")
+    // Paso 1: se agregan costos a una lista; «Calcular» está en el paso 2
+    expect(html).toContain(">Agregar a la lista</button>")
+    expect(html).toContain("Sin costos todavía")
     expect(html).not.toContain("Unidades para cubrir costos al mes")
     expect(html).not.toContain("calc-receipt-print")
     expect(html).not.toContain("Unidades al mes")

@@ -3,17 +3,16 @@
 import useSWR from "swr"
 import { useState, useEffect } from "react"
 import {
-  BarChart2, Plus, Download, Eye, Pencil, Printer, CalendarDays,
+  BarChart2, Plus, Download, Pencil, Printer, CalendarDays,
   Calculator, History,
 } from "lucide-react"
 import PageHeader from "@/components/ui/PageHeader"
+import ViewTransition from "@/components/ui/ViewTransition"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
-import IndicatorPill from "@/components/ui/IndicatorPill"
 import { scrollMainToTop } from "@/components/calculator/scrollMainToTop"
 import EmptyState from "@/components/ui/EmptyState"
-import Table from "@/components/ui/Table"
-import { indicatorFromMC } from "@/lib/indicator"
+import DataList, { RowAction } from "@/components/ui/DataList"
 import type { BreakEvenRecord } from "@/types/domain"
 import { createBreakEven, getBreakEvenHistory, exportBreakEvenExcel } from "@/lib/api"
 import { useHelpAvailable } from "@/hooks/useHelpAvailable"
@@ -45,11 +44,6 @@ function dailyOf(record: BreakEvenRecord) {
     unitsPerDay: perDay(record.breakEvenUnits),
     revenuePerDay: perDay(record.breakEvenRevenue),
   }
-}
-
-/** Margen de contribución % (0–100) — base del semáforo (espejo PO 68/63). */
-function mcPctOf(record: Pick<BreakEvenRecord, "contributionMargin" | "salePrice">) {
-  return (record.contributionMargin / record.salePrice) * 100
 }
 
 function printRecord(record: BreakEvenRecord) {
@@ -132,74 +126,47 @@ function HistoryTable({
   onView: (r: BreakEvenRecord) => void
   onReuse: (r: BreakEvenRecord) => void
 }) {
-  const money = (v: unknown) => (
-    <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>{formatCOP(v as number)}</span>
-  )
+  const margin = (r: BreakEvenRecord) => r.salePrice - r.variableCost
   return (
-    <Table
-      rowKey="id"
-      data={records as unknown as Record<string, unknown>[]}
-      onRowClick={(row) => onView(row as unknown as BreakEvenRecord)}
+    <DataList
+      ariaLabel="Cálculos de punto de equilibrio guardados"
+      rows={records}
+      rowKey={(r) => r.id}
+      onOpen={onView}
+      openLabel={(r) => `Ver cálculo del ${formatDate(r.createdAt)}`}
+      actionsWidth="5.5rem"
       columns={[
-        {
-          key: "createdAt",
-          label: "Fecha",
-          render: (v) => (
-            <div className="flex items-center gap-1.5 font-medium" style={{ color: "var(--text-primary)" }}>
-              <CalendarDays size={13} style={{ color: "var(--text-muted)" }} />
-              {formatDate(v as string)}
-            </div>
-          ),
-        },
-        {
-          key: "breakEvenUnits",
-          label: "Unidades al mes",
-          render: (v) => (
-            <span className="tabular-nums text-sm font-semibold" style={{ color: "var(--accent-text)" }}>
-              {formatNumber(v as number, 2)}
-            </span>
-          ),
-        },
-        { key: "totalFixedCosts", label: "Costos fijos", render: money },
-        { key: "salePrice", label: "Precio de venta", render: money },
-        { key: "variableCost", label: "Costo variable", render: money },
-        {
-          key: "contributionMargin",
-          label: "Indicador",
-          render: (_v, row) => <IndicatorPill indicator={indicatorFromMC(mcPctOf(row as unknown as BreakEvenRecord))} />,
-        },
-        {
-          key: "id",
-          label: "",
-          render: (_v, row) => {
-            const record = row as unknown as BreakEvenRecord
-            return (
-              <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={() => onView(record)}
-                  title="Ver cálculo"
-                  aria-label={`Ver cálculo del ${formatDate(record.createdAt)}`}
-                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  <Eye size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onReuse(record)}
-                  title="Usar como base para un nuevo cálculo"
-                  aria-label={`Reutilizar el cálculo del ${formatDate(record.createdAt)}`}
-                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  <Pencil size={14} />
-                </button>
-              </div>
-            )
-          },
-        },
+        { label: "Fecha", width: "minmax(0,1fr)", render: (r) => <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{formatDate(r.createdAt)}</span> },
+        { label: "Costos fijos", width: "8.5rem", align: "right", render: (r) => formatCOP(r.totalFixedCosts) },
+        { label: "Precio de venta", width: "8.5rem", align: "right", render: (r) => formatCOP(r.salePrice) },
+        { label: "Costo variable", width: "8.5rem", align: "right", render: (r) => formatCOP(r.variableCost) },
+        { label: "Margen por unidad", width: "8.5rem", align: "right", render: (r) => formatCOP(margin(r)) },
+        { label: "Unidades al mes", width: "8rem", align: "right", strong: true, render: (r) => formatNumber(r.breakEvenUnits, 2) },
+        { label: "Ventas al mes", width: "9rem", align: "right", render: (r) => formatCOP(r.breakEvenRevenue) },
       ]}
+      actions={(r) => (
+        <RowAction label={`Usar el cálculo del ${formatDate(r.createdAt)} como base de uno nuevo`} onClick={() => onReuse(r)}>
+          <Pencil size={14} />
+        </RowAction>
+      )}
+      mobile={(r) => (
+        <div className="flex flex-col gap-2.5">
+          <span className="text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>{formatDate(r.createdAt)}</span>
+          <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden tabular-nums" style={{ background: "var(--border-light)", borderRadius: "var(--radius-md)" }}>
+            <div className="flex flex-col gap-0.5 px-3 py-2" style={{ background: "var(--bg-primary)" }}>
+              <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Unidades al mes</dt>
+              <dd className="m-0 text-[15px] font-bold" style={{ color: "var(--text-primary)" }}>{formatNumber(r.breakEvenUnits, 2)}</dd>
+            </div>
+            <div className="flex flex-col gap-0.5 px-3 py-2" style={{ background: "var(--bg-primary)" }}>
+              <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Ventas al mes</dt>
+              <dd className="m-0 text-[15px]" style={{ color: "var(--text-secondary)" }}>{formatCOP(r.breakEvenRevenue)}</dd>
+            </div>
+          </dl>
+          <p className="m-0 text-[12.5px] tabular-nums" style={{ color: "var(--text-muted)" }}>
+            Precio {formatCOP(r.salePrice)} · costo variable {formatCOP(r.variableCost)}
+          </p>
+        </div>
+      )}
     />
   )
 }
@@ -362,7 +329,7 @@ export default function PuntoEquilibrioPage() {
           <ul className="flex flex-col gap-2 ml-1">
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Costos fijos:</strong> lo que pagas cada mes aunque no vendas. Ya están los del Excel (Arriendo, Sueldos, Agua…): toca uno y escribe su monto con el teclado; el lápiz cambia su nombre y «Otro costo» agrega uno nuevo. El total se suma solo.</span>
+              <span><strong>Costos fijos:</strong> lo que pagas cada mes aunque no vendas. Ya están los del Excel (Arriendo, Sueldos, Agua…): elige el tipo de costo con las teclas, escribe su monto y pulsa «Agregar a la lista»; si no está, usa «Nuevo concepto». El total se suma solo en la lista de la derecha.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
@@ -459,6 +426,7 @@ export default function PuntoEquilibrioPage() {
         }
       />
 
+      <ViewTransition key={view}>
       {view === "calculator" ? (
         <CalculatorView
           // Reiniciar la calculadora al cambiar de base (nuevo / reutilizar)
@@ -504,6 +472,7 @@ export default function PuntoEquilibrioPage() {
       )}
         </>
       )}
+      </ViewTransition>
 
       {helpModal}
 
@@ -514,6 +483,7 @@ export default function PuntoEquilibrioPage() {
         title="Cálculo de punto de equilibrio"
         wide
         blur
+        tinted
         footer={
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <Button variant="ghost" className="w-full sm:w-auto" onClick={() => viewing && printRecord(viewing)}>

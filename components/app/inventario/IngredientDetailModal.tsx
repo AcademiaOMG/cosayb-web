@@ -2,7 +2,7 @@
 
 import { Pencil, Trash2 } from "lucide-react"
 import Modal from "@/components/ui/Modal"
-import Badge from "@/components/ui/Badge"
+import { FactRow, ModalHero, RAISED, Stat, StatGrid } from "@/components/ui/ModalKit"
 import Button from "@/components/ui/Button"
 import type { Ingredient } from "@/types/ingredient"
 import {
@@ -38,19 +38,6 @@ function formatDate(dateStr: string | null | undefined): string | null {
   })
 }
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 py-2.5">
-      <dt className="text-sm" style={{ color: "var(--text-muted)" }}>
-        {label}
-      </dt>
-      <dd className="text-right text-sm font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
-        {value}
-      </dd>
-    </div>
-  )
-}
-
 export default function IngredientDetailModal({ ingredient, onClose, onEdit, onDelete }: Props) {
   if (!ingredient) return null
 
@@ -66,6 +53,7 @@ export default function IngredientDetailModal({ ingredient, onClose, onEdit, onD
       open
       onClose={onClose}
       title={displayName(ingredient.name)}
+      tinted
       footer={
         canEdit || canDelete ? (
           <div className="flex items-center justify-between gap-3">
@@ -101,47 +89,35 @@ export default function IngredientDetailModal({ ingredient, onClose, onEdit, onD
         ) : undefined
       }
     >
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-wrap gap-1.5">
-          <Badge variant={own ? "accent" : "muted"}>{own ? "Ingrediente propio" : "Banco general"}</Badge>
-          {ingredient.category && <Badge variant="muted">{ingredient.category}</Badge>}
-          {status === "stale" && <Badge variant="warning">Precio desactualizado</Badge>}
-          {status === "pending" && <Badge variant="muted">Precio sin confirmar</Badge>}
-        </div>
+      <div className="flex flex-col gap-6 pb-2">
+        <ModalHero
+          label="Costo por gramo"
+          value={`${formatPerGram(ingredient.costPerGram)}/g`}
+          note={[own ? "Ingrediente propio" : "Banco general", ingredient.category].filter(Boolean).join(" · ")}
+          aside={
+            status === "stale" ? (
+              <p className="text-right text-sm font-semibold" style={{ color: "#B7791F" }}>
+                Precio desactualizado
+              </p>
+            ) : undefined
+          }
+        />
 
-        {/* La cifra que se usa para costear recetas */}
-        <div className="flex flex-col gap-1">
-          <span className="text-sm" style={{ color: "var(--text-muted)" }}>
-            Costo por gramo
-          </span>
-          <span className="text-4xl font-bold tabular-nums leading-none" style={{ color: "var(--text-primary)" }}>
-            {formatPerGram(ingredient.costPerGram)}
-            <span className="ml-1 text-lg font-semibold" style={{ color: "var(--text-muted)" }}>
-              /g
-            </span>
-          </span>
-        </div>
+        <StatGrid cols={3}>
+          <Stat label="Costo unidad" value={formatCOP(ingredient.costPerUnit)} />
+          <Stat label="Peso unidad" value={formatGrams(ingredient.weightGrams)} />
+          <Stat label="Costo por kilo" value={formatCOP(costPerGram * 1000)} />
+        </StatGrid>
 
-        <dl
-          className="flex flex-col px-4 py-1"
-          style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-md)" }}
-        >
-          <Row label="Costo unidad" value={formatCOP(ingredient.costPerUnit)} />
-          <Row label="Peso unidad" value={formatGrams(ingredient.weightGrams)} />
-          <Row label="Costo por kilo" value={formatCOP(costPerGram * 1000)} />
-          {ingredient.priceSource && (
-            <Row label="Fuente del precio" value={SOURCE_LABEL[ingredient.priceSource] ?? ingredient.priceSource} />
-          )}
-          {ingredient.sipsaMatchName && <Row label="Nombre en el mercado" value={ingredient.sipsaMatchName} />}
-          {confirmedAt && <Row label="Precio confirmado" value={confirmedAt} />}
-          {own && <Row label="Visible para otros" value={ingredient.isPublic ? "Sí" : "No"} />}
-        </dl>
-
-        {!own && (
-          <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-            Este ingrediente es del banco general y no se puede editar. Si tu precio es distinto,
-            créalo como ingrediente propio.
-          </p>
+        {(ingredient.priceSource || ingredient.sipsaMatchName || confirmedAt || own) && (
+          <dl className="m-0 px-5 py-3" style={{ ...RAISED, borderRadius: 20 }}>
+            {ingredient.priceSource && (
+              <FactRow label="Fuente del precio" value={SOURCE_LABEL[ingredient.priceSource] ?? ingredient.priceSource} />
+            )}
+            {ingredient.sipsaMatchName && <FactRow label="Nombre en el mercado" value={ingredient.sipsaMatchName} />}
+            {confirmedAt && <FactRow label="Precio confirmado" value={confirmedAt} />}
+            {own && <FactRow label="Visible para otros" value={ingredient.isPublic ? "Sí" : "No"} />}
+          </dl>
         )}
       </div>
     </Modal>

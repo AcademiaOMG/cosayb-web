@@ -287,18 +287,51 @@
 .rw-q:focus { outline: none; }
 .rw-soft { color: var(--rw-muted); }
 
-/* Resumen de lo ya decidido (pasos 3 y 4) */
+/* Resumen de lo ya decidido (pasos 3 y 4): nombre y cifras en mosaicos */
 .rw-recap {
   margin: 0;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--text-secondary);
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.rw-recap strong { color: var(--text-primary); }
+.rw-recap-name {
+  margin: 0;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+.rw-recap-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+.rw-recap-stats > div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+}
+.rw-recap-stats dt {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.rw-recap-stats dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
 
 .rw-field-error { margin: 6px 2px 0; font-size: 12.5px; font-weight: 600; color: #B42020; }
 .rw-q {

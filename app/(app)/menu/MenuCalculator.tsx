@@ -59,7 +59,7 @@ function isTypingTarget(el: EventTarget | null) {
  * elige Recetas o Extras (bebidas, vasos, platos, acompañamientos…), se busca en el select, se escriben los gramos
  * (o unidades) por porción con el teclado y se pulsa "Agregar a la lista",
  * que comparte fila con los gramos; el producto queda en la
- * lista de la derecha y "Calcular" muestra el resultado en su modal.
+ * lista de la derecha y "Calcular" imprime el desglose bajo esa lista.
  */
 export default function MenuCalculator({
   values,
@@ -101,7 +101,7 @@ export default function MenuCalculator({
   onExtraUpdated?: (extra: Ingrediente) => void
   onChange: (field: "persons" | "margin" | "pctMP", raw: string) => void
   onAddItem: (item: MenuCalcAdd) => void
-  /** Abre el modal con el resultado del cálculo del menú */
+  /** Imprime el desglose del cálculo del menú */
   onCalculate: () => void
 }) {
   const regs = useCalcRegisters<MenuCalcField>(ENTRY, { ...values, grams: "" }, "persons")

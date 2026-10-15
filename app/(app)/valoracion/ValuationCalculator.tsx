@@ -6,7 +6,6 @@ import SearchableSelect from "@/components/ui/SearchableSelect"
 import { CalcActionKey, CalcDevice, CalcDisplay, CalcKeypad, CalcRegister } from "@/components/calculator"
 import { entryKeyFromKeyboard, formatMoneyEntry, formatPercentEntry } from "@/lib/calculator/entry"
 import type { Recipe } from "@/types/domain"
-import { useCountUp } from "./useCountUp"
 import { FIELD_META, MODE_META, describeMissing, fmt, type CalculatorMode } from "./lib"
 import type { RegisterField, ValuationCalculatorState } from "./useValuationCalculator"
 
@@ -45,7 +44,6 @@ export default function ValuationCalculator({
 
   const result = outcome?.ok ? outcome : null
   const error = outcome && !outcome.ok ? outcome : null
-  const animated = useCountUp(result ? result.value : 0)
 
   // Teclado físico sin tener que hacer clic en un campo primero: si el foco no
   // está en otro control de texto (ni hay un diálogo abierto), las teclas
@@ -87,7 +85,7 @@ export default function ValuationCalculator({
   let announce = ""
   if (result) {
     displayTone = "result"
-    displayValue = formatResult(mode, animated)
+    displayValue = formatResult(mode, result.value)
     displaySub = ""
     announce = `${meta.title}: ${formatResult(mode, result.value)}`
   } else if (error) {

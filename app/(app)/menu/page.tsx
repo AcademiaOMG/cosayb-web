@@ -5,22 +5,25 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
-import Table from "@/components/ui/Table"
 import Modal from "@/components/ui/Modal"
 import ExtraTag from "@/components/ui/ExtraTag"
 import {
-  Plus, Trash2, UtensilsCrossed, ChefHat, Users, Calculator, History,
-  Loader2, CalendarDays, Pencil, Eye, ShoppingCart, Printer, StickyNote, ArrowLeftCircle,
+  Plus, Trash2, UtensilsCrossed, ChefHat,
+  Loader2, Pencil, ShoppingCart, Printer, ArrowLeftCircle,
 } from "lucide-react"
-import { scrollMainToTop } from "@/components/calculator/scrollMainToTop"
 import RecipePickerModal from "@/components/app/recipes/RecipePickerModal"
+import CalcModal from "@/components/calculator/CalcModal"
 import ExtraCreateModal from "./ExtraCreateModal"
+import MenuTable from "./MenuTable"
+import MenuSearchBar, { profitOf, sizeOf, type MenuProfit, type MenuSize } from "./MenuSearchBar"
 import MenuCalculator, { type MenuCalcAdd } from "./MenuCalculator"
-import MenuFicha from "./MenuFicha"
+import MenuDetail from "./MenuDetail"
+import { Panel, RAISED } from "@/components/ui/ModalKit"
+import MenuTicket from "./MenuTicket"
 import { IND, fmt } from "./menuFormat"
 import { menuUnitCost, menuUnitOf, unitShort } from "@/lib/menuExtras"
 import { calcularCosto } from "@/lib/menuFicha"
-import type { Menu, Recipe, Ingrediente, MenuIndicator } from "@/types/domain"
+import type { Menu, Recipe, Ingrediente } from "@/types/domain"
 import {
   getMenus, getMenuById, getMenuCosto, createMenu, updateMenu, deleteMenu,
   getRecipes, getRecipeCost, getIngredientes, getListaCompras,
@@ -35,9 +38,6 @@ import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const fmtDate = (d: string) =>
-  new Date(d + "T12:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
-
 /** Hoy en fecha local (YYYY-MM-DD): los menús nuevos se guardan con esta. */
 const hoyLocal = () => {
   const d = new Date()
@@ -401,6 +401,20 @@ function DetailView({
     }
   }
 
+  const fichaItems = validItems.map((item) => {
+    const cantidad = parseFloat(item.cantidadGramos)
+    const porPorcion = item.costoGramo !== null ? cantidad * item.costoGramo : (item.rawCostPerServing ?? 0)
+    const ing = item.componentType === "ingredient" ? availableIngredients.find((i) => i.id === item.ingredientId) : undefined
+    return {
+      key: item.uid,
+      nombre: item.nombre,
+      extra: item.componentType === "ingredient",
+      cantidad,
+      unidad: (item.componentType === "ingredient" ? (ing ? menuUnitOf(ing) : "und") : "g") as "g" | "ml" | "und" | "porcion",
+      costoUnit: item.costoGramo ?? porPorcion / cantidad,
+    }
+  })
+
   return (
     <div className="flex flex-col gap-0">
 
@@ -622,6 +636,7 @@ function DetailView({
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)", color: "var(--text-primary)" }}
             />
           </Card>
+
           </div>
         </div>
       </div>
@@ -645,80 +660,62 @@ function DetailView({
         onSelect={handlePickRecipe}
       />
 
-      {/* ── Modal: resultado del cálculo (fondo desenfocado) ── */}
+      {/* ── Modal: resultado del cálculo — recibo que se imprime, con detalle plegable y el nombre arriba ── */}
       <Modal
         open={resultOpen}
         onClose={() => setResultOpen(false)}
-        title="Resultado del cálculo"
+        title="Resultado del menú"
         wide
         blur
         footer={
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <div className="min-w-0 flex-1 sm:max-w-sm">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setResultOpen(false)}>
+              Cerrar
+            </Button>
+            <Button
+              variant="primary"
+              className="w-full sm:w-auto"
+              loading={saving}
+              disabled={!nombre.trim() || validItems.length === 0 || success}
+              onClick={handleSave}
+            >
+              {isNew ? "Guardar menú" : "Guardar cambios"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-5">
+          {/* El nombre va PRIMERO y con su etiqueta: es lo único que hay que escribir para guardar */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="menu-name" className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+              Nombre del menú
+            </label>
+            <div className="relative">
               <input
+                id="menu-name"
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 maxLength={120}
-                placeholder="Nombre del menú (ej. Cumpleaños de Tuty)"
-                aria-label="Nombre del menú"
+                placeholder="Ej. Menú ejecutivo"
                 disabled={success}
-                className="w-full h-10 rounded-xl px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                aria-invalid={error && !nombre.trim() ? true : undefined}
+                className="h-12 w-full rounded-xl pl-3.5 pr-10 text-base font-semibold outline-none transition-colors focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_var(--accent-light)]"
                 style={{
                   background: "var(--bg-surface)",
-                  border: `1px solid ${error && !nombre.trim() ? "var(--error)" : "var(--border-medium)"}`,
+                  border: `1.5px solid ${error && !nombre.trim() ? "var(--error)" : "var(--border-medium)"}`,
                   color: "var(--text-primary)",
                 }}
               />
-              {error && !success && (
-                <span role="alert" className="text-xs mt-1 block break-words" style={{ color: "var(--error)" }}>{error}</span>
-              )}
+              <Pencil size={15} aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
-              <Button variant="ghost" className="w-full sm:w-auto" onClick={() => setResultOpen(false)}>
-                Cerrar
-              </Button>
-              <Button
-                variant="primary"
-                className="w-full sm:w-auto"
-                loading={saving}
-                disabled={!nombre.trim() || validItems.length === 0 || success}
-                onClick={handleSave}
-              >
-                {isNew ? "Guardar menú" : "Guardar cambios"}
-              </Button>
-            </div>
+            {error && !success && (
+              <span role="alert" className="text-xs break-words" style={{ color: "var(--error)" }}>{error}</span>
+            )}
           </div>
-        }
-      >
-        {costo && (
-          <div className="flex flex-col gap-5">
-            <MenuFicha
-              costo={costo}
-              numPersonas={nPers}
-              margenPct={margin}
-              pctMP={pctMP}
-              items={validItems.map((item) => {
-                const cantidad = parseFloat(item.cantidadGramos)
-                const porPorcion = item.costoGramo !== null
-                  ? cantidad * item.costoGramo
-                  : (item.rawCostPerServing ?? 0)
-                return {
-                  key: item.uid,
-                  nombre: item.nombre,
-                  extra: item.componentType === "ingredient",
-                  cantidad,
-                  unidad: (item.componentType === "ingredient"
-                    ? (availableIngredients.find((i) => i.id === item.ingredientId)
-                        ? menuUnitOf(availableIngredients.find((i) => i.id === item.ingredientId)!)
-                        : "und")
-                    : "g") as "g" | "ml" | "und" | "porcion",
-                  costoUnit: item.costoGramo ?? porPorcion / cantidad,
-                }
-              })}
-            />
-          </div>
-        )}
+
+          {costo && <MenuTicket costo={costo} numPersonas={nPers} margenPct={margin} pctMP={pctMP} items={fichaItems} />}
+        </div>
       </Modal>
     </div>
   )
@@ -762,6 +759,7 @@ function MenuViewModal({
       title={subview === "compras" ? `Lista de compras — ${data?.nombre ?? ""}` : (data?.nombre ?? "Ver menú")}
       wide
       blur
+      tinted
       footer={
         subview === "compras" ? (
           <ShoppingListFooter menuId={menuId} onBack={() => setSubview("detalle")} />
@@ -796,28 +794,22 @@ function MenuViewModal({
 
       {/* ═══ Subvista: detalle ═══ */}
       {data && subview === "detalle" && (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6 pb-2">
           {data.costo ? (
-            <>
-              <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
-                <CalendarDays size={14} />
-                <span>Menú del <strong style={{ color: "var(--text-secondary)" }}>{fmtDate(data.fecha)}</strong></span>
-              </div>
-              <MenuFicha
-                costo={data.costo}
-                numPersonas={data.numPersonas}
-                margenPct={parseFloat(data.margenSeguridad) || 0}
-                pctMP={pctMP}
-                items={items.map((item) => ({
-                  key: item.recipeId,
-                  nombre: item.nombre,
-                  extra: item.tipo === "ingredient",
-                  cantidad: item.cantidadGramos,
-                  unidad: item.unidad ?? "g",
-                  costoUnit: item.costoGramo,
-                }))}
-              />
-            </>
+            <MenuDetail
+              costo={data.costo}
+              numPersonas={data.numPersonas}
+              margenPct={parseFloat(data.margenSeguridad) || 0}
+              pctMP={pctMP}
+              items={items.map((item) => ({
+                key: item.recipeId,
+                nombre: item.nombre,
+                extra: item.tipo === "ingredient",
+                cantidad: item.cantidadGramos,
+                unidad: item.unidad ?? "g",
+                costoUnit: item.costoGramo,
+              }))}
+            />
           ) : (
             <p className="text-sm text-center py-10" style={{ color: "var(--text-muted)" }}>
               Sin análisis de costo disponible.
@@ -825,15 +817,11 @@ function MenuViewModal({
           )}
 
           {data.notas && (
-            <div className="rounded-2xl px-4 py-3" style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <StickyNote size={14} style={{ color: "var(--text-muted)" }} />
-                <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
-                  NOTAS
-                </p>
-              </div>
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{data.notas}</p>
-            </div>
+            <Panel title="Notas">
+              <p className="px-5 py-4 text-sm leading-relaxed" style={{ color: "var(--text-secondary)", ...RAISED, borderRadius: 20 }}>
+                {data.notas}
+              </p>
+            </Panel>
           )}
         </div>
       )}
@@ -986,190 +974,7 @@ function ShoppingListFooter({
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TARJETA DE MENÚ (vista lista)
-// ═══════════════════════════════════════════════════════════════════════════════
-function MenuCard({ menu, onClick, onDelete }: {
-  menu: Menu
-  onClick: () => void
-  onDelete: () => void
-}) {
-  const pctMP = parseFloat(menu.pctMateriaPrima)
-  const ind: MenuIndicator = pctMP < 32 ? "MUY_BUENO" : pctMP > 37 ? "MALO" : "REGULAR"
-  const cfg = IND[ind]
-  return (
-    <div
-      className="rounded-2xl p-4 cursor-pointer transition-shadow hover:shadow-md flex flex-col gap-3"
-      style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
-      onClick={onClick}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-base truncate" style={{ color: "var(--text-primary)" }}>
-            {menu.nombre}
-          </p>
-          <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
-            {fmtDate(menu.fecha)}
-          </p>
-        </div>
-        <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
-          style={{ background: cfg.bg, color: cfg.text }}>
-          {cfg.label}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-4 text-sm" style={{ color: "var(--text-muted)" }}>
-        <div className="flex items-center gap-1.5">
-          <Users size={13} />
-          <span>{menu.numPersonas} personas</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <ChefHat size={13} />
-          <span>{menu.recetas.length} receta{menu.recetas.length !== 1 ? "s" : ""}</span>
-        </div>
-        <span className="ml-auto text-xs">{pctMP}% MP</span>
-      </div>
-
-      <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={onDelete}
-          title="Eliminar menú"
-          aria-label={`Eliminar ${menu.nombre}`}
-          className="text-xs transition-opacity hover:opacity-70"
-          style={{ color: "var(--text-muted)" }}
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Tabla de menús ───────────────────────────────────────────────────────────
-function MenuTable({
-  menus,
-  onView,
-  onEdit,
-  onDelete,
-}: {
-  menus: Menu[]
-  onView: (m: Menu) => void
-  onEdit: (m: Menu) => void
-  onDelete: (menu: Menu) => void
-}) {
-  return (
-    <Table
-      rowKey="id"
-      data={menus as unknown as Record<string, unknown>[]}
-      onRowClick={(row) => onView(row as unknown as Menu)}
-      columns={[
-        {
-          key: "nombre",
-          label: "Nombre",
-          render: (v) => (
-            <span className="font-medium" style={{ color: "var(--text-primary)" }}>{v as string}</span>
-          ),
-        },
-        {
-          key: "fecha",
-          label: "Fecha evento",
-          render: (v) => (
-            <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-              <CalendarDays size={13} style={{ color: "var(--text-muted)" }} />
-              {fmtDate(v as string)}
-            </div>
-          ),
-        },
-        {
-          key: "numPersonas",
-          label: "Personas",
-          render: (v) => (
-            <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-              <Users size={13} style={{ color: "var(--text-muted)" }} />
-              {String(v)}
-            </div>
-          ),
-        },
-        {
-          key: "recetasCount",
-          label: "Recetas",
-          render: (v, row) => {
-            const menu = row as unknown as Menu
-            const n = (v as number | undefined) ?? menu.recetas?.length ?? 0
-            return (
-              <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
-                <ChefHat size={13} style={{ color: "var(--text-muted)" }} />
-                {n}
-              </div>
-            )
-          },
-        },
-        {
-          key: "pctMateriaPrima",
-          label: "% MP",
-          render: (v) => (
-            <span className="tabular-nums text-sm" style={{ color: "var(--text-secondary)" }}>
-              {parseFloat(v as string).toFixed(0)}%
-            </span>
-          ),
-        },
-        {
-          key: "indicator",
-          label: "Indicador",
-          render: (v) => {
-            const pct = parseFloat(v as string)
-            const ind: MenuIndicator = pct < 32 ? "MUY_BUENO" : pct > 37 ? "MALO" : "REGULAR"
-            const cfg = IND[ind]
-            return (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
-                style={{ background: cfg.bg, color: cfg.text }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.color }} />
-                {cfg.label}
-              </span>
-            )
-          },
-        },
-        {
-          key: "id",
-          label: "",
-          render: (_v, row) => {
-            const menu = row as unknown as Menu
-            return (
-              <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => onView(menu)}
-                  title="Ver menú"
-                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  <Eye size={14} />
-                </button>
-                <button
-                  onClick={() => onEdit(menu)}
-                  title="Editar menú"
-                  className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-secondary)]"
-                  style={{ color: "var(--text-muted)" }}
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  onClick={() => onDelete(menu)}
-                  title="Eliminar menú"
-                  className="p-1.5 rounded-lg transition-colors hover:opacity-70"
-                  style={{ color: "var(--error)" }}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            )
-          },
-        },
-      ]}
-    />
-  )
-}
-
-// ─── Skeleton de tabla ────────────────────────────────────────────────────────
+ // ─── Skeleton de tabla ────────────────────────────────────────────────────────
 function MenuListSkeleton() {
   return (
     <div className="w-full overflow-hidden rounded-xl animate-pulse" style={{ border: "1px solid var(--border-light)" }}>
@@ -1218,8 +1023,6 @@ function MenuListSkeleton() {
 // ═══════════════════════════════════════════════════════════════════════════════
 // PÁGINA PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════════
-type PageView = "list" | "detail"
-
 export default function MenuPage() {
   useHelpAvailable()
   const { can, hasFeature, featureLockedMessage, isLoading: permsLoading } = usePermissions()
@@ -1246,10 +1049,12 @@ export default function MenuPage() {
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   )
 
-  // Al cargar, la pestaña inicial es la Calculadora (si el rol puede crear
-  // menús); el Historial solo se muestra al elegirlo o si no hay permiso.
-  const [chosenView, setView] = useState<PageView | null>(null)
-  const view: PageView = chosenView ?? (can("menus", "create") ? "detail" : "list")
+  // La vista principal es la lista de menús; crear o editar uno abre la calculadora en una ventana
+  const [editorOpen, setEditorOpen] = useState(false)
+  // Búsqueda y filtros de la lista (mismo patrón que Recetas e Inventario)
+  const [search, setSearch] = useState("")
+  const [profitFilter, setProfitFilter] = useState<MenuProfit | undefined>()
+  const [sizeFilter, setSizeFilter] = useState<MenuSize | undefined>()
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const [viewingMenuId, setViewingMenuId] = useState<string | null>(null)
@@ -1263,25 +1068,6 @@ export default function MenuPage() {
     return () => window.removeEventListener("open-help", handleHelp)
   }, [])
 
-  /** Cambio de pestaña: salir de la calculadora con datos sin guardar pide confirmación. */
-  async function switchView(next: PageView) {
-    if (next === view) return
-    if (next === "list" && calcDirty) {
-      const ok = await confirm({
-        title: "Salir sin guardar",
-        description: "Lo que escribiste no se ha guardado y se perderá si sales.",
-        confirmLabel: "Salir sin guardar",
-        cancelLabel: "Seguir editando",
-        variant: "danger",
-      })
-      if (!ok) return
-      setCalcDirty(false)
-    }
-    if (next === "detail") setCalcDirty(false)
-    setView(next)
-    scrollMainToTop()
-  }
-
   async function openEdit(menu: Menu) {
     try {
       const res = await getMenuById(menu.id)
@@ -1289,12 +1075,19 @@ export default function MenuPage() {
     } catch {
       setEditingMenu(menu)
     }
-    switchView("detail")
+    setCalcDirty(false)
+    setEditorOpen(true)
   }
 
   function openCreate() {
     setEditingMenu(null)
-    switchView("detail")
+    setCalcDirty(false)
+    setEditorOpen(true)
+  }
+
+  function closeEditor() {
+    setEditorOpen(false)
+    setCalcDirty(false)
   }
 
   async function handleDelete(menu: Menu) {
@@ -1320,11 +1113,22 @@ export default function MenuPage() {
 
   async function handleSaved() {
     setCalcDirty(false)
+    setEditorOpen(false)
     await mutateMenus()
     revalidateOnboarding()
-    setView("list")
-    scrollMainToTop()
   }
+
+  const normalize = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim()
+  const profitCounts: Record<MenuProfit, number> = { MUY_BUENO: 0, REGULAR: 0, MALO: 0 }
+  for (const m of menus) profitCounts[profitOf(parseFloat(m.pctMateriaPrima))]++
+  const q = normalize(search)
+  const filteredMenus = menus.filter(
+    (m) =>
+      (!q || normalize(m.nombre).includes(q)) &&
+      (!profitFilter || profitOf(parseFloat(m.pctMateriaPrima)) === profitFilter) &&
+      (!sizeFilter || sizeOf(m.numPersonas) === sizeFilter),
+  )
+  const hasFilters = !!q || !!profitFilter || !!sizeFilter
 
   // Mientras cargan los permisos no se sabe si el módulo está habilitado —
   // no mostrar "módulo bloqueado" por un instante a quien sí lo tiene.
@@ -1334,29 +1138,22 @@ export default function MenuPage() {
     return <ModuleLocked message={featureLockedMessage("module_menus")} />
   }
 
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    borderRadius: "var(--radius-sm)",
-    ...(active
-      ? { background: "var(--bg-surface)", color: "var(--text-primary)", boxShadow: "var(--shadow-sm)" }
-      : { color: "var(--text-muted)" }),
-  })
-
   // La ayuda debe abrir también dentro de la calculadora (el botón de la app sigue visible).
   const helpModal = (
     <Modal open={helpOpen} onClose={() => setHelpOpen(false)} title="Menús" blur>
       <div className="flex flex-col gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-        <p>Esta sección te permite crear y gestionar menús para eventos y servicios, agrupando platos y calculando costos.</p>
+        <p>Un menú es un compendio de platos y extras con su costo y su precio de venta por persona. Puedes tener todos los menús que necesites.</p>
 
         <div>
           <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Cómo usarla:</p>
           <ul className="flex flex-col gap-2 ml-1">
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Calculadora:</strong> en las pestañas del encabezado toca &quot;Calculadora&quot; para armar un menú nuevo. Para retomar uno guardado, ábrelo desde el historial con &quot;Editar&quot;.</span>
+              <span><strong>Nuevo menú:</strong> toca &quot;Nuevo menú&quot; para armarlo en la calculadora. Para retomar uno guardado, usa el lápiz de su fila.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Parámetros:</strong> número de personas, margen de seguridad y % de materia prima se ajustan con el teclado de la calculadora; la fecha se pone sola al guardar el menú.</span>
+              <span><strong>Parámetros:</strong> número de personas, margen de seguridad y % de materia prima se ajustan con el teclado de la calculadora.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
@@ -1364,11 +1161,11 @@ export default function MenuPage() {
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Calcular:</strong> pulsa &quot;Calcular&quot; y el resultado se abre en un modal: precio sugerido, indicador de rentabilidad, reparto de precios y el desglose por plato. Desde ahí guarda el menú.</span>
+              <span><strong>Calcular:</strong> pulsa &quot;Calcular&quot; y el resultado se abre en un recibo: precio sugerido, gráfico de reparto del precio y el desglose por plato. Ahí le pones nombre y guardas el menú.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
-              <span><strong>Historial:</strong> en la pestaña &quot;Historial&quot; consulta tus menús guardados, ver su detalle y lista de compras, o elimínalos.</span>
+              <span><strong>Lista de menús:</strong> cada fila muestra cuántos platos tiene, el costo por porción, el precio sugerido por persona y el total. Ábrela para ver su detalle y su lista de compras.</span>
             </li>
             <li className="flex gap-2">
               <span style={{ color: "var(--accent)" }}>•</span>
@@ -1388,59 +1185,85 @@ export default function MenuPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Menús"
-        subtitle="Para eventos y servicios: agrupa platos, define gramos por porción y calcula el precio por persona"
+        subtitle="Tus menús: platos y extras con su costo y su precio de venta por persona"
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Pestañas de vista — mismo patrón que el módulo de Valoración */}
-            <div
-              className="hidden sm:flex items-center gap-1 p-1 shrink-0"
-              style={{ background: "var(--bg-secondary)", borderRadius: "var(--radius-md)" }}
-            >
-              <button
-                type="button"
-                onClick={() => { if (view === "list" && can("menus", "create")) openCreate() }}
-                className="px-3 py-1.5 text-sm font-medium transition-colors"
-                style={tabStyle(view === "detail")}
-              >
-                Calculadora
-              </button>
-              <button
-                type="button"
-                onClick={() => switchView("list")}
-                className="px-3 py-1.5 text-sm font-medium transition-colors"
-                style={tabStyle(view === "list")}
-              >
-                Historial
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => (view === "detail" ? switchView("list") : can("menus", "create") && openCreate())}
-              className="sm:hidden flex items-center gap-1.5 h-10 px-3.5 text-sm font-semibold shrink-0"
-              style={{
-                background: "var(--bg-surface)",
-                color: "var(--text-primary)",
-                borderRadius: "var(--radius-md)",
-                boxShadow: "var(--shadow-sm)",
-              }}
-            >
-              {view === "detail" ? (
-                <>
-                  <History size={16} style={{ color: "var(--text-muted)" }} />
-                  Historial
-                </>
-              ) : (
-                <>
-                  <Calculator size={16} style={{ color: "var(--text-muted)" }} />
-                  Calculadora
-                </>
-              )}
-            </button>
-          </div>
+          can("menus", "create") ? (
+            <Button variant="primary" onClick={openCreate}>
+              <Plus size={16} /> Nuevo menú
+            </Button>
+          ) : undefined
         }
       />
 
-      {view === "detail" ? (
+      {!menusLoading && menus.length > 0 && (
+        <MenuSearchBar
+          search={search}
+          onSearch={setSearch}
+          profit={profitFilter}
+          onProfit={setProfitFilter}
+          size={sizeFilter}
+          onSize={setSizeFilter}
+          profitCounts={profitCounts}
+        />
+      )}
+
+      {menusLoading ? (
+            <MenuListSkeleton />
+          ) : menus.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: "var(--bg-secondary)" }}>
+                <UtensilsCrossed size={28} style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div>
+                <p className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                  No hay menús creados
+                </p>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  Agrupa platos y extras, define porciones y obtén el precio ideal por persona.
+                </p>
+              </div>
+              {can("menus", "create") && (
+                <Button variant="ghost" onClick={openCreate}>
+                  <Plus size={14} />
+                  Crear primer menú
+                </Button>
+              )}
+            </div>
+          ) : filteredMenus.length === 0 && hasFilters ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+              <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>Sin resultados</p>
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                {q ? `No se encontró ningún menú con "${search.trim()}".` : "No hay menús con esos filtros."}
+              </p>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSearch("")
+                  setProfitFilter(undefined)
+                  setSizeFilter(undefined)
+                }}
+              >
+                Ver todos los menús
+              </Button>
+            </div>
+          ) : (
+            <MenuTable
+              menus={filteredMenus}
+              onView={(m) => setViewingMenuId(m.id)}
+              onEdit={(m) => openEdit(m)}
+              onDelete={(m) => void handleDelete(m)}
+            />
+          )}
+
+      {/* ── Calculadora del menú, en una ventana (como Recetas) ── */}
+      {editorOpen && (
+        <CalcModal
+          title={editingMenu ? "Editar menú" : "Nuevo menú"}
+          subtitle="Agrega platos y extras, define personas, margen y % de materia prima, y calcula."
+          dirty={calcDirty}
+          onClose={closeEditor}
+        >
         <DetailView
           // Reiniciar el formulario al cambiar de menú (nuevo / editar)
           key={editingMenu?.id ?? "new"}
@@ -1460,40 +1283,7 @@ export default function MenuPage() {
           onSaved={handleSaved}
           onDirtyChange={setCalcDirty}
         />
-      ) : (
-        <>
-          {menusLoading ? (
-            <MenuListSkeleton />
-          ) : menus.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center gap-5">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{ background: "var(--bg-secondary)" }}>
-                <UtensilsCrossed size={28} style={{ color: "var(--text-muted)" }} />
-              </div>
-              <div>
-                <p className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
-                  No hay menús creados
-                </p>
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                  Úsalo para planear eventos o servicios: agrupa platos, define porciones y obtén el precio ideal por persona.
-                </p>
-              </div>
-              {can("menus", "create") && (
-                <Button variant="ghost" onClick={openCreate}>
-                  <Plus size={14} />
-                  Crear primer menú
-                </Button>
-              )}
-            </div>
-          ) : (
-            <MenuTable
-              menus={menus}
-              onView={(m) => setViewingMenuId(m.id)}
-              onEdit={(m) => openEdit(m)}
-              onDelete={(m) => void handleDelete(m)}
-            />
-          )}
-        </>
+        </CalcModal>
       )}
 
       {/* ── Modal: ver menú ──────────────────────────────────────────────── */}

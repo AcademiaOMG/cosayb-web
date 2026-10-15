@@ -25,6 +25,8 @@ export interface ModalProps {
   blur?: boolean
   /** id del elemento que describe el diálogo (aria-describedby) */
   describedBy?: string
+  /** Fondo gris de la página (como el resto de la app): lo que va encima es blanco con sombra y se separa */
+  tinted?: boolean
 }
 
 /** Duración de la animación de salida (debe coincidir con .modal-*-out en globals.css). */
@@ -38,7 +40,7 @@ function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
 }
 
-export default function Modal({ isOpen, open, onClose, title, children, footer, wide, xwide, animate = true, blur, describedBy }: ModalProps) {
+export default function Modal({ isOpen, open, onClose, title, children, footer, wide, xwide, animate = true, blur, describedBy, tinted }: ModalProps) {
   const visible = typeof open === "boolean" ? open : !!isOpen
   const uid = useId()
   const titleId = `modal-title-${uid}`
@@ -149,6 +151,9 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
   if (!mounted) return null
 
   const phase = animate ? (closing ? "out" : "in") : null
+  // Modal sobre otra modal: sin desenfoque y con un velo más suave. Dos capas de blur seguidas
+  // le emborronan los bordes a la de abajo.
+  const nested = modalStack.length > 0 && modalStack.indexOf(uid) !== 0
 
   return (
     <div
@@ -164,8 +169,8 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
       <div
         className={`absolute inset-0${phase ? ` modal-overlay-${phase}` : ""}`}
         style={{
-          background: "rgba(18, 33, 58, 0.5)",
-          ...(blur
+          background: nested ? "rgba(18, 33, 58, 0.38)" : "rgba(18, 33, 58, 0.5)",
+          ...(blur && !nested
             ? { backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }
             : {}),
         }}
@@ -179,40 +184,44 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
         tabIndex={-1}
         className={`relative z-10 w-full flex flex-col ${xwide ? "max-h-[92vh]" : "max-h-[85vh]"} overflow-hidden outline-none${phase ? ` modal-panel-${phase}` : ""} ${xwide ? "max-w-5xl" : wide ? "max-w-3xl" : "max-w-lg"}`}
         style={{
-          background: "var(--bg-surface)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "var(--shadow-md)",
+          // Cristal líquido: superficie translúcida sobre el velo, sin contorno; el borde de luz va en el sombreado
+          background: tinted ? "rgba(239, 242, 246, 0.94)" : "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(32px) saturate(180%)",
+          WebkitBackdropFilter: "blur(32px) saturate(180%)",
+          borderRadius: 28,
+          boxShadow:
+            "0 44px 90px -24px rgba(16, 24, 40, 0.5), 0 10px 28px rgba(16, 24, 40, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95)",
         }}
       >
         {/* Header — fixed */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-0 shrink-0">
+        <div className="flex items-center justify-between gap-4 px-7 pt-6 pb-1 shrink-0">
           {title && (
             <h2
               id={titleId}
-              className="text-lg font-semibold"
-              style={{ color: "var(--text-primary)" }}
+              className="font-display text-[21px] font-extrabold leading-tight"
+              style={{ color: "var(--text-primary)", letterSpacing: "-0.015em" }}
             >
               {title}
             </h2>
           )}
           <button
             onClick={onClose}
-            className="ml-auto rounded-lg p-1.5 transition-colors"
-            style={{ color: "var(--text-muted)" }}
+            className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[0.09] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            style={{ color: "var(--text-secondary)", background: "rgba(16, 24, 40, 0.05)" }}
             aria-label="Cerrar"
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
 
         {/* Scrollable body */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-7 py-4">
           {children}
         </div>
 
         {/* Footer — fixed */}
         {footer && (
-          <div className="px-6 pb-6 pt-4 shrink-0">
+          <div className="px-7 pb-6 pt-3 shrink-0">
             {footer}
           </div>
         )}

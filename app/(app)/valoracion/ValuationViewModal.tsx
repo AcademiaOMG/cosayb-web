@@ -3,14 +3,14 @@
 import useSWR from "swr"
 import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
-import InfoStat from "@/components/ui/InfoStat"
-import { CalcDisplay } from "@/components/calculator"
-import ValuationDetailCard from "./ValuationDetailCard"
-import "./calculator.css"
-import { RotateCcw, StickyNote, ChefHat } from "lucide-react"
+import { ModalHero, Panel, RAISED, ShareDonut, Stat, StatGrid } from "@/components/ui/ModalKit"
+import { RotateCcw } from "lucide-react"
 import { getRecipeById } from "@/lib/api"
 import type { Valuation } from "@/types/domain"
-import { fmt, fmtPct, refLabel, calcPricing } from "./lib"
+import { fmt, fmtPct, refLabel, calcPricing, moneyFromPct } from "./lib"
+
+const ratingText = (i: string) => (i === "MUY BUENO" ? "Muy buena" : i === "MALO" ? "Mala" : "Regular")
+const toneColor = (i: string) => (i === "MUY BUENO" ? "#0F8F5F" : i === "MALO" ? "#C2362B" : "#B7791F")
 
 export default function ValuationViewModal({
   valuation,
@@ -40,6 +40,7 @@ export default function ValuationViewModal({
       open={!!valuation}
       onClose={onClose}
       title={valuation.name}
+      tinted
       footer={
         <div className="flex items-center justify-between w-full gap-3">
           <span className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -55,62 +56,63 @@ export default function ValuationViewModal({
         </div>
       }
     >
-      <div className="flex flex-col gap-5">
-        <div
-          className="flex items-center gap-2 px-3 py-2.5 text-sm"
-          style={{ background: "var(--bg-primary)", borderRadius: "var(--radius-md)" }}
-        >
-          <ChefHat size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-          {valuation.refType === "recipe" && valuation.refId ? (
-            <span style={{ color: "var(--text-secondary)" }}>
-              Basada en la receta{" "}
-              <strong style={{ color: "var(--text-primary)" }}>{linkedRecipe?.name ?? "—"}</strong>
-            </span>
-          ) : valuation.refType === "recipe" ? (
-            <span style={{ color: "var(--text-secondary)" }}>Basada en una receta (sin vínculo registrado)</span>
-          ) : (
-            <span style={{ color: "var(--text-secondary)" }}>{refLabel(valuation.refType)}</span>
-          )}
-        </div>
-
+      <div className="flex flex-col gap-6 pb-2">
         {result && (
           <>
-            <div style={{ width: "100%", maxWidth: 280, margin: "0 auto" }}>
-              <CalcDisplay size="sm" tone="result" label="PRECIO SUGERIDO" value={fmt(result.suggested)} />
-            </div>
-            <ValuationDetailCard
-              headline="Desglose de la valoración"
-              result={result}
-              cost={cost}
-              margin={margin}
-              actualPrice={actualPrice}
+            <ModalHero
+              label="Precio sugerido"
+              value={fmt(result.suggested)}
+              note={
+                valuation.refType === "recipe" && valuation.refId
+                  ? `Basada en la receta ${linkedRecipe?.name ?? "—"}`
+                  : valuation.refType === "recipe"
+                    ? "Basada en una receta"
+                    : refLabel(valuation.refType)
+              }
+              aside={
+                <p className="text-right text-sm" style={{ color: "var(--text-muted)" }}>
+                  Rentabilidad
+                  <span className="block text-xl font-bold" style={{ color: toneColor(result.indicator) }}>
+                    {ratingText(result.indicator)}
+                  </span>
+                </p>
+              }
             />
+
+            <StatGrid cols={3}>
+              <Stat label="Costo de materia prima" value={fmt(valuation.costMateriaprima)} />
+              <Stat label="Margen de seguridad" value={fmtPct(valuation.safetyMargin)} />
+              <Stat
+                label="Precio cobrado"
+                value={actualPrice != null ? fmt(actualPrice) : "—"}
+                hint={actualPrice != null ? (actualPrice >= result.suggested ? "por encima del sugerido" : "por debajo del sugerido") : "sin registrar"}
+                tone={actualPrice == null ? "plain" : actualPrice >= result.suggested ? "good" : "bad"}
+              />
+            </StatGrid>
+
+            <Panel title="Cómo se reparte el precio">
+              <ShareDonut
+                centerLabel="de ganancia"
+                centerValue={fmtPct(result.pctProfit)}
+                centerColor="#0F8F5F"
+                segments={[
+                  { key: "mp", label: "Materia prima", pct: result.pctMateriaprima, color: "#3B82F6", amount: fmt(cost) },
+                  { key: "fixed", label: "Costos fijos", pct: result.pctFixedCosts, color: "#FB923C", amount: fmt(moneyFromPct(result.pctFixedCosts, result.suggested)) },
+                  { key: "tax", label: "Impuestos de ley", pct: result.pctImpuestos, color: "#A78BFA", amount: fmt(moneyFromPct(result.pctImpuestos, result.suggested)) },
+                  { key: "other", label: "Otros", pct: result.pctOtros, color: "#94A3B8", amount: fmt(moneyFromPct(result.pctOtros, result.suggested)) },
+                  { key: "profit", label: "Ganancia neta", pct: result.pctProfit, color: "#10B981", amount: fmt(moneyFromPct(result.pctProfit, result.suggested)) },
+                ]}
+              />
+            </Panel>
           </>
         )}
 
-        <div>
-          <p className="text-xs font-semibold tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>
-            DATOS DE LA VALORACIÓN
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <InfoStat label="Costo materia prima" value={fmt(valuation.costMateriaprima)} mono />
-            <InfoStat label="Margen de seguridad" value={fmtPct(valuation.safetyMargin)} mono />
-          </div>
-        </div>
-
         {valuation.notes && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <StickyNote size={14} style={{ color: "var(--text-muted)" }} />
-              <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>NOTAS</p>
-            </div>
-            <p
-              className="text-sm px-3 py-2.5"
-              style={{ color: "var(--text-secondary)", background: "var(--bg-primary)", borderRadius: "var(--radius-md)" }}
-            >
+          <Panel title="Notas">
+            <p className="px-5 py-4 text-sm leading-relaxed" style={{ color: "var(--text-secondary)", ...RAISED, borderRadius: 20 }}>
               {valuation.notes}
             </p>
-          </div>
+          </Panel>
         )}
       </div>
     </Modal>

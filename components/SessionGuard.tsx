@@ -2,22 +2,32 @@
 
 import { useEffect, useRef, useState } from "react"
 import { authClient } from "@/lib/auth"
+import { createIdleTracker } from "@/lib/sessionIdle"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 const TAB_LOCK_CHANNEL = "cosayb-tab-lock"
+
+/** Inactividad (sin tocar la app) tras la cual se cierra la sesión. Debe ser menor que SESSION_IDLE_MINUTES + 10 de la API. */
+const IDLE_MS = (Number(process.env.NEXT_PUBLIC_SESSION_IDLE_MINUTES) > 0 ? Number(process.env.NEXT_PUBLIC_SESSION_IDLE_MINUTES) : 120) * 60_000
+/** Mientras haya actividad, se avisa a la API para renovar la sesión como mucho cada tanto. */
+const KEEPALIVE_MS = 5 * 60_000
+const ACTIVITY_KEY = "cosayb-last-activity"
 
 /**
  * Sale hacia /login limpiando ANTES la cookie de sesión huérfana. Sin esto,
  * la cookie obsoleta seguía pareciendo "válida" (cookieCache de Better Auth)
  * y /login devolvía al usuario al dashboard → bucle (ver lib/authRedirect.ts).
  */
-async function leaveToLogin(expired: boolean) {
+/** Por qué se sale: cada motivo muestra un aviso distinto en /login (así se sabe qué pasó). */
+type LeaveReason = "idle" | "invalid" | null
+
+async function leaveToLogin(reason: LeaveReason) {
   try {
     await authClient.signOut()
   } catch {
     // ya no hay sesión que cerrar
   }
-  window.location.replace(expired ? "/login?expired=1" : "/login")
+  window.location.replace(reason ? `/login?expired=${reason}` : "/login")
 }
 
 /**
@@ -34,7 +44,13 @@ async function leaveToLogin(expired: boolean) {
  *    sesión y avisa casi al instante vía Server-Sent Events. Esta pestaña
  *    bloquea la UI con un aviso explícito en vez de expulsar en silencio.
  *
- * 3. Bloqueo de pestañas duplicadas del MISMO login: dos pestañas del
+ * 3. Inactividad: la sesión se cierra tras IDLE_MS sin que la persona toque la
+ *    app (clics, teclas, scroll, toques). La última actividad se guarda en
+ *    localStorage para que valga entre pestañas y recargas. Mientras hay
+ *    actividad, se renueva la sesión en el servidor (ventana deslizante), así
+ *    que usar la app NUNCA la hace caducar.
+ *
+ * 4. Bloqueo de pestañas duplicadas del MISMO login: dos pestañas del
  *    mismo navegador comparten la misma cookie de sesión, así que el
  *    backend no las distingue (no hay "otra sesión" que invalidar). Esto
  *    se resuelve 100% en el cliente vía BroadcastChannel: cada pestaña se
@@ -67,7 +83,7 @@ export default function SessionGuard() {
           cache: "no-store",
         })
         if (res.status === 401) {
-          await leaveToLogin(true)
+          await leaveToLogin("invalid")
         }
       } catch {
         // Red caída — no expulsar al usuario por un fallo transitorio
@@ -132,7 +148,54 @@ export default function SessionGuard() {
     }
   }, [])
 
-  // ── 3. Bloqueo de pestañas duplicadas del mismo login ───────────────────
+  // ── 3. Cierre por inactividad ───────────────────────────────────────────
+  // La lógica vive en lib/sessionIdle.ts (probada en sessionIdle.test.ts); aquí solo se conecta al navegador.
+  useEffect(() => {
+    const tracker = createIdleTracker({
+      idleMs: IDLE_MS,
+      keepAliveMs: KEEPALIVE_MS,
+      now: () => Date.now(),
+      storage: {
+        get: () => {
+          try {
+            return Number(localStorage.getItem(ACTIVITY_KEY)) || null
+          } catch {
+            return null
+          }
+        },
+        set: (v) => {
+          try {
+            localStorage.setItem(ACTIVITY_KEY, String(v))
+          } catch {
+            // sin almacenamiento: queda el contador en memoria de esta pestaña
+          }
+        },
+      },
+      // Va por el proxy de Next (/api/auth), no directo a la API: así la cookie renovada queda en
+      // el navegador. disableCookieCache fuerza leer la BD, que es donde se decide renovar.
+      ping: () => {
+        fetch("/api/auth/get-session?disableCookieCache=true", { credentials: "include", cache: "no-store" }).catch(() => {})
+      },
+      onExpire: () => void leaveToLogin("idle"),
+    })
+
+    const onActivity = () => tracker.activity()
+    const events = ["pointerdown", "keydown", "wheel", "touchstart", "scroll"] as const
+    events.forEach((ev) => window.addEventListener(ev, onActivity, { passive: true, capture: true }))
+    const onVisible = () => {
+      if (document.visibilityState === "visible") tracker.check()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    const timer = setInterval(() => tracker.check(), 30_000)
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, onActivity, { capture: true }))
+      document.removeEventListener("visibilitychange", onVisible)
+      clearInterval(timer)
+    }
+  }, [])
+
+  // ── 4. Bloqueo de pestañas duplicadas del mismo login ───────────────────
   //
   // A propósito NO reclama al recuperar el foco (visibilitychange): si lo
   // hiciera, el simple hecho de hacer clic en la pestaña bloqueada para
@@ -172,11 +235,11 @@ export default function SessionGuard() {
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="session-guard-title-1"
-        className="fixed inset-0 z-[100] flex items-center justify-center p-6 overflow-y-auto"
+        className="modal-overlay-in fixed inset-0 z-[100] flex items-center justify-center p-6 overflow-y-auto"
         style={{ background: "rgba(10,21,32,0.92)" }}
       >
         <div
-          className="max-w-sm w-full rounded-2xl p-8 text-center"
+          className="modal-panel-in max-w-sm w-full rounded-2xl p-8 text-center"
           style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
         >
           <h2 id="session-guard-title-1" className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>
@@ -187,7 +250,7 @@ export default function SessionGuard() {
           </p>
           <button
             autoFocus
-            onClick={() => void leaveToLogin(false)}
+            onClick={() => void leaveToLogin(null)}
             className="btn-spx btn-spx-accent"
           >
             Ir a iniciar sesión
@@ -203,11 +266,11 @@ export default function SessionGuard() {
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="session-guard-title-2"
-        className="fixed inset-0 z-[100] flex items-center justify-center p-6 overflow-y-auto"
+        className="modal-overlay-in fixed inset-0 z-[100] flex items-center justify-center p-6 overflow-y-auto"
         style={{ background: "rgba(10,21,32,0.92)" }}
       >
         <div
-          className="max-w-sm w-full rounded-2xl p-8 text-center"
+          className="modal-panel-in max-w-sm w-full rounded-2xl p-8 text-center"
           style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
         >
           <h2 id="session-guard-title-2" className="text-lg font-bold mb-2" style={{ color: "var(--text-primary)" }}>

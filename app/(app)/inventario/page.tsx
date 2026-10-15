@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
 import QuotaBanner from "@/components/app/inventario/QuotaBanner"
 import IngredientSearchBar from "@/components/app/inventario/IngredientSearchBar"
-import IngredientFilters from "@/components/app/inventario/IngredientFilters"
+import FilterMenu, { ActiveFilterChips, type FilterGroup } from "@/components/ui/FilterMenu"
 import IngredientList from "@/components/app/inventario/IngredientList"
 import IngredientDetailModal from "@/components/app/inventario/IngredientDetailModal"
 import IngredientFormModal from "@/components/app/inventario/IngredientFormModal"
@@ -175,6 +175,19 @@ export default function InventarioPage() {
     return <ModuleLocked message={featureLockedMessage("module_ingredients")} />
   }
 
+  const filterGroups: FilterGroup[] = [
+    {
+      id: "origin",
+      label: "Origen",
+      options: [
+        { value: "own", label: "Propios", count: filterCounts.own },
+        { value: "base", label: "Banco general", count: filterCounts.base },
+      ],
+      value: originFilter === "all" ? undefined : originFilter,
+      onChange: (v) => handleFilterChange((v as IngredientOriginFilter | undefined) ?? "all"),
+    },
+  ]
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -212,13 +225,10 @@ export default function InventarioPage() {
         {!error && (
           <div className="flex items-center gap-2">
             <IngredientSearchBar value={search} onChange={handleSearchChange} />
-            <IngredientFilters
-              active={originFilter}
-              onChange={handleFilterChange}
-              counts={filterCounts}
-            />
+            <FilterMenu groups={filterGroups} ariaLabel="Filtrar ingredientes" />
           </div>
         )}
+        {!error && <ActiveFilterChips groups={filterGroups} />}
 
         {/* Listado (loading / error / vacío / filas + paginación) */}
         <IngredientList

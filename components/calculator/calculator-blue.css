@@ -172,14 +172,7 @@
 /* Sin valor todavía: el cero atenuado */
 .calc-skin-blue .calc-seg.is-dim .s.on { fill-opacity: 0.4; }
 
-/* Revelado del resultado: parpadeo de LCD, no un fundido */
-@keyframes calc-flash {
-  0% { opacity: 0; }
-  60% { opacity: 0; }
-  100% { opacity: 1; }
-}
-.calc-display.calc-skin-blue.is-result .calc-mainrow, .calc-skin-blue .calc-display.is-result .calc-mainrow { animation: calc-flash 0.22s steps(3, end); }
-
+/* El resultado aparece de golpe, como en una calculadora real: sin conteo ni parpadeo */
 .calc-display.calc-skin-blue.is-sm .calc-mainrow, .calc-skin-blue .calc-display.is-sm .calc-mainrow { min-height: 40px; }
 .calc-display.calc-skin-blue.is-sm .calc-unit, .calc-skin-blue .calc-display.is-sm .calc-unit { font-size: 20px; }
 .calc-display.calc-skin-blue.is-sm .calc-main, .calc-skin-blue .calc-display.is-sm .calc-main { flex-basis: 190px; }

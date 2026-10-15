@@ -13,7 +13,7 @@ import {
   type NavItem,
 } from "@/lib/navigation"
 
-// Navegación principal en móvil (< lg): barra inferior fija con las 4
+// Navegación principal en móvil (< lg): barra inferior flotante (cristal líquido) con las 4
 // secciones más usadas + «Más», que abre una hoja con el resto (módulos
 // restantes, Configuración y Mi cuenta). Los ítems salen de lib/navigation.ts
 // (misma fuente que Sidebar) y respetan permisos y módulos bloqueados.
@@ -64,15 +64,16 @@ export default function MobileTabBar() {
   return (
     <>
       <nav
-        className="glass-strong fixed bottom-0 left-0 right-0 z-30 lg:hidden"
+        className="glass-strong mtb-bar fixed z-30 lg:hidden"
         style={{
-          paddingBottom: "env(safe-area-inset-bottom)",
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
+          left: 14,
+          right: 14,
+          bottom: "calc(env(safe-area-inset-bottom) + 12px)",
+          borderRadius: 30,
         }}
         aria-label="Navegación principal"
       >
-        <ul className="flex items-stretch justify-around px-1" style={{ height: MOBILE_BAR_HEIGHT }}>
+        <ul className="flex items-stretch justify-around gap-1 p-1.5" style={{ height: MOBILE_BAR_HEIGHT }}>
           {primary.map((item) => (
             <li key={item.href} className="flex-1 min-w-0">
               <TabLink item={item} active={isNavActive(pathname, item.href)} />
@@ -99,14 +100,27 @@ export default function MobileTabBar() {
       {moreOpen && <MoreSheet items={more} pathname={pathname} onClose={closeMore} />}
 
       <style>{`
+        /* Barra flotante tipo cristal líquido: despegada de los bordes, muy redondeada, con borde de luz y sombra suave */
+        .mtb-bar {
+          border: 1px solid rgba(255, 255, 255, 0.65);
+          box-shadow:
+            0 12px 32px rgba(18, 33, 58, 0.22),
+            0 2px 6px rgba(18, 33, 58, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.95),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+        }
         .mtb-item {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
           gap: 2px; width: 100%; height: 100%; min-height: 48px; min-width: 44px;
           border: none; background: transparent; cursor: pointer;
-          color: var(--text-secondary); border-radius: 14px;
+          color: var(--text-secondary); border-radius: 22px;
           transition: color 150ms, background-color 150ms;
         }
-        .mtb-item[data-active="true"] { color: var(--accent); font-weight: 700; }
+        .mtb-item[data-active="true"] {
+          color: var(--accent); font-weight: 700;
+          background: rgba(255, 255, 255, 0.72);
+          box-shadow: 0 1px 3px rgba(18, 33, 58, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        }
         .mtb-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
         .mtb-label { font-size: 10.5px; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
         .mtb-sheet-panel { animation: mtb-up 200ms ease-out; }

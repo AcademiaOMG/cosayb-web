@@ -3,6 +3,7 @@
 import useSWR, { useSWRConfig } from "swr"
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import PageHeader from "@/components/ui/PageHeader"
+import FilterMenu, { ActiveFilterChips, type FilterGroup } from "@/components/ui/FilterMenu"
 import Button from "@/components/ui/Button"
 import EmptyState from "@/components/ui/EmptyState"
 import Modal from "@/components/ui/Modal"
@@ -21,7 +22,7 @@ import { useRevalidateOnboarding } from "@/hooks/useOnboardingChecklist"
 import ModuleLocked from "@/components/app/ModuleLocked"
 import { toast } from "@/lib/toast"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
-import { ChefHat, Plus, Search, SlidersHorizontal, X } from "lucide-react"
+import { ChefHat, Plus, Search, X } from "lucide-react"
 
 const PAGE_SIZE = 12
 
@@ -45,20 +46,7 @@ export default function RecetasPage() {
   const [search, setSearch]   = useState("")
   const [page, setPage]       = useState(1)
   const [extra, setExtra]     = useState<RecipeExtraFilters>(EMPTY_EXTRA)
-  const [panelOpen, setPanelOpen] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
-
-  // Cierra el panel al hacer clic fuera
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setPanelOpen(false)
-      }
-    }
-    if (panelOpen) document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [panelOpen])
 
   const { data, isLoading, error, mutate } = useSWR(
     ["recipes", filter, search, page, extra],
@@ -79,16 +67,60 @@ export default function RecetasPage() {
     banco: countsData?.data?.banco ?? 0,
   }), [countsData])
 
+  // Filtros adicionales activos (el origen se cuenta aparte)
+  const activeFilterCount = [extra.type, extra.weight, extra.portions, extra.empty].filter(Boolean).length
+
   const recipes = data?.data ?? []
   const total   = data?.total ?? 0
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
-  const activeFilterCount = [
-    extra.type, extra.weight, extra.portions, extra.empty,
-  ].filter(Boolean).length
-
-  // Origen (Todas/Mis recetas/Banco de recetas) también cuenta como filtro activo
-  const totalActiveFilters = activeFilterCount + (filter !== "all" ? 1 : 0)
+  const filterGroups: FilterGroup[] = [
+    {
+      id: "origin",
+      label: "Origen",
+      options: TAB_OPTIONS.filter((o) => o.value !== "all").map((o) => ({ value: o.value, label: o.value === "own" ? RECIPE_ORIGIN.own.label : RECIPE_ORIGIN.banco.label, count: filterCounts[o.value] })),
+      value: filter === "all" ? undefined : filter,
+      onChange: (v) => changeFilter((v as RecipeFilter | undefined) ?? "all"),
+    },
+    {
+      id: "type",
+      label: "Tipo de receta",
+      options: [
+        { value: "base", label: RECIPE_TYPE.base.plural },
+        { value: "principal", label: RECIPE_TYPE.dish.plural },
+      ],
+      value: extra.type,
+      onChange: (v) => changeExtra({ type: v as RecipeExtraFilters["type"] }),
+    },
+    {
+      id: "portions",
+      label: "Porciones",
+      options: [
+        { value: "small", label: "≤ 4 porciones" },
+        { value: "medium", label: "5–10 porciones" },
+        { value: "large", label: "> 10 porciones" },
+      ],
+      value: extra.portions,
+      onChange: (v) => changeExtra({ portions: v as RecipeExtraFilters["portions"] }),
+    },
+    {
+      id: "weight",
+      label: "Peso por porción",
+      options: [
+        { value: "yes", label: "Con peso" },
+        { value: "no", label: "Sin peso" },
+      ],
+      value: extra.weight,
+      onChange: (v) => changeExtra({ weight: v as RecipeExtraFilters["weight"] }),
+    },
+    {
+      id: "empty",
+      label: "Contenido",
+      options: [{ value: "yes", label: "Sin ingredientes" }],
+      value: extra.empty ? "yes" : undefined,
+      onChange: (v) => changeExtra({ empty: v ? true : undefined }),
+    },
+  ]
 
   const confirm = useConfirm()
   const [view, setView]                 = useState<PageView>("list")
@@ -125,7 +157,6 @@ export default function RecetasPage() {
     setExtra(prev => ({ ...prev, ...patch }))
     setPage(1)
   }
-  function clearExtra() { setExtra(EMPTY_EXTRA); setPage(1) }
 
   function handleClearSearch() {
     changeSearch("")
@@ -274,101 +305,11 @@ export default function RecetasPage() {
           </div>
 
 
-          {/* Botón filtros */}
-          <div ref={panelRef} className="relative shrink-0">
-            <button
-              onClick={() => setPanelOpen(o => !o)}
-              aria-expanded={panelOpen}
-              aria-haspopup="true"
-              aria-label={totalActiveFilters > 0 ? `Filtros (${totalActiveFilters} activos)` : "Filtrar recetas"}
-              className="relative flex h-10 min-w-[44px] items-center justify-center rounded-xl px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              style={{
-                border: `1px solid ${totalActiveFilters > 0 ? "transparent" : "var(--border-light)"}`,
-                background: totalActiveFilters > 0 ? "var(--accent-light)" : "var(--bg-surface)",
-                color: totalActiveFilters > 0 ? "var(--accent-text)" : "var(--text-secondary)",
-                cursor: "pointer",
-              }}
-            >
-              <SlidersHorizontal size={17} aria-hidden="true" />
-              {totalActiveFilters > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold" style={{ background: "var(--accent)", color: "#fff" }}>
-                  {totalActiveFilters}
-                </span>
-              )}
-            </button>
-
-            {/* Panel desplegable */}
-            {panelOpen && (
-              <div
-                className="absolute top-full right-0 mt-1.5 z-40 flex flex-col gap-3.5 p-3.5"
-                style={{
-                  width: "280px",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-light)",
-                  borderRadius: "16px",
-                  boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-                }}
-              >
-                <FilterGroup label="Origen">
-                  {TAB_OPTIONS.map(({ value, label }) => (
-                    <Chip key={value} active={filter === value} onClick={() => changeFilter(value)}>
-                      {label} · {filterCounts[value]}
-                    </Chip>
-                  ))}
-                </FilterGroup>
-
-                <FilterGroup label="Tipo de receta">
-                  <Chip active={extra.type === "base"}      onClick={() => changeExtra({ type: extra.type === "base"      ? undefined : "base" })}>     {RECIPE_TYPE.base.plural}</Chip>
-                  <Chip active={extra.type === "principal"} onClick={() => changeExtra({ type: extra.type === "principal" ? undefined : "principal" })}> {RECIPE_TYPE.dish.plural}</Chip>
-                </FilterGroup>
-
-                <FilterGroup label="Porciones">
-                  <Chip active={extra.portions === "small"}  onClick={() => changeExtra({ portions: extra.portions === "small"  ? undefined : "small" })}>  ≤ 4</Chip>
-                  <Chip active={extra.portions === "medium"} onClick={() => changeExtra({ portions: extra.portions === "medium" ? undefined : "medium" })}> 5–10</Chip>
-                  <Chip active={extra.portions === "large"}  onClick={() => changeExtra({ portions: extra.portions === "large"  ? undefined : "large" })}>  &gt; 10</Chip>
-                </FilterGroup>
-
-                <FilterGroup label="Peso por porción">
-                  <Chip active={extra.weight === "yes"} onClick={() => changeExtra({ weight: extra.weight === "yes" ? undefined : "yes" })}> Con peso</Chip>
-                  <Chip active={extra.weight === "no"}  onClick={() => changeExtra({ weight: extra.weight === "no"  ? undefined : "no" })}>  Sin peso</Chip>
-                </FilterGroup>
-
-                <FilterGroup label="Contenido">
-                  <Chip active={!!extra.empty} onClick={() => changeExtra({ empty: extra.empty ? undefined : true })}>
-                    Sin ingredientes
-                  </Chip>
-                </FilterGroup>
-
-                {totalActiveFilters > 0 && (
-                  <button
-                    onClick={() => { clearExtra(); changeFilter("all"); setPanelOpen(false) }}
-                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150"
-                    style={{
-                      border: "1px solid var(--border-light)",
-                      background: "transparent",
-                      color: "var(--text-muted)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <X size={11} /> Limpiar filtros
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          <FilterMenu groups={filterGroups} ariaLabel="Filtrar recetas" />
         </div>
       </div>
 
-      {/* Chips de filtros activos */}
-      {totalActiveFilters > 0 && (
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          {filter !== "all" && <ActiveChip label={filter === "own" ? RECIPE_ORIGIN.own.label : RECIPE_ORIGIN.banco.label} onRemove={() => changeFilter("all")} />}
-          {extra.type      && <ActiveChip label={extra.type === "base" ? RECIPE_TYPE.base.plural : RECIPE_TYPE.dish.plural} onRemove={() => changeExtra({ type: undefined })} />}
-          {extra.portions  && <ActiveChip label={{ small: "≤ 4 porciones", medium: "5–10 porciones", large: "> 10 porciones" }[extra.portions]} onRemove={() => changeExtra({ portions: undefined })} />}
-          {extra.weight    && <ActiveChip label={extra.weight === "yes" ? "Con peso" : "Sin peso"} onRemove={() => changeExtra({ weight: undefined })} />}
-          {extra.empty     && <ActiveChip label="Sin ingredientes" onRemove={() => changeExtra({ empty: undefined })} />}
-        </div>
-      )}
+      <ActiveFilterChips groups={filterGroups} />
 
       {/* ── Tabla de recetas ── */}
       {isLoading && <RecipeTableSkeleton />}
@@ -441,50 +382,3 @@ export default function RecetasPage() {
 
 // ── Sub-componentes UI ────────────────────────────────────────────────────────
 
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-      <p className="text-xs font-semibold" style={{ color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-        {label}
-      </p>
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      style={{
-        padding: "5px 11px", borderRadius: "100px", fontSize: "12px", fontWeight: 500,
-        border: `1px solid ${active ? "var(--accent)" : "var(--border-light)"}`,
-        background: active ? "var(--accent)" : "transparent",
-        color: active ? "#fff" : "var(--text-secondary)",
-        cursor: "pointer", transition: "all 0.12s",
-      }}
-    >
-      {children}
-    </button>
-  )
-}
-
-function ActiveChip({ label, onRemove }: { label: string; onRemove: () => void }) {
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: "5px",
-      padding: "4px 10px", borderRadius: "100px",
-      background: "var(--accent-light)", border: "1px solid var(--accent)",
-      color: "var(--accent)", fontSize: "12px", fontWeight: 500,
-    }}>
-      {label}
-      <button type="button" aria-label={`Quitar filtro ${label}`} onClick={onRemove} style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "var(--accent)", padding: 0 }}>
-        <X size={11} />
-      </button>
-    </span>
-  )
-}

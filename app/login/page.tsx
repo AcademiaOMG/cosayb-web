@@ -54,8 +54,16 @@ function LoginForm() {
       if (state === "invalid") {
         // Cookie huérfana (sesión borrada en servidor): limpiarla para no rebotar
         try { await authClient.signOut() } catch { /* sin sesión que cerrar */ }
-        if (!cancelled && searchParams.get("expired")) {
-          toast.info("Tu sesión expiró. Inicia sesión de nuevo para continuar.")
+        const reason = searchParams.get("expired")
+        if (!cancelled && reason === "idle") {
+          const minutes = Number(process.env.NEXT_PUBLIC_SESSION_IDLE_MINUTES) > 0 ? Number(process.env.NEXT_PUBLIC_SESSION_IDLE_MINUTES) : 120
+          toast.info(`Cerramos tu sesión porque pasaron ${minutes} minutos sin actividad.`, {
+            description: "Inicia sesión de nuevo para continuar.",
+          })
+        } else if (!cancelled && reason) {
+          toast.info("Tu sesión ya no es válida.", {
+            description: "Se cerró en el servidor (por ejemplo, iniciaste sesión en otro lugar). Inicia sesión de nuevo.",
+          })
         }
       }
       if (!cancelled) setChecking(false)

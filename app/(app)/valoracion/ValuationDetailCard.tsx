@@ -110,6 +110,11 @@ export interface ValuationDetailCardProps {
   cost: number
   margin: number
   actualPrice?: number | null
+  /**
+   * Lo que despejó el modo de la calculadora cuando NO es el precio de venta (por ejemplo
+   * «% de materia prima»). Va arriba como respuesta; el precio de venta pasa a ser una fila más.
+   */
+  answer?: { label: string; value: string }
 }
 
 export default function ValuationDetailCard({
@@ -118,6 +123,7 @@ export default function ValuationDetailCard({
   cost,
   margin,
   actualPrice,
+  answer,
 }: ValuationDetailCardProps) {
   const cfg = IND[result.indicator]
   const IndicatorIcon = INDICATOR_ICON[result.indicator]
@@ -136,6 +142,16 @@ export default function ValuationDetailCard({
         <div className="calc-receipt calc-receipt-print">
           <div className="calc-receipt-torn" />
           <p className="calc-receipt-title">{headline}</p>
+
+          {answer && (
+            <>
+              <div className="calc-receipt-hero mb-1">
+                <span className="calc-receipt-total-label">{answer.label}</span>
+                <span className="calc-receipt-hero-value">{answer.value}</span>
+              </div>
+              <hr className="calc-receipt-divider" />
+            </>
+          )}
 
           <div className="flex items-center justify-center gap-4 mb-3">
             <DonutChart
@@ -166,10 +182,18 @@ export default function ValuationDetailCard({
 
           <hr className="calc-receipt-divider" />
 
-          <div className="calc-receipt-total">
-            <span className="calc-receipt-total-label">PRECIO DE VENTA</span>
-            <span className="calc-receipt-total-value">{fmt(total)}</span>
-          </div>
+          {answer ? (
+            <div className="calc-receipt-row">
+              <span className="calc-receipt-row-label">Precio de venta</span>
+              <span className="calc-receipt-row-leader" />
+              <span className="calc-receipt-row-value" style={{ fontWeight: 800 }}>{fmt(total)}</span>
+            </div>
+          ) : (
+            <div className="calc-receipt-total">
+              <span className="calc-receipt-total-label">PRECIO DE VENTA</span>
+              <span className="calc-receipt-total-value">{fmt(total)}</span>
+            </div>
+          )}
 
           {hasActual && (() => {
             const diff = actualPrice! - total
