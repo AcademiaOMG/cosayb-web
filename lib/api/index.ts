@@ -19,6 +19,24 @@ const API_BASE_URL =
 // ─── Fetcher genérico ─────────────────────────────────────────────────────────
 import { getActiveOrgId } from "@/lib/activeOrg"
 
+/** Error del API con el estado HTTP y el código de negocio (p. ej. MEMBERSHIP_LIMIT_REACHED). */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+    public body?: unknown,
+  ) {
+    super(message)
+    this.name = "ApiError"
+  }
+}
+
+/** El plan actual no permite la acción (límite alcanzado o función no incluida): la salida es mejorar el plan. */
+export function isPlanLimitError(err: unknown): err is ApiError {
+  return err instanceof ApiError && (err.code === "MEMBERSHIP_LIMIT_REACHED" || err.code === "FEATURE_NOT_AVAILABLE")
+}
+
 async function fetchAPI<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -38,10 +56,18 @@ async function fetchAPI<T>(
   if (!response.ok) {
     const text = await response.text().catch(() => "")
     let message = response.statusText
+    let code: string | undefined
+    let parsed: unknown
     try {
       const body = JSON.parse(text)
+      parsed = body
+      code = typeof body.code === "string" ? body.code : undefined
       if (body.error) message = body.error
       else if (body.message) message = body.message
+      // Límite o función fuera del plan: el detalle ("permite un máximo de 20") y la salida valen más que el título
+      if ((code === "MEMBERSHIP_LIMIT_REACHED" || code === "FEATURE_NOT_AVAILABLE") && body.message) {
+        message = `${body.message} Mejora tu plan para continuar.`
+      }
       if (body.details?.fieldErrors) {
         const fields = Object.entries(body.details.fieldErrors)
           .map(([k, v]) => `${k}: ${(v as string[]).join(", ")}`)
@@ -51,7 +77,7 @@ async function fetchAPI<T>(
     } catch {
       if (text) message = text
     }
-    throw new Error(message)
+    throw new ApiError(message, response.status, code, parsed)
   }
 
   return response.json() as Promise<T>
