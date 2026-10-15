@@ -585,3 +585,84 @@ export const FUNNEL_STEP_LABELS: Record<string, string> = {
 export function funnelStepLabel(key: string): string {
   return FUNNEL_STEP_LABELS[key] ?? humanize(key)
 }
+
+// ─── Vigilancia: alertas, bloqueos y salud del sistema ──────────────────────
+
+AUDIT_ACTIONS["platform.vigilancia.security_view"] = { label: "Revisó la seguridad de la plataforma" }
+AUDIT_RESOURCE_TYPES.security = "Seguridad"
+
+/** Severidad de una alerta de vigilancia. */
+export const ALERT_SEVERITY_LABELS: Record<string, string> = {
+  critical: "Crítica",
+  warning: "Atención",
+  info: "Informativa",
+}
+
+export function alertSeverityLabel(severity: string): string {
+  return ALERT_SEVERITY_LABELS[severity] ?? humanize(severity)
+}
+
+/** Acción que bloqueó el límite de intentos (`reason` de un evento «bloqueado») → texto. Ej. «POST /auth/sign-in/email» → «Inicio de sesión». */
+export function blockedActionLabel(reason: string | null | undefined): string {
+  if (!reason) return "Uso general de la plataforma"
+  const path = reason.replace(/^[A-Z]+\s+/, "")
+  if (path.includes("/auth/sign-in")) return "Inicio de sesión"
+  if (path.includes("/auth/sign-up")) return "Registro de cuenta"
+  if (path.includes("/auth/request-password-reset") || path.includes("/auth/forget-password")) return "Pedir restablecer la contraseña"
+  if (path.includes("/auth/reset-password")) return "Cambiar la contraseña con un enlace"
+  if (path.includes("/auth/send-verification-email")) return "Reenviar el correo de verificación"
+  if (path.includes("/auth/change-password")) return "Cambiar la contraseña"
+  if (path.includes("/auth/change-email")) return "Cambiar el correo"
+  if (path.includes("/billing/checkout") || path.includes("/payment-method")) return "Intento de pago"
+  if (path.includes("/support")) return "Formulario de contacto"
+  if (path.includes("/auth")) return "Acceso a la cuenta"
+  return "Uso general de la plataforma"
+}
+
+/** Ruta de la API donde falló el sistema → parte de la plataforma, sin mostrar rutas técnicas. */
+export function systemAreaLabel(path: string | null | undefined): string {
+  if (!path) return "Parte desconocida de la plataforma"
+  const p = path.replace(/^\/api\/v1\//, "")
+  const areas: [string, string][] = [
+    ["platform", "Panel de plataforma"],
+    ["billing", "Pagos y suscripciones"],
+    ["ingredients", "Ingredientes"],
+    ["recipes", "Recetas"],
+    ["menus", "Menús"],
+    ["yield-factors", "Factores de rendimiento"],
+    ["valuations", "Valoraciones"],
+    ["break-even", "Punto de equilibrio"],
+    ["market-prices", "Precios de mercado"],
+    ["dashboard", "Panel del negocio"],
+    ["organizations", "Negocios"],
+    ["members", "Equipo"],
+    ["invitations", "Invitaciones"],
+    ["notifications", "Notificaciones"],
+    ["support", "Soporte"],
+    ["me", "Cuenta de la persona"],
+    ["impersonation", "Sesiones «Ver como»"],
+    ["internal", "Tareas programadas"],
+  ]
+  for (const [prefix, label] of areas) if (p === prefix || p.startsWith(`${prefix}/`)) return label
+  if (path.startsWith("/auth")) return "Inicio de sesión y cuentas"
+  return "Otra parte de la plataforma"
+}
+
+export const EMAIL_PROVIDER_LABELS: Record<string, string> = {
+  console: "Modo prueba (no envía correos reales)",
+  smtp: "Servidor de correo propio",
+  resend: "Resend",
+}
+
+export function emailProviderLabel(provider: string): string {
+  return EMAIL_PROVIDER_LABELS[provider] ?? humanize(provider)
+}
+
+export const PAYMENT_MODE_LABELS: Record<string, string> = {
+  simulated: "Modo simulado (no cobra de verdad)",
+  real: "Pasarela real",
+}
+
+export function paymentModeLabel(provider: string): string {
+  return PAYMENT_MODE_LABELS[provider] ?? humanize(provider)
+}
