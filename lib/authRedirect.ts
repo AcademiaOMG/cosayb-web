@@ -19,11 +19,14 @@
 export const DEFAULT_POST_LOGIN_PATH = "/dashboard"
 
 /**
- * Acepta solo rutas internas. Rechaza "//host" y "/\host" (open redirect).
+ * Acepta solo rutas internas. Rechaza "//host" y "/\host" (open redirect) y los caracteres
+ * de control: el navegador elimina tab/salto de línea de las URLs, así que "/\t/host" se
+ * convertiría en "//host".
  */
 export function safeReturnTo(raw: string | null | undefined): string | null {
   if (!raw || !raw.startsWith("/")) return null
   if (raw.startsWith("//") || raw.startsWith("/\\")) return null
+  if (/[\u0000-\u001f\u007f]/.test(raw)) return null
   return raw
 }
 
