@@ -22,7 +22,7 @@ import {
   AlertTriangle, Monitor, LogOut, ExternalLink, Trash2, Check, Download,
 } from "lucide-react"
 import type { Plan } from "@/types/domain"
-import { validatePassword, validateEmail, normalizeEmail, authErrorMessage } from "@/lib/auth/validation"
+import { validatePassword, validateEmail, normalizeEmail, authErrorMessage, translateAuthError } from "@/lib/auth/validation"
 import { saas, saasErrorMessage } from "@/lib/saas/services"
 import {
   blockingOrgsFrom, deleteAccount, listSessions, revokeOtherSessions, revokeSession, type BlockingOrg,
@@ -384,11 +384,8 @@ function PasswordCard() {
         revokeOtherSessions: true,
       })
       if (error) {
-        const wrongPassword = /invalid.?password|incorrect|wrong/i.test(`${error.code ?? ""} ${error.message ?? ""}`)
         toast.error("No se pudo cambiar la contraseña", {
-          description: wrongPassword
-            ? "La contraseña actual no es correcta. Revísala e inténtalo de nuevo."
-            : "Inténtalo de nuevo en unos segundos.",
+          description: translateAuthError(error) ?? "Inténtalo de nuevo en unos segundos.",
         })
       } else {
         toast.success("Contraseña actualizada", { description: "Cerramos tus otras sesiones por seguridad." })

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   validateEmail, validatePassword, validateName, passwordStrength, authErrorMessage, normalizeEmail,
+  PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, translateAuthError,
 } from "./validation"
 
 describe("validateEmail", () => {
@@ -53,5 +54,43 @@ describe("authErrorMessage", () => {
   it("usa el mensaje o un genérico", () => {
     expect(authErrorMessage({ message: "Algo raro" })).toBe("Algo raro")
     expect(authErrorMessage(null)).toMatch(/No pudimos/)
+  })
+})
+
+describe("authErrorMessage: cobertura de códigos de Better Auth", () => {
+  it("traduce los códigos que el usuario puede encontrar (nunca deja inglés en pantalla)", () => {
+    const codes = [
+      "PASSWORD_TOO_LONG", "INVALID_EMAIL", "VALIDATION_ERROR", "USER_NOT_FOUND", "EMAIL_ALREADY_VERIFIED",
+      "SESSION_EXPIRED", "SESSION_NOT_FRESH", "CREDENTIAL_ACCOUNT_NOT_FOUND", "INVALID_ORIGIN",
+      "MISSING_OR_NULL_ORIGIN", "CROSS_SITE_NAVIGATION_LOGIN_BLOCKED", "INVALID_CALLBACK_URL", "TOKEN_EXPIRED",
+      "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL", "FAILED_TO_UNLINK_LAST_ACCOUNT",
+    ]
+    for (const code of codes) {
+      // el mensaje en inglés del servidor no debe ganar a la traducción
+      const out = authErrorMessage({ code, message: "Some english message from the server" })
+      expect(out, code).not.toMatch(/english|server/i)
+      expect(out.length, code).toBeGreaterThan(10)
+    }
+  })
+
+  it("usa el límite real de longitud de la contraseña", () => {
+    expect(authErrorMessage({ code: "PASSWORD_TOO_LONG" })).toContain(String(PASSWORD_MAX_LENGTH))
+    expect(authErrorMessage({ code: "PASSWORD_TOO_SHORT" })).toContain(String(PASSWORD_MIN_LENGTH))
+  })
+
+  it("sin código, sigue reconociendo los mensajes en inglés más comunes", () => {
+    expect(authErrorMessage({ message: "Invalid email or password" })).toMatch(/incorrectos/)
+    expect(authErrorMessage({ message: "Token expired" })).toMatch(/venció/)
+  })
+})
+
+describe("translateAuthError", () => {
+  it("devuelve null cuando no hay traducción conocida (la pantalla usa su texto en español)", () => {
+    expect(translateAuthError({ code: "ALGO_NUEVO", message: "Something new" })).toBeNull()
+    expect(translateAuthError(null)).toBeNull()
+  })
+  it("traduce el límite de intentos del cambio de contraseña y la contraseña actual incorrecta", () => {
+    expect(translateAuthError({ status: 429 })).toMatch(/Demasiados/)
+    expect(translateAuthError({ code: "INVALID_PASSWORD" })).toMatch(/contraseña actual/)
   })
 })

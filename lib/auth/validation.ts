@@ -49,31 +49,63 @@ export function passwordStrength(pw: string): PasswordStrength {
   return { score: 3, label: "Fuerte" }
 }
 
-/** Traduce los códigos/mensajes habituales de Better Auth a español claro. */
-export function authErrorMessage(err: { code?: string; message?: string; status?: number } | null | undefined): string {
+const REQUEST_REJECTED = "No pudimos validar esta solicitud desde este sitio. Recarga la página e inténtalo de nuevo."
+const REAUTH = "Por seguridad, vuelve a iniciar sesión para hacer este cambio."
+
+/** Código de Better Auth → mensaje claro en español (los que una persona puede encontrar de verdad). */
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_EMAIL_OR_PASSWORD: "Correo o contraseña incorrectos.",
+  EMAIL_NOT_VERIFIED: "Debes verificar tu correo antes de ingresar. Revisa tu bandeja de entrada.",
+  USER_ALREADY_EXISTS: "Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña.",
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Ya existe una cuenta con ese correo. Usa otro correo.",
+  INVALID_TOKEN: "El enlace no es válido o ya venció. Solicita uno nuevo.",
+  TOKEN_EXPIRED: "El enlace no es válido o ya venció. Solicita uno nuevo.",
+  INVALID_PASSWORD: "La contraseña actual no es correcta.",
+  PASSWORD_TOO_SHORT: `Usa al menos ${PASSWORD_MIN_LENGTH} caracteres.`,
+  PASSWORD_TOO_LONG: `Usa como máximo ${PASSWORD_MAX_LENGTH} caracteres.`,
+  INVALID_EMAIL: "Ingresa un correo válido.",
+  VALIDATION_ERROR: "Revisa los datos ingresados e inténtalo de nuevo.",
+  USER_NOT_FOUND: "No encontramos una cuenta con ese correo.",
+  USER_EMAIL_NOT_FOUND: "No encontramos una cuenta con ese correo.",
+  EMAIL_ALREADY_VERIFIED: "Tu correo ya está verificado. Inicia sesión.",
+  SESSION_EXPIRED: REAUTH,
+  SESSION_NOT_FRESH: REAUTH,
+  CREDENTIAL_ACCOUNT_NOT_FOUND: "Tu cuenta no tiene contraseña (entras con Google). Define una desde recuperar contraseña.",
+  PASSWORD_ALREADY_SET: "Tu cuenta ya tiene una contraseña.",
+  USER_ALREADY_HAS_PASSWORD: "Tu cuenta ya tiene una contraseña.",
+  FAILED_TO_UNLINK_LAST_ACCOUNT: "No puedes desvincular tu único método de acceso.",
+  EMAIL_CAN_NOT_BE_UPDATED: "No se puede cambiar el correo de esta cuenta.",
+  CHANGE_EMAIL_DISABLED: "El cambio de correo no está disponible.",
+  INVALID_ORIGIN: REQUEST_REJECTED,
+  MISSING_OR_NULL_ORIGIN: REQUEST_REJECTED,
+  CROSS_SITE_NAVIGATION_LOGIN_BLOCKED: REQUEST_REJECTED,
+  INVALID_CALLBACK_URL: REQUEST_REJECTED,
+  INVALID_REDIRECT_URL: REQUEST_REJECTED,
+}
+
+type AuthError = { code?: string; message?: string; status?: number } | null | undefined
+
+/** Traducción conocida del error, o `null` si no la hay (para pantallas que prefieren su propio texto genérico en español). */
+export function translateAuthError(err: AuthError): string | null {
   const code = (err?.code ?? "").toUpperCase()
   const msg = (err?.message ?? "").toLowerCase()
-  if (code === "INVALID_EMAIL_OR_PASSWORD" || msg.includes("invalid email or password")) {
-    return "Correo o contraseña incorrectos."
-  }
-  if (code === "EMAIL_NOT_VERIFIED" || msg.includes("not verified")) {
-    return "Debes verificar tu correo antes de ingresar. Revisa tu bandeja de entrada."
-  }
-  if (code === "USER_ALREADY_EXISTS" || msg.includes("already exists")) {
-    return "Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña."
-  }
-  if (code === "INVALID_TOKEN" || msg.includes("invalid token") || msg.includes("expired")) {
-    return "El enlace no es válido o ya venció. Solicita uno nuevo."
-  }
-  if (code === "INVALID_PASSWORD" || msg.includes("invalid password")) {
-    return "La contraseña actual no es correcta."
-  }
-  if (code === "PASSWORD_TOO_SHORT") return `Usa al menos ${PASSWORD_MIN_LENGTH} caracteres.`
+  if (AUTH_ERROR_MESSAGES[code]) return AUTH_ERROR_MESSAGES[code]
+  // Respaldo por texto, por si el servidor no envía el código
+  if (msg.includes("invalid email or password")) return AUTH_ERROR_MESSAGES.INVALID_EMAIL_OR_PASSWORD
+  if (msg.includes("not verified")) return AUTH_ERROR_MESSAGES.EMAIL_NOT_VERIFIED
+  if (msg.includes("already exists")) return AUTH_ERROR_MESSAGES.USER_ALREADY_EXISTS
+  if (msg.includes("invalid token") || msg.includes("expired")) return AUTH_ERROR_MESSAGES.INVALID_TOKEN
+  if (msg.includes("invalid password")) return AUTH_ERROR_MESSAGES.INVALID_PASSWORD
   if (err?.status === 429 || msg.includes("too many")) {
     return "Demasiados intentos. Espera un momento e inténtalo de nuevo."
   }
   if (err?.status === 404 || code === "NOT_FOUND") {
     return "Esta función aún no está disponible en el servidor."
   }
-  return err?.message?.trim() || "No pudimos completar la operación. Inténtalo de nuevo."
+  return null
+}
+
+/** Traduce los códigos/mensajes habituales de Better Auth a español claro. */
+export function authErrorMessage(err: AuthError): string {
+  return translateAuthError(err) ?? (err?.message?.trim() || "No pudimos completar la operación. Inténtalo de nuevo.")
 }
