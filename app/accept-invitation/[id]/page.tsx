@@ -1,14 +1,16 @@
 "use client"
 
-import { use, useState, useEffect } from "react"
+import { use, useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth"
 import {
   getInvitationById,
   acceptInvitation,
+  registerInvited,
   type InvitationDetail,
 } from "@/lib/api/settings"
 import { setActiveOrgId } from "@/lib/activeOrg"
+import { validatePassword } from "@/lib/auth/validation"
 
 // Colores por slug; el label viene de la API (roleName)
 const ROLE_LABELS: Record<string, { label: string; color: string; bg: string }> = {
@@ -35,6 +37,10 @@ export default function AcceptInvitationPage({
   const [error, setError] = useState<string | null>(null)
   const [accepting, setAccepting] = useState(false)
   const [accepted, setAccepted] = useState(false)
+  const [name, setName] = useState("")
+  const [password, setPassword] = useState("")
+  const [registering, setRegistering] = useState(false)
+  const autoTried = useRef(false)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userEmail: string | null = (sessionData as any)?.user?.email ?? null
@@ -61,7 +67,8 @@ export default function AcceptInvitationPage({
       const newOrgId = res.data?.organizationId
       if (newOrgId) setActiveOrgId(newOrgId)
       setAccepted(true)
-      setTimeout(() => router.push("/dashboard"), 3000)
+      // Recarga completa: el contexto de permisos en caché es el de «sin negocio»
+      setTimeout(() => window.location.assign("/dashboard"), 1200)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al aceptar la invitación"
       setError(msg)
@@ -70,8 +77,50 @@ export default function AcceptInvitationPage({
     }
   }
 
+  // Volvió de iniciar sesión con el correo correcto (?auto=1): acepta sin pedir otro clic
+  useEffect(() => {
+    if (!invitation || !userEmail) return
+    if (userEmail.toLowerCase() !== invitation.email.toLowerCase()) return
+    if (new URLSearchParams(window.location.search).get("auto") !== "1") return
+    const t = setTimeout(() => {
+      if (autoTried.current) return
+      autoTried.current = true
+      void handleAccept()
+    }, 0)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invitation, userEmail])
+
+  // Ruta de regreso tras iniciar sesión: la misma invitación, aceptándose sola (?auto=1)
+  const returnPath = `/accept-invitation/${id}?auto=1`
+
   const handleGoLogin = () => {
-    router.push(`/login?redirect=/accept-invitation/${id}`)
+    const email = invitation ? `&email=${encodeURIComponent(invitation.email)}` : ""
+    router.push(`/login?returnTo=${encodeURIComponent(returnPath)}${email}`)
+  }
+
+  // Cuenta nueva: se crea aquí mismo (verificada y con sesión) y se acepta sin pasos intermedios
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (name.trim().length < 2) {
+      setError("Escribe tu nombre.")
+      return
+    }
+    const pwdError = validatePassword(password)
+    if (pwdError) {
+      setError(pwdError)
+      return
+    }
+    setRegistering(true)
+    try {
+      await registerInvited(id, { name: name.trim(), password })
+      await handleAccept()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "No pudimos crear tu cuenta. Inténtalo de nuevo.")
+    } finally {
+      setRegistering(false)
+    }
   }
 
   const handleLogout = async () => {
@@ -205,7 +254,9 @@ export default function AcceptInvitationPage({
             textAlign: "left",
           }}>
             <p style={{ fontSize: 13, color: "#92400e", lineHeight: 1.6, margin: 0 }}>
-              Necesitas iniciar sesión o crear una cuenta para aceptar esta invitación.
+              {invitation.hasAccount
+                ? <>Ya tienes una cuenta con <strong>{invitation.email}</strong>. Inicia sesión y te unes al instante.</>
+                : <>Crea tu cuenta con <strong>{invitation.email}</strong> y entras directo al equipo, sin crear un negocio propio.</>}
             </p>
           </div>
         )}
@@ -228,7 +279,48 @@ export default function AcceptInvitationPage({
         )}
 
         {/* CTA */}
-        {!isLoggedIn ? (
+        {!isLoggedIn && !invitation.hasAccount ? (
+          <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 10, textAlign: "left" }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted, #78716c)" }}>
+              Tu nombre
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                maxLength={100}
+                style={{ display: "block", width: "100%", marginTop: 4, padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border, #e7e5e4)", fontSize: 15, background: "white" }}
+              />
+            </label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted, #78716c)" }}>
+              Crea una contraseña
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                style={{ display: "block", width: "100%", marginTop: 4, padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border, #e7e5e4)", fontSize: 15, background: "white" }}
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={registering || accepting}
+              style={{
+                width: "100%",
+                marginTop: 6,
+                padding: "14px 24px",
+                borderRadius: 12,
+                border: "none",
+                background: registering || accepting ? "var(--text-muted, #a8a29e)" : "var(--accent, #e94560)",
+                color: "white",
+                fontWeight: 700,
+                fontSize: 15,
+                cursor: registering || accepting ? "not-allowed" : "pointer",
+              }}
+            >
+              {registering || accepting ? "Creando tu cuenta..." : "Crear cuenta y unirme →"}
+            </button>
+          </form>
+        ) : !isLoggedIn ? (
           <button
             onClick={handleGoLogin}
             style={{
@@ -245,9 +337,13 @@ export default function AcceptInvitationPage({
               transition: "all 0.15s ease",
             }}
           >
-            Iniciar sesión para aceptar →
+            Iniciar sesión y unirme →
           </button>
         ) : emailMatch ? (
+          <>
+          <p style={{ fontSize: 12, color: "var(--text-muted, #78716c)", lineHeight: 1.5, margin: "0 0 12px" }}>
+            Si ya tienes tu propio negocio, no cambia: lo verás junto a este y podrás pasar de uno a otro desde el menú.
+          </p>
           <button
             onClick={handleAccept}
             disabled={accepting}
@@ -267,6 +363,7 @@ export default function AcceptInvitationPage({
           >
             {accepting ? "Procesando..." : "Aceptar Invitación →"}
           </button>
+          </>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <button

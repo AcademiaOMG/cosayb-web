@@ -142,10 +142,20 @@ export interface InvitationDetail {
   invitedByName: string
   organizationName: string
   expiresAt: string
+  /** ¿El correo invitado ya tiene cuenta? Decide entre «iniciar sesión» y «crear cuenta» */
+  hasAccount: boolean
 }
 
 export async function getInvitationById(
   id: string
 ): Promise<ApiResponse<InvitationDetail>> {
   return fetchAPI(`/api/v1/invitations/${id}`)
+}
+
+/** Crea la cuenta de la persona invitada desde el enlace (queda verificada y con sesión abierta). */
+export async function registerInvited(
+  id: string,
+  data: { name: string; password: string }
+): Promise<ApiResponse<{ email: string }>> {
+  return fetchAPI(`/api/v1/invitations/${id}/register`, { method: "POST", body: JSON.stringify(data) })
 }
