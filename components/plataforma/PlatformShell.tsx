@@ -35,7 +35,10 @@ function Brand() {
 export default function PlatformShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { platformRoles, memberships, isLoading } = usePermissions()
+  const { platformRoles, memberships, isLoading, isValidating } = usePermissions()
+  // Los permisos vienen de caché al entrar desde el lado usuario: sin roles de plataforma en caché no se niega
+  // el acceso hasta confirmar con el servidor (evita el «acceso restringido» que parpadea o se queda).
+  const checking = isLoading || (isValidating && platformRoles.length === 0)
   const { data: session } = authClient.useSession()
   // El menú guarda la ruta en la que se abrió: al navegar queda cerrado sin efectos extra
   const [openedAt, setOpenedAt] = useState<string | null>(null)
@@ -44,10 +47,10 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
 
   // Landing por sub-rol: si la ruta actual no le corresponde, llevarlo a su primera sección visible
   useEffect(() => {
-    if (isLoading) return
+    if (checking) return
     const target = landingRedirect(pathname, platformRoles)
     if (target) router.replace(target)
-  }, [isLoading, platformRoles, pathname, router])
+  }, [checking, platformRoles, pathname, router])
 
   const closeMenu = useCallback(() => {
     setOpenedAt(null)
@@ -64,7 +67,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
     window.location.replace("/login")
   }
 
-  if (isLoading) {
+  if (checking) {
     return (
       <div className="h-screen supports-[height:100dvh]:h-dvh" style={{ background: "var(--bg-primary)" }}>
         <LoadingBlock label="Cargando la plataforma…" className="h-full" />

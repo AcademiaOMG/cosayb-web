@@ -105,8 +105,13 @@ export function needsOnboarding(s: OrgState): boolean {
   return !s.hasOrganization && isForcedTenant(s)
 }
 
+/** Página de aceptación de una invitación: quien la abre aún no tiene negocio y no debe pasar por el onboarding. */
+export const INVITATION_PATH_PREFIX = "/accept-invitation/"
+
 /** Destino tras autenticarse: onboarding (conservando returnTo) o el destino normal. */
 export function resolveAuthenticatedDestination(s: OrgState, destination: string): string {
+  // Con una invitación pendiente, el negocio es al que lo invitaron: no se le pide crear uno propio primero
+  if (destination.startsWith(INVITATION_PATH_PREFIX)) return destination
   return needsOnboarding(s) ? buildOnboardingUrl(destination) : destination
 }
 

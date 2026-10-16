@@ -9,6 +9,7 @@ import {
   formatCOP,
   formatGrams,
   formatPerGram,
+  formatPerKg,
   getPriceStatus,
   isOwnIngredient,
 } from "./format"
@@ -68,11 +69,12 @@ export default function IngredientRow({
   const tagged = own && showOwnTag
   const stale = getPriceStatus(ingredient) === "stale"
   const name = displayName(ingredient.name)
-  const perGram = formatPerGram(ingredient.costPerGram)
   const unitCost = formatCOP(ingredient.costPerUnit)
   const extraUnit = extraUnitLabel(ingredient)
   const weight = extraUnit ? `${formatGrams(ingredient.weightGrams).replace(/ g$/, "")} ${extraUnit}` : formatGrams(ingredient.weightGrams)
-  const perUnitSuffix = extraUnit ? `/${extraUnit}` : "/g"
+  // El número principal es el costo por kilo; los extras (se cuentan por unidad, no por peso) muestran costo por unidad
+  const mainCost = extraUnit ? formatPerGram(ingredient.costPerGram) : formatPerKg(ingredient.costPerGram)
+  const perUnitSuffix = extraUnit ? `/${extraUnit}` : "/kg"
   const canEdit = own && !!onEdit
   const canDelete = own && !!onDelete
 
@@ -127,7 +129,7 @@ export default function IngredientRow({
             className="text-[15px] font-bold tabular-nums"
             style={{ color: "var(--text-primary)" }}
           >
-            {perGram}
+            {mainCost}
             <span className="font-medium" style={{ color: "var(--text-muted)" }}>{perUnitSuffix}</span>
           </span>
           <ChevronRight size={16} aria-hidden="true" style={{ color: "var(--border-medium)" }} />
@@ -155,7 +157,7 @@ export default function IngredientRow({
           style={{ color: "var(--text-primary)" }}
         >
           {stale && <StaleDot />}
-          {perGram}
+          {mainCost}
         </span>
         <span className="text-right text-sm tabular-nums" style={{ color: "var(--text-secondary)" }}>
           {unitCost}

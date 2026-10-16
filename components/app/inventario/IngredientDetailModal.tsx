@@ -10,6 +10,7 @@ import {
   formatCOP,
   formatGrams,
   formatPerGram,
+  formatPerKg,
   getPriceStatus,
   isOwnIngredient,
 } from "./format"
@@ -43,7 +44,6 @@ export default function IngredientDetailModal({ ingredient, onClose, onEdit, onD
 
   const own = isOwnIngredient(ingredient)
   const status = getPriceStatus(ingredient)
-  const costPerGram = parseFloat(ingredient.costPerGram)
   const confirmedAt = formatDate(ingredient.priceConfirmedAt)
   const canEdit = own && !!onEdit
   const canDelete = own && !!onDelete
@@ -91,8 +91,8 @@ export default function IngredientDetailModal({ ingredient, onClose, onEdit, onD
     >
       <div className="flex flex-col gap-6 pb-2">
         <ModalHero
-          label="Costo por gramo"
-          value={`${formatPerGram(ingredient.costPerGram)}/g`}
+          label="Costo por kilo"
+          value={`${formatPerKg(ingredient.costPerGram)}/kg`}
           note={[own ? "Ingrediente propio" : "Banco general", ingredient.category].filter(Boolean).join(" · ")}
           aside={
             status === "stale" ? (
@@ -106,7 +106,7 @@ export default function IngredientDetailModal({ ingredient, onClose, onEdit, onD
         <StatGrid cols={3}>
           <Stat label="Costo unidad" value={formatCOP(ingredient.costPerUnit)} />
           <Stat label="Peso unidad" value={formatGrams(ingredient.weightGrams)} />
-          <Stat label="Costo por kilo" value={formatCOP(costPerGram * 1000)} />
+          <Stat label="Costo por gramo" value={`${formatPerGram(ingredient.costPerGram)}/g`} />
         </StatGrid>
 
         {(ingredient.priceSource || ingredient.sipsaMatchName || confirmedAt || own) && (

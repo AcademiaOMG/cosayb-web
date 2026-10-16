@@ -40,7 +40,8 @@ function LoginForm() {
     return `${window.location.origin}${destination}`
   }, [destination])
 
-  const [email, setEmail] = useState("")
+  // Desde una invitación el correo viene precargado (?email=)
+  const [email, setEmail] = useState(searchParams.get("email") ?? "")
   const [password, setPassword] = useState("")
   const [emailError, setEmailError] = useState<string | undefined>()
   const [formError, setFormError] = useState<string | null>(null)

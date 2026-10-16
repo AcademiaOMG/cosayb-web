@@ -13,7 +13,7 @@ import { getAuthzContext, type Resource, type Action, type AuthzContext } from "
  *   if (hasFeature("exports")) { ... }
  */
 export function usePermissions() {
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading, isValidating, mutate } = useSWR(
     "me/context",
     () => getAuthzContext().then((r) => r.data),
     { revalidateOnFocus: false }
@@ -75,6 +75,8 @@ export function usePermissions() {
     hasOrganization: !!organization,
     // Estado
     isLoading,
+    /** Hay una petición en curso (puede haber datos viejos de caché mientras tanto) */
+    isValidating,
     error,
     mutate,
   }

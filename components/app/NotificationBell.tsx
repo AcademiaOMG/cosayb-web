@@ -4,8 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { Bell } from "lucide-react"
 import { timeAgoEs } from "@/lib/saas/format"
-import { refreshNotifications, useNotifications } from "@/lib/saas/hooks"
-import { saas } from "@/lib/saas/services"
+import { markNotificationsRead, useNotifications } from "@/lib/saas/hooks"
 import { toast } from "@/lib/toast"
 
 /** Campana de notificaciones in-app con las últimas 6 y acceso a la bandeja completa. */
@@ -35,10 +34,9 @@ export default function NotificationBell() {
 
   async function markAll() {
     try {
-      await saas.notifications.markAllRead()
-      await refreshNotifications()
-    } catch {
-      toast.error("No se pudieron marcar como leídas.")
+      await markNotificationsRead()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudieron marcar como leídas.")
     }
   }
 
@@ -46,10 +44,9 @@ export default function NotificationBell() {
     setOpen(false)
     if (readAt) return
     try {
-      await saas.notifications.markRead(id)
-      await refreshNotifications()
+      await markNotificationsRead(id)
     } catch {
-      /* no bloquea la navegación */
+      /* no bloquea la navegación; la lista se restaura sola */
     }
   }
 

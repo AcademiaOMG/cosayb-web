@@ -36,6 +36,11 @@ describe("needsOnboarding", () => {
 })
 
 describe("resolveAuthenticatedDestination", () => {
+  it("con una invitación pendiente no manda al onboarding (el negocio es al que lo invitaron)", () => {
+    const dest = "/accept-invitation/e67f72dc-b17d-42aa-af51-d508049be43e?auto=1"
+    expect(resolveAuthenticatedDestination(noOrg, dest)).toBe(dest)
+  })
+
   it("sin org → onboarding con returnTo (compra pendiente incluida)", () => {
     expect(resolveAuthenticatedDestination(noOrg, "/dashboard")).toBe("/onboarding?returnTo=%2Fdashboard")
     expect(resolveAuthenticatedDestination(noOrg, "/checkout?plan=pro")).toBe(
