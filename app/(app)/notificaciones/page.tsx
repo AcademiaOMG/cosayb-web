@@ -9,8 +9,7 @@ import EmptyState from "@/components/ui/EmptyState"
 import ErrorState from "@/components/ui/ErrorState"
 import LoadingBlock from "@/components/ui/LoadingBlock"
 import { timeAgoEs } from "@/lib/saas/format"
-import { refreshNotifications, useNotifications } from "@/lib/saas/hooks"
-import { saas } from "@/lib/saas/services"
+import { markNotificationsRead, useNotifications } from "@/lib/saas/hooks"
 import type { NotificationKind } from "@/lib/saas/types"
 import { toast } from "@/lib/toast"
 
@@ -29,10 +28,9 @@ export default function NotificacionesPage() {
   async function markAll() {
     setBusy(true)
     try {
-      await saas.notifications.markAllRead()
-      await refreshNotifications()
-    } catch {
-      toast.error("No se pudieron marcar como leídas.")
+      await markNotificationsRead()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudieron marcar como leídas.")
     } finally {
       setBusy(false)
     }
@@ -40,8 +38,7 @@ export default function NotificacionesPage() {
 
   async function markOne(id: string) {
     try {
-      await saas.notifications.markRead(id)
-      await refreshNotifications()
+      await markNotificationsRead(id)
     } catch {
       /* no bloquea la navegación */
     }

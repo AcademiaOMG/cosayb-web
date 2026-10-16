@@ -35,7 +35,7 @@ function ColumnHeader() {
     >
       <span className={cell}>Ingrediente</span>
       <span className={`${cell} text-right`} style={{ color: "var(--text-secondary)" }}>
-        Costo por gramo
+        Costo por kilo
       </span>
       <span className={`${cell} text-right`}>Costo unidad</span>
       <span className={`${cell} text-right`}>Peso unidad</span>

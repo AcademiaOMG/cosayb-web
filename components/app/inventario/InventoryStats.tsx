@@ -3,6 +3,7 @@
 import { useMemo } from "react"
 import { Package, TrendingDown, TrendingUp, Layers } from "lucide-react"
 import type { Ingredient } from "@/types/ingredient"
+import { formatPerKg } from "./format"
 
 interface StatCardProps {
   icon: React.ReactNode
@@ -73,19 +74,19 @@ export default function InventoryStats({ ingredients }: Props) {
       <StatCard
         icon={<Layers size={18} />}
         label="Costo promedio"
-        value={`$${stats.avgPerGram.toFixed(4)}/g`}
+        value={`${formatPerKg(stats.avgPerGram)}/kg`}
         sub="Promedio de tus ingredientes"
       />
       <StatCard
         icon={<TrendingDown size={18} />}
         label="Más económico"
-        value={stats.cheapest ? `$${parseFloat(stats.cheapest.costPerGram).toFixed(4)}/g` : "—"}
+        value={stats.cheapest ? `${formatPerKg(stats.cheapest.costPerGram)}/kg` : "—"}
         sub={stats.cheapest?.name ?? ""}
       />
       <StatCard
         icon={<TrendingUp size={18} />}
         label="Más costoso"
-        value={stats.priciest ? `$${parseFloat(stats.priciest.costPerGram).toFixed(4)}/g` : "—"}
+        value={stats.priciest ? `${formatPerKg(stats.priciest.costPerGram)}/kg` : "—"}
         sub={stats.priciest?.name ?? ""}
       />
     </div>

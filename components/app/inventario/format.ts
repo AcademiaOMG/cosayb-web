@@ -16,6 +16,13 @@ export function formatGrams(value: string | number): string {
   return `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g`
 }
 
+/** "$9.670" — costo por kilo a partir del costo por gramo, sin decimales */
+export function formatPerKg(costPerGram: string | number): string {
+  const n = typeof costPerGram === "number" ? costPerGram : parseFloat(costPerGram)
+  if (!Number.isFinite(n)) return "—"
+  return formatCOP(n * 1000)
+}
+
 /** "$9,67" — sin sufijo, el contexto (columna o "/g") lo aporta */
 export function formatPerGram(value: string | number): string {
   const n = typeof value === "number" ? value : parseFloat(value)
