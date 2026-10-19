@@ -179,19 +179,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {merma && merma.items.length > 0 && (
-        <div className="glass-grid-wrap glass-grid-wrap-wide flex flex-col gap-3">
-          <h2 className="dash-section-title">Información que importa</h2>
-          <div className="dash-insights-row">
-            {merma.items.slice(0, 3).map((item) => (
-              <div key={item.ingredientName} className="dash-insight-stat">
-                <span className="dash-insight-stat-label">Recuperable por merma — {item.ingredientName}</span>
-                <span className="dash-insight-stat-value">{fmtCOP(item.amount)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
