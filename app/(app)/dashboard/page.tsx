@@ -3,14 +3,12 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
-import useSWR from "swr"
 import { Bell } from "lucide-react"
 import "./glass.css"
 import PageHeader from "@/components/ui/PageHeader"
 import SidebarChecklist from "@/components/app/SidebarChecklist"
 import { usePermissions } from "@/hooks/usePermissions"
 import { authClient } from "@/lib/auth"
-import { getDashboardInsights } from "@/lib/api"
 import type { Resource, Action } from "@/lib/api"
 
 type PermCheck = (can: (r: Resource, a: Action) => boolean, hasFeature: (k: string) => boolean) => boolean
@@ -111,18 +109,12 @@ export default function DashboardPage() {
 
   const { can, hasFeature, isLoading } = usePermissions()
   const { data: session } = authClient.useSession()
-  const { data: insights } = useSWR(
-    "dashboard-insights",
-    () => getDashboardInsights().then((r) => r.data),
-    { revalidateOnFocus: false }
-  )
 
   const cards = isLoading ? ALL_CARDS : ALL_CARDS.filter((c) => c.isVisible(can, hasFeature))
   const userName = session?.user?.name?.trim()
   const firstName = userName?.split(" ")[0]
   const userImage = mounted ? session?.user?.image ?? null : null
-  const merma = insights?.merma
-  const insight = buildInsight(merma)
+  const insight = buildInsight()
 
   return (
     <div className="flex flex-col gap-8">
