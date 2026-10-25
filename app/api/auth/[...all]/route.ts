@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 
+// Vercel corta la función a los segundos que indique maxDuration; el fetch al API se corta antes
+// para devolver un 504 en JSON (con código) en vez de un error anónimo de la plataforma.
+export const maxDuration = 30
+const UPSTREAM_TIMEOUT_MS = 22_000
+
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 
 export async function GET(
@@ -40,6 +45,7 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
         ? await request.text()
         : undefined,
       redirect: "manual",
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     })
 
     const responseHeaders = new Headers()
@@ -62,10 +68,13 @@ async function proxyToBackend(request: NextRequest, path: string): Promise<NextR
       headers: responseHeaders,
     })
   } catch (error) {
-    console.error(`[Auth Proxy] Error en ${path}:`, error)
+    const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")
+    console.error(`[Auth Proxy] ${timedOut ? "Sin respuesta del API" : "Error"} en ${path}:`, error)
     return NextResponse.json(
-      { error: "Error al conectar con el servidor de autenticación" },
-      { status: 502 }
+      timedOut
+        ? { error: "El servidor de autenticación no respondió a tiempo", code: "AUTH_TIMEOUT" }
+        : { error: "Error al conectar con el servidor de autenticación", code: "AUTH_UPSTREAM_ERROR" },
+      { status: timedOut ? 504 : 502 }
     )
   }
 }

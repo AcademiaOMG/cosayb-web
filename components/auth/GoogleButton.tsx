@@ -1,5 +1,7 @@
 "use client"
 
+import { AUTH_ACTION_TIMEOUT_MS, AuthRequestError, fetchWithTimeout } from "@/lib/auth/timeouts"
+
 export default function GoogleButton({
   onClick,
   loading,
@@ -35,13 +37,20 @@ export default function GoogleButton({
 
 /** Inicia el OAuth de Google vía el proxy de Next (mismo flujo que usaba /login). */
 export async function startGoogleSignIn(callbackURL: string): Promise<void> {
-  const res = await fetch(`/api/auth/sign-in/social`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ provider: "google", callbackURL }),
-  })
-  const data = await res.json()
+  const res = await fetchWithTimeout(
+    fetch,
+    `/api/auth/sign-in/social`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ provider: "google", callbackURL }),
+    },
+    AUTH_ACTION_TIMEOUT_MS,
+  )
+  // Un 5xx/504 trae HTML o JSON de error: se lanza un error tipado para mostrar un aviso claro.
+  const data = await res.json().catch(() => null)
+  if (!res.ok) throw new AuthRequestError(res.status, data?.code, res.headers.get("x-request-id"))
   if (!data?.url) throw new Error("No se recibió URL de redirección")
   window.location.href = data.url
 }

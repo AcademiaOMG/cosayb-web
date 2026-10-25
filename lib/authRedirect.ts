@@ -15,6 +15,8 @@
  * guard limpia la cookie al expulsar para que /login no pueda rebotar.
  */
 
+import { fetchWithTimeout, SESSION_CHECK_TIMEOUT_MS } from "./auth/timeouts"
+
 /** Destino por defecto tras autenticarse: directo al dashboard. */
 export const DEFAULT_POST_LOGIN_PATH = "/dashboard"
 
@@ -49,18 +51,20 @@ export type ServerSessionState = "valid" | "invalid" | "unknown"
 
 /**
  * Consulta al API (misma autoridad que SessionGuard) si la sesión es válida.
- * 2xx → valid; 401/403 → invalid; red caída / 5xx → unknown (no se redirige
- * ni se expulsa por un fallo transitorio).
+ * 2xx → valid; 401/403 → invalid; red caída / 5xx / sin respuesta a tiempo → unknown
+ * (no se redirige ni se expulsa por un fallo transitorio, y /login no se queda cargando).
  */
 export async function checkServerSession(
   apiBase: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ServerSessionState> {
   try {
-    const res = await fetchImpl(`${apiBase}/api/v1/me`, {
-      credentials: "include",
-      cache: "no-store",
-    })
+    const res = await fetchWithTimeout(
+      fetchImpl,
+      `${apiBase}/api/v1/me`,
+      { credentials: "include", cache: "no-store" },
+      SESSION_CHECK_TIMEOUT_MS,
+    )
     if (res.ok) return "valid"
     if (res.status === 401 || res.status === 403) return "invalid"
     return "unknown"
@@ -144,10 +148,12 @@ export async function fetchOrgState(
   fetchImpl: typeof fetch = fetch,
 ): Promise<OrgStateResult> {
   try {
-    const res = await fetchImpl(`${apiBase}/api/v1/me/context`, {
-      credentials: "include",
-      cache: "no-store",
-    })
+    const res = await fetchWithTimeout(
+      fetchImpl,
+      `${apiBase}/api/v1/me/context`,
+      { credentials: "include", cache: "no-store" },
+      SESSION_CHECK_TIMEOUT_MS,
+    )
     if (res.status === 401 || res.status === 403) return { status: "invalid" }
     if (!res.ok) return { status: "unknown" }
     const body = await res.json()

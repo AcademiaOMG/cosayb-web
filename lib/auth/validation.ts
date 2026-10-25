@@ -1,5 +1,7 @@
 /** Validaciones puras de los formularios de autenticación (sin dependencias de UI). */
 
+import { SERVER_BUSY_MESSAGE } from "./timeouts"
+
 export const PASSWORD_MIN_LENGTH = 10
 export const PASSWORD_MAX_LENGTH = 128
 
@@ -98,6 +100,9 @@ export function translateAuthError(err: AuthError): string | null {
   if (msg.includes("invalid password")) return AUTH_ERROR_MESSAGES.INVALID_PASSWORD
   if (err?.status === 429 || msg.includes("too many")) {
     return "Demasiados intentos. Espera un momento e inténtalo de nuevo."
+  }
+  if ((err?.status ?? 0) >= 502 || code === "AUTH_TIMEOUT" || code === "REQUEST_TIMEOUT") {
+    return SERVER_BUSY_MESSAGE
   }
   if (err?.status === 404 || code === "NOT_FOUND") {
     return "Esta función aún no está disponible en el servidor."

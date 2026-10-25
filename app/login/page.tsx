@@ -13,6 +13,7 @@ import PasswordInput from "@/components/auth/PasswordInput"
 import Input from "@/components/ui/Input"
 import Button from "@/components/ui/Button"
 import { validateEmail, normalizeEmail, authErrorMessage } from "@/lib/auth/validation"
+import { AUTH_ACTION_TIMEOUT_MS, authFailureMessage } from "@/lib/auth/timeouts"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
@@ -89,8 +90,8 @@ function LoginForm() {
     setLoading(true)
     try {
       await startGoogleSignIn(callbackURL)
-    } catch {
-      toast.error("No se pudo iniciar sesión con Google. Intenta de nuevo.")
+    } catch (err) {
+      toast.error(authFailureMessage(err, "No se pudo iniciar sesión con Google. Intenta de nuevo."))
       setLoading(false)
     }
   }
@@ -108,7 +109,10 @@ function LoginForm() {
     }
     setSubmitting(true)
     try {
-      const { error } = await authClient.signIn.email({ email: normalizeEmail(email), password, callbackURL })
+      const { error } = await authClient.signIn.email(
+        { email: normalizeEmail(email), password, callbackURL },
+        { signal: AbortSignal.timeout(AUTH_ACTION_TIMEOUT_MS) },
+      )
       if (error) {
         setNotVerified((error.code ?? "").toUpperCase() === "EMAIL_NOT_VERIFIED")
         setFormError(authErrorMessage(error))
@@ -116,8 +120,8 @@ function LoginForm() {
       }
       const org = await fetchOrgState(API)
       router.replace(org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination) : destination)
-    } catch {
-      setFormError("No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.")
+    } catch (err) {
+      setFormError(authFailureMessage(err, "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo."))
     } finally {
       setSubmitting(false)
     }
