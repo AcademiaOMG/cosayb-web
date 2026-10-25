@@ -94,3 +94,14 @@ describe("translateAuthError", () => {
     expect(translateAuthError({ code: "INVALID_PASSWORD" })).toMatch(/contraseña actual/)
   })
 })
+
+describe("translateAuthError: servidor lento o caído", () => {
+  it("5xx del proxy y códigos de plazo muestran el aviso de servidor lento", () => {
+    expect(translateAuthError({ status: 504 })).toMatch(/tardando más de lo normal/)
+    expect(translateAuthError({ status: 503, code: "REQUEST_TIMEOUT" })).toMatch(/tardando más de lo normal/)
+    expect(translateAuthError({ code: "AUTH_TIMEOUT" })).toMatch(/tardando más de lo normal/)
+  })
+  it("un 500 genérico no se confunde con servidor lento", () => {
+    expect(translateAuthError({ status: 500 })).toBeNull()
+  })
+})
