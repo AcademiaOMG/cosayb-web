@@ -47,6 +47,32 @@ describe("resolveAuthenticatedDestination", () => {
       "/onboarding?returnTo=%2Fcheckout%3Fplan%3Dpro",
     )
   })
+  it("las rutas de aprendizaje no exigen negocio (cursos independientes)", () => {
+    for (const dest of ["/mis-cursos", "/aprender/costeo", "/aprender/costeo?l=2", "/evaluacion/abc", "/certificados/xyz", "/cursos/costeo"]) {
+      expect(resolveAuthenticatedDestination(noOrg, dest)).toBe(dest)
+    }
+  })
+
+  it("no confunde rutas parecidas con rutas de aprendizaje", () => {
+    expect(resolveAuthenticatedDestination(noOrg, "/mis-cursos-falso")).toBe("/onboarding?returnTo=%2Fmis-cursos-falso")
+  })
+
+  it("quien tiene cursos activos y no negocio, sin destino propio, va a mis cursos", () => {
+    expect(resolveAuthenticatedDestination(noOrg, "/dashboard", { hasActiveCourses: true })).toBe("/mis-cursos")
+    // un destino explícito distinto del dashboard por defecto se respeta (pasa por onboarding)
+    expect(resolveAuthenticatedDestination(noOrg, "/checkout?plan=pro", { hasActiveCourses: true })).toBe(
+      "/onboarding?returnTo=%2Fcheckout%3Fplan%3Dpro",
+    )
+    // con negocio no cambia nada
+    expect(resolveAuthenticatedDestination(withOrg, "/dashboard", { hasActiveCourses: true })).toBe("/dashboard")
+  })
+
+  it("con membresías pero sin organización activa no se fuerza a crear otro negocio", () => {
+    const suspended: OrgState = { ...noOrg, hasMemberships: true }
+    expect(needsOnboarding(suspended)).toBe(false)
+    expect(resolveAuthenticatedDestination(suspended, "/dashboard")).toBe("/dashboard")
+  })
+
   it("con org o plataforma → destino intacto", () => {
     expect(resolveAuthenticatedDestination(withOrg, "/recetas")).toBe("/recetas")
     expect(resolveAuthenticatedDestination(platform, "/plataforma")).toBe("/plataforma")
@@ -83,7 +109,10 @@ describe("fetchOrgState", () => {
     vi.fn().mockResolvedValue({ ok: status >= 200 && status < 300, status, json: async () => body }) as unknown as typeof fetch
   it("interpreta el contexto", async () => {
     const r = await fetchOrgState("http://api", mk(200, { data: { identityType: "tenant", organization: null, impersonation: null } }))
-    expect(r).toEqual({ status: "ok", state: { identityType: "tenant", hasOrganization: false, impersonationActive: false } })
+    expect(r).toEqual({ status: "ok", state: { identityType: "tenant", hasOrganization: false, impersonationActive: false, hasMemberships: false } })
+    // organización no activa pero con pertenencias: no es un usuario "sin negocio"
+    const r3 = await fetchOrgState("http://api", mk(200, { data: { identityType: "tenant", organization: null, memberships: [{ id: "m" }], impersonation: null } }))
+    expect(r3).toMatchObject({ status: "ok", state: { hasOrganization: false, hasMemberships: true } })
     const r2 = await fetchOrgState("http://api", mk(200, { data: { identityType: "tenant", organization: { id: "1" }, impersonation: { active: true } } }))
     expect(r2).toMatchObject({ status: "ok", state: { hasOrganization: true, impersonationActive: true } })
   })

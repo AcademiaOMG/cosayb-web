@@ -24,7 +24,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { data: session } = authClient.useSession()
   const pathname = usePathname()
-  const { identityType, impersonation, isLoading: permsLoading, hasOrganization, error: permsError } = usePermissions()
+  const { identityType, impersonation, isLoading: permsLoading, hasOrganization, memberships, error: permsError } = usePermissions()
 
   // Usuario sin organización → debe crear su negocio primero (una sola redirección).
   // Si el contexto falló (error de red) no se fuerza nada.
@@ -32,6 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     !permsLoading && !permsError && needsOnboarding({
       identityType,
       hasOrganization,
+      hasMemberships: memberships.length > 0,
       impersonationActive: !!impersonation?.active,
     })
   useEffect(() => {

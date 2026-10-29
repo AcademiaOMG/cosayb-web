@@ -5,7 +5,7 @@ import { authClient } from "@/lib/auth"
 import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getPendingCheckout, pendingToPath, pendingContextLine } from "@/lib/commerce/pending"
-import { resolvePostLoginPath, checkServerSession, fetchOrgState, resolveAuthenticatedDestination } from "@/lib/authRedirect"
+import { resolvePostLoginPath, checkServerSession, fetchOrgState, resolveAuthenticatedDestination, fetchHasActiveCourses, needsOnboarding } from "@/lib/authRedirect"
 import { toast } from "@/lib/toast"
 import AuthShell, { AuthSpinner } from "@/components/auth/AuthShell"
 import GoogleButton, { startGoogleSignIn } from "@/components/auth/GoogleButton"
@@ -59,8 +59,10 @@ function LoginForm() {
         // Sin organización → onboarding (conserva returnTo); si el contexto falla, destino normal
         const org = await fetchOrgState(API)
         if (cancelled) return
+        const hasActiveCourses = org.status === "ok" && needsOnboarding(org.state) ? await fetchHasActiveCourses(API) : false
+        if (cancelled) return
         router.replace(
-          org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination) : destination,
+          org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination, { hasActiveCourses }) : destination,
         )
         return // se mantiene el estado de carga hasta que la navegación ocurra
       }
@@ -115,7 +117,8 @@ function LoginForm() {
         return
       }
       const org = await fetchOrgState(API)
-      router.replace(org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination) : destination)
+      const hasActiveCourses = org.status === "ok" && needsOnboarding(org.state) ? await fetchHasActiveCourses(API) : false
+      router.replace(org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination, { hasActiveCourses }) : destination)
     } catch {
       setFormError("No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.")
     } finally {

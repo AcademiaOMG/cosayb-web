@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import { fetchOrgState, decideOnboardingPage, resolveOnboardingFinishPath, buildLoginUrl, ONBOARDING_PATH } from "@/lib/authRedirect"
@@ -171,6 +172,12 @@ export default function OnboardingPage() {
           </h1>
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>
             Solo necesitamos unos datos para personalizar tu experiencia
+          </p>
+          <p className="text-sm mt-3" style={{ color: "var(--text-muted)" }}>
+            ¿Solo quieres tomar cursos? No necesitas un negocio.{" "}
+            <Link href="/cursos" style={{ color: "var(--accent)", fontWeight: 600 }}>
+              Ver cursos
+            </Link>
           </p>
         </div>
 
