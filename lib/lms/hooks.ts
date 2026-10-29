@@ -4,12 +4,14 @@ import useSWR from "swr"
 import { ApiError } from "@/lib/api"
 import { lms } from "./api"
 
-const opts = { revalidateOnFocus: false } as const
+const opts = { revalidateOnFocus: false, revalidateOnMount: true, dedupingInterval: 1000 } as const
 
 export const lmsKeys = {
   catalog: "lms/catalog",
   course: (slug: string) => `lms/course/${slug}`,
   mine: "lms/mine",
+  summary: "lms/summary",
+  analytics: (id: string) => `lms/admin/analytics/${id}`,
   lesson: (id: string) => `lms/lesson/${id}`,
   quizzes: (courseId: string) => `lms/quizzes/${courseId}`,
   certificates: "lms/certificates",
@@ -22,6 +24,8 @@ export const lmsKeys = {
 
 export const useCatalog = () => useSWR(lmsKeys.catalog, () => lms.catalog(), opts)
 export const useCourse = (slug: string | undefined) => useSWR(slug ? lmsKeys.course(slug) : null, () => lms.course(slug!), opts)
+export const useSummary = (enabled = true) => useSWR(enabled ? lmsKeys.summary : null, () => lms.summary(), opts)
+export const useAnalytics = (id: string | undefined) => useSWR(id ? lmsKeys.analytics(id) : null, () => lms.admin.analytics(id!), opts)
 export const useMyCourses = () => useSWR(lmsKeys.mine, () => lms.myCourses(), opts)
 export const useLesson = (id: string | null) => useSWR(id ? lmsKeys.lesson(id) : null, () => lms.lesson(id!), opts)
 export const useCourseQuizzes = (courseId: string | undefined) => useSWR(courseId ? lmsKeys.quizzes(courseId) : null, () => lms.courseQuizzes(courseId!), opts)

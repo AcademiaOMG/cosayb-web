@@ -2,7 +2,7 @@ import { fetchAPI } from "@/lib/api"
 import type {
   AdminCertificateRow, AdminCourse, AdminCourseRow, AdminEnrollment, AdminQuiz, AssetAccess, AssetKind,
   AttemptResult, AttemptStart, CatalogCourse, CertificateDetail, CompleteResult, CourseDetail, Lesson,
-  MyCertificate, MyCourse, QuestionDraft, QuizSummary, VerifiedCertificate,
+  CourseAnalytics, CourseMeta, MyCertificate, MyCourse, QuestionDraft, QuizSummary, StudentSummary, VerifiedCertificate,
 } from "./types"
 
 // Cliente del API del LMS. Sin claves ni secretos: la sesión viaja en la cookie (credentials: include).
@@ -35,6 +35,7 @@ export const lms = {
   },
 
   // ─── estudiante ───────────────────────────────────────────────────────────
+  summary: () => data<StudentSummary>(fetchAPI(`${B}/me/summary`)),
   myCourses: () => data<MyCourse[]>(fetchAPI(`${B}/me/courses?limit=50`)),
   lesson: (id: string) => data<Lesson>(fetchAPI(`${B}/lessons/${enc(id)}`)),
   /** URL temporal (5 min) del recurso, emitida tras autorizar en el servidor. */
@@ -58,9 +59,10 @@ export const lms = {
   admin: {
     courses: () => data<AdminCourseRow[]>(fetchAPI(`${A}/courses?limit=50`)),
     course: (id: string) => data<AdminCourse>(fetchAPI(`${A}/courses/${enc(id)}`)),
-    createCourse: (input: { slug: string; title: string; description: string; includedInAcademia: boolean }) =>
+    analytics: (id: string) => data<CourseAnalytics>(fetchAPI(`${A}/courses/${enc(id)}/analytics`)),
+    createCourse: (input: { slug: string; title: string; description: string; includedInAcademia: boolean } & Partial<CourseMeta>) =>
       data<AdminCourse>(fetchAPI(`${A}/courses`, { method: "POST", ...json(input) })),
-    updateCourse: (id: string, patch: Partial<{ slug: string; title: string; description: string; includedInAcademia: boolean }>) =>
+    updateCourse: (id: string, patch: Partial<{ slug: string; title: string; description: string; includedInAcademia: boolean } & CourseMeta>) =>
       data<AdminCourse>(fetchAPI(`${A}/courses/${enc(id)}`, { method: "PATCH", ...json(patch) })),
     setStatus: (id: string, action: "publish" | "archive" | "unpublish") =>
       data<AdminCourse>(fetchAPI(`${A}/courses/${enc(id)}/${action}`, { method: "POST" })),

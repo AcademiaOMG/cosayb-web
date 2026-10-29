@@ -1,12 +1,26 @@
 // Tipos del LMS tal como los devuelve /api/v1/lms. Ningún tipo de estudiante contiene la respuesta correcta.
 
-export interface CatalogCourse {
+export type CourseLevel = "beginner" | "intermediate" | "advanced"
+
+/** Metadatos de catálogo (migración 0035). */
+export interface CourseMeta {
+  category: string
+  level: CourseLevel
+  durationMinutes: number
+  tags: string[]
+  coverKey: string
+  instructorName: string
+}
+
+export interface CatalogCourse extends CourseMeta {
   id: string
   slug: string
   title: string
   description: string
   includedInAcademia: boolean
   lessonCount: number
+  enrolledCount: number
+  createdAt: string
 }
 
 export interface OutlineLesson {
@@ -17,7 +31,7 @@ export interface OutlineLesson {
   completed: boolean
 }
 
-export interface CourseDetail {
+export interface CourseDetail extends CourseMeta {
   id: string
   slug: string
   title: string
@@ -33,6 +47,10 @@ export interface MyCourse {
   slug: string
   title: string
   description: string
+  category: string
+  level: CourseLevel
+  durationMinutes: number
+  coverKey: string
   enrolledAt: string
   lessonCount: number
   completedCount: number
@@ -145,6 +163,11 @@ export interface VerifiedCertificate {
 export type CourseStatus = "draft" | "published" | "archived"
 
 export interface AdminCourseRow {
+  category: string
+  level: CourseLevel
+  durationMinutes: number
+  tags: string[]
+  coverKey: string
   id: string
   slug: string
   title: string
@@ -173,7 +196,7 @@ export interface AdminLesson {
   assets: AdminAsset[]
 }
 
-export interface AdminCourse {
+export interface AdminCourse extends CourseMeta {
   id: string
   slug: string
   title: string
@@ -217,4 +240,35 @@ export interface QuestionDraft {
   explanation: string
   points: number
   options: { text: string; isCorrect: boolean }[]
+}
+
+// ─── Resumen del estudiante y analítica ─────────────────────────────────────
+
+export interface StudentSummary {
+  lessons: { completed: number; total: number }
+  quizzes: { passed: number; total: number }
+  certificates: { count: number; total: number }
+  streak: number
+  activity: { date: string; count: number }[]
+  resume: { courseId: string; slug: string; title: string; coverKey: string; lessonId: string | null; lessonTitle: string | null; completed: number; total: number } | null
+  upcoming: { kind: "lesson" | "quiz"; courseId: string; courseSlug: string; courseTitle: string; id: string; title: string }[]
+}
+
+export interface QuestionAnalytics {
+  id: string
+  prompt: string
+  points: number
+  responses: number
+  correctPct: number
+  options: { id: string; text: string; isCorrect: boolean; count: number; pct: number }[]
+}
+
+export interface CourseAnalytics {
+  enrolled: number
+  avgProgress: number
+  completionRate: number
+  finished: number
+  certificates: number
+  lessons: { id: string; title: string; completions: number }[]
+  quizzes: { id: string; title: string; passingScore: number; submissions: number; avgScore: number; passRate: number; avgSeconds: number; questions: QuestionAnalytics[] }[]
 }

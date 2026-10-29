@@ -1,79 +1,63 @@
 "use client"
 
-import Link from "next/link"
-import { Award, GraduationCap } from "lucide-react"
-import Card from "@/components/ui/Card"
-import EmptyState from "@/components/ui/EmptyState"
-import ErrorState from "@/components/ui/ErrorState"
-import LoadingBlock from "@/components/ui/LoadingBlock"
-import ProgressBar from "@/components/lms/ProgressBar"
+import { useState } from "react"
+import { LayoutGrid, List } from "lucide-react"
+import { authClient } from "@/lib/auth"
+import { errorStatus, useMyCourses } from "@/lib/lms/hooks"
+import { LEVEL_LABEL } from "@/lib/lms/format"
 import SignInRequired from "@/components/lms/SignInRequired"
-import { fmtDate } from "@/lib/saas/format"
-import { errorStatus, useMyCertificates, useMyCourses } from "@/lib/lms/hooks"
+import Cover from "@/components/lms/art/Cover"
+import { CardSkeletonGrid, CourseCard, CourseRow, type CardCourse } from "@/components/lms/parts"
+import { EmptyState, ErrorPanel, LinkButton, PageHeader, Tabs } from "@/components/lms/ui"
+
+type Tab = "all" | "active" | "done"
 
 export default function MisCursosPage() {
-  const { data: courses, error, mutate } = useMyCourses()
-  const { data: certs } = useMyCertificates()
+  const { data: session, isPending } = authClient.useSession()
+  const { data, error, mutate } = useMyCourses()
+  const [tab, setTab] = useState<Tab>("all")
+  const [view, setView] = useState<"grid" | "list">("grid")
 
-  if (errorStatus(error) === 401) return <SignInRequired message="Inicia sesión para ver tus cursos y certificados." />
+  if ((!isPending && !session) || errorStatus(error) === 401) return <SignInRequired message="Inicia sesión para ver tus cursos." />
+  if (error) return <ErrorPanel title="No pudimos cargar tus cursos" onRetry={() => mutate()} />
+
+  const cards: (CardCourse & { finished: boolean })[] = (data ?? []).map((c) => ({
+    slug: c.slug,
+    title: c.title,
+    coverKey: c.coverKey,
+    level: c.level,
+    tags: [LEVEL_LABEL[c.level], c.category],
+    durationMinutes: c.durationMinutes,
+    lessonCount: c.lessonCount,
+    progress: { done: c.completedCount, total: c.lessonCount },
+    finished: c.lessonCount > 0 && c.completedCount >= c.lessonCount,
+  }))
+  const shown = cards.filter((c) => (tab === "all" ? true : tab === "done" ? c.finished : !c.finished))
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="font-display text-2xl font-bold sm:text-3xl" style={{ color: "var(--text-primary)" }}>Mis cursos</h1>
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Tu avance y tus certificados.</p>
-      </header>
-
-      <section aria-labelledby="en-curso" className="flex flex-col gap-3">
-        <h2 id="en-curso" className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>MATRICULADO</h2>
-        {error ? (
-          <ErrorState title="No pudimos cargar tus cursos" onRetry={() => mutate()} />
-        ) : !courses ? (
-          <LoadingBlock className="py-8" />
-        ) : courses.length === 0 ? (
-          <EmptyState
-            icon={<GraduationCap size={28} />}
-            title="Aún no estás matriculado en ningún curso"
-            description="Explora el catálogo. Los negocios con plan Academia acceden a los cursos incluidos desde su página."
-            action={<Link href="/cursos" className="inline-flex h-10 items-center rounded-lg px-4 text-sm font-semibold" style={{ background: "var(--accent)", color: "#fff" }}>Ver cursos</Link>}
-          />
-        ) : (
-          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {courses.map((c) => (
-              <li key={c.id}>
-                <Card className="flex h-full flex-col gap-3">
-                  <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>{c.title}</h3>
-                  <ProgressBar completed={c.completedCount} total={c.lessonCount} />
-                  <Link href={`/aprender/${c.slug}`} className="mt-auto inline-flex h-10 items-center justify-center rounded-lg text-sm font-semibold" style={{ background: "var(--accent)", color: "#fff" }}>
-                    {c.completedCount > 0 ? "Continuar" : "Empezar"}
-                  </Link>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-labelledby="certificados" className="flex flex-col gap-3">
-        <h2 id="certificados" className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>CERTIFICADOS</h2>
-        {!certs ? null : certs.length === 0 ? (
-          <p className="text-sm" style={{ color: "var(--text-muted)" }}>Cuando apruebes un curso, tu certificado aparecerá aquí.</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {certs.map((c) => (
-              <li key={c.id}>
-                <Link href={`/certificados/${c.id}`} className="flex items-center gap-3 rounded-xl p-4" style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-sm)" }}>
-                  <Award size={20} aria-hidden="true" style={{ color: "var(--accent)" }} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block break-words text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{c.courseTitle}</span>
-                    <span className="block text-xs" style={{ color: "var(--text-muted)" }}>Emitido el {fmtDate(c.issuedAt, "short")} · {c.code}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+    <div className="flex flex-col gap-5">
+      <PageHeader title="Mis cursos" subtitle="Todo lo que estás estudiando, con tu avance." actions={<LinkButton href="/cursos" variant="soft">Explorar catálogo</LinkButton>} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs label="Filtrar mis cursos" value={tab} onChange={setTab} tabs={[{ id: "all", label: "Todos", count: cards.length }, { id: "active", label: "En curso", count: cards.filter((c) => !c.finished).length }, { id: "done", label: "Completados", count: cards.filter((c) => c.finished).length }]} />
+        <div className="l-seg" role="tablist" aria-label="Vista">
+          <button type="button" role="tab" aria-selected={view === "grid"} aria-label="Vista de cuadrícula" onClick={() => setView("grid")}><LayoutGrid size={16} aria-hidden="true" /></button>
+          <button type="button" role="tab" aria-selected={view === "list"} aria-label="Vista de lista" onClick={() => setView("list")}><List size={16} aria-hidden="true" /></button>
+        </div>
+      </div>
+      {!data ? (
+        <CardSkeletonGrid n={3} />
+      ) : shown.length === 0 ? (
+        <EmptyState
+          art={<span className="block w-56 overflow-hidden rounded-3xl"><Cover coverKey="inventario" className="block h-auto w-full" /></span>}
+          title={cards.length === 0 ? "Aún no tienes cursos" : tab === "done" ? "Todavía no completas ningún curso" : "No tienes cursos en curso"}
+          description={cards.length === 0 ? "Cuando te matriculen aparecerán aquí. Mientras tanto, explora el catálogo." : "Sigue avanzando: cada lección cuenta."}
+          action={<LinkButton href="/cursos">Ver catálogo</LinkButton>}
+        />
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">{shown.map((c, i) => <CourseCard key={c.slug} c={c} index={i % 9} />)}</div>
+      ) : (
+        <div className="flex flex-col gap-3">{shown.map((c, i) => <CourseRow key={c.slug} c={c} index={i % 9} />)}</div>
+      )}
     </div>
   )
 }
