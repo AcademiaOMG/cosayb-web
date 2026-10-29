@@ -11,17 +11,20 @@ import Input from "@/components/ui/Input"
 import LoadingBlock from "@/components/ui/LoadingBlock"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
 import QuizEditor from "./QuizEditor"
+import AnalyticsPanel from "./AnalyticsPanel"
+import MetaFields from "./MetaFields"
 import { Check, SectionTitle, TextArea, errMsg } from "./ui"
 import { lms } from "@/lib/lms/api"
 import { errorStatus, lmsKeys, useAdminCertificates, useAdminCourse, useAdminEnrollments } from "@/lib/lms/hooks"
 import { UPLOAD_RULES, formatBytes, validateSlug, validateUpload } from "@/lib/lms/validation"
 import { fmtDate } from "@/lib/saas/format"
 import { toast } from "@/lib/toast"
-import type { AdminLesson, AssetKind, CourseStatus } from "@/lib/lms/types"
+import type { AdminLesson, AssetKind, CourseMeta, CourseStatus } from "@/lib/lms/types"
 
 const TABS = [
   { id: "content", label: "Contenido" },
   { id: "quizzes", label: "Evaluaciones" },
+  { id: "analytics", label: "Analítica" },
   { id: "enrollments", label: "Matriculados" },
   { id: "certificates", label: "Certificados" },
   { id: "settings", label: "Ajustes" },
@@ -74,6 +77,7 @@ export default function CourseEditor({ id }: { id: string }) {
 
       {tab === "content" && <ContentTab courseId={id} modules={course.modules} reload={() => mutate()} />}
       {tab === "quizzes" && <QuizEditor courseId={id} />}
+      {tab === "analytics" && <AnalyticsPanel courseId={id} />}
       {tab === "enrollments" && <EnrollmentsTab courseId={id} />}
       {tab === "certificates" && <CertificatesTab courseId={id} />}
       {tab === "settings" && <SettingsTab course={course} reload={() => mutate()} />}
@@ -316,9 +320,10 @@ function CertificatesTab({ courseId }: { courseId: string }) {
 
 // ─── Ajustes ────────────────────────────────────────────────────────────────
 
-function SettingsTab({ course, reload }: { course: { id: string; slug: string; title: string; description: string; status: CourseStatus; includedInAcademia: boolean }; reload: () => void }) {
+function SettingsTab({ course, reload }: { course: { id: string; slug: string; title: string; description: string; status: CourseStatus; includedInAcademia: boolean } & CourseMeta; reload: () => void }) {
   const confirm = useConfirm()
   const [f, setF] = useState({ title: course.title, slug: course.slug, description: course.description, includedInAcademia: course.includedInAcademia })
+  const [meta, setMeta] = useState<CourseMeta>({ category: course.category, level: course.level, durationMinutes: course.durationMinutes, tags: course.tags, coverKey: course.coverKey, instructorName: course.instructorName })
   const [busy, setBusy] = useState(false)
   const slugError = f.slug !== course.slug ? validateSlug(f.slug) : null
 
@@ -326,7 +331,7 @@ function SettingsTab({ course, reload }: { course: { id: string; slug: string; t
     if (slugError) return
     setBusy(true)
     try {
-      const patch: Record<string, unknown> = { title: f.title, description: f.description, includedInAcademia: f.includedInAcademia }
+      const patch: Record<string, unknown> = { title: f.title, description: f.description, includedInAcademia: f.includedInAcademia, ...meta }
       if (f.slug !== course.slug) patch.slug = f.slug
       await lms.admin.updateCourse(course.id, patch)
       toast.success("Ajustes guardados.")
@@ -343,6 +348,7 @@ function SettingsTab({ course, reload }: { course: { id: string; slug: string; t
       <Input label="Título" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} maxLength={200} />
       <Input label="Identificador en la URL (slug)" value={f.slug} onChange={(e) => setF({ ...f, slug: e.target.value })} disabled={course.status !== "draft"} error={slugError ?? undefined} hint={course.status !== "draft" ? "Solo se puede cambiar mientras es borrador." : undefined} />
       <TextArea label="Descripción" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={5000} rows={5} />
+      <MetaFields value={meta} onChange={setMeta} />
       <Check label="Incluido en el plan Academia (los negocios con ese plan acceden sin matrícula)" checked={f.includedInAcademia} onChange={(v) => setF({ ...f, includedInAcademia: v })} />
       <div className="flex flex-wrap gap-2">
         <Button onClick={save} loading={busy} disabled={!!slugError}>Guardar ajustes</Button>
