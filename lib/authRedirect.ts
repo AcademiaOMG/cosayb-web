@@ -15,6 +15,8 @@
  * guard limpia la cookie al expulsar para que /login no pueda rebotar.
  */
 
+import { staffHomeFor } from "@/lib/lms/roles"
+
 /** Destino por defecto tras autenticarse: directo al dashboard. */
 export const DEFAULT_POST_LOGIN_PATH = "/dashboard"
 
@@ -114,9 +116,12 @@ export function needsOnboarding(s: OrgState): boolean {
  * Rutas del área de aprendizaje: los cursos son independientes de un negocio, así que quien
  * entra a ellas nunca pasa por el onboarding.
  */
-const LEARN_PATH_PREFIXES = ["/inicio", "/evaluaciones", "/ayuda-cursos", "/mis-cursos", "/aprender", "/evaluacion", "/certificados", "/cursos", "/instructor"]
+const LEARN_PATH_PREFIXES = ["/inicio", "/evaluaciones", "/ayuda-cursos", "/mis-cursos", "/aprender", "/evaluacion", "/certificados", "/cursos", "/instructor", "/administracion"]
 
-export const LEARN_HOME_PATH = "/mis-cursos"
+export const LEARN_HOME_PATH = "/inicio"
+
+/** Portada del LMS según el rol: administrador → /administracion, instructor → /instructor, si no, null. */
+export const lmsHomeFor = staffHomeFor
 
 export function isLearnPath(path: string): boolean {
   return LEARN_PATH_PREFIXES.some((p) => path === p || ["/", "?", "#"].some((c) => path.startsWith(p + c)))
@@ -129,7 +134,7 @@ export const INVITATION_PATH_PREFIX = "/accept-invitation/"
 export function resolveAuthenticatedDestination(
   s: OrgState,
   destination: string,
-  opts: { hasActiveCourses?: boolean } = {},
+  opts: { hasActiveCourses?: boolean; lmsHome?: string | null } = {},
 ): string {
   // Con una invitación pendiente, el negocio es al que lo invitaron: no se le pide crear uno propio primero
   if (destination.startsWith(INVITATION_PATH_PREFIX)) return destination
@@ -137,6 +142,8 @@ export function resolveAuthenticatedDestination(
   if (isLearnPath(destination)) return destination
   if (!needsOnboarding(s)) return destination
   // Sin negocio pero con cursos y sin un destino propio (el dashboard es solo el valor por defecto)
+  // Instructores y administradores del LMS (sin negocio) entran directo a su zona; luego quien tiene cursos
+  if (opts.lmsHome && destination === DEFAULT_POST_LOGIN_PATH) return opts.lmsHome
   if (opts.hasActiveCourses && destination === DEFAULT_POST_LOGIN_PATH) return LEARN_HOME_PATH
   return buildOnboardingUrl(destination)
 }
@@ -156,6 +163,24 @@ export async function fetchHasActiveCourses(
     return Array.isArray(body?.data) && body.data.length > 0
   } catch {
     return false
+  }
+}
+
+/** Portada del LMS de quien tiene rol de instructor/administrador (misma sesión por cookie); ante cualquier fallo, null. */
+export async function fetchLmsHome(
+  apiBase: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string | null> {
+  try {
+    const res = await fetchImpl(`${apiBase}/api/v1/lms/me/access`, {
+      credentials: "include",
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    const body = await res.json()
+    return lmsHomeFor(body?.data)
+  } catch {
+    return null
   }
 }
 

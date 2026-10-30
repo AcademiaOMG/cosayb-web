@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { mutate as globalMutate } from "swr"
 import { ClipboardCheck, Clock, Copy, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react"
 import { Badge, Button, Card, EmptyState, ErrorPanel, IconTile, Skeleton, rise } from "@/components/lms/ui"
+import { usePaths } from "@/components/lms/shell/area"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { lms } from "@/lib/lms/api"
 import { lmsKeys, useAdminQuizzes } from "@/lib/lms/hooks"
@@ -13,6 +14,7 @@ import { toast } from "@/lib/toast"
 import { ActionMenu, TextField, errMsg } from "./kit"
 
 export default function QuizzesTab({ courseId }: { courseId: string }) {
+  const paths = usePaths()
   const { data, error, mutate } = useAdminQuizzes(courseId)
   const router = useRouter()
   const confirm = useConfirm()
@@ -25,7 +27,7 @@ export default function QuizzesTab({ courseId }: { courseId: string }) {
     try {
       const q = await lms.admin.createQuiz(courseId, { title: title.trim() })
       await mutate()
-      router.push(`/instructor/${courseId}/evaluacion/${q.id}`)
+      router.push(paths.quiz(courseId, q.id))
     } catch (e) {
       toast.error(errMsg(e))
       setBusy(false)
@@ -52,7 +54,7 @@ export default function QuizzesTab({ courseId }: { courseId: string }) {
               <Card hover className="flex flex-wrap items-center gap-4 p-4">
                 <IconTile tone="brand" size={44}><ClipboardCheck size={20} /></IconTile>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/instructor/${courseId}/evaluacion/${q.id}`} className="block break-words font-extrabold hover:underline">{q.title}</Link>
+                  <Link href={paths.quiz(courseId, q.id)} className="block break-words font-extrabold hover:underline">{q.title}</Link>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     <Badge tone="neutral">{q.questions.length} pregunta{q.questions.length === 1 ? "" : "s"}</Badge>
                     <Badge tone="neutral">Mínimo {q.passingScore}%</Badge>
@@ -62,7 +64,7 @@ export default function QuizzesTab({ courseId }: { courseId: string }) {
                     {q.questions.length === 0 && <Badge tone="rose">Sin preguntas</Badge>}
                   </div>
                 </div>
-                <Link href={`/instructor/${courseId}/evaluacion/${q.id}`} className="l-btn l-btn-soft l-btn-sm"><Pencil size={14} aria-hidden="true" /> Editar</Link>
+                <Link href={paths.quiz(courseId, q.id)} className="l-btn l-btn-soft l-btn-sm"><Pencil size={14} aria-hidden="true" /> Editar</Link>
                 <ActionMenu label={`Acciones de ${q.title}`} trigger={<MoreHorizontal size={16} aria-hidden="true" />}>
                   {() => (
                     <>

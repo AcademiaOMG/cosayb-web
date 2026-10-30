@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Cursos de Academia OMG: aprende costos de alimentos y bebidas a tu ritmo y certifica lo aprendido.",
 }
 
-// Las rutas de aprendizaje no exigen tener un negocio: basta con una cuenta y una matrícula.
+// Área de ESTUDIANTE. No exige tener un negocio: basta con una cuenta y una matrícula.
 export default function LearnLayout({ children }: { children: React.ReactNode }) {
-  return <LearnShell>{children}</LearnShell>
+  return <LearnShell area="student">{children}</LearnShell>
 }

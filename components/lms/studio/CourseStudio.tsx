@@ -7,10 +7,10 @@ import { mutate as globalMutate } from "swr"
 import { AlertTriangle, Archive, ArrowLeft, CheckCircle2, Circle, Eye, ExternalLink, Rocket, Undo2 } from "lucide-react"
 import { Badge, Button, ErrorPanel, Skeleton, Tabs } from "@/components/lms/ui"
 import { StatusBadge } from "@/components/lms/parts"
-import { LessonBody } from "@/components/lms/AssetViews"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { lms } from "@/lib/lms/api"
-import { errorStatus, lmsKeys, useAdminCourse, useAdminQuizzes } from "@/lib/lms/hooks"
+import { usePaths } from "@/components/lms/shell/area"
+import { errorStatus, lmsKeys, useAdminCourse, useAdminQuizzes, useLmsAccess } from "@/lib/lms/hooks"
 import { canPublish, publishChecklist, timeAgo } from "@/lib/lms/studio"
 import { slugify, validateSlug } from "@/lib/lms/validation"
 import { toast } from "@/lib/toast"
@@ -38,12 +38,12 @@ export default function CourseStudio({ id }: { id: string }) {
   const params = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const paths = usePaths()
   const raw = params.get("tab")
   const tab: Tab = isTab(raw) ? raw : "content"
   const { data: course, error, mutate } = useAdminCourse(id)
   const { data: quizzes } = useAdminQuizzes(id)
   const [publishOpen, setPublishOpen] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(false)
 
   const setTab = (t: Tab) => router.replace(t === "content" ? pathname : `${pathname}?tab=${t}`, { scroll: false })
 
@@ -58,13 +58,13 @@ export default function CourseStudio({ id }: { id: string }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="s-bar">
-        <Link href="/instructor" className="l-btn l-btn-ghost !min-h-10 !w-10 !px-0" aria-label="Volver al estudio del instructor"><ArrowLeft size={18} aria-hidden="true" /></Link>
+        <Link href={paths.courses} className="l-btn l-btn-ghost !min-h-10 !w-10 !px-0" aria-label="Volver a los cursos"><ArrowLeft size={18} aria-hidden="true" /></Link>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold" style={{ color: "var(--l-muted)" }}>Editado {timeAgo(course.updatedAt)}</p>
           <h1 className="truncate text-lg font-extrabold leading-tight sm:text-xl">{course.title}</h1>
         </div>
         <StatusBadge status={course.status} />
-        <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(true)}><Eye size={16} aria-hidden="true" /><span className="hidden sm:inline"> Vista previa</span></Button>
+        <Link href={paths.view(course.slug)} className="l-btn l-btn-soft l-btn-sm" title="Abre el curso tal como lo ve un estudiante (nada se guarda)"><Eye size={16} aria-hidden="true" /><span className="hidden sm:inline"> Ver como estudiante</span></Link>
         <Button size="sm" onClick={() => setPublishOpen(true)}>
           {course.status === "published" ? <><CheckCircle2 size={16} aria-hidden="true" /> Publicado</> : <><Rocket size={16} aria-hidden="true" /> Publicar</>}
         </Button>
@@ -82,7 +82,6 @@ export default function CourseStudio({ id }: { id: string }) {
       </div>
 
       {publishOpen && <PublishDialog course={course} quizzes={quizzes} onClose={() => setPublishOpen(false)} onChanged={() => void mutate()} />}
-      {previewOpen && <PreviewDialog course={course} onClose={() => setPreviewOpen(false)} />}
     </div>
   )
 }
@@ -145,57 +144,25 @@ function PublishDialog({ course, quizzes, onClose, onChanged }: { course: AdminC
   )
 }
 
-// ─── Vista previa de lo que verá el estudiante ──────────────────────────────
-
-function PreviewDialog({ course, onClose }: { course: AdminCourse; onClose: () => void }) {
-  const all = course.modules.flatMap((m) => m.lessons)
-  const [sel, setSel] = useState<string | null>(all[0]?.id ?? null)
-  const lesson = all.find((l) => l.id === sel)
-  return (
-    <Dialog open wide onClose={onClose} title={`Vista previa: ${course.title}`}>
-      {all.length === 0 ? <p style={{ color: "var(--l-muted)" }}>Agrega lecciones para ver la vista previa.</p> : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-[260px_minmax(0,1fr)]">
-          <nav aria-label="Contenido del curso" className="flex flex-col gap-3">
-            {course.modules.map((m) => (
-              <div key={m.id}>
-                <p className="mb-1 text-xs font-extrabold tracking-wider" style={{ color: "var(--l-muted)" }}>{m.title.toUpperCase()}</p>
-                <ul className="flex flex-col gap-1">
-                  {m.lessons.map((l) => <li key={l.id}><button type="button" aria-current={sel === l.id} className="l-nav-item !min-h-10 w-full text-left" onClick={() => setSel(l.id)}>{l.title}</button></li>)}
-                </ul>
-              </div>
-            ))}
-          </nav>
-          <article className="min-w-0">
-            {lesson && (
-              <>
-                <h3 className="mb-3 text-2xl font-extrabold">{lesson.title}</h3>
-                {lesson.kind === "link" && lesson.linkUrl && <p className="mb-3 rounded-2xl p-3 text-sm font-bold" style={{ background: "var(--l-sky-bg)", color: "var(--l-sky-ink)" }}>Enlace externo: {lesson.linkUrl}</p>}
-                {lesson.body.trim() ? <LessonBody body={lesson.body} /> : <p style={{ color: "var(--l-muted)" }}>Esta lección no tiene texto.</p>}
-                {lesson.assets.length > 0 && <p className="l-hint mt-4">Incluye {lesson.assets.length} archivo{lesson.assets.length > 1 ? "s" : ""} privado{lesson.assets.length > 1 ? "s" : ""}: se reproducen para quien esté matriculado cuando el curso esté publicado.</p>}
-              </>
-            )}
-          </article>
-        </div>
-      )}
-    </Dialog>
-  )
-}
-
 // ─── Ajustes ────────────────────────────────────────────────────────────────
 
 function SettingsTab({ course, onChanged }: { course: AdminCourse; onChanged: () => void }) {
+  const paths = usePaths()
   const confirm = useConfirm()
   const router = useRouter()
   const [f, setF] = useState({ title: course.title, slug: course.slug, description: course.description, includedInAcademia: course.includedInAcademia })
   const [meta, setMeta] = useState<CourseMeta>({ category: course.category, level: course.level, durationMinutes: course.durationMinutes, tags: course.tags, coverKey: course.coverKey, instructorName: course.instructorName })
   const [busy, setBusy] = useState(false)
+  const isAdmin = Boolean(useLmsAccess().data?.isAdmin)
   const slugError = f.slug !== course.slug ? validateSlug(f.slug) : null
 
   async function save() {
     if (slugError || !f.title.trim()) return
     setBusy(true)
     try {
-      const patch: Record<string, unknown> = { title: f.title.trim(), description: f.description, includedInAcademia: f.includedInAcademia, ...meta }
+      const patch: Record<string, unknown> = { title: f.title.trim(), description: f.description, ...meta }
+      // Solo un administrador decide qué cursos entran en el plan Academia
+      if (isAdmin && f.includedInAcademia !== course.includedInAcademia) patch.includedInAcademia = f.includedInAcademia
       if (f.slug !== course.slug) patch.slug = f.slug
       await lms.admin.updateCourse(course.id, patch)
       await Promise.all([globalMutate(lmsKeys.overview), globalMutate(lmsKeys.catalog)])
@@ -216,7 +183,11 @@ function SettingsTab({ course, onChanged }: { course: AdminCourse; onChanged: ()
         <TextField label="Identificador en la URL (slug)" value={f.slug} onChange={(e) => setF({ ...f, slug: slugify(e.target.value) })} disabled={course.status !== "draft"} error={slugError} hint={course.status !== "draft" ? "Solo se puede cambiar mientras es borrador." : `/cursos/${f.slug}`} />
         <AreaField label="Descripción" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={5000} rows={5} />
         <CourseMetaForm value={meta} onChange={setMeta} />
-        <SwitchRow checked={f.includedInAcademia} onChange={(v) => setF({ ...f, includedInAcademia: v })} label="Incluido en el plan Academia" hint="Los negocios con ese plan acceden sin matrícula." />
+        {isAdmin ? (
+          <SwitchRow checked={f.includedInAcademia} onChange={(v) => setF({ ...f, includedInAcademia: v })} label="Incluido en el plan Academia" hint="Los negocios con ese plan acceden sin matrícula." />
+        ) : (
+          <p className="l-hint">{course.includedInAcademia ? "Este curso está incluido en el plan Academia." : "Este curso no está incluido en el plan Academia."} Solo un administrador de la academia lo cambia.</p>
+        )}
         <div><Button onClick={save} loading={busy} disabled={Boolean(slugError) || !f.title.trim()}>Guardar ajustes</Button></div>
       </div>
       <aside className="flex flex-col gap-4">
@@ -226,7 +197,7 @@ function SettingsTab({ course, onChanged }: { course: AdminCourse; onChanged: ()
           {course.status === "draft" ? (
             <Button variant="ghost" className="!text-[var(--l-rose-ink)]" onClick={async () => {
               if (!(await confirm({ title: "Eliminar curso", description: "Se borran sus lecciones, evaluaciones y archivos. No se puede deshacer.", itemName: course.title, variant: "danger" }))) return
-              try { await lms.admin.deleteCourse(course.id); await globalMutate(lmsKeys.overview); router.push("/instructor") } catch (e) { toast.error(errMsg(e)) }
+              try { await lms.admin.deleteCourse(course.id); await globalMutate(lmsKeys.overview); router.push(paths.courses) } catch (e) { toast.error(errMsg(e)) }
             }}>Eliminar curso</Button>
           ) : <p className="text-sm font-bold" style={{ color: "var(--l-muted)" }}>Vuelve a borrador (botón Publicado) para poder eliminarlo.</p>}
         </div>

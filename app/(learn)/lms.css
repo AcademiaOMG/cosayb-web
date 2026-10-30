@@ -194,8 +194,8 @@
 
 /* Menú ⋯ */
 .l-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 200px; padding: 6px; border-radius: 16px; border: 1px solid var(--l-line); background: var(--l-surface); box-shadow: var(--l-shadow-hover); }
-.l-menu button { display: flex; width: 100%; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: var(--l-ink-2); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
-.l-menu button:hover:not([disabled]), .l-menu button:focus-visible { background: var(--l-bg); }
+.l-menu button, .l-menu a { display: flex; width: 100%; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: var(--l-ink-2); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
+.l-menu button:hover:not([disabled]), .l-menu button:focus-visible, .l-menu a:hover, .l-menu a:focus-visible { background: var(--l-bg); }
 .l-menu button[disabled] { opacity: 0.45; cursor: not-allowed; }
 .l-menu .l-danger { color: var(--l-rose-ink); }
 

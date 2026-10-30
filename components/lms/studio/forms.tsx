@@ -3,16 +3,19 @@
 import Cover, { COVER_KEYS } from "@/components/lms/art/Cover"
 import { LEVEL_LABEL } from "@/lib/lms/format"
 import type { CourseLevel, CourseMeta } from "@/lib/lms/types"
+import { useCategories } from "@/lib/lms/hooks"
 import { SelectField, TextField } from "./kit"
 
 export const DEFAULT_META: CourseMeta = { category: "General", level: "beginner", durationMinutes: 0, tags: [], coverKey: "cocina", instructorName: "Academia OMG" }
 
 /** Metadatos de catálogo: categoría, nivel, duración, etiquetas, portada ilustrada e instructor visible. */
 export function CourseMetaForm({ value, onChange }: { value: CourseMeta; onChange: (v: CourseMeta) => void }) {
+  const { data: cats } = useCategories()
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <TextField label="Categoría" value={value.category} onChange={(e) => onChange({ ...value, category: e.target.value })} maxLength={40} />
+        <TextField label="Categoría" list="lms-categories" value={value.category} onChange={(e) => onChange({ ...value, category: e.target.value })} maxLength={40} />
+        <datalist id="lms-categories">{cats?.map((c) => <option key={c.slug} value={c.name} />)}</datalist>
         <TextField label="Instructor visible" value={value.instructorName} onChange={(e) => onChange({ ...value, instructorName: e.target.value })} maxLength={80} />
         <SelectField
           label="Nivel"

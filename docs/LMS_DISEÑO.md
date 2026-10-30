@@ -25,7 +25,7 @@ Instrucción del usuario: donde las referencias usan morado se usa el azul del p
 - Tintes derivados con `color-mix(in srgb, var(--accent) N%, white|transparent)`; no hay hex nuevos de color de marca.
 - Se conservan los semánticos: pastel amarillo/rosa/verde de las tarjetas de estado, verde = correcto, rojo/rosa = error, ámbar = aviso.
 - Neutros (fondo `#f3f6fb`, línea `#e3e8f2`, tinta `--text-primary`, apagado `#566176`) en tono azul-grisáceo.
-- Verificación: `grep -riE "violet|violeta|purple|morado|indigo|índigo|#6a45f2|#7c5cf5|#5532d6|#5a3dd0|#a78bfa|#6d28d9|#7c3aed|#8b5cf6"` sobre `components/lms`, `app/(learn)` y `app/(learn)/instructor` no devuelve coincidencias (ver informe final).
+- Verificación: `grep -riE "violet|violeta|purple|morado|indigo|índigo|#6a45f2|#7c5cf5|#5532d6|#5a3dd0|#a78bfa|#6d28d9|#7c3aed|#8b5cf6"` sobre `components/lms`, `app/(learn)`, `app/(instructor)` y `app/(admin)` no devuelve coincidencias (ver informe final).
 - En el código la antigua clave de tono `violet` se renombró `brand` y las variables `--l-tint*`.
 
 ## 3. Tokens
@@ -89,3 +89,7 @@ Enlace "Saltar al contenido"; foco visible de 3 px; tabs con roles y flechas; pr
 | 9 | Métricas (donut/aro, envíos, tiempo) | `AnalyticsPanel` |
 | 9 | Barras horizontales por opción (verde correcta) y Statistics | `QuestionCard` |
 | 9 | Tabs Preguntas / Resumen | `QuizSection` |
+
+## Áreas y shells (estudiante · instructor · administrador)
+
+Tres áreas separadas, cada una con su shell (`components/lms/LearnShell.tsx` con la prop `area`), menú y portada; no hay menús mezclados ni selector de «ver como». Rutas: `app/(learn)` (estudiante), `app/(instructor)/instructor/…`, `app/(admin)/administracion/…`. Las pantallas compartidas (reproductor `components/lms/Player.tsx`, evaluación `QuizRunner.tsx`, editor de cursos `studio/`) enlazan solo dentro de su área mediante `usePaths()` (`lib/lms/roles.ts`). Cada shell redirige a la portada del rol de quien entra a un área ajena (`areaRedirect`) y el servidor responde 403. Detalle de roles y permisos: `cosayb-api/docs/LMS_ROLES.md`.

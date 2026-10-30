@@ -22,6 +22,8 @@ export const lmsKeys = {
   adminQuiz: (id: string) => `lms/admin/quiz/${id}`,
   adminEnrollments: (id: string) => `lms/admin/enrollments/${id}`,
   adminCertificates: (id: string) => `lms/admin/certificates/${id}`,
+  access: "lms/access",
+  manage: "lms/manage",
 }
 
 export const useCatalog = () => useSWR(lmsKeys.catalog, () => lms.catalog(), opts)
@@ -41,6 +43,14 @@ export const useAdminQuiz = (id: string | undefined) => useSWR(id ? lmsKeys.admi
 export const useAdminEnrollments = (id: string | undefined, q = "", status: "active" | "revoked" | undefined = undefined, offset = 0) =>
   useSWR(id ? [lmsKeys.adminEnrollments(id), q, status ?? "", offset] : null, () => lms.admin.enrollments(id!, { q: q || undefined, status, offset }), opts)
 export const useAdminCertificates = (id: string | undefined) => useSWR(id ? lmsKeys.adminCertificates(id) : null, () => lms.admin.certificates(id!), opts)
+
+/** Roles de la cuenta en el LMS. `enabled=false` no consulta (p. ej. sin sesión). */
+export const useLmsAccess = (enabled = true) => useSWR(enabled ? lmsKeys.access : null, () => lms.access(), { ...opts, revalidateOnFocus: false, shouldRetryOnError: false })
+
+/** Categorías del catálogo (para sugerirlas al editar un curso). */
+export const useCategories = () => useSWR("lms/categories", () => lms.admin.categories(), { ...opts, shouldRetryOnError: false })
+
+export const useManageOverview = () => useSWR(`${lmsKeys.manage}/overview`, () => lms.manage.overview(), opts)
 
 /** 401 = sin sesión; 403 = sin acceso al contenido; 404 = no existe o no está publicado. */
 export function errorStatus(err: unknown): number | null {

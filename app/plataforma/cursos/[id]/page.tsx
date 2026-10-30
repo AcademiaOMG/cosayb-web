@@ -2,5 +2,5 @@ import { redirect } from "next/navigation"
 
 export default async function CursoMovido({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  redirect(`/instructor/${encodeURIComponent(id)}`)
+  redirect(`/administracion/cursos/${encodeURIComponent(id)}`)
 }

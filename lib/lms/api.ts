@@ -3,7 +3,8 @@ import type {
   AdminCertificateRow, AdminCourse, AdminCourseRow, AdminEnrollment, AdminQuiz, AssetAccess, AssetKind, BankQuestion,
   AttemptResult, AttemptStart, CatalogCourse, CertificateDetail, CertColor, CompleteResult, CourseDetail, InstructorOverview, Lesson,
   CourseAnalytics, CourseMeta, LessonKind, MyCertificate, MyCourse, QuestionDraft, QuizSettings, QuizSummary, StudentAnswer, StudentHit,
-  StudentSummary, VerifiedCertificate,
+  StudentSummary, VerifiedCertificate, AuditRow, CategoryRow, LmsAccess, ManageCertificate, ManageCourse, ManageEnrollment, ManageOverview,
+  ManageUser, MyQuiz, Paged, ReportCourse, StorageUsage,
 } from "./types"
 import { buildAnswerPayload } from "./validation"
 
@@ -14,6 +15,21 @@ const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) })
 const enc = encodeURIComponent
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+
+/** Arma ?a=1&b=2 omitiendo los valores vacíos. */
+export function qs(o: Record<string, string | number | undefined | null>): string {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(o)) if (v !== undefined && v !== null && v !== "") p.set(k, String(v))
+  const s = p.toString()
+  return s ? `?${s}` : ""
+}
+
+/** Descarga un CSV generado por el servidor (neutraliza fórmulas). */
+async function csv(path: string): Promise<Blob> {
+  const res = await fetch(`${API_BASE}${path}`, { credentials: "include", cache: "no-store" })
+  if (!res.ok) throw new Error(res.status === 403 ? "No tienes permiso para exportar." : "No se pudo exportar el reporte.")
+  return res.blob()
+}
 
 /**
  * Subida de binario crudo con progreso real (fetch aún no expone el avance de subida).
@@ -70,6 +86,8 @@ export const lms = {
   },
 
   // ─── estudiante ───────────────────────────────────────────────────────────
+  /** Qué roles del LMS tiene la cuenta (solo organiza la vista; el servidor decide siempre). */
+  access: () => data<LmsAccess>(fetchAPI(`${B}/me/access`)),
   summary: () => data<StudentSummary>(fetchAPI(`${B}/me/summary`)),
   myCourses: () => data<MyCourse[]>(fetchAPI(`${B}/me/courses?limit=50`)),
   lesson: (id: string) => data<Lesson>(fetchAPI(`${B}/lessons/${enc(id)}`)),
@@ -131,7 +149,14 @@ export const lms = {
     deleteAsset: (lessonId: string, assetId: string) =>
       fetchAPI<void>(`${A}/lessons/${enc(lessonId)}/assets/${enc(assetId)}`, { method: "DELETE" }).catch(ignoreEmpty),
 
+    /** Todas mis evaluaciones (el administrador ve las de toda la academia). */
+    myQuizzes: () => data<MyQuiz[]>(fetchAPI(`${A}/quizzes`)),
+    categories: () => data<{ slug: string; name: string }[]>(fetchAPI(`${A}/categories`)),
+
     // ─── estudiantes y matrículas ───────────────────────────────────────────
+    /** Matrículas de todos mis cursos (el administrador ve las de toda la academia). */
+    myEnrollments: (o: { q?: string; status?: "active" | "revoked"; courseId?: string; limit?: number; offset?: number } = {}) =>
+      data<Paged<ManageEnrollment>>(fetchAPI(`${A}/enrollments${qs({ limit: 25, ...o })}`)),
     enrollments: async (courseId: string, o: { q?: string; status?: "active" | "revoked"; limit?: number; offset?: number } = {}) => {
       const p = new URLSearchParams({ limit: String(o.limit ?? 50), offset: String(o.offset ?? 0) })
       if (o.q) p.set("q", o.q)
@@ -191,5 +216,29 @@ export const lms = {
       data<{ id: string; code: string; reissued: boolean }>(fetchAPI(`${A}/courses/${enc(courseId)}/certificates`, { method: "POST", ...json({ userId }) })),
     revokeCertificate: (courseId: string, id: string, reason: string) =>
       data<{ id: string }>(fetchAPI(`${A}/courses/${enc(courseId)}/certificates/${enc(id)}/revoke`, { method: "POST", ...json({ reason }) })),
+  },
+
+  // ─── administración de la academia (solo rol administrador) ───────────────
+  manage: {
+    overview: () => data<ManageOverview>(fetchAPI(`${B}/manage/overview`)),
+    courses: (o: { q?: string; status?: string; ownerId?: string; limit?: number; offset?: number } = {}) => data<Paged<ManageCourse>>(fetchAPI(`${B}/manage/courses${qs({ limit: 25, ...o })}`)),
+    reassign: (courseId: string, instructorId: string | null) =>
+      data<{ id: string; from: string | null; to: string | null }>(fetchAPI(`${B}/manage/courses/${enc(courseId)}/owner`, { method: "PUT", ...json({ instructorId }) })),
+    users: (o: { q?: string; role?: string; limit?: number; offset?: number } = {}) => data<Paged<ManageUser>>(fetchAPI(`${B}/manage/users${qs({ limit: 25, ...o })}`)),
+    setRole: (userId: string, role: "lms_instructor" | "lms_admin", granted: boolean) =>
+      data<{ userId: string; role: string; granted: boolean; ownedCourses: number }>(fetchAPI(`${B}/manage/users/${enc(userId)}/role`, { method: "PUT", ...json({ role, granted }) })),
+    enrollments: (o: { q?: string; status?: string; courseId?: string; limit?: number; offset?: number } = {}) => data<Paged<ManageEnrollment>>(fetchAPI(`${B}/manage/enrollments${qs({ limit: 25, ...o })}`)),
+    setEnrollment: (id: string, status: "active" | "revoked") =>
+      data<{ id: string; status: string }>(fetchAPI(`${B}/manage/enrollments/${enc(id)}`, { method: "PATCH", ...json({ status }) })),
+    certificates: (o: { q?: string; status?: string; limit?: number; offset?: number } = {}) => data<Paged<ManageCertificate>>(fetchAPI(`${B}/manage/certificates${qs({ limit: 25, ...o })}`)),
+    reportCourses: () => data<ReportCourse[]>(fetchAPI(`${B}/manage/reports/courses`)),
+    coursesCsv: () => csv(`${B}/manage/reports/courses.csv`),
+    instructorsCsv: () => csv(`${B}/manage/reports/instructors.csv`),
+    audit: (o: { actorId?: string; action?: string; from?: string; to?: string; limit?: number; offset?: number } = {}) => data<Paged<AuditRow>>(fetchAPI(`${B}/manage/audit${qs({ limit: 25, ...o })}`)),
+    categories: () => data<CategoryRow[]>(fetchAPI(`${B}/manage/categories`)),
+    createCategory: (slug: string, name: string) => data<{ slug: string }>(fetchAPI(`${B}/manage/categories`, { method: "POST", ...json({ slug, name }) })),
+    renameCategory: (slug: string, name: string) => data<{ slug: string }>(fetchAPI(`${B}/manage/categories/${enc(slug)}`, { method: "PATCH", ...json({ name }) })),
+    deleteCategory: (slug: string) => fetchAPI<void>(`${B}/manage/categories/${enc(slug)}`, { method: "DELETE" }).catch(ignoreEmpty),
+    storage: () => data<StorageUsage>(fetchAPI(`${B}/manage/storage`)),
   },
 }

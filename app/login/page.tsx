@@ -5,7 +5,7 @@ import { authClient } from "@/lib/auth"
 import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getPendingCheckout, pendingToPath, pendingContextLine } from "@/lib/commerce/pending"
-import { resolvePostLoginPath, checkServerSession, fetchOrgState, resolveAuthenticatedDestination, fetchHasActiveCourses, needsOnboarding } from "@/lib/authRedirect"
+import { resolvePostLoginPath, checkServerSession, fetchOrgState, resolveAuthenticatedDestination, fetchHasActiveCourses, fetchLmsHome, needsOnboarding } from "@/lib/authRedirect"
 import { toast } from "@/lib/toast"
 import AuthShell, { AuthSpinner } from "@/components/auth/AuthShell"
 import GoogleButton, { startGoogleSignIn } from "@/components/auth/GoogleButton"
@@ -59,10 +59,11 @@ function LoginForm() {
         // Sin organización → onboarding (conserva returnTo); si el contexto falla, destino normal
         const org = await fetchOrgState(API)
         if (cancelled) return
-        const hasActiveCourses = org.status === "ok" && needsOnboarding(org.state) ? await fetchHasActiveCourses(API) : false
+        const noBusiness = org.status === "ok" && needsOnboarding(org.state)
+        const [hasActiveCourses, lmsHome] = noBusiness ? await Promise.all([fetchHasActiveCourses(API), fetchLmsHome(API)]) : [false, null]
         if (cancelled) return
         router.replace(
-          org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination, { hasActiveCourses }) : destination,
+          org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination, { hasActiveCourses, lmsHome }) : destination,
         )
         return // se mantiene el estado de carga hasta que la navegación ocurra
       }
@@ -110,15 +111,18 @@ function LoginForm() {
     }
     setSubmitting(true)
     try {
-      const { error } = await authClient.signIn.email({ email: normalizeEmail(email), password, callbackURL })
+      // Sin callbackURL: Better Auth no navega por su cuenta (iría directo a /dashboard y se saltaría la portada del rol).
+      // El destino lo decide resolveAuthenticatedDestination con los datos de la cuenta.
+      const { error } = await authClient.signIn.email({ email: normalizeEmail(email), password })
       if (error) {
         setNotVerified((error.code ?? "").toUpperCase() === "EMAIL_NOT_VERIFIED")
         setFormError(authErrorMessage(error))
         return
       }
       const org = await fetchOrgState(API)
-      const hasActiveCourses = org.status === "ok" && needsOnboarding(org.state) ? await fetchHasActiveCourses(API) : false
-      router.replace(org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination, { hasActiveCourses }) : destination)
+      const noBusiness = org.status === "ok" && needsOnboarding(org.state)
+      const [hasActiveCourses, lmsHome] = noBusiness ? await Promise.all([fetchHasActiveCourses(API), fetchLmsHome(API)]) : [false, null]
+      router.replace(org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination, { hasActiveCourses, lmsHome }) : destination)
     } catch {
       setFormError("No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.")
     } finally {

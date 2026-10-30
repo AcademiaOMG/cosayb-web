@@ -41,7 +41,7 @@ export default function CursoDetallePage() {
 
   const cta = canAll ? (
     <LinkButton href={`/aprender/${course.slug}${current ? `?l=${current.id}` : ""}`} className="w-full">
-      <Play size={16} aria-hidden="true" /> {finished ? "Repasar el curso" : started ? "Continuar" : "Empezar curso"}
+      <Play size={16} aria-hidden="true" /> {course.access.instructorView ? "Ver como estudiante" : finished ? "Repasar el curso" : started ? "Continuar" : "Empezar curso"}
     </LinkButton>
   ) : !session ? (
     <>

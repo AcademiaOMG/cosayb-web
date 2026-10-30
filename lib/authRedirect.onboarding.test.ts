@@ -6,6 +6,9 @@ import {
   decideOnboardingPage,
   resolveOnboardingFinishPath,
   fetchOrgState,
+  fetchLmsHome,
+  lmsHomeFor,
+  isLearnPath,
   type OrgState,
 } from "./authRedirect"
 
@@ -58,13 +61,35 @@ describe("resolveAuthenticatedDestination", () => {
   })
 
   it("quien tiene cursos activos y no negocio, sin destino propio, va a mis cursos", () => {
-    expect(resolveAuthenticatedDestination(noOrg, "/dashboard", { hasActiveCourses: true })).toBe("/mis-cursos")
+    expect(resolveAuthenticatedDestination(noOrg, "/dashboard", { hasActiveCourses: true })).toBe("/inicio")
     // un destino explícito distinto del dashboard por defecto se respeta (pasa por onboarding)
     expect(resolveAuthenticatedDestination(noOrg, "/checkout?plan=pro", { hasActiveCourses: true })).toBe(
       "/onboarding?returnTo=%2Fcheckout%3Fplan%3Dpro",
     )
     // con negocio no cambia nada
     expect(resolveAuthenticatedDestination(withOrg, "/dashboard", { hasActiveCourses: true })).toBe("/dashboard")
+  })
+
+  it("instructores y administradores del LMS sin negocio entran a su zona, no al onboarding", () => {
+    expect(resolveAuthenticatedDestination(noOrg, "/dashboard", { lmsHome: "/instructor" })).toBe("/instructor")
+    expect(resolveAuthenticatedDestination(noOrg, "/dashboard", { lmsHome: "/administracion", hasActiveCourses: true })).toBe("/administracion")
+    // un destino propio distinto del dashboard por defecto se respeta (como con los cursos)
+    expect(resolveAuthenticatedDestination(noOrg, "/checkout?plan=pro", { lmsHome: "/instructor" })).toBe("/onboarding?returnTo=%2Fcheckout%3Fplan%3Dpro")
+    // con negocio no cambia nada
+    expect(resolveAuthenticatedDestination(withOrg, "/dashboard", { lmsHome: "/instructor" })).toBe("/dashboard")
+    // y las rutas del LMS nunca pasan por onboarding
+    for (const d of ["/instructor", "/instructor/abc?tab=students", "/administracion", "/administracion/auditoria"]) {
+      expect(isLearnPath(d), d).toBe(true)
+      expect(resolveAuthenticatedDestination(noOrg, d)).toBe(d)
+    }
+    expect(isLearnPath("/administracionx")).toBe(false)
+  })
+
+  it("lmsHomeFor: administrador > instructor > nada", () => {
+    expect(lmsHomeFor({ isAdmin: true, isInstructor: true })).toBe("/administracion")
+    expect(lmsHomeFor({ isAdmin: false, isInstructor: true })).toBe("/instructor")
+    expect(lmsHomeFor({ isAdmin: false, isInstructor: false })).toBeNull()
+    expect(lmsHomeFor(undefined)).toBeNull()
   })
 
   it("con membresías pero sin organización activa no se fuerza a crear otro negocio", () => {
@@ -101,6 +126,18 @@ describe("resolveOnboardingFinishPath", () => {
     expect(resolveOnboardingFinishPath(null)).toBe("/dashboard")
     expect(resolveOnboardingFinishPath("https://evil.com")).toBe("/dashboard")
     expect(resolveOnboardingFinishPath("/onboarding")).toBe("/dashboard")
+  })
+})
+
+describe("fetchLmsHome", () => {
+  const mk = (status: number, body?: unknown) =>
+    vi.fn().mockResolvedValue({ ok: status >= 200 && status < 300, status, json: async () => body }) as unknown as typeof fetch
+  it("devuelve la portada según el rol y null ante cualquier fallo (nunca bloquea el login)", async () => {
+    expect(await fetchLmsHome("http://api", mk(200, { data: { isAdmin: false, isInstructor: true } }))).toBe("/instructor")
+    expect(await fetchLmsHome("http://api", mk(200, { data: { isAdmin: true, isInstructor: true } }))).toBe("/administracion")
+    expect(await fetchLmsHome("http://api", mk(200, { data: { isAdmin: false, isInstructor: false } }))).toBeNull()
+    expect(await fetchLmsHome("http://api", mk(401))).toBeNull()
+    expect(await fetchLmsHome("http://api", vi.fn().mockRejectedValue(new Error("x")) as unknown as typeof fetch)).toBeNull()
   })
 })
 

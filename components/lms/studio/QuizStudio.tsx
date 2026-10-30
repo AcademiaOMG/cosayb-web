@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Copy, Eye, ImagePlus, Library, ListChecks, MoreHorizontal, Plus, Search, Settings2, Trash2, X } from "lucide-react"
 import { Avatar, Badge, Button, ErrorPanel, Skeleton } from "@/components/lms/ui"
+import { usePaths } from "@/components/lms/shell/area"
 import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { authClient } from "@/lib/auth"
 import { lms } from "@/lib/lms/api"
@@ -22,6 +23,7 @@ const TYPES: QuestionType[] = ["single", "multiple", "true_false", "fill_blank",
 type Report = { status: SaveState; invalid: boolean }
 
 export default function QuizStudio({ courseId, quizId }: { courseId: string; quizId: string }) {
+  const paths = usePaths()
   const { data: quiz, error, mutate } = useAdminQuiz(quizId)
   const router = useRouter()
   const confirm = useConfirm()
@@ -87,7 +89,7 @@ export default function QuizStudio({ courseId, quizId }: { courseId: string; qui
   if (error) return <ErrorPanel title="No pudimos cargar la evaluación" onRetry={() => mutate()} />
   if (!quiz) return <Skeleton className="h-[480px] !rounded-[22px]" />
 
-  const back = `/instructor/${courseId}?tab=quizzes`
+  const back = `${paths.course(courseId, "")}?tab=quizzes`
   const name = session?.user?.name ?? "Tú"
 
   return (
@@ -104,6 +106,7 @@ export default function QuizStudio({ courseId, quizId }: { courseId: string; qui
         <Avatar name={name} size={34} />
         <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)} aria-label="Ajustes de la evaluación"><Settings2 size={16} aria-hidden="true" /><span className="hidden md:inline"> Ajustes</span></Button>
         <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(true)}><Eye size={16} aria-hidden="true" /><span className="hidden md:inline"> Vista previa</span></Button>
+        <Link href={paths.viewQuiz(quizId)} className="l-btn l-btn-soft l-btn-sm" title="Presenta esta evaluación como un estudiante (el intento no se guarda)"><ListChecks size={16} aria-hidden="true" /><span className="hidden md:inline"> Probar como estudiante</span></Link>
         <Button size="sm" onClick={() => {
           if (invalidCount > 0) return void toast.warning(`${invalidCount} pregunta${invalidCount > 1 ? "s" : ""} sin completar: no se han guardado sus últimos cambios.`)
           if (quiz.questions.length === 0) return void toast.warning("Agrega al menos una pregunta.")

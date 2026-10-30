@@ -4,8 +4,9 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { mutate as globalMutate } from "swr"
-import { Award, BookOpen, CheckCircle2, GraduationCap, LayoutGrid, List, Plus, Search, TrendingDown, TrendingUp, Users } from "lucide-react"
+import { Award, BookOpen, CheckCircle2, Eye, GraduationCap, LayoutGrid, List, Plus, Search, TrendingDown, TrendingUp, Users } from "lucide-react"
 import { Badge, Button, Card, Chip, Donut, EmptyState, ErrorPanel, IconTile, ProgressBar, Skeleton, rise } from "@/components/lms/ui"
+import { usePaths } from "@/components/lms/shell/area"
 import { CourseThumb, StatusBadge } from "@/components/lms/parts"
 import CountUp from "@/components/lms/fx/CountUp"
 import { lms } from "@/lib/lms/api"
@@ -22,7 +23,7 @@ import { AreaField, Dialog, Notice, SwitchRow, TextField, errMsg } from "./kit"
 type StatusFilter = "all" | "published" | "draft" | "archived"
 type Sort = "recent" | "students" | "progress" | "title"
 
-function Kpi({ tone, icon, label, value, suffix, sub, delta, index }: { tone: "brand" | "mint" | "amber" | "sky"; icon: React.ReactNode; label: string; value: number | null; suffix?: string; sub: React.ReactNode; delta?: number | null; index: number }) {
+export function Kpi({ tone, icon, label, value, suffix, sub, delta, index }: { tone: "brand" | "mint" | "amber" | "sky"; icon: React.ReactNode; label: string; value: number | null; suffix?: string; sub: React.ReactNode; delta?: number | null; index: number }) {
   return (
     <Card className="k-tile l-rise" style={rise(index)}>
       <div className="min-w-0">
@@ -45,13 +46,14 @@ function Kpi({ tone, icon, label, value, suffix, sub, delta, index }: { tone: "b
 }
 
 function CourseTile({ c, index }: { c: OverviewCourse; index: number }) {
+  const paths = usePaths()
   const tone = toneForPct(c.avgProgress)
   return (
     <Card hover className="l-rise flex flex-col gap-4 p-5" style={rise(index % 9)}>
       <div className="flex items-start gap-3">
         <CourseThumb coverKey={c.coverKey} size={56} />
         <div className="min-w-0 flex-1">
-          <Link href={`/instructor/${c.id}`} className="block break-words text-lg font-extrabold leading-snug hover:underline">{c.title}</Link>
+          <Link href={paths.course(c.id)} className="block break-words text-lg font-extrabold leading-snug hover:underline">{c.title}</Link>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <StatusBadge status={c.status} />
             <Badge tone="neutral">{LEVEL_LABEL[c.level]}</Badge>
@@ -69,8 +71,9 @@ function CourseTile({ c, index }: { c: OverviewCourse; index: number }) {
       </dl>
       <ProgressBar value={c.avgProgress} tone={tone} label={`Avance promedio de ${c.title}`} index={index} />
       <div className="mt-auto grid grid-cols-2 gap-2">
-        <Link href={`/instructor/${c.id}?tab=students`} className="l-btn l-btn-ghost l-btn-sm"><Users size={15} aria-hidden="true" /> Estudiantes</Link>
-        <Link href={`/instructor/${c.id}`} className="l-btn l-btn-soft l-btn-sm">Editar</Link>
+        <Link href={`${paths.course(c.id)}?tab=students`} className="l-btn l-btn-ghost l-btn-sm"><Users size={15} aria-hidden="true" /> Estudiantes</Link>
+        <Link href={paths.view(c.slug)} className="l-btn l-btn-ghost l-btn-sm" title="Abrir el curso como lo ve un estudiante"><Eye size={15} aria-hidden="true" /> Abrir curso</Link>
+        <Link href={paths.course(c.id)} className="l-btn l-btn-soft l-btn-sm">Editar</Link>
       </div>
     </Card>
   )
@@ -78,6 +81,7 @@ function CourseTile({ c, index }: { c: OverviewCourse; index: number }) {
 
 function NewCourseDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter()
+  const paths = usePaths()
   const [f, setF] = useState({ title: "", slug: "", description: "", includedInAcademia: true })
   const [meta, setMeta] = useState<CourseMeta>(DEFAULT_META)
   const [touched, setTouched] = useState(false)
@@ -91,7 +95,7 @@ function NewCourseDialog({ open, onClose }: { open: boolean; onClose: () => void
     try {
       const c = await lms.admin.createCourse({ title: f.title.trim(), slug, description: f.description.trim(), includedInAcademia: f.includedInAcademia, ...meta })
       await globalMutate(lmsKeys.overview)
-      router.push(`/instructor/${c.id}`)
+      router.push(paths.course(c.id))
     } catch (e) {
       toast.error(errMsg(e))
     } finally {
@@ -114,7 +118,8 @@ function NewCourseDialog({ open, onClose }: { open: boolean; onClose: () => void
   )
 }
 
-export default function Dashboard() {
+export default function Dashboard({ page = "panorama" }: { page?: "panorama" | "cursos" }) {
+  const paths = usePaths()
   const { data, error, mutate } = useOverview()
   const [q, setQ] = useState("")
   const [status, setStatus] = useState<StatusFilter>("all")
@@ -136,12 +141,14 @@ export default function Dashboard() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-balance text-2xl font-extrabold sm:text-3xl">Estudio del instructor</h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--l-muted)" }}>Crea cursos, sigue a tus estudiantes y mide qué está funcionando.</p>
+          <h1 className="text-balance text-2xl font-extrabold sm:text-3xl">{page === "cursos" ? "Mis cursos" : "Panorama"}</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--l-muted)" }}>{page === "cursos" ? "Tus cursos: edítalos, publícalos y ábrelos como los ve un estudiante." : "Cómo van tus cursos y tus estudiantes, de un vistazo."}</p>
         </div>
         <Button onClick={() => setCreating(true)}><Plus size={16} aria-hidden="true" /> Nuevo curso</Button>
       </header>
 
+      {page === "panorama" && (
+        <>
       <Notice storeKey="lms.notice.studio">
         <strong>Recuerda revisar tus evaluaciones.</strong> Las preguntas con más errores aparecen en la analítica de cada curso: úsalas para reforzar las lecciones que más cuestan.
       </Notice>
@@ -205,7 +212,28 @@ export default function Dashboard() {
           )}
         </Card>
       </section>
+          <section aria-labelledby="recientes" className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="recientes" className="text-xl font-extrabold">Tus cursos más activos</h2>
+              <Link href={paths.courses} className="text-sm font-bold" style={{ color: "var(--l-brand)" }}>Ver todos mis cursos</Link>
+            </div>
+            {!data ? <Skeleton className="h-[200px] !rounded-[22px]" /> : data.courses.length === 0 ? (
+              <EmptyState title="Aún no hay cursos" description="Crea el primero con el botón Nuevo curso." action={<Button onClick={() => setCreating(true)}><Plus size={16} aria-hidden="true" /> Nuevo curso</Button>} />
+            ) : (
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">{[...data.courses].sort((a, b) => b.enrolled - a.enrolled).slice(0, 3).map((c, i) => <CourseTile key={c.id} c={c} index={i} />)}</div>
+            )}
+          </section>
+        {data && data.series.some((s) => s.attempts > 0) && (
+          <Card className="p-5">
+            <h2 className="text-base font-extrabold">Evaluaciones presentadas por mes</h2>
+            <p className="mb-3 text-xs font-semibold" style={{ color: "var(--l-muted)" }}>Intentos enviados en los últimos 6 meses</p>
+            <div className="max-w-xl"><BarChart labels={labels} values={data.series.map((s) => s.attempts)} summary={`Intentos de evaluación por mes: ${data.series.map((s) => `${monthLabel(s.month)} ${s.attempts}`).join(", ")}`} /></div>
+          </Card>
+        )}
+        </>
+      )}
 
+      {page === "cursos" && (
       <section aria-labelledby="mis-cursos" className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="mis-cursos" className="text-xl font-extrabold">Cursos</h2>
@@ -246,12 +274,12 @@ export default function Dashboard() {
               <tbody>
                 {shown.map((c) => (
                   <tr key={c.id}>
-                    <td><Link href={`/instructor/${c.id}`} className="flex items-center gap-3 font-extrabold hover:underline"><CourseThumb coverKey={c.coverKey} size={40} rounded={12} />{c.title}</Link></td>
+                    <td><Link href={paths.course(c.id)} className="flex items-center gap-3 font-extrabold hover:underline"><CourseThumb coverKey={c.coverKey} size={40} rounded={12} />{c.title}</Link></td>
                     <td><StatusBadge status={c.status} /></td>
                     <td className="font-bold">{c.enrolled}</td>
                     <td className="min-w-[130px]"><div className="flex items-center gap-2"><ProgressBar value={c.avgProgress} tone={toneForPct(c.avgProgress)} label={`Avance de ${c.title}`} height={6} /><span className="text-xs font-extrabold">{c.avgProgress}%</span></div></td>
                     <td className="font-bold">{c.passRate === null ? "—" : `${c.passRate}%`}</td>
-                    <td><Link href={`/instructor/${c.id}?tab=students`} className="l-btn l-btn-ghost l-btn-sm">Estudiantes</Link></td>
+                    <td><Link href={`${paths.course(c.id)}?tab=students`} className="l-btn l-btn-ghost l-btn-sm">Estudiantes</Link></td>
                   </tr>
                 ))}
               </tbody>
@@ -259,13 +287,6 @@ export default function Dashboard() {
           </Card>
         )}
       </section>
-
-      {data && data.series.some((s) => s.attempts > 0) && (
-        <Card className="p-5">
-          <h2 className="text-base font-extrabold">Evaluaciones presentadas por mes</h2>
-          <p className="mb-3 text-xs font-semibold" style={{ color: "var(--l-muted)" }}>Intentos enviados en los últimos 6 meses</p>
-          <div className="max-w-xl"><BarChart labels={labels} values={data.series.map((s) => s.attempts)} summary={`Intentos de evaluación por mes: ${data.series.map((s) => `${monthLabel(s.month)} ${s.attempts}`).join(", ")}`} /></div>
-        </Card>
       )}
 
       <NewCourseDialog open={creating} onClose={() => setCreating(false)} />

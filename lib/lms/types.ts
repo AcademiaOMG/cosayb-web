@@ -41,7 +41,9 @@ export interface CourseDetail extends CourseMeta {
   title: string
   description: string
   includedInAcademia: boolean
-  access: { enrolled: boolean; viaAcademia: boolean; canViewAll: boolean }
+  status?: CourseStatus
+  /** instructorView: el propietario o un administrador lo ve como estudiante (nada se guarda) */
+  access: { enrolled: boolean; viaAcademia: boolean; canViewAll: boolean; instructorView?: boolean }
   progress: { completed: number; total: number } | null
   modules: { id: string; title: string; position: number; lessons: OutlineLesson[] }[]
 }
@@ -81,6 +83,7 @@ export interface Lesson {
   linkUrl?: string | null
   isPreview: boolean
   completed: boolean
+  instructorView?: boolean
   assets: LessonAsset[]
 }
 
@@ -101,9 +104,11 @@ export interface CompleteResult {
   completed: number
   total: number
   certificate: CertificateRef | null
+  preview?: boolean
 }
 
 export interface QuizSummary {
+  instructorView?: boolean
   id: string
   courseId: string
   title: string
@@ -135,6 +140,8 @@ export interface AttemptStart {
   timeLimitMinutes?: number | null
   expiresAt?: string | null
   questions: AttemptQuestion[]
+  /** intento de prueba del instructor: no se guarda */
+  preview?: boolean
 }
 
 /** Clave de una pregunta, solo tras calificar y si el instructor lo permitió. */
@@ -148,7 +155,8 @@ export interface RevealedKey {
 export interface AttemptResult {
   attemptId: string
   quizId: string
-  status: "in_progress" | "submitted"
+  status: "in_progress" | "submitted" | "preview"
+  preview?: boolean
   score: number | null
   passed: boolean | null
   submittedAt: string | null
@@ -428,4 +436,136 @@ export interface InstructorOverview {
   series: { month: string; enrollments: number; completions: number; attempts: number }[]
   byLevel: { level: CourseLevel; count: number }[]
   courses: OverviewCourse[]
+}
+
+// ─── Roles y administración de la academia ──────────────────────────────────
+
+export interface LmsAccess {
+  roles: string[]
+  isAdmin: boolean
+  /** puede gestionar cursos propios (rol de instructor o de administrador) */
+  isInstructor: boolean
+  /** además estudia: tiene alguna matrícula activa */
+  hasCourses?: boolean
+}
+
+export interface InstructorCard {
+  id: string
+  name: string
+  email: string
+  role: "admin" | "instructor"
+  courses: number
+  published: number
+  students: number
+  enrollmentsThisMonth: number
+  enrollmentsPrevMonth: number
+  passRate: number | null
+  certificates: number
+}
+
+export interface ManageOverview extends InstructorOverview {
+  instructors: InstructorCard[]
+  attention: { drafts: number; withoutOwner: number; revokedCertificates: number; actionsLastWeek: number }
+}
+
+export interface Paged<T> {
+  total: number
+  rows: T[]
+}
+
+export interface ManageCourse {
+  id: string
+  slug: string
+  title: string
+  status: CourseStatus
+  category: string
+  level: CourseLevel
+  coverKey: string
+  includedInAcademia: boolean
+  updatedAt: string | null
+  lessons: number
+  enrolled: number
+  owner: { id: string; name: string; email: string } | null
+}
+
+export interface ManageUser {
+  id: string
+  name: string
+  email: string
+  createdAt: string | null
+  roles: ("lms_instructor" | "lms_admin")[]
+  platformAdmin: boolean
+  courses: number
+  enrollments: number
+}
+
+export interface ManageEnrollment {
+  id: string
+  courseId: string
+  courseTitle: string
+  userId: string
+  name: string
+  email: string
+  status: "active" | "revoked"
+  enrolledAt: string | null
+  percent: number
+  lastActivity: string | null
+  certificate: boolean
+}
+
+export interface ManageCertificate {
+  id: string
+  courseId: string
+  userId: string
+  code: string
+  recipientName: string
+  email: string
+  courseTitle: string
+  issuedAt: string | null
+  revokedAt: string | null
+  revokedReason: string | null
+}
+
+export interface AuditRow {
+  id: string
+  at: string | null
+  actorId: string
+  actorName: string
+  actorEmail: string
+  actorRoles: string[]
+  action: string
+  resourceId: string | null
+  metadata: Record<string, unknown> | null
+}
+
+export interface CategoryRow {
+  slug: string
+  name: string
+  position: number
+  courses: number
+}
+
+export interface StorageUsage {
+  totalBytes: number
+  reclaimableBytes: number
+  courses: { id: string; title: string; status: CourseStatus; owner: string | null; assets: number; media: number; bytes: number; enrolled: number; reclaimable: boolean }[]
+}
+
+export interface ReportCourse extends OverviewCourse {
+  instructor: string
+}
+
+export interface MyQuiz {
+  id: string
+  title: string
+  courseId: string
+  courseTitle: string
+  courseSlug: string
+  courseStatus: CourseStatus
+  passingScore: number
+  required: boolean
+  questions: number
+  attempts: number
+  passRate: number | null
+  avgScore: number | null
 }
