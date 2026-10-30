@@ -19,7 +19,7 @@ const KIND_META: Record<LessonKind, { label: string; Icon: typeof Type }> = {
   file: { label: "Archivo", Icon: FileText },
   link: { label: "Enlace", Icon: Link2 },
 }
-const ASSET_KINDS_FOR: Record<LessonKind, AssetKind[]> = { reading: ["document"], video: ["video", "subtitle"], file: ["document"], link: [] }
+const ASSET_KINDS_FOR: Record<LessonKind, AssetKind[]> = { reading: ["video", "document", "subtitle"], video: ["video", "subtitle", "document"], file: ["document"], link: [] }
 const MODULE_END = "module-end:"
 
 interface Props {

@@ -69,7 +69,7 @@ function CourseTile({ c, index }: { c: OverviewCourse; index: number }) {
       </dl>
       <ProgressBar value={c.avgProgress} tone={tone} label={`Avance promedio de ${c.title}`} index={index} />
       <div className="mt-auto grid grid-cols-2 gap-2">
-        <Link href={`/instructor/${c.id}?tab=students`} className="l-btn l-btn-ghost l-btn-sm"><Users size={15} aria-hidden="true" /> Ver estudiantes</Link>
+        <Link href={`/instructor/${c.id}?tab=students`} className="l-btn l-btn-ghost l-btn-sm"><Users size={15} aria-hidden="true" /> Estudiantes</Link>
         <Link href={`/instructor/${c.id}`} className="l-btn l-btn-soft l-btn-sm">Editar</Link>
       </div>
     </Card>

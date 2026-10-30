@@ -117,7 +117,7 @@ export default function LearnShell({ children }: { children: React.ReactNode }) 
         {canTeach && (
           <div className="mt-3 flex flex-col gap-1 border-t pt-3" style={{ borderColor: "var(--l-line)" }}>
             {!mini && <p className="px-3 text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "var(--l-muted)" }}>Instructor</p>}
-            navLink(teach, mini)
+            {navLink(teach, mini)}
           </div>
         )}
         <div className="mt-auto flex flex-col gap-1">
