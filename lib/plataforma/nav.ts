@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Building2, Users, Drama, ChefHat, Carrot, ScrollText,
-  Repeat, Wallet, LifeBuoy, CreditCard, History, BarChart3, ShieldAlert, GraduationCap,
+  Repeat, Wallet, LifeBuoy, CreditCard, History, BarChart3, ShieldAlert,
   type LucideIcon,
 } from "lucide-react"
 
@@ -101,15 +101,6 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         href: "/plataforma/banco/ingredientes", label: "Banco de ingredientes", icon: Carrot,
         roles: ["platform_owner", "platform_admin", "platform_chef"],
-      },
-    ],
-  },
-  {
-    label: "Academia",
-    items: [
-      {
-        href: "/plataforma/cursos", label: "Cursos", icon: GraduationCap,
-        roles: ["platform_owner", "platform_admin"],
       },
     ],
   },

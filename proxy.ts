@@ -45,6 +45,7 @@ const PROTECTED_PREFIXES = [
   "/certificados",
   "/inicio",
   "/evaluaciones",
+  "/instructor",
 ];
 
 const SESSION_COOKIE_NAMES = [

@@ -25,7 +25,7 @@ Instrucción del usuario: donde las referencias usan morado se usa el azul del p
 - Tintes derivados con `color-mix(in srgb, var(--accent) N%, white|transparent)`; no hay hex nuevos de color de marca.
 - Se conservan los semánticos: pastel amarillo/rosa/verde de las tarjetas de estado, verde = correcto, rojo/rosa = error, ámbar = aviso.
 - Neutros (fondo `#f3f6fb`, línea `#e3e8f2`, tinta `--text-primary`, apagado `#566176`) en tono azul-grisáceo.
-- Verificación: `grep -riE "violet|violeta|purple|morado|indigo|índigo|#6a45f2|#7c5cf5|#5532d6|#5a3dd0|#a78bfa|#6d28d9|#7c3aed|#8b5cf6"` sobre `components/lms`, `app/(learn)` y `app/plataforma/cursos` no devuelve coincidencias (ver informe final).
+- Verificación: `grep -riE "violet|violeta|purple|morado|indigo|índigo|#6a45f2|#7c5cf5|#5532d6|#5a3dd0|#a78bfa|#6d28d9|#7c3aed|#8b5cf6"` sobre `components/lms`, `app/(learn)` y `app/(learn)/instructor` no devuelve coincidencias (ver informe final).
 - En el código la antigua clave de tono `violet` se renombró `brand` y las variables `--l-tint*`.
 
 ## 3. Tokens
@@ -84,7 +84,7 @@ Enlace "Saltar al contenido"; foco visible de 3 px; tabs con roles y flechas; pr
 | 5 | Calendario con rango + Próximos | `ActivityCalendar`, `/inicio` |
 | 6-7 Fikri | Tarjetas con portada, badges, donut, tags | `CourseCard` |
 | 6-7 | Chips de filtro, orden, búsqueda | `/cursos` |
-| 6-7 | Tabs superiores | panel del instructor (`/plataforma/cursos`) |
+| 6-7 | Tabs superiores | panel del instructor (`/instructor`) |
 | 8 | Vista de lista | `CourseRow`, panel del instructor |
 | 9 | Métricas (donut/aro, envíos, tiempo) | `AnalyticsPanel` |
 | 9 | Barras horizontales por opción (verde correcta) y Statistics | `QuestionCard` |

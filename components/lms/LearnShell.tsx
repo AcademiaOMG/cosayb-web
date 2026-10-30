@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import useSWR from "swr"
-import { Award, Bell, BookOpen, ChevronsLeft, ChevronsRight, ClipboardCheck, Compass, GraduationCap, HelpCircle, Home, LogOut, Search, ShieldCheck, Store } from "lucide-react"
+import { Award, Bell, BookOpen, ChevronsLeft, ChevronsRight, ClipboardCheck, Compass, GraduationCap, HelpCircle, Home, LogOut, PenSquare, Search, ShieldCheck, Store } from "lucide-react"
 import { authClient } from "@/lib/auth"
 import { buildLoginUrl } from "@/lib/authRedirect"
 import { fetchAPI } from "@/lib/api"
@@ -59,11 +59,15 @@ export default function LearnShell({ children }: { children: React.ReactNode }) 
     }
   }, [])
 
-  const { data: ctx } = useSWR(session && ready ? "lms/shell/ctx" : null, () => fetchAPI<{ data?: { memberships?: unknown[] } }>("/api/v1/me/context"), { revalidateOnFocus: false, shouldRetryOnError: false })
+  const { data: ctx } = useSWR(session && ready ? "lms/shell/ctx" : null, () => fetchAPI<{ data?: { memberships?: unknown[]; platformPermissions?: string[] } }>("/api/v1/me/context"), { revalidateOnFocus: false, shouldRetryOnError: false })
   const { data: summary } = useSummary(Boolean(session) && ready)
   const hasBusiness = Array.isArray(ctx?.data?.memberships) && ctx.data.memberships.length > 0
   const mini = collapsed || cinema
+  // El instructor gestiona sus cursos desde aquí, no desde la consola de plataforma
+  const canTeach = Boolean(ctx?.data?.platformPermissions?.includes("list:platform_courses"))
   const items = NAV.filter((n) => !n.auth || session)
+  const teach: Item = { href: "/instructor", label: "Estudio del instructor", short: "Instructor", icon: PenSquare, auth: true }
+  const mobileItems = canTeach ? [...items.slice(0, 4), teach] : [...items, ...(session ? [] : EXTRA)].slice(0, 5)
   const name = session?.user?.name ?? ""
   const pending = summary?.upcoming.length ?? 0
 
@@ -83,10 +87,10 @@ export default function LearnShell({ children }: { children: React.ReactNode }) 
     router.push(q.trim() ? `/cursos?q=${encodeURIComponent(q.trim())}` : "/cursos")
   }
 
-  const NavLink = ({ n, compact }: { n: Item; compact?: boolean }) => {
+  const navLink = (n: Item, compact?: boolean) => {
     const Icon = n.icon
     return (
-      <Link href={n.href} className="l-nav-item" aria-current={isActive(n.href) ? "page" : undefined} title={compact ? n.label : undefined} aria-label={compact ? n.label : undefined} style={compact ? { justifyContent: "center", padding: 0 } : undefined}>
+      <Link key={n.href} href={n.href} className="l-nav-item" aria-current={isActive(n.href) ? "page" : undefined} title={compact ? n.label : undefined} aria-label={compact ? n.label : undefined} style={compact ? { justifyContent: "center", padding: 0 } : undefined}>
         <Icon size={20} aria-hidden="true" />
         {!compact && <span>{n.label}</span>}
       </Link>
@@ -108,8 +112,14 @@ export default function LearnShell({ children }: { children: React.ReactNode }) 
           {!mini && <span className="text-lg font-extrabold">Academia OMG</span>}
         </Link>
         <nav className="flex flex-col gap-1" aria-label="Principal">
-          {items.map((n) => <NavLink key={n.href} n={n} compact={mini} />)}
+          {items.map((n) => navLink(n, mini))}
         </nav>
+        {canTeach && (
+          <div className="mt-3 flex flex-col gap-1 border-t pt-3" style={{ borderColor: "var(--l-line)" }}>
+            {!mini && <p className="px-3 text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "var(--l-muted)" }}>Instructor</p>}
+            navLink(teach, mini)
+          </div>
+        )}
         <div className="mt-auto flex flex-col gap-1">
           {hasBusiness && (
             <Link href="/dashboard" className="l-nav-item" title="Ir a mi negocio" style={mini ? { justifyContent: "center", padding: 0 } : { background: "var(--l-amber-bg)", color: "var(--l-amber-ink)" }}>
@@ -117,7 +127,7 @@ export default function LearnShell({ children }: { children: React.ReactNode }) 
               {!mini && <span>Mi negocio (costeo)</span>}
             </Link>
           )}
-          {EXTRA.map((n) => <NavLink key={n.href} n={n} compact={mini} />)}
+          {EXTRA.map((n) => navLink(n, mini))}
           {!cinema && (
             <button type="button" onClick={toggle} className="l-nav-item" aria-label={collapsed ? "Expandir menú" : "Contraer menú"} aria-pressed={collapsed} style={{ background: "none", border: 0, cursor: "pointer", ...(mini ? { justifyContent: "center", padding: 0 } : {}) }}>
               {collapsed ? <ChevronsRight size={20} aria-hidden="true" /> : <ChevronsLeft size={20} aria-hidden="true" />}
@@ -186,7 +196,7 @@ export default function LearnShell({ children }: { children: React.ReactNode }) 
 
       {/* Barra inferior (móvil) */}
       <nav className="l-no-print fixed inset-x-0 bottom-0 z-30 flex border-t bg-white px-1 pb-[env(safe-area-inset-bottom)] lg:hidden" style={{ borderColor: "var(--l-line)" }} aria-label="Principal (móvil)">
-        {[...items, ...(session ? [] : EXTRA)].slice(0, 5).map((n) => {
+        {mobileItems.map((n) => {
           const Icon = n.icon
           const on = isActive(n.href)
           return (

@@ -355,7 +355,7 @@ function SettingsTab({ course, reload }: { course: { id: string; slug: string; t
         {course.status === "draft" && (
           <Button variant="danger" onClick={async () => {
             if (!(await confirm({ title: "Eliminar curso", itemName: course.title, variant: "danger" }))) return
-            try { await lms.admin.deleteCourse(course.id); window.location.assign("/plataforma/cursos") } catch (e) { toast.error(errMsg(e)) }
+            try { await lms.admin.deleteCourse(course.id); window.location.assign("/instructor") } catch (e) { toast.error(errMsg(e)) }
           }}>Eliminar curso</Button>
         )}
       </div>

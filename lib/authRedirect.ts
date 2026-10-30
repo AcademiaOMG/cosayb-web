@@ -114,7 +114,7 @@ export function needsOnboarding(s: OrgState): boolean {
  * Rutas del área de aprendizaje: los cursos son independientes de un negocio, así que quien
  * entra a ellas nunca pasa por el onboarding.
  */
-const LEARN_PATH_PREFIXES = ["/inicio", "/evaluaciones", "/ayuda-cursos", "/mis-cursos", "/aprender", "/evaluacion", "/certificados", "/cursos"]
+const LEARN_PATH_PREFIXES = ["/inicio", "/evaluaciones", "/ayuda-cursos", "/mis-cursos", "/aprender", "/evaluacion", "/certificados", "/cursos", "/instructor"]
 
 export const LEARN_HOME_PATH = "/mis-cursos"
 
