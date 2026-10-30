@@ -26,7 +26,7 @@ export default function CertificadoPage() {
         <LinkButton href="/certificados" variant="ghost" size="sm">Mis certificados</LinkButton>
         <Button onClick={() => window.print()}><Printer size={16} aria-hidden="true" /> Imprimir o guardar como PDF</Button>
       </div>
-      <CertificateArt name={cert.recipientName} course={cert.courseTitle} issuedAt={cert.issuedAt} code={cert.code} verifyUrl={verifyUrl} />
+      <CertificateArt name={cert.recipientName} course={cert.courseTitle} issuedAt={cert.issuedAt} code={cert.code} verifyUrl={verifyUrl} template={cert.template} />
     </div>
   )
 }

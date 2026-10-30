@@ -39,7 +39,10 @@ describe("front del LMS", () => {
   })
 
   it("el cliente no conoce el modelo de respuestas correctas del estudiante", () => {
-    const studentSide = sources.filter((f) => !f.includes(path.join("components", "lms", "admin")) && !f.includes(path.join("app", "plataforma")) && !f.endsWith("types.ts") && !f.endsWith("api.ts") && !f.endsWith("validation.ts"))
+    // El estudio del instructor (components/lms/studio, app/(learn)/instructor) sí maneja las respuestas correctas: es de uso exclusivo del instructor.
+    const instructorSide = [path.join("components", "lms", "studio"), path.join("app", "(learn)", "instructor"), path.join("lib", "lms", "studio.ts")]
+    const studentSide = sources.filter((f) => !instructorSide.some((p) => f.includes(p)) && !f.endsWith("types.ts") && !f.endsWith("api.ts") && !f.endsWith("validation.ts"))
+    expect(studentSide.some((f) => f.includes(path.join("app", "(learn)", "evaluacion")))).toBe(true) // la pantalla del estudiante SÍ se revisa
     for (const f of studentSide) {
       expect(readFileSync(f, "utf8"), f).not.toMatch(/isCorrect|correctOption/)
     }

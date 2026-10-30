@@ -1,6 +1,9 @@
 // Tipos del LMS tal como los devuelve /api/v1/lms. Ningún tipo de estudiante contiene la respuesta correcta.
 
 export type CourseLevel = "beginner" | "intermediate" | "advanced"
+export type LessonKind = "reading" | "video" | "file" | "link"
+export type QuestionType = "single" | "multiple" | "true_false" | "fill_blank" | "short_text"
+export type CertColor = "blue" | "teal" | "amber" | "rose"
 
 /** Metadatos de catálogo (migración 0035). */
 export interface CourseMeta {
@@ -28,6 +31,7 @@ export interface OutlineLesson {
   title: string
   position: number
   isPreview: boolean
+  kind?: LessonKind
   completed: boolean
 }
 
@@ -72,6 +76,9 @@ export interface Lesson {
   title: string
   /** Texto plano: se muestra SIEMPRE como texto escapado, nunca como HTML. */
   body: string
+  kind?: LessonKind
+  /** Solo http(s): el servidor lo valida; aun así se abre siempre con rel="noopener noreferrer". */
+  linkUrl?: string | null
   isPreview: boolean
   completed: boolean
   assets: LessonAsset[]
@@ -104,6 +111,7 @@ export interface QuizSummary {
   passingScore: number
   maxAttempts: number | null
   required: boolean
+  timeLimitMinutes?: number | null
   questionCount: number
   attemptsUsed: number
   bestScore: number | null
@@ -112,15 +120,29 @@ export interface QuizSummary {
 
 export interface AttemptQuestion {
   id: string
+  type?: QuestionType
   prompt: string
   points: number
-  options: { id: string; text: string }[]
+  required?: boolean
+  /** Id de la imagen adjunta (se pide por URL temporal). */
+  imageId?: string | null
+  options: { id: string; text: string; imageId?: string | null }[]
 }
 
 export interface AttemptStart {
   attemptId: string
   startedAt: string
+  timeLimitMinutes?: number | null
+  expiresAt?: string | null
   questions: AttemptQuestion[]
+}
+
+/** Clave de una pregunta, solo tras calificar y si el instructor lo permitió. */
+export interface RevealedKey {
+  questionId: string
+  optionIds?: string[]
+  texts?: string[]
+  blanks?: Record<number, string[]>
 }
 
 export interface AttemptResult {
@@ -131,6 +153,9 @@ export interface AttemptResult {
   passed: boolean | null
   submittedAt: string | null
   passingScore?: number
+  expired?: boolean
+  message?: string
+  reveal?: RevealedKey[] | null
   results?: { questionId: string; correct: boolean; explanation: string }[]
   certificate?: CertificateRef | null
   questions?: AttemptQuestion[]
@@ -144,12 +169,21 @@ export interface MyCertificate {
   issuedAt: string
 }
 
+export interface CertTemplate {
+  title: string
+  body: string
+  signer: string
+  signerRole: string
+  color: CertColor
+}
+
 export interface CertificateDetail {
   id: string
   code: string
   recipientName: string
   courseTitle: string
   issuedAt: string
+  template?: CertTemplate
 }
 
 export interface VerifiedCertificate {
@@ -191,6 +225,8 @@ export interface AdminLesson {
   moduleId: string
   title: string
   body: string
+  kind: LessonKind
+  linkUrl: string | null
   position: number
   isPreview: boolean
   assets: AdminAsset[]
@@ -203,43 +239,118 @@ export interface AdminCourse extends CourseMeta {
   description: string
   status: CourseStatus
   includedInAcademia: boolean
+  updatedAt: string
+  certTitle: string
+  certBody: string
+  certSigner: string
+  certSignerRole: string
+  certColor: CertColor
   modules: { id: string; title: string; position: number; lessons: AdminLesson[] }[]
 }
 
-export interface AdminQuiz {
+export interface AdminOption {
   id: string
-  courseId: string
+  text: string
+  isCorrect: boolean
+  blankIndex: number | null
+  imageId: string | null
+}
+
+export interface AdminQuestion {
+  id: string
+  type: QuestionType
+  prompt: string
+  explanation: string
+  points: number
+  required: boolean
+  shuffleOptions: boolean
+  estimatedMinutes: number
+  imageId: string | null
+  options: AdminOption[]
+}
+
+export interface QuizSettings {
   title: string
   description: string
   passingScore: number
   maxAttempts: number | null
   required: boolean
-  questions: { id: string; prompt: string; explanation: string; points: number; options: { id: string; text: string; isCorrect: boolean }[] }[]
+  timeLimitMinutes: number | null
+  shuffleQuestions: boolean
+  revealAnswers: boolean
+  passMessage: string
+  failMessage: string
+}
+
+export interface AdminQuiz extends QuizSettings {
+  id: string
+  courseId: string
+  questions: AdminQuestion[]
 }
 
 export interface AdminEnrollment {
   id: string
   userId: string
-  email: string
   name: string
+  email: string
   status: "active" | "revoked"
-  createdAt: string
+  enrolledAt: string
+  completed: number
+  total: number
+  percent: number
+  lastActivity: string | null
+  score: number | null
+  certificate: boolean
+  remindedAt: string | null
+}
+
+export interface StudentHit {
+  id: string
+  name: string
+  email: string
+  courses: number
+  enrolled: boolean
+}
+
+export interface BankQuestion {
+  id: string
+  prompt: string
+  type: QuestionType
+  points: number
+  quizTitle: string
+  courseTitle: string
 }
 
 export interface AdminCertificateRow {
   id: string
+  userId: string
   code: string
   recipientName: string
   email: string
   issuedAt: string
   revokedAt: string | null
+  revokedReason: string | null
+  manual: boolean
 }
 
+/** Pregunta tal como se edita y se envía (las respuestas con id conservan su imagen). */
 export interface QuestionDraft {
+  type?: QuestionType
   prompt: string
   explanation: string
   points: number
-  options: { text: string; isCorrect: boolean }[]
+  required?: boolean
+  shuffleOptions?: boolean
+  estimatedMinutes?: number
+  options: { id?: string; text: string; isCorrect: boolean; blankIndex?: number | null }[]
+}
+
+/** Respuesta de estudiante en el cliente (el envío al servidor la normaliza). */
+export interface StudentAnswer {
+  optionId?: string
+  optionIds?: string[]
+  text?: string
+  blanks?: Record<number, string>
 }
 
 // ─── Resumen del estudiante y analítica ─────────────────────────────────────
@@ -256,6 +367,7 @@ export interface StudentSummary {
 
 export interface QuestionAnalytics {
   id: string
+  type?: QuestionType
   prompt: string
   points: number
   responses: number
@@ -270,5 +382,50 @@ export interface CourseAnalytics {
   finished: number
   certificates: number
   lessons: { id: string; title: string; completions: number }[]
-  quizzes: { id: string; title: string; passingScore: number; submissions: number; avgScore: number; passRate: number; avgSeconds: number; questions: QuestionAnalytics[] }[]
+  quizzes: {
+    id: string
+    title: string
+    passingScore: number
+    submissions: number
+    avgScore: number
+    passRate: number
+    avgSeconds: number
+    scoreBuckets?: number[]
+    questions: QuestionAnalytics[]
+  }[]
+  topFailed?: { quizId: string; quizTitle: string; questionId: string; prompt: string; type: QuestionType; responses: number; failPct: number }[]
+}
+
+// ─── Panorama del instructor ────────────────────────────────────────────────
+
+export interface OverviewCourse {
+  id: string
+  slug: string
+  title: string
+  status: CourseStatus
+  level: CourseLevel
+  coverKey: string
+  updatedAt: string
+  lessonCount: number
+  enrolled: number
+  avgProgress: number
+  finished: number
+  passRate: number | null
+  certificates: number
+}
+
+export interface InstructorOverview {
+  kpis: {
+    courses: { published: number; draft: number; archived: number; total: number }
+    students: number
+    enrollments: number
+    avgProgress: number
+    passRate: number | null
+    certificates: number
+    enrollmentsThisMonth: number
+    enrollmentsPrevMonth: number
+  }
+  series: { month: string; enrollments: number; completions: number; attempts: number }[]
+  byLevel: { level: CourseLevel; count: number }[]
+  courses: OverviewCourse[]
 }

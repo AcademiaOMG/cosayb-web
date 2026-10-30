@@ -76,7 +76,7 @@ describe("cliente del LMS", () => {
   it("borrados con respuesta 204 no se tratan como error", async () => {
     mock(204, null)
     await expect(lms.admin.deleteLesson("L1")).resolves.toBeUndefined()
-    await expect(lms.admin.revoke("C1", "E1")).resolves.toBeUndefined()
+    await expect(lms.admin.deleteQuestion("Q1")).resolves.toBeUndefined()
   })
 
   it("los mensajes de error del API se conservan", async () => {

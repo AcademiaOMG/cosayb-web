@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { mutate as globalMutate } from "swr"
-import { Award, CheckCircle2, ChevronLeft, ChevronRight, ChevronsRight, ClipboardCheck, Circle, Lock, PanelRightClose, PanelRightOpen, Play } from "lucide-react"
+import { Award, CheckCircle2, ExternalLink, ChevronLeft, ChevronRight, ChevronsRight, ClipboardCheck, Circle, Lock, PanelRightClose, PanelRightOpen, Play } from "lucide-react"
 import { DocumentButton, LessonBody, VideoPlayer } from "@/components/lms/AssetViews"
 import SignInRequired from "@/components/lms/SignInRequired"
 import Cover from "@/components/lms/art/Cover"
@@ -138,6 +138,15 @@ function Player() {
               <>
                 {videos[0] ? (
                   <VideoPlayer lessonId={lesson.id} video={videos[0]} subtitles={subtitles} />
+                ) : lesson.kind === "link" && lesson.linkUrl && /^https?:[/][/]/i.test(lesson.linkUrl) ? (
+                  <div className="relative flex flex-col items-start justify-end gap-3 overflow-hidden rounded-3xl p-6 sm:p-8" style={{ aspectRatio: "16 / 6", minHeight: 180 }}>
+                    <Cover coverKey={course.coverKey} className="absolute inset-0 h-full w-full" />
+                    <span className="relative rounded-2xl bg-white/95 p-4 shadow-lg">
+                      <span className="block text-sm font-bold" style={{ color: "var(--l-muted)" }}>Esta lección es un recurso externo</span>
+                      <a href={lesson.linkUrl} target="_blank" rel="noopener noreferrer" className="l-btn l-btn-primary mt-2"><ExternalLink size={16} aria-hidden="true" /> Abrir el enlace</a>
+                      <span className="mt-1 block max-w-xs break-all text-xs" style={{ color: "var(--l-muted)" }}>{lesson.linkUrl.replace(/^https?:[/][/]/i, "").split("/")[0]}</span>
+                    </span>
+                  </div>
                 ) : (
                   <div className="relative overflow-hidden rounded-3xl" style={{ aspectRatio: "16 / 6" }}>
                     <Cover coverKey={course.coverKey} className="absolute inset-0 h-full w-full" />
