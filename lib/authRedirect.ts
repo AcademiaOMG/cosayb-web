@@ -15,6 +15,7 @@
  * guard limpia la cookie al expulsar para que /login no pueda rebotar.
  */
 
+import { staffHomeFor } from "@/lib/lms/roles"
 import { fetchWithTimeout, SESSION_CHECK_TIMEOUT_MS } from "./auth/timeouts"
 
 /** Destino por defecto tras autenticarse: directo al dashboard. */
@@ -83,6 +84,11 @@ export interface OrgState {
   identityType: "platform" | "tenant" | undefined
   hasOrganization: boolean
   impersonationActive: boolean
+  /**
+   * Tiene alguna pertenencia a un negocio aunque ninguna esté activa (p. ej. negocio suspendido).
+   * No se le pide crear otro negocio: ya tiene uno y crear un duplicado no lo resuelve.
+   */
+  hasMemberships?: boolean
 }
 
 /** URL de onboarding que conserva el destino al que se quería llegar. */
@@ -106,17 +112,79 @@ function isForcedTenant(s: OrgState): boolean {
  * impersonación quedan exentos.
  */
 export function needsOnboarding(s: OrgState): boolean {
-  return !s.hasOrganization && isForcedTenant(s)
+  return !s.hasOrganization && !s.hasMemberships && isForcedTenant(s)
+}
+
+/**
+ * Rutas del área de aprendizaje: los cursos son independientes de un negocio, así que quien
+ * entra a ellas nunca pasa por el onboarding.
+ */
+const LEARN_PATH_PREFIXES = ["/inicio", "/evaluaciones", "/ayuda-cursos", "/mis-cursos", "/aprender", "/evaluacion", "/certificados", "/cursos", "/instructor", "/administracion"]
+
+export const LEARN_HOME_PATH = "/inicio"
+
+/** Portada del LMS según el rol: administrador → /administracion, instructor → /instructor, si no, null. */
+export const lmsHomeFor = staffHomeFor
+
+export function isLearnPath(path: string): boolean {
+  return LEARN_PATH_PREFIXES.some((p) => path === p || ["/", "?", "#"].some((c) => path.startsWith(p + c)))
 }
 
 /** Página de aceptación de una invitación: quien la abre aún no tiene negocio y no debe pasar por el onboarding. */
 export const INVITATION_PATH_PREFIX = "/accept-invitation/"
 
 /** Destino tras autenticarse: onboarding (conservando returnTo) o el destino normal. */
-export function resolveAuthenticatedDestination(s: OrgState, destination: string): string {
+export function resolveAuthenticatedDestination(
+  s: OrgState,
+  destination: string,
+  opts: { hasActiveCourses?: boolean; lmsHome?: string | null } = {},
+): string {
   // Con una invitación pendiente, el negocio es al que lo invitaron: no se le pide crear uno propio primero
   if (destination.startsWith(INVITATION_PATH_PREFIX)) return destination
-  return needsOnboarding(s) ? buildOnboardingUrl(destination) : destination
+  // Los cursos no requieren negocio
+  if (isLearnPath(destination)) return destination
+  if (!needsOnboarding(s)) return destination
+  // Sin negocio pero con cursos y sin un destino propio (el dashboard es solo el valor por defecto)
+  // Instructores y administradores del LMS (sin negocio) entran directo a su zona; luego quien tiene cursos
+  if (opts.lmsHome && destination === DEFAULT_POST_LOGIN_PATH) return opts.lmsHome
+  if (opts.hasActiveCourses && destination === DEFAULT_POST_LOGIN_PATH) return LEARN_HOME_PATH
+  return buildOnboardingUrl(destination)
+}
+
+/** ¿Tiene al menos un curso activo? Misma sesión por cookie; ante cualquier fallo, false (no bloquea el login). */
+export async function fetchHasActiveCourses(
+  apiBase: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  try {
+    const res = await fetchImpl(`${apiBase}/api/v1/lms/me/courses`, {
+      credentials: "include",
+      cache: "no-store",
+    })
+    if (!res.ok) return false
+    const body = await res.json()
+    return Array.isArray(body?.data) && body.data.length > 0
+  } catch {
+    return false
+  }
+}
+
+/** Portada del LMS de quien tiene rol de instructor/administrador (misma sesión por cookie); ante cualquier fallo, null. */
+export async function fetchLmsHome(
+  apiBase: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string | null> {
+  try {
+    const res = await fetchImpl(`${apiBase}/api/v1/lms/me/access`, {
+      credentials: "include",
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    const body = await res.json()
+    return lmsHomeFor(body?.data)
+  } catch {
+    return null
+  }
 }
 
 export type OnboardingPageDecision = "show" | "dashboard" | "platform"
@@ -165,6 +233,7 @@ export async function fetchOrgState(
         identityType: d.identityType,
         hasOrganization: !!d.organization,
         impersonationActive: !!d.impersonation?.active,
+        hasMemberships: Array.isArray(d.memberships) && d.memberships.length > 0,
       },
     }
   } catch {

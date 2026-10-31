@@ -39,6 +39,15 @@ const PROTECTED_PREFIXES = [
   "/cuenta",
   "/soporte",
   "/notificaciones",
+  "/mis-cursos",
+  "/aprender",
+  "/evaluacion",
+  "/certificados",
+  "/inicio",
+  "/evaluaciones",
+  "/instructor",
+  "/administracion",
+  "/academia",
 ];
 
 const SESSION_COOKIE_NAMES = [
@@ -65,7 +74,9 @@ export function proxy(req: NextRequest) {
   // Rutas públicas — siempre accesibles
   if (
     PUBLIC_ROUTES.includes(pathname) ||
-    pathname.startsWith("/accept-invitation")
+    pathname.startsWith("/accept-invitation") ||
+    pathname === "/cursos" || pathname.startsWith("/cursos/") ||
+    pathname === "/verificar" || pathname.startsWith("/verificar/")
   ) {
     return undefined;
   }

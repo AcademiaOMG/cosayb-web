@@ -78,6 +78,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   FAILED_TO_UNLINK_LAST_ACCOUNT: "No puedes desvincular tu único método de acceso.",
   EMAIL_CAN_NOT_BE_UPDATED: "No se puede cambiar el correo de esta cuenta.",
   CHANGE_EMAIL_DISABLED: "El cambio de correo no está disponible.",
+  LMS_ACCOUNT_DISABLED: "Tu acceso a la academia está desactivado. Si crees que es un error, contacta al administrador.",
   INVALID_ORIGIN: REQUEST_REJECTED,
   MISSING_OR_NULL_ORIGIN: REQUEST_REJECTED,
   CROSS_SITE_NAVIGATION_LOGIN_BLOCKED: REQUEST_REJECTED,

@@ -7,6 +7,7 @@ import { Bell } from "lucide-react"
 import "./glass.css"
 import PageHeader from "@/components/ui/PageHeader"
 import SidebarChecklist from "@/components/app/SidebarChecklist"
+import AcademiaCard from "@/components/app/AcademiaCard"
 import { usePermissions } from "@/hooks/usePermissions"
 import { authClient } from "@/lib/auth"
 import type { Resource, Action } from "@/lib/api"
@@ -169,6 +170,8 @@ export default function DashboardPage() {
           <p className="dash-banner-explanation">{withEmphasis(insight.explanation, insight.emphasis)}</p>
         </div>
       </div>
+
+      <AcademiaCard />
 
       <div className="glass-grid-wrap glass-grid-wrap-wide flex flex-col gap-3">
         <h2 className="dash-section-title">¿Qué quieres revisar?</h2>

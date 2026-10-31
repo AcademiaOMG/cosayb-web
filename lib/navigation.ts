@@ -11,6 +11,7 @@ import {
   UserCircle,
   LifeBuoy,
   Bell,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react"
 import type { Resource, Action } from "@/lib/api"
@@ -59,6 +60,13 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/punto-equilibrio", label: "Punto de Equilibrio", shortLabel: "Equilibrio", icon: BarChart2, resource: "breakEven", action: "list", feature: "module_breakEven" },
       { href: "/factor-rendimiento", label: "Factor de Rendimiento", shortLabel: "Rendimiento", icon: Scale, resource: "yieldFactors", action: "list", feature: "module_yieldFactors" },
       { href: "/precios-mercado", label: "Precios de mercado", shortLabel: "Precios", icon: Tag, resource: "organization", action: "read", feature: "module_marketPrices" },
+    ],
+  },
+  {
+    // Conexión con el LMS: con plan Academia los cursos incluidos aparecen de una; sin plan, catálogo e invitación
+    label: "Aprender",
+    items: [
+      { href: "/academia", label: "Cursos / Academia", shortLabel: "Cursos", icon: GraduationCap, resource: "organization", action: "read" },
     ],
   },
 ]

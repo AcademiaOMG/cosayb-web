@@ -5,7 +5,7 @@ import { authClient } from "@/lib/auth"
 import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { getPendingCheckout, pendingToPath, pendingContextLine } from "@/lib/commerce/pending"
-import { resolvePostLoginPath, checkServerSession, fetchOrgState, resolveAuthenticatedDestination } from "@/lib/authRedirect"
+import { resolvePostLoginPath, checkServerSession, fetchOrgState, resolveAuthenticatedDestination, fetchHasActiveCourses, fetchLmsHome, needsOnboarding } from "@/lib/authRedirect"
 import { toast } from "@/lib/toast"
 import AuthShell, { AuthSpinner } from "@/components/auth/AuthShell"
 import GoogleButton, { startGoogleSignIn } from "@/components/auth/GoogleButton"
@@ -60,8 +60,11 @@ function LoginForm() {
         // Sin organización → onboarding (conserva returnTo); si el contexto falla, destino normal
         const org = await fetchOrgState(API)
         if (cancelled) return
+        const noBusiness = org.status === "ok" && needsOnboarding(org.state)
+        const [hasActiveCourses, lmsHome] = noBusiness ? await Promise.all([fetchHasActiveCourses(API), fetchLmsHome(API)]) : [false, null]
+        if (cancelled) return
         router.replace(
-          org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination) : destination,
+          org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination, { hasActiveCourses, lmsHome }) : destination,
         )
         return // se mantiene el estado de carga hasta que la navegación ocurra
       }
@@ -109,8 +112,10 @@ function LoginForm() {
     }
     setSubmitting(true)
     try {
+      // Sin callbackURL: Better Auth no navega por su cuenta (iría directo a /dashboard y se saltaría la portada del rol).
+      // El destino lo decide resolveAuthenticatedDestination con los datos de la cuenta.
       const { error } = await authClient.signIn.email(
-        { email: normalizeEmail(email), password, callbackURL },
+        { email: normalizeEmail(email), password },
         { signal: AbortSignal.timeout(AUTH_ACTION_TIMEOUT_MS) },
       )
       if (error) {
@@ -119,7 +124,9 @@ function LoginForm() {
         return
       }
       const org = await fetchOrgState(API)
-      router.replace(org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination) : destination)
+      const noBusiness = org.status === "ok" && needsOnboarding(org.state)
+      const [hasActiveCourses, lmsHome] = noBusiness ? await Promise.all([fetchHasActiveCourses(API), fetchLmsHome(API)]) : [false, null]
+      router.replace(org.status === "ok" ? resolveAuthenticatedDestination(org.state, destination, { hasActiveCourses, lmsHome }) : destination)
     } catch (err) {
       setFormError(authFailureMessage(err, "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo."))
     } finally {

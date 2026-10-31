@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { GraduationCap } from "lucide-react"
 import { visibleGroups, isSectionActive } from "@/lib/plataforma/nav"
 
 export interface PlatformNavProps {
@@ -41,6 +42,15 @@ export default function PlatformNav({ platformRoles, onNavigate }: PlatformNavPr
           </ul>
         </div>
       ))}
+      {/* Enlace discreto: la academia (cursos, instructores, administración) vive en el LMS, no en esta consola */}
+      {platformRoles.some((r) => r === "platform_owner" || r === "platform_admin") && (
+        <div className="mt-5 border-t pt-3" style={{ borderColor: "var(--border-light)" }}>
+          <Link href="/administracion" onClick={onNavigate} className="plat-nav-link" title="Abrir la academia (LMS)">
+            <GraduationCap size={18} aria-hidden="true" />
+            Ir a Academia (LMS)
+          </Link>
+        </div>
+      )}
     </nav>
   )
 }
