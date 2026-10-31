@@ -1,3 +1,4 @@
+import { PLAN_CATALOG } from "@/lib/commerce/catalog"
 import { describe, it, expect } from "vitest"
 import {
   addDays, billingNotice, checkoutPathForPlan, brandFromCardNumber, daysUntil, luhnValid, parseExpiry, previewPlanChange,
@@ -47,7 +48,7 @@ describe("previewPlanChange", () => {
     const s = createInitialState(NOW)
     const p = previewPlanChange(s.billing, "pro", NOW)
     expect(p.kind).toBe("upgrade")
-    expect(p.chargeNow).toBe(30000)
+    expect(p.chargeNow).toBe(PLAN_CATALOG.pro.amount)
     expect(p.requiresPaymentMethod).toBe(true)
     expect(p.immediate).toBe(true)
   })
@@ -98,7 +99,7 @@ describe("mockEngine · ciclo de suscripción", () => {
     const s = paidState("pro")
     expect(s.billing.status).toBe("active")
     expect(s.billing.plan).toBe("pro")
-    expect(s.invoices[0]).toMatchObject({ number: "OMG-INV-00001", status: "paid", total: 30000 })
+    expect(s.invoices[0]).toMatchObject({ number: "OMG-INV-00001", status: "paid", total: PLAN_CATALOG.pro.amount })
     expect(s.invoices[0].paymentMethodLabel).toBe("Visa •••• 4242")
     expect(s.notifications[0].kind).toBe("billing")
     expect(daysUntil(s.billing.currentPeriodEnd, NOW)).toBe(30)

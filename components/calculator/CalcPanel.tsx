@@ -7,6 +7,7 @@ import CalcDevice from "./CalcDevice"
 import CalcDisplay, { type CalcDisplayTone } from "./CalcDisplay"
 import CalcKeypad from "./CalcKeypad"
 import CalcRegister from "./CalcRegister"
+import type { HelpKey } from "@/lib/help/fieldHelp"
 
 export interface CalcPanelField<F extends string> {
   key: F
@@ -18,6 +19,8 @@ export interface CalcPanelField<F extends string> {
   placeholder: string
   /** "inline" = fila compacta (datos secundarios como márgenes o bajas) */
   variant?: "block" | "inline"
+  /** Ayuda contextual del campo (lib/help/fieldHelp.ts) */
+  help?: HelpKey
 }
 
 function isTypingTarget(el: EventTarget | null) {
@@ -131,6 +134,7 @@ export default function CalcPanel<F extends string>({
         error={hasError}
         describedBy={hasError ? errorId : undefined}
         variant={f.variant ?? "block"}
+        help={f.help}
         onActivate={() => onActivate(f.key)}
         onKey={onKey}
         onRawInput={(raw) => onRawInput(f.key, raw)}

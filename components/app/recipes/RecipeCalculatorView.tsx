@@ -88,6 +88,7 @@ export default function RecipeCalculatorView({
           dataSource={dataSource}
           onSaved={onSaved}
           onDirtyChange={setDirty}
+          onRefreshCatalog={() => catalog.mutate()}
         />
       )}
     </CalcModal>

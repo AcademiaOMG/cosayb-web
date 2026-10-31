@@ -6,6 +6,7 @@
 // personas; la API guarda los gramos TOTALES de la receta. Son equivalentes:
 // costo por porción = costo total / porciones.
 
+import type { BaseUnit } from "@/lib/recipes/units"
 import { solveRecipePricing, type RecipePricingOutcome } from "./recipePricing"
 
 export type TapeKind = "ingredient" | "recipe"
@@ -15,7 +16,10 @@ export interface TapeLine {
   kind: TapeKind
   refId: string
   name: string
+  /** Cantidad en la unidad base del ingrediente (g, und…). El nombre es heredado. */
   grams: number
+  /** Unidad de la línea; ausente = gramos */
+  unit?: BaseUnit
 }
 
 /**
@@ -52,7 +56,8 @@ export function priceTape(lines: TapeLine[], lookup: CostLookup): PricedTape {
   let pending = 0
   const priced = lines.map((line): PricedLine => {
     const cpg = lookup(line.kind, line.refId)
-    totalGrams += line.grams
+    // Solo los gramos suman peso: 30 huevos no son 30 g
+    if ((line.unit ?? "g") === "g") totalGrams += line.grams
     if (cpg === undefined) {
       pending++
       return { line, costPerGram: null, cost: null, pending: true }
@@ -65,7 +70,7 @@ export function priceTape(lines: TapeLine[], lookup: CostLookup): PricedTape {
     rawCost += cost
     return { line, costPerGram: cpg, cost, pending: false }
   })
-  const signature = priced.map((p) => `${p.line.key}:${p.line.grams}:${p.costPerGram ?? "x"}`).join("|")
+  const signature = priced.map((p) => `${p.line.key}:${p.line.grams}:${p.line.unit ?? "g"}:${p.costPerGram ?? "x"}`).join("|")
   return { lines: priced, totalGrams, rawCost, unpriced, pending, signature }
 }
 

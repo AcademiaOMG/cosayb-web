@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Crear cuenta",
-  description: "Crea tu cuenta de CO$AYB y prueba 14 días gratis, sin tarjeta.",
+  description: "Crea tu cuenta de CO$AYB y prueba 10 días gratis, sin tarjeta.",
   alternates: { canonical: "/register" },
 }
 

@@ -665,6 +665,7 @@ html { scroll-behavior: smooth; }
     color: var(--text-secondary);
   }
   .ui-select-option[data-clear][aria-selected="true"] { color: var(--accent-text); }
+  .ui-select-option[data-create] .ui-select-option-label { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.3; }
   .ui-select-option[data-create] {
     justify-content: flex-start;
     gap: 8px;

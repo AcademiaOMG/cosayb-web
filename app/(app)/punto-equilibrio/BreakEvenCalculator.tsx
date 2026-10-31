@@ -23,6 +23,7 @@ import {
 import type { BreakEvenRecord } from "@/types/domain"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
+import type { HelpKey } from "@/lib/help/fieldHelp"
 import BreakEvenTicket from "./BreakEvenTicket"
 import styles from "./breakEven.module.css"
 
@@ -407,7 +408,7 @@ export default function BreakEvenCalculator({
 
   function register(
     id: string,
-    props: { label: string; ariaLabel: string; variant?: "block" | "inline"; note?: React.ReactNode },
+    props: { label: string; ariaLabel: string; variant?: "block" | "inline"; note?: React.ReactNode; help?: HelpKey },
   ) {
     return (
       <CalcRegister
@@ -417,6 +418,7 @@ export default function BreakEvenCalculator({
         id={`${uid}-${id}`}
         label={props.label}
         ariaLabel={props.ariaLabel}
+        help={props.help}
         display={formatMoneyEntry(values[id] ?? "")}
         placeholder="$ 0"
         active={active === id}
@@ -584,6 +586,7 @@ export default function BreakEvenCalculator({
                       {register(AMOUNT_FIELD, {
                         label: catName.toUpperCase(),
                         ariaLabel: `Monto de ${catName} al mes`,
+                        help: "breakEven.fixedCosts",
                                       })}
                     </div>
 
@@ -604,10 +607,12 @@ export default function BreakEvenCalculator({
                       {register(PRICE_FIELD, {
                         label: "Precio de venta",
                         ariaLabel: "Precio de venta por unidad",
+                        help: "breakEven.price",
                                       })}
                       {register(VARIABLE_FIELD, {
                         label: "Costo variable por unidad",
                         ariaLabel: "Costo variable por unidad",
+                        help: "breakEven.variableCost",
                         note: <span>0 si no tiene insumos</span>,
                       })}
                     </div>

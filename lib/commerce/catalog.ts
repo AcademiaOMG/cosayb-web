@@ -10,70 +10,119 @@ export type BookFormat = "fisico" | "digital"
 export interface PlanEntry {
   id: PlanId
   label: string
+  /** Precio final con IVA incluido (COP/mes). El backend valida el cobro real. */
   amount: number
+  /** Desglose comercial; null en Free */
+  net: number | null
+  tax: number | null
   period: string
+  /** Qué incluye, con los límites reales (espejo de membership_features, migración 0033) */
   benefits: string[]
+  /** Restricciones explícitas del plan */
+  restrictions: string[]
 }
+
+/** Límites del periodo gratuito: 10 días (espejo de FREE_PERIOD_DAYS en el API). */
+export const FREE_PERIOD_DAYS = 10
 
 export const PLAN_CATALOG: Record<PlanId, PlanEntry> = {
   free: {
     id: "free",
     label: "Free",
     amount: 0,
-    period: "14 días de prueba",
-    benefits: ["Calculadoras básicas", "Prueba inicial", "Acceso limitado"],
+    net: null,
+    tax: null,
+    period: `${FREE_PERIOD_DAYS} días gratis`,
+    benefits: [
+      "1 usuario por negocio",
+      `Acceso gratuito durante ${FREE_PERIOD_DAYS} días`,
+      "Visualización de recetas",
+      "Hasta 3 recetas propias",
+      "Hasta 3 ingredientes propios",
+      "1 menú con el banco de recetas",
+      "1 factor de rendimiento",
+      "1 punto de equilibrio",
+    ],
+    restrictions: [
+      `Al terminar los ${FREE_PERIOD_DAYS} días la cuenta queda en solo lectura (tus datos se conservan)`,
+      "Sin soporte técnico",
+      "Sin soporte gastronómico",
+      "Sin exportación de datos",
+    ],
   },
   pro: {
     id: "pro",
     label: "Pro",
-    amount: 30000,
-    period: "COP / mes",
+    amount: 42000,
+    net: 35294,
+    tax: 6706,
+    period: "COP / mes · IVA incluido",
     benefits: [
-      "Todo ilimitado",
-      "Exportación PDF",
-      "Banco de recetas base (+1.000)",
-      "Factor de rendimiento completo",
-      "Soporte prioritario",
+      "Hasta 2 usuarios por negocio",
+      "Acceso ilimitado a cocina",
+      "Visualización de recetas",
+      "Hasta 50 recetas propias",
+      "Hasta 50 ingredientes propios",
+      "Hasta 50 menús con el banco de recetas",
+      "Hasta 30 factores de rendimiento",
+      "Hasta 30 puntos de equilibrio",
+      "Soporte técnico: 10 solicitudes al mes",
+      "Soporte gastronómico",
+      "Exportación de datos",
     ],
+    restrictions: [],
   },
   academia: {
     id: "academia",
     label: "Academia",
-    amount: 50000,
-    period: "COP / mes",
+    amount: 60000,
+    net: 50420,
+    tax: 9580,
+    period: "COP / mes · IVA incluido",
     benefits: [
-      "Todo de Pro",
-      "Acceso completo a cursos",
-      "Certificación incluida",
-      "Consultoría mensual 1:1",
+      "Hasta 5 usuarios por negocio",
+      "Acceso ilimitado a cocina",
+      "Visualización de recetas",
+      "Recetas propias (cantidad por definir)",
+      "Ingredientes propios (cantidad por definir)",
+      "Hasta 100 menús con el banco de recetas",
+      "Hasta 50 factores de rendimiento",
+      "Hasta 50 puntos de equilibrio",
+      "Soporte técnico ilimitado",
+      "Soporte gastronómico (cuota mensual por definir)",
+      "Exportación de datos",
     ],
+    restrictions: [],
   },
 }
 
-/** Comparativa de planes para /planes. `true`/`false` = incluido/no incluido; texto = matiz. */
+/** Comparativa de planes para /planes. `true`/`false` = incluido/no incluido; texto = valor. */
 export interface ComparisonRow {
   label: string
   values: Record<PlanId, boolean | string>
 }
 
 export const PLAN_COMPARISON: ComparisonRow[] = [
-  { label: "Calculadoras (valoración, punto de equilibrio, factor de rendimiento)", values: { free: "Básicas", pro: "Completas", academia: "Completas" } },
-  { label: "Inventario de ingredientes", values: { free: "Con límite", pro: "Ilimitado", academia: "Ilimitado" } },
-  { label: "Recetas y menús", values: { free: "Con límite", pro: "Ilimitados", academia: "Ilimitados" } },
-  { label: "Banco de recetas base (+1.000)", values: { free: false, pro: true, academia: true } },
-  { label: "Exportación a PDF y Excel", values: { free: false, pro: true, academia: true } },
-  { label: "Equipo e invitaciones", values: { free: "Básico", pro: "Ampliado", academia: "Ampliado" } },
-  { label: "Roles personalizados", values: { free: false, pro: true, academia: true } },
-  { label: "Roles académicos (docente, estudiante)", values: { free: false, pro: false, academia: true } },
-  { label: "Cursos y certificación", values: { free: false, pro: false, academia: true } },
-  { label: "Consultoría mensual 1:1", values: { free: false, pro: false, academia: true } },
-  { label: "Soporte", values: { free: "Centro de ayuda", pro: "Prioritario", academia: "Prioritario" } },
+  { label: "Usuarios por negocio", values: { free: "1", pro: "Hasta 2", academia: "Hasta 5" } },
+  { label: "Duración", values: { free: `${FREE_PERIOD_DAYS} días, luego solo lectura`, pro: "Mensual", academia: "Mensual" } },
+  { label: "Visualización de recetas", values: { free: true, pro: true, academia: true } },
+  { label: "Recetas propias", values: { free: "Hasta 3", pro: "Hasta 50", academia: "Por definir" } },
+  { label: "Ingredientes propios", values: { free: "Hasta 3", pro: "Hasta 50", academia: "Por definir" } },
+  { label: "Menús (con el banco de recetas)", values: { free: "1", pro: "Hasta 50", academia: "Hasta 100" } },
+  { label: "Factores de rendimiento", values: { free: "1", pro: "Hasta 30", academia: "Hasta 50" } },
+  { label: "Puntos de equilibrio", values: { free: "1", pro: "Hasta 30", academia: "Hasta 50" } },
+  { label: "Acceso ilimitado a cocina", values: { free: false, pro: true, academia: true } },
+  { label: "Exportación de datos", values: { free: false, pro: true, academia: true } },
+  { label: "Soporte técnico", values: { free: false, pro: "10 solicitudes al mes", academia: "Ilimitado" } },
+  { label: "Soporte gastronómico", values: { free: false, pro: true, academia: "Cuota mensual por definir" } },
 ]
 
 export const PLAN_FAQ: { q: string; a: string }[] = [
-  { q: "¿Necesito tarjeta para empezar?", a: "No. Creas tu cuenta y tienes 14 días de prueba con funciones Pro, sin tarjeta." },
+  { q: "¿Necesito tarjeta para empezar?", a: `No. Creas tu cuenta y tienes ${FREE_PERIOD_DAYS} días gratis con el plan Free, sin tarjeta.` },
+  { q: "¿Qué pasa cuando terminan los 10 días del plan Free?", a: "Tu cuenta pasa a solo lectura: puedes ver tus datos, pero no crear ni editar. No se elimina nada. Para volver a editar, elige Pro o Academia." },
+  { q: "¿Los precios incluyen IVA?", a: "Sí. Pro cuesta $42.000 COP al mes (IVA incluido: $35.294 + $6.706 de IVA) y Academia $60.000 COP al mes (IVA incluido: $50.420 + $9.580 de IVA)." },
   { q: "¿Puedo cancelar cuando quiera?", a: "Sí. Cancelas desde Configuración > Facturación y conservas el plan hasta el final del periodo ya pagado." },
-  { q: "¿Qué pasa si subo o bajo de plan?", a: "Al subir pagas el valor completo del nuevo plan y empieza un periodo de 30 días. Al bajar, el cambio aplica al terminar el periodo pagado." },
+  { q: "¿Qué pasa si subo o bajo de plan?", a: "Al subir pagas el valor completo del nuevo plan y empieza un periodo de 30 días. Al bajar, el cambio aplica al terminar el periodo pagado. Tus datos nunca se eliminan: si superas el límite del nuevo plan, los conservas y solo se bloquea crear más." },
   { q: "¿Qué medios de pago aceptan?", a: "Tarjeta débito o crédito, PSE y Nequi / Daviplata, en pesos colombianos (COP)." },
   { q: "¿Qué pasa si un cobro falla?", a: "Te avisamos dentro de la plataforma y por correo y reintentamos el cobro. Tienes 5 días para actualizar tu método de pago antes de pasar a Free; tus datos se conservan." },
   { q: "¿Hay reembolso?", a: "Sí: el primer cobro de un plan de pago es reembolsable dentro de los 7 días. Mira la política de reembolso." },

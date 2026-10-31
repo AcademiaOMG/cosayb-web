@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Plus, Pencil, Trash2, Copy, Download, ChefHat } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import RecipeCalculatorView from "@/components/app/recipes/RecipeCalculatorView"
+import RecipeEditorView from "@/components/app/recipes/RecipeEditor"
 import type { RecipeFormDataSource } from "@/components/app/recipes/recipeSource"
 import PageHeader from "@/components/ui/PageHeader"
 import Button from "@/components/ui/Button"
@@ -13,7 +14,7 @@ import Pagination from "@/components/app/inventario/Pagination"
 import type { FilterGroup } from "@/components/ui/FilterMenu"
 import { formatCOP, formatGrams } from "@/components/app/inventario/format"
 import {
-  bancoCreateRecipe, bancoDeleteRecipe, bancoGetRecipe, bancoListIngredients, bancoListRecipes,
+  bancoCreateIngredient, bancoCreateRecipe, bancoDeleteRecipe, bancoGetRecipe, bancoListIngredients, bancoListRecipes,
   bancoUpdateRecipe,
 } from "@/lib/api"
 import { toast } from "@/lib/toast"
@@ -29,6 +30,7 @@ import { PROBLEMA_RECETA_TEXTO, type ProblemaReceta, type RecetaBanco } from "@/
 import { construirCsv } from "@/lib/plataforma/banco/csv"
 import { ejecutarEnLote } from "@/lib/plataforma/banco/lote"
 import type { Recipe } from "@/types/domain"
+import type { Ingredient as FormIngredient } from "@/types/ingredient"
 
 type RecetaFila = Recipe & { itemCount: number }
 
@@ -66,7 +68,7 @@ export default function BancoRecetasPage() {
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set())
   const [eliminando, setEliminando] = useState(false)
-  const [vista, setVista] = useState<"lista" | "calculadora">("lista")
+  const [vista, setVista] = useState<"lista" | "calculadora" | "editor">("lista")
   const [editId, setEditId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -88,6 +90,12 @@ export default function BancoRecetasPage() {
       loadRecipe: (id) => bancoGetRecipe(id).then((r) => r.data),
       create: (payload) => bancoCreateRecipe(payload),
       update: (id, payload) => bancoUpdateRecipe(id, payload),
+      updatePartial: (id, patch) => bancoUpdateRecipe(id, patch),
+      quickCreate: {
+        platform: true,
+        createIngredient: async (payload) => ({ data: (await bancoCreateIngredient(payload)).data as unknown as FormIngredient }),
+        createBaseRecipe: (payload) => bancoCreateRecipe({ ...payload, isBase: true }) as Promise<{ data: Recipe }>,
+      },
       loadCostPerGram: async (id) => costos?.get(id)?.costoPorGramo ?? null,
     }),
     [costos]
@@ -242,6 +250,21 @@ export default function BancoRecetasPage() {
 
   const seleccionadas = (recetas ?? []).filter((r) => seleccion.has(r.id)) as RecetaFila[]
 
+  if (vista === "editor" && editId) {
+    return (
+      <RecipeEditorView
+        key={editId}
+        recipeId={editId}
+        dataSource={fuente}
+        onClose={() => setVista("lista")}
+        onChanged={(name) => {
+          void banco.recargarTodo()
+          toast.success("Cambios guardados", { description: name })
+        }}
+      />
+    )
+  }
+
   if (vista === "calculadora") {
     return (
       <RecipeCalculatorView
@@ -363,7 +386,7 @@ export default function BancoRecetasPage() {
                 actions={(r) => (
                   <>
                     {canCreate && <AccionFila label={`Duplicar ${r.name}`} onClick={() => void duplicar(r)}><Copy size={15} /></AccionFila>}
-                    {canUpdate && <AccionFila label={`Editar ${r.name}`} onClick={() => { setEditId(r.id); setVista("calculadora") }}><Pencil size={15} /></AccionFila>}
+                    {canUpdate && <AccionFila label={`Editar ${r.name}`} onClick={() => { setEditId(r.id); setVista("editor") }}><Pencil size={15} /></AccionFila>}
                     {canDelete && <AccionFila label={`Eliminar ${r.name}`} peligro onClick={() => void eliminar([r])}><Trash2 size={15} /></AccionFila>}
                   </>
                 )}

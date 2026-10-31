@@ -36,6 +36,12 @@ interface SearchableSelectProps {
   loading?: boolean
   /** Si se pasa, al buscar sin coincidencia exacta aparece al final «Crear «texto»» y se llama con el texto */
   onCreate?: (query: string) => void
+  /**
+   * Texto fijo de la opción de crear (p. ej. «¿No encuentras el ingrediente? Agregar ingrediente»).
+   * Con esto la opción aparece SIEMPRE al final de la lista (con o sin texto buscado) y `onCreate`
+   * recibe lo que se buscó (puede ser vacío). Sin esto, solo sale «Crear «texto»» al buscar sin coincidencia exacta.
+   */
+  createLabel?: string
 }
 
 interface Item {
@@ -63,6 +69,7 @@ export default function SearchableSelect({
   invalid = false,
   loading = false,
   onCreate,
+  createLabel,
 }: SearchableSelectProps) {
   const uid = useId()
   const listId = `${uid}-list`
@@ -82,10 +89,10 @@ export default function SearchableSelect({
   const items = useMemo<Item[]>(() => {
     const real = filteredOptions.map((o) => ({ ...o, isClear: false }))
     const withClear = clearLabel ? [{ value: "", label: clearLabel, isClear: true }, ...real] : real
-    return onCreate && shouldOfferCreate(options, search)
-      ? [...withClear, { value: "__create", label: `Crear «${search.trim()}»`, isClear: false, isCreate: true }]
+    return onCreate && (createLabel || shouldOfferCreate(options, search))
+      ? [...withClear, { value: "__create", label: createLabel ?? `Crear «${search.trim()}»`, isClear: false, isCreate: true }]
       : withClear
-  }, [clearLabel, filteredOptions, onCreate, options, search])
+  }, [clearLabel, createLabel, filteredOptions, onCreate, options, search])
   const firstReal = clearLabel ? 1 : 0
 
   const computePlacement = useCallback((): DropdownPlacement | null => {

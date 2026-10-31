@@ -105,8 +105,14 @@ export default function IngredientDetailModal({ ingredient, onClose, onEdit, onD
 
         <StatGrid cols={3}>
           <Stat label="Costo unidad" value={formatCOP(ingredient.costPerUnit)} />
-          <Stat label="Peso unidad" value={formatGrams(ingredient.weightGrams)} />
-          <Stat label="Costo por gramo" value={`${formatPerGram(ingredient.costPerGram)}/g`} />
+          <Stat
+            label={ingredient.unit === "und" ? "Unidades por empaque" : "Peso unidad"}
+            value={ingredient.unit === "und" ? `${Number(ingredient.weightGrams).toLocaleString("es-CO")} und` : formatGrams(ingredient.weightGrams)}
+          />
+          <Stat
+            label={ingredient.unit === "und" ? "Costo por unidad" : "Costo por gramo"}
+            value={`${formatPerGram(ingredient.costPerGram)}/${ingredient.unit === "und" ? "und" : "g"}`}
+          />
         </StatGrid>
 
         {(ingredient.priceSource || ingredient.sipsaMatchName || confirmedAt || own) && (

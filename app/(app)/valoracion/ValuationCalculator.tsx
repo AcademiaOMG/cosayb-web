@@ -7,9 +7,18 @@ import { CalcActionKey, CalcDevice, CalcDisplay, CalcKeypad, CalcRegister } from
 import { entryKeyFromKeyboard, formatMoneyEntry, formatPercentEntry } from "@/lib/calculator/entry"
 import type { Recipe } from "@/types/domain"
 import { FIELD_META, MODE_META, describeMissing, fmt, type CalculatorMode } from "./lib"
+import type { HelpKey } from "@/lib/help/fieldHelp"
 import type { RegisterField, ValuationCalculatorState } from "./useValuationCalculator"
 
 const PERCENT_FIELDS: RegisterField[] = ["pctMP", "margin"]
+
+/** Ayuda contextual por campo (lib/help/fieldHelp.ts) */
+const FIELD_HELP_KEY: Record<RegisterField, HelpKey> = {
+  costoMP: "valuation.cost",
+  pctMP: "recipe.pctMP",
+  precioVenta: "valuation.salePrice",
+  margin: "recipe.margin",
+}
 
 function formatField(field: RegisterField, raw: string) {
   return PERCENT_FIELDS.includes(field) ? formatPercentEntry(raw) : formatMoneyEntry(raw)
@@ -113,6 +122,7 @@ export default function ValuationCalculator({
         id={`calc-${field}`}
         label={label}
         ariaLabel={ariaLabel}
+        help={FIELD_HELP_KEY[field]}
         display={formatField(field, values[field])}
         placeholder={PERCENT_FIELDS.includes(field) ? "0 %" : "$ 0"}
         active={active === field}

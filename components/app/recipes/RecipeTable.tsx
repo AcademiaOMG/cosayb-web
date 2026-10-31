@@ -2,7 +2,7 @@
 
 import { memo } from "react"
 import useSWR from "swr"
-import { ChevronRight, Lock, Trash2 } from "lucide-react"
+import { ChevronRight, Lock, Pencil, Trash2 } from "lucide-react"
 import type { Recipe } from "@/types/domain"
 import { getRecipeCost } from "@/lib/api"
 import { formatCOP } from "@/lib/utils"
@@ -17,7 +17,7 @@ const MATERIAL_COST_PCT = 30
 
 /** Columnas en desktop, compartidas por la cabecera y las filas para que queden alineadas. */
 export const RECIPE_COLUMNS =
-  "md:grid-cols-[minmax(0,1fr)_8rem_6.5rem_5rem_6rem_6.5rem_6.5rem_2.5rem] xl:grid-cols-[minmax(0,1fr)_9rem_8rem_6rem_7rem_8.5rem_8.5rem_3rem]"
+  "md:grid-cols-[minmax(0,1fr)_8rem_6.5rem_5rem_6rem_6.5rem_6.5rem_5rem] xl:grid-cols-[minmax(0,1fr)_9rem_8rem_6rem_7rem_8.5rem_8.5rem_5.5rem]"
 
 export function RecipeTableHeader() {
   const cell = "text-xs font-semibold"
@@ -71,9 +71,11 @@ interface RecipeRowProps {
   onDelete?: (recipe: Recipe) => void
   /** ¿La receta es del negocio activo? Solo entonces se ofrece eliminar (la API lo valida también). */
   canModify: (recipe: Recipe) => boolean
+  /** Abre el editor por secciones de la receta */
+  onEdit?: (id: string) => void
 }
 
-const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete, canModify }: RecipeRowProps) {
+const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete, canModify, onEdit }: RecipeRowProps) {
   const servings = parseInt(recipe.servings, 10) || 0
   const itemCount = recipe.itemCount ?? recipe.items?.length ?? 0
   const { cost, price, loading } = useRecipeMoney(recipe.id, itemCount > 0)
@@ -154,7 +156,19 @@ const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete, canModify 
         <span className="text-right text-sm tabular-nums">
           <Money value={price} loading={loading} strong />
         </span>
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-1">
+          {canModify(recipe) && onEdit && (
+            <button
+              type="button"
+              onClick={() => onEdit(recipe.id)}
+              aria-label={`Editar receta ${recipe.name}`}
+              title="Editar receta"
+              className="pointer-events-auto relative z-10 p-2 text-[var(--text-secondary)] opacity-60 transition hover:bg-[var(--bg-secondary)] hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
+              style={{ borderRadius: "var(--radius-sm)" }}
+            >
+              <Pencil size={15} />
+            </button>
+          )}
           {canDelete ? (
             <button
               type="button"
@@ -190,7 +204,7 @@ const RecipeRow = memo(function RecipeRow({ recipe, onOpen, onDelete, canModify 
   )
 })
 
-export default function RecipeTable({ recipes, onOpen, onDelete, canModify }: { recipes: Recipe[] } & Omit<RecipeRowProps, "recipe">) {
+export default function RecipeTable({ recipes, onOpen, onDelete, canModify, onEdit }: { recipes: Recipe[] } & Omit<RecipeRowProps, "recipe">) {
   return (
     <div
       className="overflow-hidden"
@@ -199,7 +213,7 @@ export default function RecipeTable({ recipes, onOpen, onDelete, canModify }: { 
       <RecipeTableHeader />
       <ul aria-label="Recetas">
         {recipes.map((recipe) => (
-          <RecipeRow key={recipe.id} recipe={recipe} onOpen={onOpen} onDelete={onDelete} canModify={canModify} />
+          <RecipeRow key={recipe.id} recipe={recipe} onOpen={onOpen} onDelete={onDelete} canModify={canModify} onEdit={onEdit} />
         ))}
       </ul>
     </div>
