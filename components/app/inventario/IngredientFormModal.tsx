@@ -220,6 +220,7 @@ export default function IngredientFormModal({
                 style={{
                   borderColor: form.unit === c.value ? "var(--accent)" : "var(--border-light)",
                   background: form.unit === c.value ? "var(--accent-light)" : "var(--bg-surface)",
+                  color: "var(--text-primary)",
                 }}
               >
                 <span className="flex items-center gap-2 font-medium">
