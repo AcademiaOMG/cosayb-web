@@ -57,9 +57,11 @@ export interface MyCourse {
   level: CourseLevel
   durationMinutes: number
   coverKey: string
-  enrolledAt: string
+  enrolledAt: string | null
   lessonCount: number
   completedCount: number
+  /** `academia`: curso incluido en el plan Academia, sin matrícula manual */
+  source?: "enrollment" | "academia"
 }
 
 export type AssetKind = "video" | "document" | "subtitle" | "thumbnail"
@@ -445,8 +447,12 @@ export interface LmsAccess {
   isAdmin: boolean
   /** puede gestionar cursos propios (rol de instructor o de administrador) */
   isInstructor: boolean
-  /** además estudia: tiene alguna matrícula activa */
+  /** además estudia: tiene alguna matrícula activa o un plan Academia con cursos incluidos */
   hasCourses?: boolean
+  /** su negocio tiene plan Academia: los cursos incluidos aparecen sin matrícula */
+  academia?: boolean
+  /** un administrador desactivó su acceso a la academia */
+  disabled?: boolean
 }
 
 export interface InstructorCard {
@@ -497,6 +503,10 @@ export interface ManageUser {
   platformAdmin: boolean
   courses: number
   enrollments: number
+  /** acceso a la academia desactivado por un administrador */
+  disabled: boolean
+  disabledAt: string | null
+  disabledReason: string | null
 }
 
 export interface ManageEnrollment {

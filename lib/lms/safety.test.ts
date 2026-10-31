@@ -6,7 +6,7 @@ import path from "node:path"
 // escapado y el cliente nunca lleva claves ni referencias a almacenamiento privado.
 
 const ROOT = path.resolve(__dirname, "..", "..")
-const TARGETS = ["components/lms", "app/(learn)", "app/(instructor)", "app/(admin)", "lib/lms"]
+const TARGETS = ["components/lms", "components/plataforma/academia", "app/(learn)", "app/(instructor)", "app/(admin)", "lib/lms"]
 
 function files(dir: string): string[] {
   const abs = path.join(ROOT, dir)

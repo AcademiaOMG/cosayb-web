@@ -12,6 +12,7 @@ import { useLmsAccess, useSummary } from "@/lib/lms/hooks"
 import { ADMIN_NAV, INSTRUCTOR_NAV, areaRedirect, isNavActive, type Area, type NavEntry } from "@/lib/lms/roles"
 import { AreaProvider } from "./shell/area"
 import UserMenu from "./shell/UserMenu"
+import DisabledNotice from "./shell/DisabledNotice"
 import SignInRequired from "./SignInRequired"
 import { Skeleton } from "./ui"
 
@@ -221,7 +222,7 @@ export default function LearnShell({ area, children }: { area: Area; children: R
           </header>
 
           <main id="lms-main" className="mx-auto max-w-[1400px] px-4 pb-28 pt-6 sm:px-6 lg:pb-10" tabIndex={-1}>
-            <div key={pathname} className="l-page">{gate ? <SignInRequired message="Inicia sesión para continuar." /> : ready && !blocked ? children : <Skeleton className="h-96 !rounded-[22px]" />}</div>
+            <div key={pathname} className="l-page">{gate ? <SignInRequired message="Inicia sesión para continuar." /> : ready && !blocked ? (access?.disabled ? <DisabledNotice hasBusiness={hasBusiness} /> : children) : <Skeleton className="h-96 !rounded-[22px]" />}</div>
           </main>
         </div>
 

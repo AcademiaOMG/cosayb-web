@@ -30,7 +30,7 @@ export const useCatalog = () => useSWR(lmsKeys.catalog, () => lms.catalog(), opt
 export const useCourse = (slug: string | undefined) => useSWR(slug ? lmsKeys.course(slug) : null, () => lms.course(slug!), opts)
 export const useSummary = (enabled = true) => useSWR(enabled ? lmsKeys.summary : null, () => lms.summary(), opts)
 export const useAnalytics = (id: string | undefined) => useSWR(id ? lmsKeys.analytics(id) : null, () => lms.admin.analytics(id!), opts)
-export const useMyCourses = () => useSWR(lmsKeys.mine, () => lms.myCourses(), opts)
+export const useMyCourses = (enabled = true) => useSWR(enabled ? lmsKeys.mine : null, () => lms.myCourses(), opts)
 export const useLesson = (id: string | null) => useSWR(id ? lmsKeys.lesson(id) : null, () => lms.lesson(id!), opts)
 export const useCourseQuizzes = (courseId: string | undefined) => useSWR(courseId ? lmsKeys.quizzes(courseId) : null, () => lms.courseQuizzes(courseId!), opts)
 export const useMyCertificates = () => useSWR(lmsKeys.certificates, () => lms.myCertificates(), opts)

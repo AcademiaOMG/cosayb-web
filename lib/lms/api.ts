@@ -224,9 +224,11 @@ export const lms = {
     courses: (o: { q?: string; status?: string; ownerId?: string; limit?: number; offset?: number } = {}) => data<Paged<ManageCourse>>(fetchAPI(`${B}/manage/courses${qs({ limit: 25, ...o })}`)),
     reassign: (courseId: string, instructorId: string | null) =>
       data<{ id: string; from: string | null; to: string | null }>(fetchAPI(`${B}/manage/courses/${enc(courseId)}/owner`, { method: "PUT", ...json({ instructorId }) })),
-    users: (o: { q?: string; role?: string; limit?: number; offset?: number } = {}) => data<Paged<ManageUser>>(fetchAPI(`${B}/manage/users${qs({ limit: 25, ...o })}`)),
+    users: (o: { q?: string; role?: string; status?: string; limit?: number; offset?: number } = {}) => data<Paged<ManageUser>>(fetchAPI(`${B}/manage/users${qs({ limit: 25, ...o })}`)),
     setRole: (userId: string, role: "lms_instructor" | "lms_admin", granted: boolean) =>
       data<{ userId: string; role: string; granted: boolean; ownedCourses: number }>(fetchAPI(`${B}/manage/users/${enc(userId)}/role`, { method: "PUT", ...json({ role, granted }) })),
+    setUserStatus: (userId: string, disabled: boolean, reason?: string) =>
+      data<{ userId: string; disabled: boolean; sessionsRevoked: boolean; keepsBusinessAccess: boolean }>(fetchAPI(`${B}/manage/users/${enc(userId)}/status`, { method: "PUT", ...json({ disabled, ...(reason ? { reason } : {}) }) })),
     enrollments: (o: { q?: string; status?: string; courseId?: string; limit?: number; offset?: number } = {}) => data<Paged<ManageEnrollment>>(fetchAPI(`${B}/manage/enrollments${qs({ limit: 25, ...o })}`)),
     setEnrollment: (id: string, status: "active" | "revoked") =>
       data<{ id: string; status: string }>(fetchAPI(`${B}/manage/enrollments/${enc(id)}`, { method: "PATCH", ...json({ status }) })),

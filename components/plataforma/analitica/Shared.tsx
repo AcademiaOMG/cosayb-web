@@ -12,11 +12,11 @@ const isForbidden = (err: unknown) => err instanceof SaasError && err.code === "
 
 /** Carga, error y contenido de un bloque con datos del API. */
 export function AsyncBlock<T>({
-  data, error, onRetry, label, children,
-}: { data: T | undefined; error: unknown; onRetry: () => void; label: string; children: (data: T) => ReactNode }) {
+  data, error, onRetry, label, forbiddenTitle = "Tu rol no incluye la analítica de uso", children,
+}: { data: T | undefined; error: unknown; onRetry: () => void; label: string; forbiddenTitle?: string; children: (data: T) => ReactNode }) {
   if (error) {
     return isForbidden(error) ? (
-      <ErrorState title="Tu rol no incluye la analítica de uso" description="Pide acceso a un administrador de la plataforma si lo necesitas." />
+      <ErrorState title={forbiddenTitle} description="Pide acceso a un administrador de la plataforma si lo necesitas." />
     ) : (
       <ErrorState title={`No pudimos cargar ${label}`} onRetry={onRetry} />
     )

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Building2, Users, Drama, ChefHat, Carrot, ScrollText,
-  Repeat, Wallet, LifeBuoy, CreditCard, History, BarChart3, ShieldAlert,
+  Repeat, Wallet, LifeBuoy, CreditCard, History, BarChart3, ShieldAlert, GraduationCap,
   type LucideIcon,
 } from "lucide-react"
 
@@ -105,6 +105,15 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Academia",
+    items: [
+      {
+        href: "/plataforma/academia", label: "Academia", icon: GraduationCap,
+        roles: ["platform_owner", "platform_admin", "platform_auditor", "platform_readonly"],
+      },
+    ],
+  },
+  {
     label: "Seguridad",
     items: [
       {
@@ -173,7 +182,7 @@ export interface Crumb {
   href?: string
 }
 
-const SUB_LABELS: Record<string, string> = { nuevo: "Nuevo", nueva: "Nueva", editar: "Editar" }
+const SUB_LABELS: Record<string, string> = { nuevo: "Nuevo", nueva: "Nueva", editar: "Editar", usuarios: "Usuarios" }
 
 /** Migas de pan: Plataforma › [Área] › Sección › (Detalle). Los identificadores se muestran como «Detalle». */
 export function breadcrumbsFor(pathname: string): Crumb[] {
