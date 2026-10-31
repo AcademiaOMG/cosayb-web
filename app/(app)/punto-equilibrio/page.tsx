@@ -486,7 +486,13 @@ export default function PuntoEquilibrioPage() {
         tinted
         footer={
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => viewing && printRecord(viewing)}>
+            <Button variant="ghost" className="w-full sm:w-auto" onClick={() => {
+              if (!hasFeature("exports")) {
+                toast.warning("Imprimir no está incluido en tu membresía", { description: "Pasa a Pro o Academia para exportar tus datos." })
+                return
+              }
+              if (viewing) printRecord(viewing)
+            }}>
               <Printer size={14} />
               Imprimir
             </Button>

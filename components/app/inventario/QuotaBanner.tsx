@@ -10,14 +10,15 @@ export interface QuotaBannerProps {
 
 /**
  * Aviso de cupo del plan Free. Con cupo de sobra el contador no aporta
- * nada, así que solo aparece cuando el límite empieza a importar
- * (quedan 10 o menos).
+ * nada, así que solo aparece cuando el límite empieza a importar.
  */
 export default function QuotaBanner({ used, limit }: QuotaBannerProps) {
   const { open: openUpgrade } = useUpgradeModal()
   const remaining = Math.max(limit - used, 0)
-  const isCritical = used >= limit - 2
-  const isWarning = used >= limit - 10
+  // Avisa en el último 20 % del cupo (máx. 10 antes del tope); con topes chicos, al quedar 1
+  const warnAt = Math.min(10, Math.max(1, Math.ceil(limit * 0.2)))
+  const isCritical = used >= limit - Math.min(2, warnAt)
+  const isWarning = used >= limit - warnAt
 
   if (!isWarning) return null
 

@@ -151,8 +151,8 @@ export default function YieldFactorCalculator({
 
   const fields = useMemo<CalcPanelField<YieldField>[]>(
     () => [
-      { key: "totalCost", label: YIELD_FIELD_META.totalCost.lcd, ariaLabel: YIELD_FIELD_META.totalCost.label, format: formatMoneyEntry, placeholder: "$ 0" },
-      { key: "totalWeight", label: YIELD_FIELD_META.totalWeight.lcd, ariaLabel: YIELD_FIELD_META.totalWeight.label, format: formatGramsEntry, placeholder: "0 g" },
+      { key: "totalCost", label: YIELD_FIELD_META.totalCost.lcd, ariaLabel: YIELD_FIELD_META.totalCost.label, format: formatMoneyEntry, placeholder: "$ 0", help: "yield.totalCost" },
+      { key: "totalWeight", label: YIELD_FIELD_META.totalWeight.lcd, ariaLabel: YIELD_FIELD_META.totalWeight.label, format: formatGramsEntry, placeholder: "0 g", help: "yield.totalWeight" },
       ...WASTE_FIELDS.map<CalcPanelField<YieldField>>((key, i) => ({
         key,
         label: `${wasteNames[i].toUpperCase()} (G)`,
@@ -160,6 +160,7 @@ export default function YieldFactorCalculator({
         format: formatGramsEntry,
         placeholder: "0 g",
         variant: "inline",
+        help: "yield.waste",
       })),
     ],
     [wasteNames],

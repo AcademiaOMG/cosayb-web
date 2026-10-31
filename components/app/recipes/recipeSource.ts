@@ -7,7 +7,7 @@ export interface RecipePayload {
   name: string
   recipeNumber: string
   servings: number
-  servingWeightG?: number
+  servingWeightG?: number | null
   safetyMargin: number
   isBase: boolean
   description?: string | null
@@ -26,6 +26,8 @@ export interface RecipeFormDataSource {
   loadRecipe: (id: string) => Promise<Recipe>
   create: (payload: RecipePayload) => Promise<unknown>
   update: (id: string, payload: RecipePayload) => Promise<unknown>
+  /** Actualiza solo los campos enviados (edición por secciones). Opcional: el editor requiere que exista. */
+  updatePartial?: (id: string, patch: Partial<RecipePayload>) => Promise<unknown>
   /**
    * Costo por gramo de una receta base (null si no se puede conocer). Es
    * opcional: sin él, las recetas base de la cinta no suman al costo y la
@@ -54,5 +56,6 @@ export const TENANT_SOURCE: RecipeFormDataSource = {
   loadRecipe: (id) => getRecipeById(id).then((r) => r.data),
   create: (payload) => createRecipe(payload),
   update: (id, payload) => updateRecipe(id, payload),
+  updatePartial: (id, patch) => updateRecipe(id, patch),
   loadCostPerGram: (id) => getRecipeCost(id).then((r) => r.data.costPerGram),
 }

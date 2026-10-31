@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import { fetchOrgState, decideOnboardingPage, resolveOnboardingFinishPath, buildLoginUrl, ONBOARDING_PATH } from "@/lib/authRedirect"
 import { setActiveOrgId } from "@/lib/activeOrg"
+import { PLAN_CATALOG } from "@/lib/commerce/catalog"
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 
@@ -108,7 +109,7 @@ export default function OnboardingPage() {
       }
 
       // 2. Si no tiene, crear el negocio (onboarding explícito).
-      //    Toda org nueva arranca con 14 días de trial Pro; al expirar cae a Free.
+      //    Toda org nueva arranca en Free con 10 días; al vencer queda en solo lectura (datos conservados).
       if (!orgId) {
         const createRes = await fetch(`${API}/api/v1/organizations`, {
           method: "POST",
@@ -281,30 +282,27 @@ export default function OnboardingPage() {
                 onSelect={() => setSelectedPlan("free")}
                 title="Free"
                 price="Gratis"
-                features={["Hasta 30 ingredientes", "5 recetas", "1 menú", "Soporte básico"]}
+                features={PLAN_CATALOG.free.benefits}
               />
               <PlanCard
                 selected={selectedPlan === "pro"}
                 onSelect={() => setSelectedPlan("pro")}
                 title="Pro"
-                price="$30.000 / mes"
-                features={[
-                  "Ingredientes ilimitados", "Recetas ilimitadas", "Menús ilimitados",
-                  "Valoración A&B", "Punto de equilibrio", "Exportar PDFs", "Soporte prioritario",
-                ]}
+                price="$42.000 / mes (IVA incluido)"
+                features={PLAN_CATALOG.pro.benefits}
                 highlighted
               />
             </div>
             {selectedPlan === "pro" && (
               <div className="p-3 rounded-lg text-sm" style={{ background: "var(--accent-light)", color: "var(--accent)" }}>
-                <strong>14 días gratis</strong> de Pro al registrarte. Sin compromiso.
+                Empiezas en Free con <strong>10 días gratis</strong>. Puedes pasar a Pro cuando quieras.
               </div>
             )}
             {error && <p className="text-sm text-center" style={{ color: "#E24B4A" }}>{error}</p>}
             <div className="flex gap-3">
               <Button variant="ghost" onClick={() => setStep(2)}>Atrás</Button>
               <Button variant="primary" size="lg" loading={isLoading} onClick={handleFinish} className="flex-1">
-                {selectedPlan === "pro" ? "Comenzar prueba gratis" : "Empezar gratis"}
+                {selectedPlan === "pro" ? "Comenzar gratis y elegir Pro" : "Empezar gratis"}
               </Button>
             </div>
           </div>

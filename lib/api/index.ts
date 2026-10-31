@@ -34,7 +34,7 @@ export class ApiError extends Error {
 
 /** El plan actual no permite la acción (límite alcanzado o función no incluida): la salida es mejorar el plan. */
 export function isPlanLimitError(err: unknown): err is ApiError {
-  return err instanceof ApiError && (err.code === "MEMBERSHIP_LIMIT_REACHED" || err.code === "FEATURE_NOT_AVAILABLE")
+  return err instanceof ApiError && (err.code === "MEMBERSHIP_LIMIT_REACHED" || err.code === "FEATURE_NOT_AVAILABLE" || err.code === "FREE_PERIOD_ENDED")
 }
 
 async function fetchAPI<T>(
@@ -67,7 +67,7 @@ async function fetchAPI<T>(
       // 409 = conflicto («está en uso, quítala de...»): el detalle dice qué hacer, el título no
       if (response.status === 409 && body.message) message = body.message
       // Límite o función fuera del plan: el detalle ("permite un máximo de 20") y la salida valen más que el título
-      if ((code === "MEMBERSHIP_LIMIT_REACHED" || code === "FEATURE_NOT_AVAILABLE") && body.message) {
+      if ((code === "MEMBERSHIP_LIMIT_REACHED" || code === "FEATURE_NOT_AVAILABLE" || code === "FREE_PERIOD_ENDED") && body.message) {
         message = `${body.message} Mejora tu plan para continuar.`
       }
       if (body.details?.fieldErrors) {
@@ -221,6 +221,8 @@ export interface RecipeItemPayload {
   ingredientId?: string
   subRecipeId?: string
   quantityG: number
+  /** Unidad en que se escribió la cantidad; el API la convierte a la base del ingrediente (g↔kg, ml↔l) */
+  unit?: 'g' | 'kg' | 'ml' | 'l' | 'und' | 'porcion'
   sortOrder?: number
 }
 
@@ -228,9 +230,11 @@ export interface CreateRecipePayload {
   name: string
   recipeNumber: string
   servings: number
-  servingWeightG?: number
+  /** null = borrar el peso fijo (se calcula solo) */
+  servingWeightG?: number | null
   safetyMargin?: number
   isBase?: boolean
+  description?: string | null
   items: RecipeItemPayload[]
 }
 

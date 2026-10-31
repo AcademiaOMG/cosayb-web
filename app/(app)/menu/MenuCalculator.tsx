@@ -6,6 +6,7 @@ import { toast } from "@/lib/toast"
 import ExtraCreateModal from "./ExtraCreateModal"
 import { unitShort, type ExtraUnit } from "@/lib/menuExtras"
 import type { Ingrediente } from "@/types/domain"
+import type { HelpKey } from "@/lib/help/fieldHelp"
 import { CalcActionKey, CalcDevice, CalcDisplay, CalcKeypad, CalcRegister, useCalcRegisters } from "@/components/calculator"
 import {
   applyEntryKey,
@@ -262,19 +263,21 @@ export default function MenuCalculator({
   const editableExtra = selectedIng && selectedIng.kind === "extra" && selectedIng.userId !== null ? selectedIng : undefined
   const registerMeta: Record<
     MenuCalcField,
-    { label: string; aria: string; display: string; placeholder: string; note?: React.ReactNode }
+    { label: string; aria: string; display: string; placeholder: string; note?: React.ReactNode; help?: HelpKey }
   > = {
     persons: {
       label: "N° DE PERSONAS",
       aria: "Número de personas",
       display: regs.values.persons,
       placeholder: "10",
+      help: "menu.people",
     },
     margin: {
       label: "MARGEN DE SEGURIDAD",
       aria: "Margen de seguridad (%)",
       display: formatPercentEntry(regs.values.margin),
       placeholder: "5 %",
+      help: "recipe.margin",
     },
     pctMP: {
       label: "% MATERIA PRIMA",
@@ -282,12 +285,14 @@ export default function MenuCalculator({
       display: formatPercentEntry(regs.values.pctMP),
       placeholder: "31 %",
       note: pctNote,
+      help: "recipe.pctMP",
     },
     grams: {
       label: isRecipes ? "GRAMOS POR PORCIÓN" : `CANTIDAD POR PORCIÓN (${extraUnit.toUpperCase()})`,
       aria: isRecipes ? "Gramos por porción" : `Cantidad por porción en ${extraUnit}`,
       display: regs.values.grams,
       placeholder: isRecipes ? "200" : "1",
+      help: isRecipes ? "menu.gramsPerPortion" : "menu.unitsPerPortion",
     },
   }
 
@@ -302,6 +307,7 @@ export default function MenuCalculator({
         id={`menu-${f}`}
         label={meta.label}
         ariaLabel={meta.aria}
+        help={meta.help}
         display={meta.display}
         placeholder={meta.placeholder}
         active={regs.active === f}

@@ -138,7 +138,7 @@ function RegisterForm() {
   return (
     <AuthShell
       title="Crea tu cuenta"
-      subtitle={pending ? pendingContextLine(pending) : "14 días de prueba gratis, sin tarjeta"}
+      subtitle={pending ? pendingContextLine(pending) : "10 días gratis, sin tarjeta"}
       showTerms={false}
       footer={
         <>

@@ -5,6 +5,12 @@ import Link from "next/link"
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, Plus, Trash2 } from "lucide-react"
 import Button from "@/components/ui/Button"
 import SearchableSelect from "@/components/ui/SearchableSelect"
+import { quantityText, unitLabel, type BaseUnit } from "@/lib/recipes/units"
+import InfoTip from "@/components/ui/InfoTip"
+import IngredientFormModal from "@/components/app/inventario/IngredientFormModal"
+import BaseRecipeQuickCreateModal from "./BaseRecipeQuickCreateModal"
+import { CREATE_BASE_LABEL, CREATE_INGREDIENT_LABEL } from "./LineAdder"
+import { usePermissions } from "@/hooks/usePermissions"
 import {
   CalcActionKey,
   CalcBreakdown,
@@ -62,16 +68,18 @@ const FIELD_IDS: Record<RecipeTapeField, string> = {
 }
 
 /** "1.230 g", conservando la coma mientras se escribe el decimal */
-function formatGramsEntry(raw: string) {
+function formatGramsEntry(raw: string, unit: BaseUnit = "g") {
   if (raw === "" || parseEntry(raw) == null) return ""
   const [int = "0", dec] = raw.split(".")
   const intText = Number(int).toLocaleString("es-CO", { maximumFractionDigits: 0 })
-  return `${intText}${raw.includes(".") ? `,${dec ?? ""}` : ""} g`
+  return `${intText}${raw.includes(".") ? `,${dec ?? ""}` : ""} ${unitLabel(unit)}`
 }
 
 const formatServingsEntry = (raw: string) => (raw === "" ? "" : Number(raw).toLocaleString("es-CO", { maximumFractionDigits: 0 }))
 
 const grams = (n: number) => `${formatNumber(n, 1)} g`
+/** Cantidad con su unidad: "30 und", "500 g" */
+const qtyOf = (l: { grams: number; unit?: BaseUnit }) => ((l.unit ?? "g") === "g" ? grams(l.grams) : quantityText(l.grams, l.unit as BaseUnit))
 
 function isTypingTarget(el: EventTarget | null) {
   if (!(el instanceof HTMLElement)) return false
@@ -128,6 +136,7 @@ export default function RecipeCalculator({
   dataSource,
   onSaved,
   onDirtyChange,
+  onRefreshCatalog,
 }: {
   catalog: RecipeCatalog
   editRecipe?: Recipe | null
@@ -136,8 +145,17 @@ export default function RecipeCalculator({
   onSaved: (info: RecipeSavedInfo) => void
   /** Avisa si hay datos escritos sin guardar (para confirmar antes de salir) */
   onDirtyChange?: (dirty: boolean) => void
+  /** Vuelve a cargar el catálogo (tras crear un ingrediente o preparación desde el selector) */
+  onRefreshCatalog?: () => Promise<unknown>
 }) {
   const isEditing = !!editRecipe
+  // Crear desde el selector: solo con permiso y solo en el espacio del negocio (no en el banco de plataforma)
+  const { can } = usePermissions()
+  const canQuickIngredient = !!onRefreshCatalog && can("ingredients", "create")
+  const canQuickBase = !!onRefreshCatalog && can("recipes", "create")
+  const [quickIng, setQuickIng] = useState<{ name: string; inBase: boolean } | null>(null)
+  const [quickBase, setQuickBase] = useState<{ name: string } | null>(null)
+  const [basePreselect, setBasePreselect] = useState<{ kind: "ingredient"; id: string; nonce: number } | null>(null)
 
   // ── Estado inicial (se arma una sola vez: el componente se monta ya con los datos) ──
   const [boot] = useState(() => {
@@ -154,10 +172,13 @@ export default function RecipeCalculator({
         refId,
         name: (kind === "ingredient" ? item.ingredientName : item.subRecipeName) ?? fallbackName ?? "Elemento eliminado",
         grams: parseFloat(item.quantityG) || 0,
+        unit: kind === "ingredient"
+          ? (item.unit ?? item.ingredientUnit ?? catalog.ingredients.find((i) => i.id === refId)?.unit ?? "g")
+          : "g",
       }
     })
     const servingsNum = editRecipe ? Math.round(parseFloat(editRecipe.servings)) : NaN
-    const totalG = lines.reduce((s, l) => s + l.grams, 0)
+    const totalG = lines.reduce((s, l) => ((l.unit ?? "g") === "g" ? s + l.grams : s), 0)
     const savedWeight = editRecipe?.servingWeightG ? parseFloat(editRecipe.servingWeightG) : NaN
     const autoWeight = defaultServingWeight(totalG, servingsNum)
     // Un peso que ya coincide con el calculado se vuelve a calcular solo.
@@ -302,7 +323,7 @@ export default function RecipeCalculator({
       pickKind === "ingredient"
         ? catalog.ingredients.map((i) => ({
             value: i.id,
-            label: `${i.name} (${formatCOPDecimals(parseFloat(i.costPerGram) || 0)} /g)`,
+            label: `${i.name} (${formatCOPDecimals(parseFloat(i.costPerGram) || 0)} /${unitLabel(i.unit ?? "g")})`,
           }))
         : baseOptions.map((r) => ({ value: r.id, label: `${r.name} (N.° ${r.recipeNumber})` })),
     [pickKind, catalog.ingredients, baseOptions],
@@ -311,6 +332,9 @@ export default function RecipeCalculator({
     pickKind === "ingredient"
       ? catalog.ingredients.find((i) => i.id === pickId)?.name
       : baseOptions.find((r) => r.id === pickId)?.name
+  /** Unidad del elemento elegido: la del ingrediente; las preparaciones base siempre van en gramos */
+  const pickedUnit: BaseUnit =
+    pickKind === "ingredient" ? (catalog.ingredients.find((i) => i.id === pickId)?.unit ?? "g") : "g"
   const pickedCost = pickId ? lookup(pickKind, pickId) : null
   const pickedCostText =
     !pickId || pickedCost === undefined
@@ -319,7 +343,7 @@ export default function RecipeCalculator({
         : ""
       : pickedCost == null
         ? "sin costo conocido"
-        : `${formatCOPDecimals(pickedCost)}/g`
+        : `${formatCOPDecimals(pickedCost)}/${unitLabel(pickedUnit)}`
 
   function changeKind(next: TapeKind) {
     if (next === pickKind) return
@@ -342,7 +366,7 @@ export default function RecipeCalculator({
       return
     }
     if (g == null || g <= 0) {
-      setStepError("Escribe los gramos con el teclado de abajo")
+      setStepError(pickedUnit === "g" ? "Escribe los gramos con el teclado de abajo" : `Escribe la cantidad en ${unitLabel(pickedUnit)} con el teclado de abajo`)
       calc.activate("grams")
       return
     }
@@ -350,10 +374,10 @@ export default function RecipeCalculator({
     const repeated = lines.some((l) => l.kind === pickKind && l.refId === pickId)
     setLastAdded(
       repeated
-        ? `Ya tenías ${pickedName}: se agregó otra línea de ${grams(g)}`
-        : `Agregaste ${pickedName}: ${grams(g)}`,
+        ? `Ya tenías ${pickedName}: se agregó otra línea de ${qtyOf({ grams: g, unit: pickedUnit })}`
+        : `Agregaste ${pickedName}: ${qtyOf({ grams: g, unit: pickedUnit })}`,
     )
-    setLines((prev) => [...prev, { key: crypto.randomUUID(), kind: pickKind, refId: pickId, name: pickedName, grams: g }])
+    setLines((prev) => [...prev, { key: crypto.randomUUID(), kind: pickKind, refId: pickId, name: pickedName, grams: g, unit: pickedUnit }])
     calc.fill({ grams: "" })
     calc.activate("grams")
     setPickId("")
@@ -563,6 +587,8 @@ export default function RecipeCalculator({
           ingredientId: l.kind === "ingredient" ? l.refId : undefined,
           subRecipeId: l.kind === "recipe" ? l.refId : undefined,
           quantityG: l.grams,
+          // Unidad base del ingrediente: el API valida y no convierte entre familias
+          unit: l.kind === "ingredient" ? (l.unit ?? "g") : "g",
           sortOrder: idx,
         }),
       ),
@@ -844,6 +870,44 @@ export default function RecipeCalculator({
                 emptyMessage={pickKind === "ingredient" ? "No hay ingredientes" : "Aún no hay preparaciones base"}
                 ariaLabel={pickKind === "ingredient" ? "Ingrediente" : "Preparación base"}
                 variant="calculator"
+                onCreate={
+                  pickKind === "ingredient"
+                    ? canQuickIngredient ? (q) => setQuickIng({ name: q, inBase: false }) : undefined
+                    : canQuickBase ? (q) => setQuickBase({ name: q }) : undefined
+                }
+                createLabel={pickKind === "ingredient" ? CREATE_INGREDIENT_LABEL : CREATE_BASE_LABEL}
+              />
+              <IngredientFormModal
+                open={!!quickIng}
+                initialName={quickIng?.name ?? ""}
+                existing={catalog.ingredients}
+                onClose={() => setQuickIng(null)}
+                onSaved={async (saved) => {
+                  const inBase = quickIng?.inBase ?? false
+                  await onRefreshCatalog?.()
+                  if (!saved) return
+                  if (inBase) setBasePreselect({ kind: "ingredient", id: saved.id, nonce: Date.now() })
+                  else {
+                    setPickKind("ingredient")
+                    choose(saved.id)
+                  }
+                }}
+              />
+              <BaseRecipeQuickCreateModal
+                open={!!quickBase}
+                initialName={quickBase?.name ?? ""}
+                ingredients={catalog.ingredients}
+                existing={catalog.baseRecipes}
+                canCreateIngredient={canQuickIngredient}
+                onCreateIngredient={(q) => setQuickIng({ name: q, inBase: true })}
+                preselect={basePreselect}
+                onClose={() => setQuickBase(null)}
+                onCreated={async (r) => {
+                  await onRefreshCatalog?.()
+                  setQuickBase(null)
+                  setPickKind("recipe")
+                  choose(r.id)
+                }}
               />
             </div>
 
@@ -851,10 +915,11 @@ export default function RecipeCalculator({
               <CalcRegister
                 ref={setRef("grams")}
                 {...fieldProps("grams")}
-                label="GRAMOS"
-                ariaLabel="Gramos del ingrediente a agregar"
-                display={formatGramsEntry(calc.values.grams)}
-                placeholder="0 g"
+                label={pickedUnit === "g" ? "GRAMOS" : `CANTIDAD (${unitLabel(pickedUnit).toUpperCase()})`}
+                help="recipe.quantity"
+                ariaLabel={pickedUnit === "g" ? "Gramos del ingrediente a agregar" : `Cantidad en ${unitLabel(pickedUnit)} del ingrediente a agregar`}
+                display={formatGramsEntry(calc.values.grams, pickedUnit)}
+                placeholder={`0 ${unitLabel(pickedUnit)}`}
                 note={
                   pickedName ? (
                     <span title={pickedName}>
@@ -918,8 +983,8 @@ export default function RecipeCalculator({
                         {p.line.kind === "recipe" && <span className="rt-chip">BASE</span>}
                       </span>
                       <span className="rt-meta">
-                        {grams(p.line.grams)}
-                        {p.costPerGram != null && ` × ${formatCOPDecimals(p.costPerGram)}/g`}
+                        {qtyOf(p.line)}
+                        {p.costPerGram != null && ` × ${formatCOPDecimals(p.costPerGram)}/${unitLabel(p.line.unit ?? "g")}`}
                         {!p.line.refId && " · ya no existe"}
                       </span>
                     </div>
@@ -982,6 +1047,7 @@ export default function RecipeCalculator({
                 ref={setRef("servings")}
                 {...fieldProps("servings")}
                 label="PORCIONES"
+                help="recipe.servings"
                 ariaLabel="Número de porciones que rinde la receta"
                 display={formatServingsEntry(calc.values.servings)}
                 placeholder="0"
@@ -996,7 +1062,9 @@ export default function RecipeCalculator({
 
 
           <div className="rw-group">
-            <p className="rw-group-title">Margen de seguridad</p>
+            <p className="rw-group-title">
+              Margen de seguridad <InfoTip help="recipe.margin" label="el margen de seguridad" />
+            </p>
             <p className="rw-help">
               Un colchón extra sobre el costo. Recomendado: 3 %.
             </p>
@@ -1057,6 +1125,7 @@ export default function RecipeCalculator({
                 ref={setRef("pctMP")}
                 {...fieldProps("pctMP")}
                 label="% MATERIA PRIMA"
+                help="recipe.pctMP"
                 ariaLabel="Porcentaje del precio de venta que se va en materia prima"
                 display={formatPercentEntry(calc.values.pctMP)}
                 placeholder="0 %"
@@ -1133,7 +1202,7 @@ export default function RecipeCalculator({
             <div className="flex flex-col gap-3 pt-3">
               <div>
                 <label htmlFor="recipe-serving-weight" className="block text-xs font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
-                  Peso por porción (g)
+                  Peso por porción (g) <InfoTip help="recipe.servingWeight" label="el peso por porción" />
                 </label>
                 <input
                   id="recipe-serving-weight"

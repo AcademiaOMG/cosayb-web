@@ -9,7 +9,7 @@ import { recipeTypeLabel } from "@/lib/recipeLabels"
 import { getRecipeById, getRecipeCost, importarBancoRecipe } from "@/lib/api"
 import { Fold, FactRow, ModalHero, Panel, Stat, StatGrid, toneOfRating } from "@/components/ui/ModalKit"
 import RecipeIngredients from "./RecipeIngredients"
-import { AlertTriangle, Download } from "lucide-react"
+import { AlertTriangle, Download, Pencil } from "lucide-react"
 
 interface RecipeDetailModalProps {
   open: boolean
@@ -131,8 +131,9 @@ export default function RecipeDetailModal({
               </Button>
             )}
             {canEdit && recipe && (
-              <Button variant="ghost" onClick={() => { onEdit!(recipe.id); }}>
-                Editar
+              <Button variant="primary" onClick={() => { onEdit!(recipe.id); }}>
+                <Pencil size={14} aria-hidden="true" />
+                Editar receta
               </Button>
             )}
           </div>
@@ -195,6 +196,7 @@ export default function RecipeDetailModal({
                 key: item.id ?? String(idx),
                 name: item.componentType === "recipe" ? (item.subRecipeName ?? "Preparación base") : (item.ingredientName ?? "Ingrediente"),
                 grams: parseFloat(item.quantityG) || 0,
+                unit: item.componentType === "recipe" ? "g" : (item.unit ?? item.ingredientUnit ?? "g"),
                 tag: item.componentType === "recipe" ? "Preparación base" : undefined,
               }))}
             />

@@ -10,6 +10,7 @@ import Modal from "@/components/ui/Modal"
 import Pagination from "@/components/app/inventario/Pagination"
 import RecipeTable, { RecipeTableSkeleton } from "@/components/app/recipes/RecipeTable"
 import RecipeCalculatorView from "@/components/app/recipes/RecipeCalculatorView"
+import RecipeEditorView from "@/components/app/recipes/RecipeEditor"
 import RecipeDetailModal from "@/components/app/recipes/RecipeDetailModal"
 import { RECIPE_ORIGIN, RECIPE_TYPE } from "@/lib/recipeLabels"
 import { ownsRecipe } from "@/lib/recipeOwnership"
@@ -34,7 +35,7 @@ const TAB_OPTIONS: { value: RecipeFilter; label: string }[] = [
 
 const EMPTY_EXTRA: RecipeExtraFilters = {}
 
-type PageView = "list" | "calculator"
+type PageView = "list" | "calculator" | "editor"
 
 export default function RecetasPage() {
   useHelpAvailable()
@@ -193,8 +194,17 @@ export default function RecetasPage() {
     }
   }
 
+  // Editar = editor por secciones (ágil). Crear sigue siendo el asistente por pasos.
   function handleOpenEdit(id: string) {
-    setDetailRecipeId(null); setEditRecipeId(id); setView("calculator")
+    setDetailRecipeId(null); setEditRecipeId(id); setView("editor")
+  }
+
+  /** Una sección del editor se guardó: refresca lista y detalles sin cerrar el editor */
+  function handleSectionSaved() {
+    void mutate()
+    void mutateCounts()
+    void globalMutate((key) => Array.isArray(key) && (key[0] === "recipe-detail" || key[0] === "recipe-cost"))
+    revalidateOnboarding()
   }
 
   // Ayuda: se muestra tanto en la lista como en la vista de calculadora
@@ -346,6 +356,7 @@ export default function RecetasPage() {
             recipes={recipes}
             onOpen={r => setDetailRecipeId(r.id)}
             onDelete={can("recipes", "delete") ? handleDelete : undefined}
+            onEdit={can("recipes", "update") ? handleOpenEdit : undefined}
             canModify={canModify}
           />
           <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
@@ -363,6 +374,15 @@ export default function RecetasPage() {
           editRecipeId={editRecipeId}
           onBack={() => setView("list")}
           onSaved={handleSaved}
+        />
+      )}
+
+      {view === "editor" && editRecipeId && (
+        <RecipeEditorView
+          key={editRecipeId}
+          recipeId={editRecipeId}
+          onClose={() => setView("list")}
+          onChanged={handleSectionSaved}
         />
       )}
 

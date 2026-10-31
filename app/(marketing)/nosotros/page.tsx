@@ -372,7 +372,7 @@ export default function NosotrosPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/login" target="_blank" rel="noopener noreferrer" className="btn-spx btn-spx-accent">
-              Probar 14 días gratis
+              Probar 10 días gratis
               <ArrowRight size={14} className="btn-arrow" />
             </Link>
             <Link href="/contacto" className="btn-spx btn-spx-dark">
