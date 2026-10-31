@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react"
 import Modal from "@/components/ui/Modal"
 import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
-import { createRecipe } from "@/lib/api"
+import { createRecipe as createTenantRecipe } from "@/lib/api"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 import { findDuplicateIngredient } from "@/lib/recipes/ingredientForm"
@@ -13,6 +13,7 @@ import { buildItemsPayload, linesProblem, type EditLine } from "@/lib/recipes/re
 import { quantityText } from "@/lib/recipes/units"
 import LineAdder, { type LinePreselect } from "./LineAdder"
 import type { Ingrediente as Ingredient, Recipe } from "@/types/domain"
+import type { RecipePayload } from "./recipeSource"
 
 interface Props {
   open: boolean
@@ -26,6 +27,8 @@ interface Props {
   onCreated: (recipe: Recipe) => void
   /** Ingrediente recién creado desde este formulario: queda seleccionado */
   preselect?: LinePreselect | null
+  /** Cómo se guarda la preparación. Ausente = recetas del negocio; el banco inyecta el suyo */
+  createRecipe?: (payload: RecipePayload) => Promise<{ data: Recipe }>
 }
 
 /**
@@ -38,7 +41,7 @@ export default function BaseRecipeQuickCreateModal(props: Props) {
   return props.open ? <Form {...props} /> : null
 }
 
-function Form({ initialName = "", ingredients, existing, canCreateIngredient, onCreateIngredient, onClose, onCreated, preselect }: Props) {
+function Form({ initialName = "", ingredients, existing, canCreateIngredient, onCreateIngredient, onClose, onCreated, preselect, createRecipe = createTenantRecipe }: Props) {
   const [name, setName] = useState(initialName)
   const [servings, setServings] = useState("1")
   const [lines, setLines] = useState<EditLine[]>([])

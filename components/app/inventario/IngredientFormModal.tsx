@@ -40,6 +40,16 @@ interface IngredientFormModalProps {
   initialName?: string
   /** Catálogo conocido (propios + banco) para avisar duplicados antes de enviar */
   existing?: { name: string }[]
+  /**
+   * Cómo se guarda un ingrediente NUEVO. Ausente = el API del inventario del negocio. El banco de plataforma
+   * inyecta el suyo (/platform/banco/ingredients).
+   */
+  createIngredient?: (payload: {
+    name: string
+    costPerUnit: number
+    weightGrams: number
+    unit: "g" | "ml" | "und" | "porcion"
+  }) => Promise<{ data?: Ingredient }>
 }
 
 export default function IngredientFormModal({
@@ -49,6 +59,7 @@ export default function IngredientFormModal({
   editing = null,
   initialName = "",
   existing = [],
+  createIngredient,
 }: IngredientFormModalProps) {
   const isEditing = !!editing
 
@@ -149,10 +160,13 @@ export default function IngredientFormModal({
         : `/api/v1/ingredients`
       const method = editing ? "PUT" : "POST"
 
-      const res = await fetchAPI<{ data?: Ingredient }>(url, {
-        method,
-        body: JSON.stringify(payload),
-      })
+      const res =
+        !editing && createIngredient
+          ? await createIngredient({ name: payload.name, costPerUnit: payload.costPerUnit, weightGrams: payload.weightGrams, unit: payload.unit })
+          : await fetchAPI<{ data?: Ingredient }>(url, {
+              method,
+              body: JSON.stringify(payload),
+            })
 
       onSaved(res.data)
       toast.success(editing ? "Ingrediente actualizado" : "Ingrediente creado", { description: payload.name })

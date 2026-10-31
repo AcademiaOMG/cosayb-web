@@ -975,6 +975,8 @@ export interface BancoRecipePayload {
     ingredientId?: string
     subRecipeId?: string
     quantityG: number
+    /** Unidad en que se escribió la cantidad (misma familia que la del ingrediente) */
+    unit?: "g" | "kg" | "ml" | "l" | "und" | "porcion"
     sortOrder?: number
   }[]
 }
@@ -1008,7 +1010,7 @@ export async function bancoListIngredients(search?: string, page = 1, limit = 24
 }
 
 export async function bancoCreateIngredient(payload: {
-  name: string; costPerUnit: number; weightGrams: number
+  name: string; costPerUnit: number; weightGrams: number; unit?: "g" | "ml" | "und" | "porcion"
 }): Promise<{ data: Ingrediente }> {
   return fetchAPI("/api/v1/platform/banco/ingredients", {
     method: "POST",

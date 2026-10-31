@@ -31,7 +31,7 @@ import {
 import { baseUnitOf, fromBaseQuantity, quantityText, toBaseQuantity, unitLabel, unitOptionsFor, type InputUnit } from "@/lib/recipes/units"
 import LineAdder, { type LinePreselect } from "./LineAdder"
 import BaseRecipeQuickCreateModal from "./BaseRecipeQuickCreateModal"
-import { TENANT_SOURCE, type RecipeFormDataSource } from "./recipeSource"
+import { TENANT_SOURCE, resolveQuickCreate, type RecipeFormDataSource } from "./recipeSource"
 import type { Ingrediente as Ingredient, Recipe } from "@/types/domain"
 
 interface Catalog {
@@ -236,9 +236,11 @@ function Editor({
   onDirtyChange: (dirty: boolean) => void
 }) {
   const confirm = useConfirm()
-  const { can } = usePermissions()
-  const canCreateIngredient = can("ingredients", "create")
-  const canCreateBase = can("recipes", "create")
+  const { can, platformCan } = usePermissions()
+  // Crear desde los selectores: permisos y guardado según la fuente (negocio o banco de plataforma)
+  const quick = resolveQuickCreate(dataSource.quickCreate, { can, platformCan })
+  const canCreateIngredient = quick.ingredient
+  const canCreateBase = quick.base
 
   // Estado guardado (baseline) y de trabajo por sección
   const [saved, setSaved] = useState(() => ({
@@ -492,6 +494,7 @@ function Editor({
         open={!!ingModal}
         initialName={ingModal?.name ?? ""}
         existing={catalog.ingredients}
+        createIngredient={dataSource.quickCreate?.createIngredient}
         onClose={() => setIngModal(null)}
         onSaved={async (savedIng) => {
           const target = ingModal?.target ?? "editor"
@@ -505,6 +508,7 @@ function Editor({
         initialName={baseModal?.name ?? ""}
         ingredients={catalog.ingredients}
         existing={catalog.baseRecipes}
+        createRecipe={dataSource.quickCreate?.createBaseRecipe}
         canCreateIngredient={canCreateIngredient}
         onCreateIngredient={(q) => setIngModal({ name: q, target: "base" })}
         preselect={preselect?.target === "base" ? preselect : null}

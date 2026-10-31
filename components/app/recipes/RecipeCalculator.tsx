@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, Pencil, Plus, Trash2, X } from "lucide-react"
 import Button from "@/components/ui/Button"
 import SearchableSelect from "@/components/ui/SearchableSelect"
-import { quantityText, unitLabel, type BaseUnit } from "@/lib/recipes/units"
+import { quantityText, toBaseQuantity, unitLabel, unitOptionsFor, type BaseUnit, type InputUnit } from "@/lib/recipes/units"
 import InfoTip from "@/components/ui/InfoTip"
 import IngredientFormModal from "@/components/app/inventario/IngredientFormModal"
 import BaseRecipeQuickCreateModal from "./BaseRecipeQuickCreateModal"
+import { resolveQuickCreate } from "./recipeSource"
 import { CREATE_BASE_LABEL, CREATE_INGREDIENT_LABEL } from "./LineAdder"
 import { usePermissions } from "@/hooks/usePermissions"
 import {
@@ -149,10 +150,11 @@ export default function RecipeCalculator({
   onRefreshCatalog?: () => Promise<unknown>
 }) {
   const isEditing = !!editRecipe
-  // Crear desde el selector: solo con permiso y solo en el espacio del negocio (no en el banco de plataforma)
-  const { can } = usePermissions()
-  const canQuickIngredient = !!onRefreshCatalog && can("ingredients", "create")
-  const canQuickBase = !!onRefreshCatalog && can("recipes", "create")
+  // Crear desde el selector: solo con permiso, según la fuente (negocio o banco de plataforma)
+  const { can, platformCan } = usePermissions()
+  const quick = resolveQuickCreate(dataSource.quickCreate, { can, platformCan })
+  const canQuickIngredient = !!onRefreshCatalog && quick.ingredient
+  const canQuickBase = !!onRefreshCatalog && quick.base
   const [quickIng, setQuickIng] = useState<{ name: string; inBase: boolean } | null>(null)
   const [quickBase, setQuickBase] = useState<{ name: string } | null>(null)
   const [basePreselect, setBasePreselect] = useState<{ kind: "ingredient"; id: string; nonce: number } | null>(null)
@@ -381,6 +383,27 @@ export default function RecipeCalculator({
     calc.fill({ grams: "" })
     calc.activate("grams")
     setPickId("")
+  }
+
+  // Edición de una línea ya agregada (cantidad y unidad) sin quitarla y volver a agregarla
+  const [editing, setEditing] = useState<{ key: string; value: string; unit: InputUnit } | null>(null)
+  function startEdit(l: TapeLine) {
+    setEditing({ key: l.key, value: String(l.grams).replace(".", ","), unit: l.unit ?? "g" })
+    setStepError(null)
+  }
+  function saveEdit() {
+    if (!editing) return
+    const line = lines.find((l) => l.key === editing.key)
+    if (!line) return setEditing(null)
+    const n = parseFloat(editing.value.replace(",", "."))
+    if (!(n > 0)) return setStepError("Escribe una cantidad mayor a 0")
+    const base: BaseUnit = line.unit ?? "g"
+    const q = toBaseQuantity(n, editing.unit, base)
+    if (q == null) return setStepError("Esa unidad no se puede usar con este ingrediente")
+    setLines((prev) => prev.map((l) => (l.key === line.key ? { ...l, grams: q } : l)))
+    setLastAdded(`Cambiaste ${line.name}: ${quantityText(q, base)}`)
+    setStepError(null)
+    setEditing(null)
   }
 
   function removeLine(key: string) {
@@ -881,6 +904,7 @@ export default function RecipeCalculator({
                 open={!!quickIng}
                 initialName={quickIng?.name ?? ""}
                 existing={catalog.ingredients}
+                createIngredient={dataSource.quickCreate?.createIngredient}
                 onClose={() => setQuickIng(null)}
                 onSaved={async (saved) => {
                   const inBase = quickIng?.inBase ?? false
@@ -898,6 +922,7 @@ export default function RecipeCalculator({
                 initialName={quickBase?.name ?? ""}
                 ingredients={catalog.ingredients}
                 existing={catalog.baseRecipes}
+                createRecipe={dataSource.quickCreate?.createBaseRecipe}
                 canCreateIngredient={canQuickIngredient}
                 onCreateIngredient={(q) => setQuickIng({ name: q, inBase: true })}
                 preselect={basePreselect}
@@ -982,16 +1007,51 @@ export default function RecipeCalculator({
                         {p.line.name}
                         {p.line.kind === "recipe" && <span className="rt-chip">BASE</span>}
                       </span>
+                      {editing?.key === p.line.key ? (
+                        <span className="rt-meta" style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                          <input
+                            autoFocus
+                            inputMode="decimal"
+                            aria-label={`Cantidad de ${p.line.name}`}
+                            value={editing.value}
+                            onChange={(e) => setEditing({ ...editing, value: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); saveEdit() }
+                              if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setEditing(null) }
+                            }}
+                            style={{ width: 84, padding: "4px 6px", border: "1px solid var(--border, #cbd5e1)", borderRadius: 6, font: "inherit" }}
+                          />
+                          <select
+                            aria-label={`Unidad de ${p.line.name}`}
+                            value={editing.unit}
+                            onChange={(e) => setEditing({ ...editing, unit: e.target.value as InputUnit })}
+                            style={{ padding: "4px 6px", border: "1px solid var(--border, #cbd5e1)", borderRadius: 6, font: "inherit" }}
+                          >
+                            {unitOptionsFor(p.line.unit ?? "g").map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
+                        </span>
+                      ) : (
                       <span className="rt-meta">
                         {qtyOf(p.line)}
                         {p.costPerGram != null && ` × ${formatCOPDecimals(p.costPerGram)}/${unitLabel(p.line.unit ?? "g")}`}
                         {!p.line.refId && " · ya no existe"}
                       </span>
+                      )}
                     </div>
                     <span className={`rt-cost${p.cost == null && !p.pending ? " is-missing" : ""}`}>
                       {p.cost != null ? formatCOP(p.cost) : p.pending ? "…" : "sin costo"}
                     </span>
                     <div className="rt-actions">
+                      {editing?.key === p.line.key ? (
+                        <>
+                          <button type="button" className="rt-icon-btn" aria-label="Guardar cambio" onClick={saveEdit}><Check size={13} /></button>
+                          <button type="button" className="rt-icon-btn" aria-label="Cancelar edición" onClick={() => setEditing(null)}><X size={13} /></button>
+                        </>
+                      ) : (
+                        <button type="button" className="rt-icon-btn" aria-label={`Editar ${p.line.name}`} title="Editar cantidad y unidad" onClick={() => startEdit(p.line)}><Pencil size={13} /></button>
+                      )}
                       <button type="button" className="rt-icon-btn is-danger" aria-label={`Quitar ${p.line.name}`} onClick={() => removeLine(p.line.key)}>
                         <Trash2 size={13} />
                       </button>

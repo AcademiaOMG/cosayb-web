@@ -88,7 +88,7 @@ export default function RecipeCalculatorView({
           dataSource={dataSource}
           onSaved={onSaved}
           onDirtyChange={setDirty}
-          onRefreshCatalog={dataSource === TENANT_SOURCE ? () => catalog.mutate() : undefined}
+          onRefreshCatalog={() => catalog.mutate()}
         />
       )}
     </CalcModal>
