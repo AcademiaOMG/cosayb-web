@@ -60,7 +60,10 @@ export interface RecipeItem {
   componentType: 'ingredient' | 'recipe'
   ingredientId: string | null
   subRecipeId: string | null
-  quantityG: string      // numeric → string (Drizzle)
+  quantityG: string      // cantidad en la unidad base del ingrediente (nombre heredado; no siempre gramos)
+  /** Unidad de la línea (null = heredada: la del ingrediente) */
+  unit?: "g" | "ml" | "und" | "porcion" | null
+  ingredientUnit?: "g" | "ml" | "und" | "porcion" | null
   sortOrder: number
   ingredientName: string | null
   subRecipeName: string | null
@@ -103,6 +106,8 @@ export interface RecipeCostBreakdownItem {
   depth: number
   ingredientId: string
   ingredientName: string
+  /** Unidad base del ingrediente (g, ml, und…): cantidad y costo unitario están en esta unidad */
+  unit?: string
   effectiveQuantityG: number
   costPerGram: number
   lineCost: number
@@ -335,6 +340,11 @@ export interface CurrentPlanData {
   trialExpired: boolean
   daysLeft: number
   trialEndsAt: string | null
+  /** Plan Free: fin de los 10 días (null = no aplica) */
+  freePeriodEndsAt?: string | null
+  freePeriodDaysLeft?: number | null
+  /** true = periodo gratuito vencido: puede ver sus datos, no crear ni editar */
+  readOnly?: boolean
   features: PlanFeature[]
   planInfo: {
     name: string

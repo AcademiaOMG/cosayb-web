@@ -929,8 +929,17 @@ function ShoppingListFooter({
     () => getListaCompras(menuId!).then((r) => r.data),
   )
 
+  const { hasFeature } = usePermissions()
+
   function handlePrint() {
     if (!data) return
+    // Exportar (imprimir / PDF) es una función del plan: Free no la incluye
+    if (!hasFeature("exports")) {
+      toast.warning("Imprimir o guardar en PDF no está incluido en tu membresía", {
+        description: "Pasa a Pro o Academia para exportar tus datos.",
+      })
+      return
+    }
     const rows = data.items
       .map((i) =>
         `<tr><td>${i.nombre}</td><td style="text-align:right">${

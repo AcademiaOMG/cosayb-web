@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { MailCheck } from "lucide-react"
 import { authClient } from "@/lib/auth"
 import AuthShell, { AuthSpinner } from "@/components/auth/AuthShell"
+import { AUTH_ACTION_TIMEOUT_MS, authFailureMessage } from "@/lib/auth/timeouts"
 import GoogleButton, { startGoogleSignIn } from "@/components/auth/GoogleButton"
 import PasswordInput from "@/components/auth/PasswordInput"
 import Input from "@/components/ui/Input"
@@ -62,12 +63,15 @@ function RegisterForm() {
     setSubmitting(true)
     try {
       const verifyReturn = destination === "/dashboard" ? "" : `&returnTo=${encodeURIComponent(destination)}`
-      const { error } = await authClient.signUp.email({
-        name: name.trim(),
-        email: normalizeEmail(email),
-        password,
-        callbackURL: `${origin()}/verify-email?verified=1${verifyReturn}`,
-      })
+      const { error } = await authClient.signUp.email(
+        {
+          name: name.trim(),
+          email: normalizeEmail(email),
+          password,
+          callbackURL: `${origin()}/verify-email?verified=1${verifyReturn}`,
+        },
+        { signal: AbortSignal.timeout(AUTH_ACTION_TIMEOUT_MS) },
+      )
       if (error) {
         setFormError(authErrorMessage(error))
         return
@@ -80,8 +84,8 @@ function RegisterForm() {
         return
       }
       setSentTo(normalizeEmail(email))
-    } catch {
-      setFormError("No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.")
+    } catch (err) {
+      setFormError(authFailureMessage(err, "No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo."))
     } finally {
       setSubmitting(false)
     }
@@ -91,8 +95,8 @@ function RegisterForm() {
     setGoogleLoading(true)
     try {
       await startGoogleSignIn(`${origin()}${destination}`)
-    } catch {
-      toast.error("No se pudo continuar con Google. Intenta de nuevo.")
+    } catch (err) {
+      toast.error(authFailureMessage(err, "No se pudo continuar con Google. Intenta de nuevo."))
       setGoogleLoading(false)
     }
   }
@@ -134,7 +138,7 @@ function RegisterForm() {
   return (
     <AuthShell
       title="Crea tu cuenta"
-      subtitle={pending ? pendingContextLine(pending) : "14 días de prueba gratis, sin tarjeta"}
+      subtitle={pending ? pendingContextLine(pending) : "10 días gratis, sin tarjeta"}
       showTerms={false}
       footer={
         <>

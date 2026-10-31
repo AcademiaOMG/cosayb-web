@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
-import { ArrowRight, Check, Loader2, Minus, ShieldCheck } from "lucide-react"
+import { ArrowRight, Check, Loader2, Minus, ShieldCheck, X } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 import { getCurrentPlan } from "@/lib/api"
 import { PLAN_CATALOG, PLAN_COMPARISON, PLAN_FAQ, formatCOP, type PlanId, type PaidPlanId } from "@/lib/commerce/catalog"
@@ -76,7 +76,7 @@ export default function PlanesPage() {
             Elige el plan que encaja con tu negocio
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base text-[#4A4438]">
-            14 días de prueba sin tarjeta, precios en pesos colombianos y cancelación cuando quieras.
+            10 días gratis sin tarjeta, precios en pesos colombianos con IVA incluido y cancelación cuando quieras.
           </p>
         </div>
 
@@ -112,6 +112,12 @@ export default function PlanesPage() {
                     <span className={`text-sm ${featured ? "text-[#C8D5E8]" : "text-[#4A4438]"}`}>{entry.period}</span>
                   </div>
 
+                  {entry.net != null && entry.tax != null && (
+                    <p className={`mt-2 text-xs ${featured ? "text-[#C8D5E8]" : "text-[#4A4438]"}`}>
+                      {formatCOP(entry.net)} + {formatCOP(entry.tax)} de IVA (19 %)
+                    </p>
+                  )}
+
                   <ul className="mt-6 mb-8 space-y-3">
                     {entry.benefits.map((b) => (
                       <li key={b} className="flex items-start gap-3">
@@ -123,6 +129,14 @@ export default function PlanesPage() {
                           <Check size={13} className={featured ? "text-white" : "text-[#1434A4]"} />
                         </span>
                         <span className={featured ? "text-[#E5EEF9]" : "text-[#12213A]"}>{b}</span>
+                      </li>
+                    ))}
+                    {entry.restrictions.map((r) => (
+                      <li key={r} className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#F1ECE2]">
+                          <X size={13} className="text-[#6B6354]" />
+                        </span>
+                        <span className="text-[#6B6354]">{r}</span>
                       </li>
                     ))}
                   </ul>

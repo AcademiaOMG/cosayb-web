@@ -2,28 +2,35 @@
 
 import { InputHTMLAttributes, forwardRef, useId } from "react"
 import { clsx } from "clsx"
+import InfoTip from "@/components/ui/InfoTip"
+import type { HelpKey } from "@/lib/help/fieldHelp"
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
   hint?: string
+  /** Ayuda contextual (icono "i" junto a la etiqueta): clave de lib/help/fieldHelp.ts */
+  help?: HelpKey
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, id: idProp, className, ...props }, ref) => {
+  ({ label, error, hint, help, id: idProp, className, ...props }, ref) => {
     const generatedId = useId()
     const id = idProp ?? generatedId
 
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label
-            htmlFor={id}
-            className="text-sm font-medium"
-            style={{ color: "var(--text-primary)" }}
-          >
-            {label}
-          </label>
+          <div className="flex items-center gap-1">
+            <label
+              htmlFor={id}
+              className="text-sm font-medium"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {label}
+            </label>
+            {help && <InfoTip help={help} label={label} />}
+          </div>
         )}
         <input
           ref={ref}

@@ -7,6 +7,8 @@ import { authClient } from "@/lib/auth"
 import { billingNotice } from "@/lib/saas/billing"
 import { useBillingOverview } from "@/lib/saas/hooks"
 import { toast } from "@/lib/toast"
+import { usePlanStatus } from "@/hooks/usePlanStatus"
+import { freePeriodNotice } from "@/lib/saas/freePeriod"
 
 const DISMISS_KEY = "cosayb.banner.dismissed"
 
@@ -29,7 +31,9 @@ export default function AppBanners() {
   const [dismissed, setDismissed] = useState<string[]>(() => (typeof window === "undefined" ? [] : readDismissed()))
   const [sending, setSending] = useState(false)
 
-  const notice = billingNotice(overview)
+  const { plan: planStatus } = usePlanStatus()
+  // El aviso de solo lectura de Free tiene prioridad sobre los de facturación (no hay suscripción).
+  const notice = freePeriodNotice(planStatus) ?? billingNotice(overview)
   const unverified = session?.user && session.user.emailVerified === false
 
   function dismiss(id: string) {

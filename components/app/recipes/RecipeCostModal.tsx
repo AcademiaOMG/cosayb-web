@@ -292,7 +292,7 @@ export default function RecipeCostModal({
                     gap: "8px",
                   }}
                 >
-                  {["Ingrediente", "Cantidad (g)", "$/g", "Costo"].map((h) => (
+                  {["Ingrediente", "Cantidad", "Costo unitario", "Costo"].map((h) => (
                     <p
                       key={h}
                       className="text-xs font-semibold"
@@ -333,11 +333,11 @@ export default function RecipeCostModal({
                     </p>
                     <p className="text-xs text-left md:text-right col-start-1 row-start-2 md:col-auto md:row-auto" style={{ color: "var(--text-secondary)" }}>
                       {item.effectiveQuantityG.toFixed(2)}
-                      <span className="md:hidden"> g</span>
+                      <span> {item.unit ?? "g"}</span>
                     </p>
                     <p className="text-xs text-right col-start-2 row-start-2 md:col-auto md:row-auto" style={{ color: "var(--text-secondary)" }}>
                       {item.costPerGram.toFixed(2)}
-                      <span className="md:hidden"> $/g</span>
+                      <span> $/{item.unit ?? "g"}</span>
                     </p>
                     <p className="text-xs text-right font-medium col-start-2 row-start-1 md:col-auto md:row-auto" style={{ color: "var(--text-primary)" }}>
                       {COP.format(item.lineCost)}

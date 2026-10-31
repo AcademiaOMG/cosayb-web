@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, useCallback } from "react"
 import type React from "react"
+import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 
 export interface ModalProps {
@@ -155,7 +156,9 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
   // le emborronan los bordes a la de abajo.
   const nested = modalStack.length > 0 && modalStack.indexOf(uid) !== 0
 
-  return (
+  // En un portal sobre <body>: si un ancestro tiene backdrop-filter/transform (otro modal, la calculadora),
+  // un `fixed` anidado quedaría atrapado dentro de él y tapado por sus elementos.
+  const node = (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
@@ -228,4 +231,6 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
       </div>
     </div>
   )
+  // Sin document (render en servidor) se queda en línea; en el navegador va al <body>
+  return typeof document === "undefined" ? node : createPortal(node, document.body)
 }

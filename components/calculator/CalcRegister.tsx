@@ -3,6 +3,8 @@
 import { forwardRef } from "react"
 import { Pencil } from "lucide-react"
 import { entryKeyFromKeyboard, type EntryKey } from "@/lib/calculator/entry"
+import InfoTip from "@/components/ui/InfoTip"
+import type { HelpKey } from "@/lib/help/fieldHelp"
 import SegText, { splitUnit } from "./SegText"
 import "./calculator.css"
 
@@ -21,6 +23,8 @@ export interface CalcRegisterProps {
   error?: boolean
   describedBy?: string
   variant?: "block" | "inline"
+  /** Ayuda contextual del campo (clave de lib/help/fieldHelp.ts): icono "i" con hover, foco y toque */
+  help?: HelpKey
   /** Acción secundaria en la cabecera del registro (ej. cargar desde receta) */
   accessory?: React.ReactNode
   /** Línea bajo el valor (ej. de dónde viene el dato) */
@@ -54,6 +58,7 @@ const CalcRegister = forwardRef<HTMLInputElement, CalcRegisterProps>(function Ca
     describedBy,
     variant = "block",
     accessory,
+    help,
     note,
     onActivate,
     onKey,
@@ -107,6 +112,7 @@ const CalcRegister = forwardRef<HTMLInputElement, CalcRegisterProps>(function Ca
         <label className="calc-register-label" htmlFor={id}>
           {label}
         </label>
+        {help && <InfoTip help={help} label={ariaLabel} />}
         {!active && <Pencil className="calc-pen" size={12} aria-hidden />}
         {accessory}
       </div>

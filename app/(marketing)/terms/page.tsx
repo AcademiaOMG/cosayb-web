@@ -27,7 +27,7 @@ const sections: LegalSection[] = [
   {
     title: "Planes, precios y facturación",
     body: [
-      "CO$AYB ofrece un período de prueba gratuita de 14 días y planes de pago mensuales (Pro y Academia). Los valores vigentes, en pesos colombianos (COP), se muestran en la página de planes antes de contratar.",
+      "CO$AYB ofrece un plan gratuito de 10 días (luego solo lectura) y planes de pago mensuales (Pro y Academia). Los valores vigentes, en pesos colombianos (COP), se muestran en la página de planes antes de contratar.",
       "La suscripción se renueva automáticamente cada mes hasta que la canceles. Recibirás el recibo de cada cobro en Configuración > Facturación. Los cambios de plan se aplican de inmediato y el valor se ajusta de forma proporcional al tiempo restante del periodo.",
     ],
   },

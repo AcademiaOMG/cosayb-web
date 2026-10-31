@@ -3,6 +3,7 @@ import {
   applyOrgPlan, computeMetrics, createPlatformState, listPayments, listSubscriptions, orgBilling, setTicketStatus,
 } from "./mockPlatform"
 import { SaasError } from "./types"
+import { PLAN_CATALOG } from "@/lib/commerce/catalog"
 
 const NOW = new Date("2026-10-15T12:00:00Z")
 
@@ -13,7 +14,7 @@ describe("mockPlatform · métricas (forma del contrato)", () => {
     const m = computeMetrics(state, NOW)
     const expected = state.orgs
       .filter((o) => o.plan !== "free" && (o.status === "active" || o.status === "past_due"))
-      .reduce((s, o) => s + (o.plan === "pro" ? 30000 : 50000), 0)
+      .reduce((s, o) => s + (o.plan === "pro" ? PLAN_CATALOG.pro.amount : PLAN_CATALOG.academia.amount), 0)
     expect(m.mrr).toBe(expected)
     expect(m.arr).toBe(expected * 12)
     expect(m.byPlan.reduce((s, p) => s + p.mrr, 0)).toBe(m.mrr)

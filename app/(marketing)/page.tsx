@@ -22,7 +22,9 @@ import {
   UtensilsCrossed,
   TrendingUp,
   BarChart2,
+  X,
 } from "lucide-react"
+import { PLAN_CATALOG } from "@/lib/commerce/catalog"
 
 /* ─── HERO DATA ────────────────────────────────────────────── */
 
@@ -170,56 +172,26 @@ const testimonios = [
 
 /* ─── PRICING DATA ─────────────────────────────────────────── */
 
-const plans = [
-  {
-    name: "Free",
-    tagline: "Para explorar",
-    price: "$0",
-    period: "14 días de prueba",
-    features: [
-      "Calculadoras básicas",
-      "Hasta 30 ingredientes",
-      "Sin guardar datos",
-      "Soporte por email",
-    ],
-    cta: "Empezar gratis",
-    highlighted: false,
-    badge: null,
-  },
-  {
-    name: "Pro",
-    tagline: "Para profesionales",
-    price: "$30.000",
-    usdPrice: "$9",
-    period: "COP / mes",
-    features: [
-      "Todo ilimitado",
-      "Exportación PDF",
-      "Banco de recetas base (+1.000)",
-      "Factor de rendimiento completo",
-      "Soporte prioritario",
-    ],
-    cta: "Elegir Pro",
-    highlighted: true,
-    badge: "Más popular",
-  },
-  {
-    name: "Academia",
-    tagline: "Para aprender y escalar",
-    price: "$50.000",
-    usdPrice: "$14",
-    period: "COP / mes",
-    features: [
-      "Todo de Pro",
-      "Acceso completo a cursos",
-      "Certificación incluida",
-      "Consultoría mensual 1:1",
-    ],
-    cta: "Elegir Academia",
-    highlighted: false,
-    badge: null,
-  },
-]
+const fmtPrice = (n: number) => `$${n.toLocaleString("es-CO")}`
+
+// Precios, límites y restricciones salen de lib/commerce/catalog.ts (espejo del API).
+const plans = (["free", "pro", "academia"] as const).map((id) => {
+  const e = PLAN_CATALOG[id]
+  const meta = {
+    free: { tagline: "Para explorar", cta: "Empezar gratis", highlighted: false, badge: null },
+    pro: { tagline: "Para profesionales", cta: "Elegir Pro", highlighted: true, badge: "Más popular" },
+    academia: { tagline: "Para aprender y escalar", cta: "Elegir Academia", highlighted: false, badge: null },
+  }[id]
+  return {
+    name: e.label,
+    ...meta,
+    price: fmtPrice(e.amount),
+    taxNote: e.net != null && e.tax != null ? `${fmtPrice(e.net)} + ${fmtPrice(e.tax)} de IVA (19 %)` : null,
+    period: e.period,
+    features: e.benefits,
+    restrictions: e.restrictions,
+  }
+})
 
 /* ─── FAQ DATA ─────────────────────────────────────────────── */
 
@@ -234,7 +206,7 @@ const faqs = [
   },
   {
     q: "¿Cómo funciona la prueba gratuita?",
-    a: "Tienes 14 días de acceso completo sin tarjeta de crédito. Al terminar el período, puedes elegir un plan de pago para continuar o simplemente no hacer nada y tu cuenta pasará al modo gratuito limitado.",
+    a: "El plan Free dura 10 días y no pide tarjeta. Al terminar, tu cuenta queda en solo lectura: tus datos se conservan, y para volver a crear o editar eliges Pro o Academia.",
   },
   {
     q: "¿Mis datos están seguros?",
@@ -330,7 +302,7 @@ export default function LandingPage() {
             name: "Free",
             price: "0",
             priceCurrency: "COP",
-            description: "14 días de prueba con calculadoras básicas",
+            description: "10 días gratis con límites de uso",
           },
           {
             "@type": "Offer",
@@ -396,7 +368,7 @@ export default function LandingPage() {
             name: "¿Cuánto cuesta CO$AYB?",
             acceptedAnswer: {
               "@type": "Answer",
-              text: "CO$AYB tiene un plan gratuito de 14 días. El plan Pro cuesta $30.000 COP/mes con acceso ilimitado. El plan Academia cuesta $50.000 COP/mes e incluye cursos y certificación.",
+              text: "CO$AYB tiene un plan gratuito de 10 días. El plan Pro cuesta $42.000 COP/mes (IVA incluido) y el plan Academia $60.000 COP/mes (IVA incluido).",
             },
           },
           {
@@ -846,7 +818,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
-            {plans.map(({ name, tagline, price, usdPrice, period, features, cta, highlighted, badge }) => (
+            {plans.map(({ name, tagline, price, taxNote, period, features, restrictions, cta, highlighted, badge }) => (
               <div
                 key={name}
                 className={`relative rounded-2xl flex flex-col overflow-hidden transition-all duration-300 card-hover ${
@@ -893,13 +865,10 @@ export default function LandingPage() {
                       >
                         {price}
                       </span>
-                      {usdPrice && (
-                        <span className="font-mono text-sm text-[#8FA0BC]">
-                          USD {usdPrice}
-                        </span>
-                      )}
+                      
                     </div>
                     <span className="font-body text-sm mt-1 block text-[#8FA0BC]">{period}</span>
+                    {taxNote && <span className="font-body text-xs mt-1 block text-[#8FA0BC]">{taxNote}</span>}
                   </div>
 
                   <div
@@ -918,6 +887,14 @@ export default function LandingPage() {
                           <Check size={11} className="text-[#7AAEFF]" />
                         </div>
                         <span className="font-body text-sm leading-relaxed text-[#B0C4DE]">{f}</span>
+                      </li>
+                    ))}
+                    {restrictions.map((r) => (
+                      <li key={r} className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-white/5">
+                          <X size={11} className="text-[#8FA0BC]" />
+                        </div>
+                        <span className="font-body text-sm leading-relaxed text-[#8FA0BC]">{r}</span>
                       </li>
                     ))}
                   </ul>

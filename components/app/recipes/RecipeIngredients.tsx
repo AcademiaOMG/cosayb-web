@@ -8,11 +8,14 @@ export interface IngredientEntry {
   key: string
   name: string
   grams: number
+  /** Unidad de la cantidad; ausente = gramos */
+  unit?: string
   /** Texto corto junto al nombre (por ejemplo «Preparación base») */
   tag?: string
 }
 
-const gramsText = (n: number) => `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} g`
+const qtyText = (n: number, unit?: string) =>
+  `${n.toLocaleString("es-CO", { maximumFractionDigits: 2 })} ${unit === "porcion" ? "porc." : (unit ?? "g")}`
 
 /** Cuántos ingredientes se ven sin pedir más; el resto está a un toque. */
 const PREVIEW = 8
@@ -24,7 +27,8 @@ const PREVIEW = 8
  */
 export default function RecipeIngredients({ items }: { items: IngredientEntry[] }) {
   const [expanded, setExpanded] = useState(false)
-  const total = items.reduce((s, i) => s + i.grams, 0)
+  // La barra de proporción solo compara líneas en gramos: 30 und no se miden contra 500 g
+  const total = items.reduce((s, i) => ((i.unit ?? "g") === "g" ? s + i.grams : s), 0)
   const visible = expanded ? items : items.slice(0, PREVIEW)
 
   if (items.length === 0) {
@@ -50,10 +54,10 @@ export default function RecipeIngredients({ items }: { items: IngredientEntry[] 
                 )}
               </span>
               <span className="shrink-0 text-sm font-bold tabular-nums" style={{ color: "var(--text-primary)" }}>
-                {gramsText(i.grams)}
+                {qtyText(i.grams, i.unit)}
               </span>
             </div>
-            {total > 0 && (
+            {total > 0 && (i.unit ?? "g") === "g" && (
               <div className="mt-1.5 h-1 overflow-hidden rounded-full" style={{ background: "rgba(16,24,40,0.08)" }} aria-hidden>
                 <div className="h-full rounded-full" style={{ width: `${(i.grams / total) * 100}%`, background: "var(--accent)", opacity: 0.85 }} />
               </div>

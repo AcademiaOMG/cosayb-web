@@ -25,7 +25,6 @@ import type { Ingredient, IngredientOriginFilter } from "@/types/ingredient"
 import ModuleLocked from "@/components/app/ModuleLocked"
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const FREE_LIMIT = 30
 const PAGE_SIZE = 20
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -43,10 +42,11 @@ export default function InventarioPage() {
   )
 
   // ── Permisos y plan ───────────────────────────────────────────────────────
-  const { can, organization, hasFeature, featureLockedMessage } = usePermissions()
+  const { can, organization, hasFeature, featureLockedMessage, featureLimit } = usePermissions()
   const revalidateOnboarding = useRevalidateOnboarding()
   const { mutate: globalMutate } = useSWRConfig()
-  const plan = organization?.membership === "free" ? "free" : "pro"
+  // Tope real del plan (membership_features.max_ingredients); null = sin tope
+  const ingredientLimit = featureLimit("max_ingredients") ?? null
   const canUpdate = can("ingredients", "update")
   const canDelete = can("ingredients", "delete")
 
@@ -102,7 +102,7 @@ export default function InventarioPage() {
   // ── Derived: quota ────────────────────────────────────────────────────────
   const myIngredients = items.filter((i) => i.userId !== null)
   const quotaUsed = myIngredients.length
-  const quotaFull = plan === "free" && quotaUsed >= FREE_LIMIT
+  const quotaFull = ingredientLimit != null && quotaUsed >= ingredientLimit
 
   // ── Derived: search (sin tildes ni mayúsculas) → filtro de origen ─────────
   const searched = useMemo(() => {
@@ -202,7 +202,7 @@ export default function InventarioPage() {
               disabled={quotaFull}
               title={
                 quotaFull
-                  ? `Límite del plan Free: ${FREE_LIMIT} ingredientes`
+                  ? `Alcanzaste el límite de tu plan: ${ingredientLimit} ingredientes propios`
                   : undefined
               }
               aria-label="Nuevo ingrediente"
@@ -216,8 +216,8 @@ export default function InventarioPage() {
       />
 
       {/* Quota banner (free plan) */}
-      {plan === "free" && !isLoading && !error && (
-        <QuotaBanner used={quotaUsed} limit={FREE_LIMIT} />
+      {ingredientLimit != null && !isLoading && !error && (
+        <QuotaBanner used={quotaUsed} limit={ingredientLimit} />
       )}
 
       {/* Buscador + filtro, en una sola línea */}

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 const sections: LegalSection[] = [
   {
     title: "Prueba gratuita",
-    body: "Todas las cuentas nuevas tienen 14 días de prueba sin costo y sin tarjeta. Te recomendamos usar la prueba para confirmar que CO$AYB se ajusta a tu negocio antes de contratar un plan de pago.",
+    body: "Todas las cuentas nuevas tienen 10 días gratis con el plan Free, sin costo y sin tarjeta. Te recomendamos usar la prueba para confirmar que CO$AYB se ajusta a tu negocio antes de contratar un plan de pago.",
   },
   {
     title: "Reembolso del primer cobro",

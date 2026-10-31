@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Academia OMG — Costos de Alimentos y Bebidas para Negocios Gastronómicos",
     description:
-      "Calcula el costo real de cada receta, aplica tus costos fijos y conoce el precio exacto de venta para ser rentable. Prueba gratis 14 días.",
+      "Calcula el costo real de cada receta, aplica tus costos fijos y conoce el precio exacto de venta para ser rentable. Prueba gratis 10 días.",
     url: siteUrl,
   },
 }
