@@ -148,6 +148,16 @@
 .l-prose li { margin: 0.35em 0; }
 .l-prose strong { color: var(--l-ink); font-weight: 800; }
 .l-prose code { background: var(--l-brand-50); color: var(--l-tint-ink); padding: 2px 6px; border-radius: 6px; font-size: 0.9em; }
+.l-prose hr { border: 0; border-top: 1px solid var(--l-line); margin: 1.6em 0; }
+.l-prose figure { margin: 1.4em 0; }
+.l-prose figure img { width: 100%; height: auto; border-radius: 16px; border: 1px solid var(--l-line); background: #fff; }
+.l-prose figcaption { margin-top: 6px; font-size: 13px; color: var(--l-muted); }
+.l-table-wrap { margin: 1.2em 0; overflow-x: auto; border: 1px solid var(--l-line); border-radius: 14px; }
+.l-table-wrap:focus-visible { outline: 2px solid var(--l-brand); outline-offset: 2px; }
+.l-prose table { width: 100%; border-collapse: collapse; font-size: 14.5px; line-height: 1.45; }
+.l-prose th { background: var(--l-brand-50); color: var(--l-ink); font-weight: 800; padding: 10px 12px; white-space: nowrap; }
+.l-prose td { padding: 9px 12px; border-top: 1px solid var(--l-line); vertical-align: top; }
+.l-prose tbody tr:nth-child(even) td { background: var(--l-bg); }
 .l-prose blockquote { border-left: 4px solid var(--l-brand-100); padding-left: 14px; color: var(--l-muted); margin: 1em 0; }
 
 /* Certificado imprimible */

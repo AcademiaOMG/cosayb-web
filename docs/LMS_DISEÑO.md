@@ -93,3 +93,10 @@ Enlace "Saltar al contenido"; foco visible de 3 px; tabs con roles y flechas; pr
 ## Áreas y shells (estudiante · instructor · administrador)
 
 Tres áreas separadas, cada una con su shell (`components/lms/LearnShell.tsx` con la prop `area`), menú y portada; no hay menús mezclados ni selector de «ver como». Rutas: `app/(learn)` (estudiante), `app/(instructor)/instructor/…`, `app/(admin)/administracion/…`. Las pantallas compartidas (reproductor `components/lms/Player.tsx`, evaluación `QuizRunner.tsx`, editor de cursos `studio/`) enlazan solo dentro de su área mediante `usePaths()` (`lib/lms/roles.ts`). Cada shell redirige a la portada del rol de quien entra a un área ajena (`areaRedirect`) y el servidor responde 403. Detalle de roles y permisos: `cosayb-api/docs/LMS_ROLES.md`.
+
+## Cursos reales: tablas, diagramas y videos externos
+
+- **Mini-markdown ampliado** (`lib/lms/markdown.ts`, siempre sin HTML): tablas con `| a | b |` y separador `|---|`, línea horizontal (`---`) e imágenes `![texto](/lms-art/ruta.svg)` **solo** de la carpeta propia `public/lms-art/` (ruta validada con `SAFE_IMG`; cualquier otra queda como texto literal). Las tablas se envuelven en un contenedor con scroll horizontal accesible (`role="region"`, `tabIndex=0`).
+- **Diagramas**: SVG propios generados por `node scripts/gen-lms-art.mjs` (azul de la marca, `<title>`/`<desc>`, sin scripts ni enlaces; los valida `lib/lms/art.test.ts`).
+- **Video externo** (`kind = external_video`): `lib/lms/embed.ts` + `ExternalVideo` en `AssetViews.tsx`. El iframe se arma **solo** con proveedor + ID validados (`youtube-nocookie.com` / `player.vimeo.com`), `sandbox` mínimo, `referrerPolicy` y enlace de respaldo «Ábrelo en YouTube». El editor del instructor acepta el tipo «Video de YouTube / Vimeo». No hay CSP en `next.config.ts`; si se añade una, hay que permitir `frame-src https://www.youtube-nocookie.com https://player.vimeo.com` y `img-src 'self'`.
+- Capturas de verificación (Playwright sin ventana, 31/10/2026): `docs/lms-cursos-capturas/`.

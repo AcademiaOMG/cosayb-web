@@ -1,11 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { FileText, Film } from "lucide-react"
+import { ExternalLink, FileText, Film } from "lucide-react"
 import { toast } from "@/lib/toast"
 import { lms } from "@/lib/lms/api"
 import { parseMarkdown, type Block, type Inline } from "@/lib/lms/markdown"
 import { formatBytes } from "@/lib/lms/validation"
+import { embedSrc, embedWatchUrl, isValidEmbed } from "@/lib/lms/embed"
 import type { LessonAsset } from "@/lib/lms/types"
 import { Button } from "./ui"
 
@@ -24,6 +25,23 @@ function Blk({ b }: { b: Block }) {
     case "quote": return <blockquote><Inl nodes={b.c} /></blockquote>
     case "ul": return <ul>{b.items.map((it, i) => <li key={i}><Inl nodes={it} /></li>)}</ul>
     case "ol": return <ol>{b.items.map((it, i) => <li key={i}><Inl nodes={it} /></li>)}</ol>
+    case "hr": return <hr />
+    case "img": return (
+      <figure>
+        {/* Solo rutas propias /lms-art/ (las valida el parser); el texto alternativo describe el diagrama. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={b.src} alt={b.alt} loading="lazy" decoding="async" />
+        {b.alt && <figcaption>{b.alt}</figcaption>}
+      </figure>
+    )
+    case "table": return (
+      <div className="l-table-wrap" role="region" tabIndex={0} aria-label="Tabla (desliza para ver más columnas)">
+        <table>
+          <thead><tr>{b.head.map((h, i) => <th key={i} scope="col" style={{ textAlign: b.align[i] }}><Inl nodes={h} /></th>)}</tr></thead>
+          <tbody>{b.rows.map((r, ri) => <tr key={ri}>{r.map((c, ci) => <td key={ci} style={{ textAlign: b.align[ci] }}><Inl nodes={c} /></td>)}</tr>)}</tbody>
+        </table>
+      </div>
+    )
     default: return <p><Inl nodes={b.c} /></p>
   }
 }
@@ -33,6 +51,34 @@ export function LessonBody({ body }: { body: string }) {
   const blocks = useMemo(() => parseMarkdown(body), [body])
   if (!blocks.length) return null
   return <div className="l-prose">{blocks.map((b, i) => <Blk key={i} b={b} />)}</div>
+}
+
+/**
+ * Video externo (YouTube/Vimeo). El iframe se arma solo con proveedor + ID validados (nunca con una URL libre),
+ * en un sandbox mínimo. Si el reproductor no carga, queda el enlace al sitio del video.
+ */
+export function ExternalVideo({ embed, title }: { embed: { provider?: string; id?: string } | null | undefined; title: string }) {
+  const src = embedSrc(embed)
+  if (!src || !isValidEmbed(embed)) return null
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="aspect-video w-full overflow-hidden rounded-3xl bg-black shadow-[0_24px_50px_rgba(18,33,58,.25)]">
+        <iframe
+          src={src}
+          title={`Video: ${title}`}
+          className="h-full w-full border-0"
+          loading="lazy"
+          allow="encrypted-media; picture-in-picture; fullscreen"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
+        />
+      </div>
+      <a href={embedWatchUrl(embed)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 self-start text-sm font-bold" style={{ color: "var(--l-brand)" }}>
+        <ExternalLink size={14} aria-hidden="true" /> ¿No carga el video? Ábrelo en {embed.provider === "youtube" ? "YouTube" : "Vimeo"}
+      </a>
+    </div>
+  )
 }
 
 /**
@@ -136,7 +182,7 @@ export function DocumentButton({ lessonId, asset, index }: { lessonId: string; a
   return (
     <button type="button" onClick={open} disabled={busy} className="l-card l-card-hover flex w-full items-center gap-3 p-4 text-left">
       <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl text-white" style={{ background: "var(--l-rose)" }} aria-hidden="true"><FileText size={20} /></span>
-      <span className="min-w-0 flex-1"><span className="block font-extrabold">Documento {index + 1}</span><span className="text-xs font-semibold" style={{ color: "var(--l-muted)" }}>PDF · {formatBytes(asset.sizeBytes)}</span></span>
+      <span className="min-w-0 flex-1"><span className="block font-extrabold">Documento {index + 1}</span><span className="text-xs font-semibold" style={{ color: "var(--l-muted)" }}>{asset.mime === "application/pdf" ? "PDF" : asset.mime === "text/csv" ? "CSV" : asset.mime.includes("spreadsheetml") ? "Excel (XLSX)" : "Archivo"} · {formatBytes(asset.sizeBytes)}</span></span>
       <span className="l-btn l-btn-soft l-btn-sm">{busy ? "Abriendo…" : "Abrir"}</span>
     </button>
   )

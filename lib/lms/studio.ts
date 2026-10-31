@@ -51,7 +51,7 @@ export function publishChecklist(course: AdminCourse, quizzes: AdminQuiz[] | und
   return [
     { id: "title", label: "Título y descripción", ok: course.title.trim().length >= 3 && course.description.trim().length >= 20, required: false, hint: "Una descripción de 20 caracteres o más ayuda a que la gente decida inscribirse." },
     { id: "lessons", label: "Al menos una lección", ok: lessons.length >= 1, required: true, hint: "Sin lecciones el curso no puede publicarse." },
-    { id: "content", label: "Todas las lecciones tienen contenido", ok: lessons.length > 0 && lessons.every((l) => l.body.trim() || l.assets.length || (l.kind === "link" && l.linkUrl)), required: false, hint: "Hay lecciones vacías: texto, archivo o enlace." },
+    { id: "content", label: "Todas las lecciones tienen contenido", ok: lessons.length > 0 && lessons.every((l) => l.body.trim() || l.assets.length || ((l.kind === "link" || l.kind === "external_video") && l.linkUrl)), required: false, hint: "Hay lecciones vacías: texto, archivo o enlace." },
     { id: "preview", label: "Una lección de vista previa gratuita", ok: lessons.some((l) => l.isPreview), required: false, hint: "Deja que quien visita el catálogo pruebe el curso antes de matricularse." },
     { id: "cover", label: "Portada, categoría y duración", ok: Boolean(course.coverKey) && course.category.trim().length > 0 && course.durationMinutes > 0, required: false, hint: "Define la duración estimada en Ajustes." },
     { id: "quiz", label: "Una evaluación con preguntas (opcional)", ok: withQuestions.length > 0, required: false, hint: "Las evaluaciones habilitan el certificado por mérito." },

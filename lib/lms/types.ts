@@ -1,7 +1,7 @@
 // Tipos del LMS tal como los devuelve /api/v1/lms. Ningún tipo de estudiante contiene la respuesta correcta.
 
 export type CourseLevel = "beginner" | "intermediate" | "advanced"
-export type LessonKind = "reading" | "video" | "file" | "link"
+export type LessonKind = "reading" | "video" | "file" | "link" | "external_video"
 export type QuestionType = "single" | "multiple" | "true_false" | "fill_blank" | "short_text"
 export type CertColor = "blue" | "teal" | "amber" | "rose"
 
@@ -83,6 +83,8 @@ export interface Lesson {
   kind?: LessonKind
   /** Solo http(s): el servidor lo valida; aun así se abre siempre con rel="noopener noreferrer". */
   linkUrl?: string | null
+  /** Video externo (YouTube/Vimeo) ya validado por el servidor; null si no aplica. */
+  embed?: { provider: "youtube" | "vimeo"; id: string } | null
   isPreview: boolean
   completed: boolean
   instructorView?: boolean

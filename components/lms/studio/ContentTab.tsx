@@ -7,6 +7,7 @@ import { useConfirm } from "@/components/ui/ConfirmDialog"
 import { lms } from "@/lib/lms/api"
 import { UPLOAD_RULES, formatBytes, validateUpload } from "@/lib/lms/validation"
 import { applyOutline, moveLesson, moveModule, outlineOf, reorder } from "@/lib/lms/studio"
+import { looksLikeVideoUrl } from "@/lib/lms/embed"
 import { toast } from "@/lib/toast"
 import type { AdminCourse, AdminLesson, AssetKind, LessonKind } from "@/lib/lms/types"
 import { ActionMenu, AreaField, Grip, SaveBadge, SelectField, SwitchRow, TextField, errMsg, useAutosave, useSortable } from "./kit"
@@ -18,8 +19,9 @@ const KIND_META: Record<LessonKind, { label: string; Icon: typeof Type }> = {
   video: { label: "Video", Icon: Film },
   file: { label: "Archivo", Icon: FileText },
   link: { label: "Enlace", Icon: Link2 },
+  external_video: { label: "Video de YouTube / Vimeo", Icon: Film },
 }
-const ASSET_KINDS_FOR: Record<LessonKind, AssetKind[]> = { reading: ["video", "document", "subtitle"], video: ["video", "subtitle", "document"], file: ["document"], link: [] }
+const ASSET_KINDS_FOR: Record<LessonKind, AssetKind[]> = { reading: ["video", "document", "subtitle"], video: ["video", "subtitle", "document"], file: ["document"], link: [], external_video: ["subtitle", "document"] }
 const MODULE_END = "module-end:"
 
 interface Props {
@@ -178,7 +180,7 @@ function AddLesson({ moduleId, onAdded }: { moduleId: string; onAdded: (id: stri
     if (!title.trim()) return
     try {
       // Un enlace nace sin URL: el servidor la exige, así que se crea como lectura y se cambia en el editor
-      const l = await lms.admin.createLesson(moduleId, { title: title.trim(), body: "", isPreview: false, kind: kind === "link" ? "reading" : kind })
+      const l = await lms.admin.createLesson(moduleId, { title: title.trim(), body: "", isPreview: false, kind: kind === "link" || kind === "external_video" ? "reading" : kind })
       setTitle("")
       onAdded(l.id)
     } catch (e) {
@@ -253,11 +255,11 @@ function LessonPanel({ lesson, onChanged }: { lesson: AdminLesson; onChanged: ()
   const [uploads, setUploads] = useState<Upload[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const pickKind = useRef<AssetKind>("video")
-  const linkOk = f.kind !== "link" || /^https?:\/\/\S+$/i.test(f.linkUrl.trim())
+  const linkOk = f.kind === "external_video" ? looksLikeVideoUrl(f.linkUrl) : f.kind !== "link" || /^https?:\/\/\S+$/i.test(f.linkUrl.trim())
   const { status } = useAutosave(
     f,
     async (v) => {
-      await lms.admin.updateLesson(lesson.id, { title: v.title.trim(), body: v.body, isPreview: v.isPreview, kind: v.kind, linkUrl: v.kind === "link" ? v.linkUrl.trim() : null })
+      await lms.admin.updateLesson(lesson.id, { title: v.title.trim(), body: v.body, isPreview: v.isPreview, kind: v.kind, linkUrl: v.kind === "link" || v.kind === "external_video" ? v.linkUrl.trim() : null })
       onChanged()
     },
     { valid: f.title.trim().length > 0 && linkOk }
@@ -300,6 +302,9 @@ function LessonPanel({ lesson, onChanged }: { lesson: AdminLesson; onChanged: ()
         <TextField label="Título" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} maxLength={200} />
         <SelectField label="Tipo de lección" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as LessonKind })} options={(Object.keys(KIND_META) as LessonKind[]).map((k) => ({ value: k, label: KIND_META[k].label }))} />
       </div>
+      {f.kind === "external_video" && (
+        <TextField label="Enlace del video" type="url" inputMode="url" placeholder="https://www.youtube.com/watch?v=…" value={f.linkUrl} onChange={(e) => setF({ ...f, linkUrl: e.target.value })} error={f.linkUrl && !linkOk ? "Usa un enlace https de YouTube o Vimeo" : null} hint="Se incrusta con el reproductor oficial. Solo se aceptan YouTube y Vimeo; se guarda únicamente el identificador del video." />
+      )}
       {f.kind === "link" && (
         <TextField label="Enlace externo" type="url" inputMode="url" placeholder="https://…" value={f.linkUrl} onChange={(e) => setF({ ...f, linkUrl: e.target.value })} error={f.linkUrl && !linkOk ? "Debe empezar por https:// o http://" : null} hint="Se abre en una pestaña nueva. Solo se permiten enlaces http(s)." />
       )}

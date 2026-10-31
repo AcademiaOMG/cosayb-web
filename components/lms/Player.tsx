@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { mutate as globalMutate } from "swr"
 import { Award, CheckCircle2, ExternalLink, ChevronLeft, ChevronRight, ChevronsRight, ClipboardCheck, Circle, Lock, PanelRightClose, PanelRightOpen, Play } from "lucide-react"
-import { DocumentButton, LessonBody, VideoPlayer } from "@/components/lms/AssetViews"
+import { DocumentButton, ExternalVideo, LessonBody, VideoPlayer } from "@/components/lms/AssetViews"
 import SignInRequired from "@/components/lms/SignInRequired"
 import { usePaths, useArea } from "@/components/lms/shell/area"
 import { homeFor } from "@/lib/lms/roles"
@@ -161,6 +161,8 @@ function PlayerInner() {
               <>
                 {videos[0] ? (
                   <VideoPlayer lessonId={lesson.id} video={videos[0]} subtitles={subtitles} />
+                ) : lesson.kind === "external_video" && lesson.embed ? (
+                  <ExternalVideo embed={lesson.embed} title={lesson.title} />
                 ) : lesson.kind === "link" && lesson.linkUrl && /^https?:[/][/]/i.test(lesson.linkUrl) ? (
                   <div className="relative flex flex-col items-start justify-end gap-3 overflow-hidden rounded-3xl p-6 sm:p-8" style={{ aspectRatio: "16 / 6", minHeight: 180 }}>
                     <Cover coverKey={course.coverKey} className="absolute inset-0 h-full w-full" />
