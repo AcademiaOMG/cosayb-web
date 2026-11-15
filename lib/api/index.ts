@@ -45,7 +45,8 @@ async function fetchAPI<T>(
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      // FormData: el navegador fija el multipart con su boundary
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       // Organización activa (multi-org): el backend la valida contra las membresías
       ...(activeOrg ? { "X-Organization-Id": activeOrg } : {}),
       ...options.headers,

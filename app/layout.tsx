@@ -74,9 +74,8 @@ const cormorantGaramond = Cormorant_Garamond({
   display: "swap",
 })
 
-// Tipografías curadas de marca blanca (lib/branding/fonts.ts). Manrope e Inter
-// ya están cargadas arriba y se exponen como --font-brand-manrope/inter con un
-// alias en globals.css. Las otras seis usan `preload: false`: next/font solo
+// Tipografías curadas de marca blanca (mapeo BrandFont→variable en BRAND_FONT_VARIABLE, lib/branding/theme.ts).
+// Manrope e Inter ya están cargadas arriba (--font-manrope, --font-inter). Las otras seis usan `preload: false`: next/font solo
 // emite el @font-face (con unicode-range) y el navegador descarga el archivo
 // ÚNICAMENTE cuando algún elemento resuelve su familia, es decir, solo la
 // fuente que el negocio eligió. Con preload activo se pedirían las 8 en cada
@@ -85,38 +84,38 @@ const cormorantGaramond = Cormorant_Garamond({
 const brandPoppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
-  variable: "--font-brand-poppins",
+  variable: "--font-poppins",
   display: "swap",
   preload: false,
 })
 const brandDmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-brand-dm-sans",
+  variable: "--font-dm-sans",
   display: "swap",
   preload: false,
 })
 const brandNunito = Nunito({
   subsets: ["latin"],
-  variable: "--font-brand-nunito",
+  variable: "--font-nunito",
   display: "swap",
   preload: false,
 })
 const brandLato = Lato({
   weight: ["400", "700"],
   subsets: ["latin"],
-  variable: "--font-brand-lato",
+  variable: "--font-lato",
   display: "swap",
   preload: false,
 })
 const brandMontserrat = Montserrat({
   subsets: ["latin"],
-  variable: "--font-brand-montserrat",
+  variable: "--font-montserrat",
   display: "swap",
   preload: false,
 })
 const brandSourceSans3 = Source_Sans_3({
   subsets: ["latin"],
-  variable: "--font-brand-source-sans-3",
+  variable: "--font-source-sans-3",
   display: "swap",
   preload: false,
 })
