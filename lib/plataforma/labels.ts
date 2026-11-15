@@ -260,6 +260,7 @@ export const FEATURE_INFO: Record<string, { label: string; description: string; 
   module_breakEven: { label: "Módulo de punto de equilibrio", description: "Pantalla para calcular cuánto hay que vender para no perder." },
   module_marketPrices: { label: "Módulo de precios de mercado", description: "Pantalla para comparar los precios de los ingredientes con el mercado." },
   activity_log: { label: "Registro de actividad del negocio", description: "Historial de lo que hace cada persona del equipo." },
+  white_label: { label: "Marca blanca", description: "Permite al negocio personalizar la app con su propia marca: colores, logo, nombre y tipografía." },
 }
 
 /** Función/límite de una membresía → nombre. Ej. `max_recipes` → «Recetas que puede crear». */

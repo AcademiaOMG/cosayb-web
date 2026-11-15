@@ -24,7 +24,7 @@ const ACTIONS = ["list", "read", "create", "update", "delete", "import", "publis
 const FEATURES = [
   "max_users", "max_ingredients", "max_recipes", "max_menus", "max_custom_roles", "public_banks", "reports", "exports",
   "analytics", "custom_roles", "academic_roles", "api_access", "multi_location", "module_ingredients", "module_recipes",
-  "module_menus", "module_yieldFactors", "module_valuations", "module_breakEven", "module_marketPrices", "activity_log",
+  "module_menus", "module_yieldFactors", "module_valuations", "module_breakEven", "module_marketPrices", "activity_log", "white_label",
 ]
 const AUDIT = [
   "account.delete", "account.export", "billing.book_order.create", "billing.enrollment.create",
