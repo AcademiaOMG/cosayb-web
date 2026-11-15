@@ -396,8 +396,8 @@
   cursor: pointer;
 }
 .costRemove:hover {
-  background: #fef2f2;
-  color: #b42020;
+  background: var(--error-bg);
+  color: var(--error);
 }
 .costRemove:focus-visible {
   outline: 2px solid var(--accent);

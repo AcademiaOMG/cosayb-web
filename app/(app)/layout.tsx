@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import AppShell from "@/components/app/AppShell"
 import { UpgradeModalProvider } from "@/components/app/settings/UpgradeModalProvider"
 import UpgradeModal from "@/components/app/settings/UpgradeModal"
+import PlatformPreviewBar from "@/components/branding/editor/PlatformPreviewBar"
 
 // La app autenticada nunca se indexa
 export const metadata: Metadata = { robots: { index: false, follow: false } }
@@ -19,6 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <UpgradeModalProvider>
         <AppShell>{children}</AppShell>
         <UpgradeModal />
+        <PlatformPreviewBar />
       </UpgradeModalProvider>
     </div>
   )

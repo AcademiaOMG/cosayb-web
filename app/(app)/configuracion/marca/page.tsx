@@ -7,14 +7,15 @@ import Button from "@/components/ui/Button"
 import Input from "@/components/ui/Input"
 import Modal from "@/components/ui/Modal"
 import { getCurrentOrganization, updateOrganization } from "@/lib/api"
-import { Building2, Palette } from "lucide-react"
+import { Building2 } from "lucide-react"
+import BrandEditor from "@/components/branding/editor/BrandEditor"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
 
 /**
  * Marca — identidad del negocio.
- * v1: nombre del negocio. Aquí entrará el branding completo del tenant
- * (logo, colores, datos fiscales, moneda) en el sub-proyecto B.
+ * Nombre del negocio + editor de marca blanca (logotipos, paleta, identidad
+ * visual y vista previa en vivo): components/branding/editor/BrandEditor.tsx.
  */
 export default function MarcaPage() {
   const { data: orgData, mutate: mutateOrg } = useSWR(
@@ -90,17 +91,7 @@ export default function MarcaPage() {
         </div>
       </Card>
 
-      <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
-        <div className="flex items-center gap-3 mb-3">
-          <Palette size={18} style={{ color: "var(--text-muted)" }} />
-          <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
-            PERSONALIZACIÓN VISUAL
-          </p>
-        </div>
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          Logo, colores de marca y datos fiscales de tu negocio — próximamente.
-        </p>
-      </Card>
+      <BrandEditor />
 
       <Modal
         open={confirmOpen}

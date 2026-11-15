@@ -68,6 +68,13 @@ describe("brandDraftReducer", () => {
     expect(s.base.theme.font).toBe("poppins")
   })
 
+  it("rebase actualiza la base sin perder el borrador", () => {
+    let s = brandDraftReducer(fresh(), { type: "setRadius", value: "lg" })
+    s = brandDraftReducer(s, { type: "rebase", theme: { ...DEFAULT_BRAND_THEME, radius: "lg" }, displayName: null })
+    expect(s.theme.radius).toBe("lg")
+    expect(isDirty(s)).toBe(false)
+  })
+
   it("restore conserva la base", () => {
     const edited = { ...DEFAULT_BRAND_THEME, shadow: "elevated" as const }
     const s = brandDraftReducer(fresh(), { type: "restore", theme: edited, displayName: "" })

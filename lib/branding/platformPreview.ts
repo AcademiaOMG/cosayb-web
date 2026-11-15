@@ -9,13 +9,17 @@ import { themeToCssVars } from "./theme"
 
 export const PREVIEW_STYLE_ID = "brand-preview"
 
+/** Por qué terminó la vista previa: el editor reacciona distinto (p. ej. descarta el borrador). */
+export type PreviewStopReason = "discard" | "saved" | "exit"
+
 export interface PlatformPreviewState {
   active: boolean
   theme: BrandTheme | null
   displayName: string
+  lastStop: PreviewStopReason | null
 }
 
-const INACTIVE: PlatformPreviewState = { active: false, theme: null, displayName: "" }
+const INACTIVE: PlatformPreviewState = { active: false, theme: null, displayName: "", lastStop: null }
 let state: PlatformPreviewState = INACTIVE
 const listeners = new Set<() => void>()
 
@@ -59,7 +63,7 @@ function applyStyle(theme: BrandTheme | null) {
 }
 
 export function startPlatformPreview(theme: BrandTheme, displayName: string) {
-  state = { active: true, theme, displayName }
+  state = { active: true, theme, displayName, lastStop: null }
   applyStyle(theme)
   emit()
 }
@@ -67,13 +71,13 @@ export function startPlatformPreview(theme: BrandTheme, displayName: string) {
 /** Actualiza el borrador mientras la vista previa está activa. */
 export function updatePlatformPreview(theme: BrandTheme, displayName: string) {
   if (!state.active) return
-  state = { active: true, theme, displayName }
+  state = { active: true, theme, displayName, lastStop: null }
   applyStyle(theme)
   emit()
 }
 
-export function stopPlatformPreview() {
-  state = INACTIVE
+export function stopPlatformPreview(reason: PreviewStopReason = "exit") {
+  state = { ...INACTIVE, lastStop: reason }
   applyStyle(null)
   emit()
 }

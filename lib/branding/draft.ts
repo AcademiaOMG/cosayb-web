@@ -38,6 +38,8 @@ export type BrandDraftAction =
   | { type: "resetDefaults" }
   /** Tras guardar o recibir datos nuevos del servidor: el borrador pasa a ser la base. */
   | { type: "load"; theme: BrandTheme | null; displayName: string | null }
+  /** Llegan datos nuevos del servidor mientras hay cambios sin guardar: actualiza la base y conserva el borrador. */
+  | { type: "rebase"; theme: BrandTheme | null; displayName: string | null }
   /** Restaura un borrador a medias (vista previa global) conservando la base. */
   | { type: "restore"; theme: BrandTheme; displayName: string }
 
@@ -70,6 +72,10 @@ export function brandDraftReducer(state: BrandDraftState, action: BrandDraftActi
       return { ...state, theme: DEFAULT_BRAND_THEME }
     case "load":
       return createDraftState(action.theme, action.displayName)
+    case "rebase": {
+      const b = createDraftState(action.theme, action.displayName)
+      return { ...state, base: b.base }
+    }
     case "restore":
       return { ...state, theme: normalizeTheme(action.theme), displayName: action.displayName }
   }

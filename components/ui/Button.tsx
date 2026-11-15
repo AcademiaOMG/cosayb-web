@@ -38,7 +38,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             ? ({
                 "--btn-bg": "var(--accent)",
                 "--btn-hover": "var(--accent-hover)",
-                "--btn-text": "#fff",
+                "--btn-text": "var(--on-accent)",
                 "--btn-ring": "var(--accent)",
                 background: "var(--btn-bg)",
                 color: "var(--btn-text)",
