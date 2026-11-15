@@ -1,5 +1,18 @@
 import type { Metadata } from "next"
-import { Barlow, Barlow_Condensed, Inter, JetBrains_Mono, Manrope, Cormorant_Garamond } from "next/font/google"
+import {
+  Barlow,
+  Barlow_Condensed,
+  Inter,
+  JetBrains_Mono,
+  Manrope,
+  Cormorant_Garamond,
+  Poppins,
+  DM_Sans,
+  Nunito,
+  Lato,
+  Montserrat,
+  Source_Sans_3,
+} from "next/font/google"
 import SWRProvider from "@/components/SWRProvider"
 import FeedbackProvider from "@/components/FeedbackProvider"
 import CookieBanner from "@/components/legal/CookieBanner"
@@ -60,6 +73,64 @@ const cormorantGaramond = Cormorant_Garamond({
   variable: "--font-cormorant",
   display: "swap",
 })
+
+// Tipografías curadas de marca blanca (lib/branding/fonts.ts). Manrope e Inter
+// ya están cargadas arriba y se exponen como --font-brand-manrope/inter con un
+// alias en globals.css. Las otras seis usan `preload: false`: next/font solo
+// emite el @font-face (con unicode-range) y el navegador descarga el archivo
+// ÚNICAMENTE cuando algún elemento resuelve su familia, es decir, solo la
+// fuente que el negocio eligió. Con preload activo se pedirían las 8 en cada
+// página. Costo: sin <link rel=preload>, la fuente elegida aparece tras el
+// primer render (display: swap), una mejora menor frente a bajar 6 fuentes.
+const brandPoppins = Poppins({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-brand-poppins",
+  display: "swap",
+  preload: false,
+})
+const brandDmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-brand-dm-sans",
+  display: "swap",
+  preload: false,
+})
+const brandNunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-brand-nunito",
+  display: "swap",
+  preload: false,
+})
+const brandLato = Lato({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-brand-lato",
+  display: "swap",
+  preload: false,
+})
+const brandMontserrat = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-brand-montserrat",
+  display: "swap",
+  preload: false,
+})
+const brandSourceSans3 = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-brand-source-sans-3",
+  display: "swap",
+  preload: false,
+})
+
+const brandFontVars = [
+  brandPoppins,
+  brandDmSans,
+  brandNunito,
+  brandLato,
+  brandMontserrat,
+  brandSourceSans3,
+]
+  .map((f) => f.variable)
+  .join(" ")
 
 const siteUrl =
   process.env.NEXT_PUBLIC_FRONTEND_URL?.startsWith("http://localhost")
@@ -137,7 +208,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${barlowCondensed.variable} ${calcBarlow.variable} ${calcCondensed.variable} ${inter.variable} ${jetbrainsMono.variable} ${manrope.variable} ${cormorantGaramond.variable}`}
+      className={`${barlowCondensed.variable} ${calcBarlow.variable} ${calcCondensed.variable} ${inter.variable} ${jetbrainsMono.variable} ${manrope.variable} ${cormorantGaramond.variable} ${brandFontVars}`}
     >
       <body>
         <a

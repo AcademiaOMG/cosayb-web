@@ -107,6 +107,14 @@
   --shadow-lg: 0 8px 20px rgba(16, 24, 40, 0.1);
 }
 
+/* Tipografías de marca blanca: Manrope e Inter se reutilizan de las ya
+   cargadas; las demás las define next/font en app/layout.tsx
+   (--font-brand-poppins, -dm-sans, -nunito, -lato, -montserrat, -source-sans-3). */
+:root {
+  --font-brand-manrope: var(--font-manrope);
+  --font-brand-inter: var(--font-inter);
+}
+
 /* ─── Tailwind Theme Bridge ─────────────────────────────────────── */
 @theme inline {
   --color-bg-primary: var(--bg-primary);
