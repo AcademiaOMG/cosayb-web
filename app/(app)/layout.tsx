@@ -3,6 +3,7 @@ import AppShell from "@/components/app/AppShell"
 import { UpgradeModalProvider } from "@/components/app/settings/UpgradeModalProvider"
 import UpgradeModal from "@/components/app/settings/UpgradeModal"
 import BrandProvider from "@/components/branding/BrandProvider"
+import PlatformPreviewBar from "@/components/branding/editor/PlatformPreviewBar"
 import { getServerBranding } from "@/lib/branding/server"
 import { brandingStyle } from "@/lib/branding/resolve"
 
@@ -34,6 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <UpgradeModalProvider>
             <AppShell>{children}</AppShell>
             <UpgradeModal />
+            <PlatformPreviewBar />
           </UpgradeModalProvider>
         </div>
       </BrandProvider>

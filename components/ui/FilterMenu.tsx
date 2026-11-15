@@ -126,7 +126,7 @@ export default function FilterMenu({
                         fontWeight: 500,
                         border: `1px solid ${on ? "var(--accent)" : "var(--border-light)"}`,
                         background: on ? "var(--accent)" : "transparent",
-                        color: on ? "#fff" : "var(--text-secondary)",
+                        color: on ? "var(--on-accent)" : "var(--text-secondary)",
                         cursor: "pointer",
                       }}
                     >
