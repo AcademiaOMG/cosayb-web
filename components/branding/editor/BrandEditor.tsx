@@ -167,7 +167,7 @@ export default function BrandEditor() {
       )}
 
       {/* Pestañas solo en móvil */}
-      <div role="tablist" aria-label="Editor o vista previa" className="flex gap-1 rounded-[var(--radius-md)] p-1 lg:hidden" style={{ background: "var(--bg-secondary)" }}>
+      <div role="tablist" aria-label="Editor o vista previa" className="flex gap-1 rounded-[var(--radius-md)] p-1 xl:hidden" style={{ background: "var(--bg-secondary)" }}>
         {(["edit", "preview"] as const).map((t) => (
           <button
             key={t}
@@ -188,12 +188,12 @@ export default function BrandEditor() {
         ))}
       </div>
 
-      <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
         <div
           role="tabpanel"
           id="brand-panel-edit"
           aria-labelledby="brand-tab-edit"
-          className={`${tab === "edit" ? "flex" : "hidden lg:flex"} min-w-0 flex-col gap-5`}
+          className={`${tab === "edit" ? "flex" : "hidden xl:flex"} min-w-0 flex-col gap-5`}
           // Bloqueado: contenido atenuado y sin interacción (ningún control puede escribir).
           inert={locked}
           style={locked ? { opacity: 0.55 } : undefined}
@@ -218,9 +218,9 @@ export default function BrandEditor() {
           role="tabpanel"
           id="brand-panel-preview"
           aria-labelledby="brand-tab-preview"
-          className={`${tab === "preview" ? "block" : "hidden lg:block"} min-w-0`}
+          className={`${tab === "preview" ? "block" : "hidden xl:block"} min-w-0`}
         >
-          <div className="flex flex-col gap-3 lg:sticky lg:top-4">
+          <div className="flex flex-col gap-3 xl:sticky xl:top-4">
             <div className="flex items-center gap-2 text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
               <Eye size={14} aria-hidden /> VISTA PREVIA EN VIVO
             </div>

@@ -94,7 +94,8 @@ export default function ConfiguracionLayout({
         </nav>
 
         {/* Contenido de la sección */}
-        <div className="flex-1 min-w-0 w-full max-w-3xl">{children}</div>
+        {/* Marca necesita más ancho (editor + vista previa en vivo); el resto, columna de lectura. */}
+        <div className={`flex-1 min-w-0 w-full ${pathname.startsWith("/configuracion/marca") ? "max-w-6xl" : "max-w-3xl"}`}>{children}</div>
       </div>
     </div>
   )

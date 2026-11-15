@@ -1,10 +1,9 @@
 "use client"
 
-import { createContext, useContext, useEffect, useMemo } from "react"
-import useSWR from "swr"
+import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { fetchAPI } from "@/lib/api"
 import { getActiveOrgId } from "@/lib/activeOrg"
-import { BRANDING_SWR_KEY, DEFAULT_BRANDING, brandingStyle, resolveBranding } from "@/lib/branding/resolve"
+import { BRANDING_EVENT, DEFAULT_BRANDING, brandingStyle, resolveBranding } from "@/lib/branding/resolve"
 import { DEFAULT_BRAND_THEME, type BrandTheme, type BrandingResponse } from "@/lib/branding/types"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
@@ -64,23 +63,30 @@ function applyFavicon(href: string | null) {
 
 /**
  * Recibe la marca resuelta en el servidor (sin parpadeo) y la reconcilia en el
- * cliente con la organización activa (X-Organization-Id) y tras cambios del
- * editor (mutate(BRANDING_SWR_KEY)). El <style id="brand-theme"> del SSR lo
- * pinta el layout; aquí solo se actualiza si el cliente obtiene otra versión.
+ * cliente: (1) con la organización activa (X-Organization-Id), que puede diferir
+ * de la que vio el SSR, y (2) tras cambios hechos en el editor (evento
+ * BRANDING_EVENT). Sin SWR a propósito (ver resolve.ts). El <style id="brand-theme">
+ * del SSR lo pinta el layout; aquí solo se actualiza si el cliente obtiene otra versión.
  */
 export default function BrandProvider({ initial, children }: { initial: BrandingResponse; children: React.ReactNode }) {
-  const { data } = useSWR<BrandingResponse>(
-    BRANDING_SWR_KEY,
-    () => fetchAPI<unknown>("/api/v1/organizations/me/branding").then((r) => resolveBranding(r, API_BASE_URL)),
-    {
-      fallbackData: initial,
-      // Revalida al montar solo si hay org activa elegida (puede diferir de la del SSR); si falla, se conserva lo actual.
-      revalidateOnMount: !!getActiveOrgId(),
-      revalidateOnFocus: false,
-      shouldRetryOnError: false,
-    },
-  )
-  const brand = data ?? initial
+  const [brand, setBrand] = useState<BrandingResponse>(initial)
+
+  useEffect(() => {
+    const onChange = (e: Event) => setBrand((e as CustomEvent<BrandingResponse>).detail)
+    window.addEventListener(BRANDING_EVENT, onChange)
+    return () => window.removeEventListener(BRANDING_EVENT, onChange)
+  }, [])
+
+  useEffect(() => {
+    // Solo si hay org activa elegida (multi-org); si falla, se conserva lo actual.
+    if (!getActiveOrgId()) return
+    let cancelled = false
+    fetchAPI<unknown>("/api/v1/organizations/me/branding")
+      .then((r) => { if (!cancelled) setBrand(resolveBranding(r, API_BASE_URL)) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
   const value = useMemo(() => toValue(brand), [brand])
 
   useEffect(() => {

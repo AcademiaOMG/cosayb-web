@@ -13,6 +13,18 @@ export const DEFAULT_BRANDING: BrandingResponse = {
 export const DEFAULT_BRAND_NAME = "ACADEMIA OMG"
 export const BRANDING_SWR_KEY = "branding"
 
+/**
+ * Cambios de marca hechos en esta pestaña (editor, vista previa global).
+ * BrandProvider NO usa SWR a propósito: vive en el layout, por encima de casi
+ * todos los hooks SWR de la app, y su useSWR chocaba con el cambio de caché
+ * que hace SWRProvider tras hidratar (las pantallas se quedaban en "Cargando…").
+ */
+export const BRANDING_EVENT = "brand:changed"
+
+export function publishBranding(b: BrandingResponse): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent<BrandingResponse>(BRANDING_EVENT, { detail: b }))
+}
+
 const KINDS: BrandAssetKind[] = ["logoPrimary", "logoAlt", "icon"]
 
 function resolveAssetUrl(value: unknown, apiBase: string): string | null {

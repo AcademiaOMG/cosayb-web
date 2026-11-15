@@ -166,7 +166,7 @@ export default function LogosSection({ assets, version, locked, onChanged }: Pro
       <p className="mb-4 text-sm" style={{ color: "var(--text-secondary)" }}>
         PNG, JPG, WebP o SVG de hasta 1 MB. Los archivos se guardan al instante, sin esperar al botón Guardar.
       </p>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))]">
         {ASSET_KINDS.map((k) => (
           <LogoSlot key={k} kind={k} url={assets?.[k] ?? null} version={version} locked={locked} onChanged={onChanged} />
         ))}

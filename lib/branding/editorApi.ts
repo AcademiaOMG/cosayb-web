@@ -1,5 +1,5 @@
 import { fetchAPI } from "@/lib/api"
-import { BRANDING_SWR_KEY, resolveBranding } from "./resolve"
+import { BRANDING_SWR_KEY, publishBranding, resolveBranding } from "./resolve"
 import type { BrandAssetKind, BrandingResponse, BrandTheme } from "./types"
 
 // Misma clave SWR que usa BrandProvider: así guardar desde el editor (mutate)
@@ -11,6 +11,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
 /** Respuesta cruda del API ({ data: BrandingResponse }) → BrandingResponse saneado con URLs absolutas. */
 const resolve = (raw: unknown): BrandingResponse => resolveBranding(raw, API_BASE_URL)
 
+/** Resuelve y avisa al BrandProvider para que la app entera adopte la marca sin recargar. */
+const resolveAndPublish = (raw: unknown): BrandingResponse => {
+  const b = resolve(raw)
+  publishBranding(b)
+  return b
+}
+
 export function getBranding(): Promise<BrandingResponse> {
   return fetchAPI<unknown>("/api/v1/organizations/me/branding").then(resolve)
 }
@@ -19,7 +26,7 @@ export function saveBranding(payload: { theme: BrandTheme; displayName?: string 
   return fetchAPI<unknown>("/api/v1/organizations/me/branding", {
     method: "PUT",
     body: JSON.stringify(payload),
-  }).then(resolve)
+  }).then(resolveAndPublish)
 }
 
 /** El API recibe el archivo como cuerpo binario crudo (no multipart), con el MIME como Content-Type. */
@@ -28,11 +35,11 @@ export function uploadBrandAsset(kind: BrandAssetKind, file: File): Promise<Bran
     method: "POST",
     body: file,
     headers: { "Content-Type": file.type },
-  }).then(resolve)
+  }).then(resolveAndPublish)
 }
 
 export function deleteBrandAsset(kind: BrandAssetKind): Promise<BrandingResponse> {
-  return fetchAPI<unknown>(`/api/v1/organizations/me/branding/assets/${kind}`, { method: "DELETE" }).then(resolve)
+  return fetchAPI<unknown>(`/api/v1/organizations/me/branding/assets/${kind}`, { method: "DELETE" }).then(resolveAndPublish)
 }
 
 /** URL absoluta de un asset (el API puede devolver rutas relativas) con cache-bust por versión. */
