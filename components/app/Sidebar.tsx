@@ -7,6 +7,7 @@ import type { Plan } from "@/types/domain"
 import { useNavItems } from "@/hooks/useNavItems"
 import { ACCOUNT_ITEM, CONFIG_ITEM, SUPPORT_ITEM } from "@/lib/navigation"
 import SidebarChecklist from "./SidebarChecklist"
+import BrandLogo from "@/components/branding/BrandLogo"
 
 // ─── Navegación del Restaurant Tenant Workspace ──────────────────────────────
 // Solo existe en desktop (lg+). Los ítems vienen de lib/navigation.ts (fuente
@@ -32,7 +33,7 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
         style={{ borderBottom: "1px solid var(--sidebar-hairline)" }}
       >
         <Link href="/dashboard" className="font-display text-2xl font-bold" style={{ color: "var(--sidebar-text)" }}>
-          ACADEMIA OMG
+          <BrandLogo variant="alt" height={36} />
         </Link>
       </div>
 
