@@ -1293,7 +1293,7 @@ export default function RecipeCalculator({
           </details>
 
           {saveError && (
-            <p className="text-sm" role="alert" style={{ color: "#B42020" }}>
+            <p className="text-sm" role="alert" style={{ color: "var(--error)" }}>
               {saveError}
             </p>
           )}

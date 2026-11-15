@@ -50,7 +50,7 @@ function StaleDot() {
   return (
     <span
       className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-      style={{ background: "#D97706" }}
+      style={{ background: "var(--warning-solid)" }}
       title="Precio desactualizado: confirmado hace más de 30 días"
       aria-label="Precio desactualizado"
       role="img"
@@ -184,7 +184,7 @@ export default function IngredientRow({
               onClick={() => onDelete(ingredient)}
               aria-label={`Eliminar ${name}`}
               title="Eliminar"
-              className="pointer-events-auto relative z-10 p-2 text-[var(--text-secondary)] opacity-60 transition hover:bg-red-50 hover:text-[#B42020] hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
+              className="pointer-events-auto relative z-10 p-2 text-[var(--text-secondary)] opacity-60 transition hover:bg-[var(--error-bg)] hover:text-[var(--error)] hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
               style={{ borderRadius: "var(--radius-sm)" }}
             >
               <Trash2 size={15} />

@@ -2,9 +2,9 @@ import type { MenuIndicator } from "@/types/domain"
 
 // ─── Indicador (semáforo del % de materia prima) ──────────────────────────────
 export const IND: Record<MenuIndicator, { color: string; bg: string; text: string; label: string; sublabel: string }> = {
-  MUY_BUENO: { color: "#10B981", bg: "#ECFDF5", text: "#064E3B", label: "MUY BUENO", sublabel: "Excelente rentabilidad" },
-  REGULAR:   { color: "#F59E0B", bg: "#FFFBEB", text: "#78350F", label: "REGULAR",   sublabel: "Margen moderado" },
-  MALO:      { color: "#EF4444", bg: "#FEF2F2", text: "#7F1D1D", label: "MALO",      sublabel: "Revisar estructura de costos" },
+  MUY_BUENO: { color: "var(--success)", bg: "var(--success-bg)", text: "#064E3B", label: "MUY BUENO", sublabel: "Excelente rentabilidad" },
+  REGULAR:   { color: "var(--warning)", bg: "var(--warning-bg)", text: "var(--warning-text-strong)", label: "REGULAR",   sublabel: "Margen moderado" },
+  MALO:      { color: "#EF4444", bg: "var(--error-bg)", text: "#7F1D1D", label: "MALO",      sublabel: "Revisar estructura de costos" },
 }
 
 // ─── Formato de números ───────────────────────────────────────────────────────

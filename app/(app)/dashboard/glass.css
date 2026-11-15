@@ -83,7 +83,7 @@
 .glass-card-skeleton {
   aspect-ratio: 1 / 1;
   border-radius: var(--radius-lg);
-  background: rgba(27, 79, 216, 0.06);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
 /* ── Títulos de sección — chicos y discretos, la jerarquía la da el
@@ -125,7 +125,7 @@
   font-size: clamp(30px, 8vw, 40px);
   font-weight: 800;
   line-height: 1.05;
-  color: #fff;
+  color: var(--on-accent);
   letter-spacing: -0.02em;
   margin: 2px 0 4px;
 }
@@ -141,7 +141,7 @@
 
 .dash-banner-emph {
   font-weight: 600;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* ── Información que importa — 1 en mobile, hasta 3 en desktop ─────────── */

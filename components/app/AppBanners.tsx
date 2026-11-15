@@ -75,7 +75,7 @@ export default function AppBanners() {
           className="flex items-center gap-3 px-4 py-2.5 text-sm"
           style={
             notice.tone === "warning"
-              ? { background: "#FEF3C7", color: "#78350F" }
+              ? { background: "var(--warning-bg-strong)", color: "var(--warning-text-strong)" }
               : { background: "var(--accent-light)", color: "var(--accent-text)" }
           }
         >

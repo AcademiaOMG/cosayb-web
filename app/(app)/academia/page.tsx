@@ -29,7 +29,7 @@ export default function AcademiaPage() {
       <PageHeader
         title="Cursos / Academia"
         subtitle={hasPlan ? "Los cursos incluidos en tu plan Academia, con tu avance. No necesitas matricularte." : "Cursos de Academia OMG para tu equipo y tu negocio."}
-        action={<Link href="/inicio" className={linkBtn} style={{ background: "var(--accent)", color: "#fff" }}>Ir a mi aprendizaje <ArrowRight size={15} aria-hidden="true" /></Link>}
+        action={<Link href="/inicio" className={linkBtn} style={{ background: "var(--accent)", color: "var(--on-accent)" }}>Ir a mi aprendizaje <ArrowRight size={15} aria-hidden="true" /></Link>}
       />
 
       {!hasPlan && (
@@ -39,7 +39,7 @@ export default function AcademiaPage() {
             <p className="font-display text-lg font-bold">Con el plan Academia, estos cursos quedan incluidos</p>
             <p className="text-sm">Entra de una a los cursos del plan y lleva tu avance sin matricularte a mano. Tu negocio sigue como está mientras decides.</p>
           </div>
-          <Link href="/planes" className={linkBtn} style={{ background: "var(--accent)", color: "#fff" }}>Ver planes</Link>
+          <Link href="/planes" className={linkBtn} style={{ background: "var(--accent)", color: "var(--on-accent)" }}>Ver planes</Link>
         </section>
       )}
 

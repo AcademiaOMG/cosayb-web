@@ -396,7 +396,7 @@ export default function YieldFactorCalculator({
             <div
               role="alert"
               className="anim-pop rounded-2xl px-4 py-3 text-sm font-medium"
-              style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B" }}
+              style={{ background: "var(--error-bg)", border: "1px solid var(--error-border)", color: "var(--error-text)" }}
             >
               {notice}
             </div>

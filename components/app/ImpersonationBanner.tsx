@@ -66,7 +66,7 @@ export default function ImpersonationBanner() {
           <button
             onClick={() => setElevating(true)}
             className="px-3 py-1 rounded-lg text-xs font-semibold"
-            style={{ background: "#1F2937", color: "#fff", border: "none", cursor: "pointer" }}
+            style={{ background: "#1F2937", color: "var(--on-accent)", border: "none", cursor: "pointer" }}
           >
             Habilitar edición
           </button>
@@ -85,7 +85,7 @@ export default function ImpersonationBanner() {
               onClick={handleElevate}
               disabled={reason.trim().length < 10}
               className="px-3 py-1 rounded-lg text-xs font-semibold disabled:opacity-50"
-              style={{ background: "#1F2937", color: "#fff", border: "none", cursor: "pointer" }}
+              style={{ background: "#1F2937", color: "var(--on-accent)", border: "none", cursor: "pointer" }}
             >
               Confirmar
             </button>

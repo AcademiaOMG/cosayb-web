@@ -96,7 +96,7 @@ function Section({
             {title}
           </h3>
           {dirty ? (
-            <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "#FEF3C7", color: "#78350F" }}>
+            <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: "var(--warning-bg-strong)", color: "var(--warning-text-strong)" }}>
               Sin guardar
             </span>
           ) : (
@@ -117,7 +117,7 @@ function Section({
         </div>
       </header>
       {error && (
-        <p role="alert" className="flex items-start gap-1.5 text-sm" style={{ color: "#B42020" }}>
+        <p role="alert" className="flex items-start gap-1.5 text-sm" style={{ color: "var(--error)" }}>
           <AlertCircle size={14} className="mt-0.5 shrink-0" aria-hidden="true" /> {error}
         </p>
       )}
@@ -202,13 +202,13 @@ function LineRow({
           type="button"
           aria-label={`Quitar ${line.name}`}
           onClick={onRemove}
-          className="justify-self-end p-1.5 text-[var(--text-secondary)] transition hover:text-[#B42020]"
+          className="justify-self-end p-1.5 text-[var(--text-secondary)] transition hover:text-[var(--error)]"
         >
           <Trash2 size={15} />
         </button>
       </div>
       {priced.error && (
-        <p role="alert" className="mt-1.5 text-xs" style={{ color: "#B42020" }}>
+        <p role="alert" className="mt-1.5 text-xs" style={{ color: "var(--error)" }}>
           {priced.error}
         </p>
       )}
@@ -478,7 +478,7 @@ function Editor({
         {priced.lines.length > 0 && (
           <p className="m-0 text-right text-sm font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>
             Total ingredientes: {priced.pending || priced.unpriced ? "—" : formatCOP(priced.total)}
-            {priced.unpriced > 0 && <span className="ml-2 text-xs font-normal" style={{ color: "#B42020" }}>({priced.unpriced} sin costo)</span>}
+            {priced.unpriced > 0 && <span className="ml-2 text-xs font-normal" style={{ color: "var(--error)" }}>({priced.unpriced} sin costo)</span>}
           </p>
         )}
       </Section>
@@ -578,7 +578,7 @@ export default function RecipeEditorView({
   return (
     <Modal open onClose={() => void requestClose()} title={recipe.data ? `Editar receta · ${recipe.data.name}` : "Editar receta"} wide>
       {failed ? (
-        <div role="alert" className="flex items-center gap-2 rounded-xl p-4 text-sm" style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B42020" }}>
+        <div role="alert" className="flex items-center gap-2 rounded-xl p-4 text-sm" style={{ background: "var(--error-bg)", border: "1px solid var(--error-border)", color: "var(--error)" }}>
           <AlertCircle size={16} className="shrink-0" />
           <span className="flex-1">No se pudo cargar la receta. Revisa tu conexión e inténtalo de nuevo.</span>
           <Button variant="ghost" size="sm" onClick={() => { void catalog.mutate(); void recipe.mutate() }}>

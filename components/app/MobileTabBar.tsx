@@ -243,7 +243,7 @@ function MoreSheet({ items, pathname, onClose }: { items: LinkEntry[]; pathname:
                   style={{
                     minHeight: 48,
                     background: active ? "var(--accent)" : "transparent",
-                    color: active ? "#fff" : "var(--text-primary)",
+                    color: active ? "var(--on-accent)" : "var(--text-primary)",
                   }}
                 >
                   <Icon size={20} aria-hidden="true" />

@@ -207,7 +207,7 @@ export default function LineAdder({
         </Button>
       </div>
       {error && (
-        <p role="alert" className="text-xs" style={{ color: "#B42020" }}>
+        <p role="alert" className="text-xs" style={{ color: "var(--error)" }}>
           {error}
         </p>
       )}

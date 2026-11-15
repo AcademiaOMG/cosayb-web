@@ -47,7 +47,7 @@ function useSpotlight() {
 const tileStyle = (spot: { x: number; y: number } | null, tone: Tone): CSSProperties => ({
   ...RAISED,
   background: spot
-    ? `radial-gradient(160px circle at ${spot.x}px ${spot.y}px, rgba(27,79,216,0.07), transparent 70%), var(--bg-surface)`
+    ? `radial-gradient(160px circle at ${spot.x}px ${spot.y}px, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%), var(--bg-surface)`
     : "var(--bg-surface)",
   borderRadius: 18,
   color: TONE_COLOR[tone],

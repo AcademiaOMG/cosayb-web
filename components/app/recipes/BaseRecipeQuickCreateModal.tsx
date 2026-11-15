@@ -150,7 +150,7 @@ function Form({ initialName = "", ingredients, existing, canCreateIngredient, on
                       type="button"
                       aria-label={`Quitar ${l.name}`}
                       onClick={() => setLines((p) => p.filter((x) => x.key !== l.key))}
-                      className="p-1 text-[var(--text-secondary)] hover:text-[#B42020]"
+                      className="p-1 text-[var(--text-secondary)] hover:text-[var(--error)]"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -160,13 +160,13 @@ function Form({ initialName = "", ingredients, existing, canCreateIngredient, on
             </ul>
           )}
           {errors.lines && (
-            <p role="alert" className="text-xs" style={{ color: "#B42020" }}>
+            <p role="alert" className="text-xs" style={{ color: "var(--error)" }}>
               {errors.lines}
             </p>
           )}
         </div>
         {serverError && (
-          <p role="alert" className="text-sm" style={{ color: "#B42020" }}>
+          <p role="alert" className="text-sm" style={{ color: "var(--error)" }}>
             {serverError}
           </p>
         )}

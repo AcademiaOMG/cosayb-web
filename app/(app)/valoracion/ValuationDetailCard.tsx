@@ -21,7 +21,7 @@ const SEGMENT_COLOR = {
   fixed: "#FB923C",
   taxes: "#A78BFA",
   others: "#94A3B8",
-  profit: "#10B981",
+  profit: "var(--success)",
 } as const
 
 // ─── Donut de 5 segmentos: MP / Costos fijos / Impuestos / Otros / Ganancia ──
@@ -202,7 +202,7 @@ export default function ValuationDetailCard({
               <div className="calc-receipt-row" style={{ marginTop: 4 }}>
                 <span className="calc-receipt-row-label">Precio real cobrado</span>
                 <span className="calc-receipt-row-leader" />
-                <span className="calc-receipt-row-value" style={{ color: up ? "#166534" : "#991B1B" }}>
+                <span className="calc-receipt-row-value" style={{ color: up ? "var(--success-text-strong)" : "var(--error-text)" }}>
                   {fmt(actualPrice!)}
                 </span>
               </div>

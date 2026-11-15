@@ -101,9 +101,9 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       <div className="flex flex-col items-center gap-4 px-6 py-14 text-center">
         <div
           className="flex h-11 w-11 items-center justify-center rounded-full"
-          style={{ background: "#FEF2F2" }}
+          style={{ background: "var(--error-bg)" }}
         >
-          <AlertCircle size={22} style={{ color: "#B42020" }} />
+          <AlertCircle size={22} style={{ color: "var(--error)" }} />
         </div>
         <div className="flex max-w-sm flex-col gap-1">
           <p className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>

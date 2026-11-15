@@ -60,7 +60,7 @@ export default function RecipeCalculatorView({
         <div
           role="alert"
           className="flex items-center gap-2 p-4 rounded-xl text-sm"
-          style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#B42020" }}
+          style={{ background: "var(--error-bg)", border: "1px solid var(--error-border)", color: "var(--error)" }}
         >
           <AlertCircle size={16} className="shrink-0" />
           <span className="flex-1">

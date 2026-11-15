@@ -24,8 +24,8 @@ export default function QuotaBanner({ used, limit }: QuotaBannerProps) {
 
   const pct = Math.min((used / limit) * 100, 100)
   const tone = isCritical
-    ? { bg: "#FEF2F2", bar: "#B42020", text: "#991B1B" }
-    : { bg: "#FFFBEB", bar: "#D97706", text: "#92400E" }
+    ? { bg: "var(--error-bg)", bar: "var(--error)", text: "var(--error-text)" }
+    : { bg: "var(--warning-bg)", bar: "var(--warning-solid)", text: "var(--warning-text)" }
 
   const message =
     remaining === 0

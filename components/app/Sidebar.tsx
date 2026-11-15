@@ -24,14 +24,14 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
   return (
     <aside
       className="hidden lg:flex fixed top-0 left-0 z-40 h-full w-60 flex-col"
-      style={{ background: "var(--bg-inverse)" }}
+      style={{ background: "var(--sidebar-bg)" }}
     >
       {/* Logo */}
       <div
         className="flex items-center px-5 h-16 shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+        style={{ borderBottom: "1px solid var(--sidebar-hairline)" }}
       >
-        <Link href="/dashboard" className="font-display text-2xl font-bold text-white">
+        <Link href="/dashboard" className="font-display text-2xl font-bold" style={{ color: "var(--sidebar-text)" }}>
           ACADEMIA OMG
         </Link>
       </div>
@@ -43,7 +43,7 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
             {group.label && (
               <p
                 className="px-3 mb-1.5 text-[10px] font-bold tracking-[0.14em] uppercase"
-                style={{ color: "#5B6B85" }}
+                style={{ color: "var(--sidebar-label)" }}
               >
                 {group.label}
               </p>
@@ -59,11 +59,11 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
                       style={{
                         background: isActive ? "var(--accent)" : "transparent",
-                        color: isActive ? "#fff" : "#8FA0BC",
+                        color: isActive ? "var(--on-accent)" : "var(--sidebar-muted)",
                       }}
                       onMouseEnter={(e) => {
                         if (!isActive)
-                          e.currentTarget.style.background = "rgba(255,255,255,0.08)"
+                          e.currentTarget.style.background = "var(--sidebar-hairline)"
                       }}
                       onMouseLeave={(e) => {
                         if (!isActive) e.currentTarget.style.background = "transparent"
@@ -88,7 +88,7 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
       {/* Cuenta + sesión */}
       <div
         className="px-3 py-3 shrink-0"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
+        style={{ borderTop: "1px solid var(--sidebar-hairline)" }}
       >
         <ul className="flex flex-col gap-1">
           {(
@@ -119,12 +119,12 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
                         background: isActive
                           ? "var(--accent)"
                           : "transparent",
-                        color: isActive ? "#fff" : "#8FA0BC",
+                        color: isActive ? "var(--on-accent)" : "var(--sidebar-muted)",
                       }}
                       onMouseEnter={(e) => {
                         if (!isActive)
                           e.currentTarget.style.background =
-                            "rgba(255,255,255,0.08)"
+                            "var(--sidebar-hairline)"
                       }}
                       onMouseLeave={(e) => {
                         if (!isActive)
@@ -146,13 +146,13 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full"
                     style={{
                       background: "transparent",
-                      color: "#8FA0BC",
+                      color: "var(--sidebar-muted)",
                       border: "none",
                       cursor: "pointer",
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background =
-                        "rgba(255,255,255,0.08)"
+                        "var(--sidebar-hairline)"
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = "transparent"

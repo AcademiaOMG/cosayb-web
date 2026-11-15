@@ -146,8 +146,8 @@ describe("SidebarChecklist", () => {
     expect(pos[2]).toBeGreaterThan(pos[1])
 
     // La paleta del sidebar oscuro no debe filtrarse sobre fondo claro.
-    expect(html).not.toContain("rgba(255,255,255,0.04)")
-    expect(html).not.toContain("#8FA0BC")
+    expect(html).not.toContain("var(--sidebar-text) 4%")
+    expect(html).not.toContain("var(--sidebar-muted)")
   })
 
   it("sin datos de summary muestra skeleton (animate-pulse) sin cifras, y no con datos", () => {
@@ -171,12 +171,12 @@ describe("SidebarChecklist", () => {
     expect(renderWith(<SidebarChecklist />, { checklist: DONE_CHECKLIST })).toBe("")
   })
 
-  it("por defecto (sidebar) conserva la paleta del aside oscuro", () => {
+  it("por defecto (sidebar) usa los tokens de la barra lateral (por defecto, aside oscuro)", () => {
     const html = renderWith(<SidebarChecklist />)
 
     expect(html).toContain("0/3")
-    expect(html).toContain("rgba(255,255,255,0.04)")
-    expect(html).toContain("#8FA0BC")
+    expect(html).toContain("var(--sidebar-text) 4%")
+    expect(html).toContain("var(--sidebar-muted)")
     expect(html).not.toContain("glass px-4")
   })
 })

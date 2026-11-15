@@ -40,7 +40,7 @@
 }
 .rt-kind button[aria-pressed="true"] {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .rt-kind button:focus-visible {
   outline: 2px solid var(--accent);
@@ -151,7 +151,7 @@
   white-space: nowrap;
 }
 .rt-cost.is-missing {
-  color: #B42020;
+  color: var(--error);
   font-size: 11px;
 }
 
@@ -173,7 +173,7 @@
 }
 .rt-icon-btn:hover:not(:disabled) { background: var(--bg-secondary); color: var(--text-primary); }
 .rt-icon-btn:disabled { opacity: 0.3; cursor: default; }
-.rt-icon-btn.is-danger:hover:not(:disabled) { color: #B42020; }
+.rt-icon-btn.is-danger:hover:not(:disabled) { color: var(--error); }
 .rt-icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .rt-total {
@@ -273,7 +273,7 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 .rw-step.is-done .rw-step-n { background: var(--accent-light); color: var(--accent-text); border-color: var(--accent); }
-.rw-step.is-current .rw-step-n { background: var(--accent); color: #fff; border-color: var(--accent); }
+.rw-step.is-current .rw-step-n { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .rw-step-label { font-size: 11px; font-weight: 600; }
 .rw-step button:disabled:not([aria-current]) { opacity: 0.6; }
 .rw-step.is-current .rw-step-label { color: var(--text-primary); }
@@ -333,7 +333,7 @@
   color: var(--text-primary);
 }
 
-.rw-field-error { margin: 6px 2px 0; font-size: 12.5px; font-weight: 600; color: #B42020; }
+.rw-field-error { margin: 6px 2px 0; font-size: 12.5px; font-weight: 600; color: var(--error); }
 .rw-q {
   margin: 0;
   font-size: 20px;
@@ -381,7 +381,7 @@
   color: var(--text-primary);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.rw-input[aria-invalid="true"] { border-color: #B42020; }
+.rw-input[aria-invalid="true"] { border-color: var(--error); }
 .rw-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 .rw-input.is-small { height: 38px; font-size: 14px; border-radius: 10px; }
 textarea.rw-input { height: auto; padding: 8px 12px; }
@@ -417,7 +417,7 @@ textarea.rw-input { height: auto; padding: 8px 12px; }
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--bg-surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   transition: left 0.2s ease;
 }
@@ -441,7 +441,7 @@ textarea.rw-input { height: auto; padding: 8px 12px; }
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .rw-chip:hover { border-color: var(--accent); }
-.rw-chip[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.rw-chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .rw-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rw-chip:disabled { cursor: default; opacity: 1; }
 .rw-chip:disabled:hover { border-color: var(--accent); }
@@ -453,9 +453,9 @@ textarea.rw-input { height: auto; padding: 8px 12px; }
   font-size: 13px;
   font-weight: 600;
 }
-.rw-indicator.is-good { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
-.rw-indicator.is-mid { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
-.rw-indicator.is-bad { background: #FEF2F2; color: #B42020; border: 1px solid #FECACA; }
+.rw-indicator.is-good { background: #F0FDF4; color: var(--success-text-strong); border: 1px solid #BBF7D0; }
+.rw-indicator.is-mid { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-border); }
+.rw-indicator.is-bad { background: var(--error-bg); color: var(--error); border: 1px solid var(--error-border); }
 
 .rw-warn {
   display: flex;
@@ -464,9 +464,9 @@ textarea.rw-input { height: auto; padding: 8px 12px; }
   padding: 12px;
   border-radius: 12px;
   font-size: 12px;
-  background: #FFFBEB;
-  border: 1px solid #FDE68A;
-  color: #92400E;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
 }
 
 /* ── Navegación ──────────────────────────────────────────────────────── */

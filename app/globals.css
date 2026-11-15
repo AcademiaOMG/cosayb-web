@@ -39,6 +39,35 @@
   --error: #B42020;
   --error-hover: #8F1A1A;
 
+  /* Familias de estado completas (fondo / borde / texto / sólido). Valores
+     idénticos a los hex que antes vivían sueltos en los componentes: así el
+     tema de marca de cada negocio puede sobreescribirlos desde un único lugar. */
+  --error-bg: #FEF2F2;
+  --error-border: #FECACA;
+  --error-text: #991B1B;
+  --warning-bg: #FFFBEB;
+  --warning-bg-strong: #FEF3C7;
+  --warning-border: #FDE68A;
+  --warning-text: #92400E;
+  --warning-text-strong: #78350F;
+  --warning-solid: #D97706;
+  --success-bg: #ECFDF5;
+  --success-bg-strong: #D1FAE5;
+  --success-text: #065F46;
+  --success-text-strong: #166534;
+
+  /* Texto sobre superficies de color: se calcula por contraste en el tema de
+     marca; por defecto, blanco. */
+  --on-accent: #FFFFFF;
+  --on-inverse: #FFFFFF;
+
+  /* Barra lateral (por defecto: navy de marca con texto blanco). */
+  --sidebar-bg: var(--bg-inverse);
+  --sidebar-text: #FFFFFF;
+  --sidebar-muted: #8FA0BC;   /* ítems inactivos */
+  --sidebar-label: #5B6B85;   /* títulos de grupo */
+  --sidebar-hairline: rgba(255, 255, 255, 0.08); /* divisores y hover */
+
   /* Liquid Glass — solo lo propio del efecto. Fondo base, radio y sombra se
      reutilizan de --bg-surface, --radius-lg y --shadow-*. Ver docs/design-system.md */
   --glass-tint: rgba(124, 168, 255, 0.16);        /* mancha azul de marca (glass) */
@@ -97,6 +126,26 @@
   --color-warning: var(--warning);
   --color-error: var(--error);
   --color-error-hover: var(--error-hover);
+  --color-error-bg: var(--error-bg);
+  --color-error-border: var(--error-border);
+  --color-error-text: var(--error-text);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-bg-strong: var(--warning-bg-strong);
+  --color-warning-border: var(--warning-border);
+  --color-warning-text: var(--warning-text);
+  --color-warning-text-strong: var(--warning-text-strong);
+  --color-warning-solid: var(--warning-solid);
+  --color-success-bg: var(--success-bg);
+  --color-success-bg-strong: var(--success-bg-strong);
+  --color-success-text: var(--success-text);
+  --color-success-text-strong: var(--success-text-strong);
+  --color-on-accent: var(--on-accent);
+  --color-on-inverse: var(--on-inverse);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-label: var(--sidebar-label);
+  --color-sidebar-hairline: var(--sidebar-hairline);
 
   --font-display: var(--font-barlow-condensed);
   --font-body: var(--font-inter);

@@ -162,8 +162,8 @@ function Row({
               onClick={() => onDelete(item)}
               title="Eliminar"
               aria-label={`Eliminar ${item.ingredientName}`}
-              className={`${ICON_BTN} hover:!bg-red-50`}
-              style={{ color: "#B42020" }}
+              className={`${ICON_BTN} hover:!bg-[var(--error-bg)]`}
+              style={{ color: "var(--error)" }}
             >
               <Trash2 size={16} />
             </button>

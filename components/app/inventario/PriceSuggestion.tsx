@@ -111,8 +111,8 @@ export default function PriceSuggestion({ ingredientName, onAccept }: PriceSugge
                 <span
                   className="text-xs font-medium px-1.5 py-0.5 rounded-md"
                   style={{
-                    background: variation >= 0 ? "#FEF3C7" : "#D1FAE5",
-                    color: variation >= 0 ? "#92400E" : "#065F46",
+                    background: variation >= 0 ? "var(--warning-bg-strong)" : "var(--success-bg-strong)",
+                    color: variation >= 0 ? "var(--warning-text)" : "var(--success-text)",
                   }}
                 >
                   {variation >= 0 ? "+" : ""}{variation.toFixed(1)}%

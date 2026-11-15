@@ -156,7 +156,7 @@ function PerfilTab() {
         ) : (
           <div
             className="w-[72px] h-[72px] rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0"
-            style={{ background: "var(--accent)", color: "#fff", boxShadow: "0 2px 8px rgba(18,33,58,0.12)" }}
+            style={{ background: "var(--accent)", color: "var(--on-accent)", boxShadow: "0 2px 8px rgba(18,33,58,0.12)" }}
           >
             {profile?.name?.charAt(0)?.toUpperCase() ?? "?"}
           </div>
@@ -564,7 +564,7 @@ function SessionsCard() {
                   {x.current && (
                     <span
                       className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-                      style={{ background: "#DCFCE7", color: "#166534" }}
+                      style={{ background: "#DCFCE7", color: "var(--success-text-strong)" }}
                     >
                       Esta sesión
                     </span>
@@ -758,11 +758,11 @@ function CuentaTab() {
 
       <div
         className="rounded-2xl p-6 flex flex-col gap-4"
-        style={{ background: "var(--bg-surface)", border: "1px solid #FECACA" }}
+        style={{ background: "var(--bg-surface)", border: "1px solid var(--error-border)" }}
       >
         <div className="flex items-center gap-3">
           <AlertTriangle size={18} style={{ color: "#EF4444" }} />
-          <p className="text-xs font-semibold tracking-widest" style={{ color: "#991B1B" }}>
+          <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--error-text)" }}>
             ZONA DE RIESGO
           </p>
         </div>
@@ -884,7 +884,7 @@ function DeleteAccountSection() {
       ) : (
         <div
           className="flex flex-col gap-3 p-4 rounded-xl"
-          style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}
+          style={{ background: "var(--error-bg)", border: "1px solid var(--error-border)" }}
         >
           <p className="text-sm" style={{ color: "#7F1D1D" }}>
             Para confirmar escribe tu correo <strong>{email || "…"}</strong>

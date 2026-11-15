@@ -24,12 +24,12 @@ import { buildSteps, computeProgress } from "@/lib/onboarding"
 type ChecklistVariant = "inverse" | "surface"
 
 const INVERSE = {
-  track: "rgba(255,255,255,0.08)",
+  track: "var(--sidebar-hairline)",
   fill: "var(--accent)",
-  stepActive: { background: "rgba(255,255,255,0.08)", color: "#fff" },
-  stepIdle: "#8FA0BC",
+  stepActive: { background: "var(--sidebar-hairline)", color: "var(--on-accent)" },
+  stepIdle: "var(--sidebar-muted)",
   stepDone: "#4ADE80",
-  badge: { background: "rgba(255,255,255,0.08)", color: "#8FA0BC" },
+  badge: { background: "var(--sidebar-hairline)", color: "var(--sidebar-muted)" },
 } as const
 
 export default function SidebarChecklist({
@@ -121,7 +121,7 @@ export default function SidebarChecklist({
                   aria-hidden
                 >
                   {step.done ? (
-                    <Check size={15} color="#fff" />
+                    <Check size={15} color="var(--on-accent)" />
                   ) : (
                     <span className="text-xs font-bold">{step.order}</span>
                   )}
@@ -148,8 +148,8 @@ export default function SidebarChecklist({
     <div
       className="px-3 py-3 rounded-xl mx-3 mt-5 mb-4 shrink-0"
       style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "color-mix(in srgb, var(--sidebar-text) 4%, transparent)",
+        border: "1px solid var(--sidebar-hairline)",
       }}
       aria-label="Primeros pasos"
     >
@@ -157,13 +157,13 @@ export default function SidebarChecklist({
         <Sparkles size={13} style={{ color: "var(--accent)" }} aria-hidden />
         <p
           className="text-[10px] font-bold tracking-[0.14em] uppercase"
-          style={{ color: "#5B6B85" }}
+          style={{ color: "var(--sidebar-label)" }}
         >
           Primeros pasos
         </p>
         <span
           className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md"
-          style={{ background: "rgba(255,255,255,0.08)", color: "#8FA0BC" }}
+          style={{ background: "var(--sidebar-hairline)", color: "var(--sidebar-muted)" }}
         >
           {progress.done}/{progress.required}
         </span>
@@ -287,8 +287,8 @@ function ChecklistSkeleton({
     <div
       className="px-3 py-3 rounded-xl mx-3 mt-5 mb-4 shrink-0"
       style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "color-mix(in srgb, var(--sidebar-text) 4%, transparent)",
+        border: "1px solid var(--sidebar-hairline)",
       }}
       aria-label="Primeros pasos"
       aria-busy="true"
@@ -296,27 +296,27 @@ function ChecklistSkeleton({
       <div className="flex items-center gap-2 mb-2">
         <div
           className="h-3 w-24 rounded animate-pulse"
-          style={{ background: "rgba(255,255,255,0.06)" }}
+          style={{ background: "color-mix(in srgb, var(--sidebar-text) 6%, transparent)" }}
         />
         <div
           className="ml-auto h-3.5 w-8 rounded-md animate-pulse"
-          style={{ background: "rgba(255,255,255,0.08)" }}
+          style={{ background: "var(--sidebar-hairline)" }}
         />
       </div>
       <div
         className="h-1.5 rounded-full mb-3 animate-pulse"
-        style={{ background: "rgba(255,255,255,0.08)" }}
+        style={{ background: "var(--sidebar-hairline)" }}
       />
       <ul className="flex flex-col gap-1" role="list">
         {[1, 2, 3].map((i) => (
           <li key={i} className="flex items-center gap-2.5 px-2 py-1.5">
             <span
               className="shrink-0 w-[18px] h-[18px] rounded-full animate-pulse"
-              style={{ background: "rgba(255,255,255,0.08)" }}
+              style={{ background: "var(--sidebar-hairline)" }}
             />
             <span
               className="h-3 w-24 rounded animate-pulse"
-              style={{ background: "rgba(255,255,255,0.06)" }}
+              style={{ background: "color-mix(in srgb, var(--sidebar-text) 6%, transparent)" }}
             />
           </li>
         ))}

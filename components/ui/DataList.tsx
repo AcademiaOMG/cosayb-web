@@ -133,7 +133,7 @@ export function RowAction({
       aria-label={label}
       title={label}
       className={`p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
-        danger ? "hover:bg-red-50 hover:text-[#B42020]" : "hover:bg-[var(--bg-secondary)]"
+        danger ? "hover:bg-[var(--error-bg)] hover:text-[var(--error)]" : "hover:bg-[var(--bg-secondary)]"
       }`}
       style={{ color: "var(--text-secondary)", borderRadius: "var(--radius-sm)" }}
     >

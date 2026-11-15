@@ -67,9 +67,9 @@ export default function RecipeCostModal({
             gap: "10px",
             padding: "16px",
             borderRadius: "12px",
-            background: "#FEF2F2",
-            border: "1px solid #FECACA",
-            color: "#B42020",
+            background: "var(--error-bg)",
+            border: "1px solid var(--error-border)",
+            color: "var(--error)",
           }}
         >
           <AlertTriangle size={18} />
@@ -90,9 +90,9 @@ export default function RecipeCostModal({
                 gap: "10px",
                 padding: "12px 14px",
                 borderRadius: "10px",
-                background: "#FFFBEB",
-                border: "1px solid #FDE68A",
-                color: "#92400E",
+                background: "var(--warning-bg)",
+                border: "1px solid var(--warning-border)",
+                color: "var(--warning-text)",
               }}
             >
               <AlertTriangle size={16} />
@@ -229,7 +229,7 @@ export default function RecipeCostModal({
                     Ganancia
                   </p>
                   <p className="text-sm font-bold" style={{
-                    color: result.profitability.profitPct > 0 ? "#16A34A" : "#B42020"
+                    color: result.profitability.profitPct > 0 ? "#16A34A" : "var(--error)"
                   }}>
                     {(result.profitability.profitPct * 100).toFixed(1)}%
                   </p>
@@ -420,9 +420,9 @@ function SummaryCard({
 
 function RatingBadge({ rating }: { rating: "MUY_BUENO" | "REGULAR" | "MALO" }) {
   const config = {
-    MUY_BUENO: { bg: "#DCFCE7", color: "#166534", label: "MUY BUENO", icon: TrendingUp },
+    MUY_BUENO: { bg: "#DCFCE7", color: "var(--success-text-strong)", label: "MUY BUENO", icon: TrendingUp },
     REGULAR: { bg: "#FEF9C3", color: "#854D0E", label: "REGULAR", icon: Minus },
-    MALO: { bg: "#FEE2E2", color: "#991B1B", label: "MALO", icon: TrendingDown },
+    MALO: { bg: "#FEE2E2", color: "var(--error-text)", label: "MALO", icon: TrendingDown },
   }
   const { bg, color, label, icon: Icon } = config[rating]
   return (

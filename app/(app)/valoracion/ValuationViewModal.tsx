@@ -100,7 +100,7 @@ export default function ValuationViewModal({
                   { key: "fixed", label: "Costos fijos", pct: result.pctFixedCosts, color: "#FB923C", amount: fmt(moneyFromPct(result.pctFixedCosts, result.suggested)) },
                   { key: "tax", label: "Impuestos de ley", pct: result.pctImpuestos, color: "#A78BFA", amount: fmt(moneyFromPct(result.pctImpuestos, result.suggested)) },
                   { key: "other", label: "Otros", pct: result.pctOtros, color: "#94A3B8", amount: fmt(moneyFromPct(result.pctOtros, result.suggested)) },
-                  { key: "profit", label: "Ganancia neta", pct: result.pctProfit, color: "#10B981", amount: fmt(moneyFromPct(result.pctProfit, result.suggested)) },
+                  { key: "profit", label: "Ganancia neta", pct: result.pctProfit, color: "var(--success)", amount: fmt(moneyFromPct(result.pctProfit, result.suggested)) },
                 ]}
               />
             </Panel>

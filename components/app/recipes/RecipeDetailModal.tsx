@@ -146,7 +146,7 @@ export default function RecipeDetailModal({
           <div className="h-20 animate-pulse" style={{ background: "var(--bg-primary)", borderRadius: 18 }} />
         </div>
       ) : error ? (
-        <div className="flex items-center gap-2.5 px-4 py-4" style={{ background: "#FEF2F2", borderRadius: 18, color: "#B42020" }}>
+        <div className="flex items-center gap-2.5 px-4 py-4" style={{ background: "var(--error-bg)", borderRadius: 18, color: "var(--error)" }}>
           <AlertTriangle size={18} />
           <p className="text-sm">{error}</p>
         </div>

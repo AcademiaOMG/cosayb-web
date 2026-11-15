@@ -102,8 +102,8 @@
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
 }
-.rc-delete:hover { color: #B42020; background: #FEF2F2; }
-.rc-delete:focus-visible { outline: 2px solid #B42020; outline-offset: 1px; }
+.rc-delete:hover { color: var(--error); background: var(--error-bg); }
+.rc-delete:focus-visible { outline: 2px solid var(--error); outline-offset: 1px; }
 
 @media (prefers-reduced-motion: reduce) {
   .rc-card { transition: none; }

@@ -64,8 +64,8 @@ export default function IngredientDetailModal({ ingredient, onClose, onEdit, onD
                   onClose()
                   onDelete(ingredient)
                 }}
-                className="inline-flex h-10 items-center gap-2 px-3 text-sm font-semibold transition-colors hover:bg-red-50"
-                style={{ color: "#B42020", borderRadius: "var(--radius-md)" }}
+                className="inline-flex h-10 items-center gap-2 px-3 text-sm font-semibold transition-colors hover:bg-[var(--error-bg)]"
+                style={{ color: "var(--error)", borderRadius: "var(--radius-md)" }}
               >
                 <Trash2 size={15} aria-hidden="true" />
                 Eliminar

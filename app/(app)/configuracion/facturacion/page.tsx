@@ -125,10 +125,10 @@ export default function FacturacionPage() {
         <div
           role="alert"
           className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center rounded-2xl"
-          style={{ background: "#FEF3C7", border: "1px solid #F59E0B" }}
+          style={{ background: "var(--warning-bg-strong)", border: "1px solid var(--warning)" }}
         >
-          <AlertTriangle size={20} aria-hidden="true" style={{ color: "#92400E" }} className="shrink-0" />
-          <div className="flex-1 text-sm" style={{ color: "#78350F" }}>
+          <AlertTriangle size={20} aria-hidden="true" style={{ color: "var(--warning-text)" }} className="shrink-0" />
+          <div className="flex-1 text-sm" style={{ color: "var(--warning-text-strong)" }}>
             <p className="font-semibold">No pudimos cobrar tu suscripción</p>
             <p>
               {overview.pastDue?.graceEndsAt

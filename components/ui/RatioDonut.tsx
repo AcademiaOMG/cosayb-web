@@ -16,7 +16,7 @@ export interface RatioDonutProps {
 
 const COLOR_MP = "#3B82F6"
 const COLOR_FIXED = "#FB923C"
-const COLOR_PROFIT = "#10B981"
+const COLOR_PROFIT = "var(--success)"
 
 export { COLOR_MP, COLOR_FIXED, COLOR_PROFIT }
 

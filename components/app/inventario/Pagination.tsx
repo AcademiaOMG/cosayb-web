@@ -62,8 +62,8 @@ export default function Pagination({
           active
             ? {
                 background: "var(--accent)",
-                color: "#fff",
-                boxShadow: "0 1px 4px rgba(27,79,216,0.3)",
+                color: "var(--on-accent)",
+                boxShadow: "0 1px 4px color-mix(in srgb, var(--accent) 30%, transparent)",
               }
             : {
                 background: "transparent",

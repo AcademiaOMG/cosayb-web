@@ -9,8 +9,8 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const styles: Record<BadgeVariant, React.CSSProperties> = {
   accent: { background: "var(--accent-light)", color: "var(--accent-text)" },
-  success: { background: "#D1FAE5", color: "#065F46" },
-  warning: { background: "#FEF3C7", color: "#92400E" },
+  success: { background: "var(--success-bg-strong)", color: "var(--success-text)" },
+  warning: { background: "var(--warning-bg-strong)", color: "var(--warning-text)" },
   muted: { background: "var(--bg-secondary)", color: "var(--text-muted)" },
 }
 

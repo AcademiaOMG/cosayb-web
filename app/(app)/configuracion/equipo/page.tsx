@@ -32,9 +32,9 @@ const ROLE_COLORS: Record<string, { color: string; bg: string }> = {
   org_chef: { color: "#1E40AF", bg: "#DBEAFE" },
   org_cost_analyst: { color: "#0369A1", bg: "#E0F2FE" },
   org_viewer: { color: "#374151", bg: "#F3F4F6" },
-  academic_teacher: { color: "#065F46", bg: "#D1FAE5" },
-  academic_assistant: { color: "#065F46", bg: "#ECFDF5" },
-  academic_student: { color: "#065F46", bg: "#D1FAE5" },
+  academic_teacher: { color: "var(--success-text)", bg: "var(--success-bg-strong)" },
+  academic_assistant: { color: "var(--success-text)", bg: "var(--success-bg)" },
+  academic_student: { color: "var(--success-text)", bg: "var(--success-bg-strong)" },
 }
 
 function roleColor(slug: string) {
@@ -343,7 +343,7 @@ export default function EquipoPage() {
       {canInvite && pending.length > 0 && (
         <Card className="transition-shadow hover:shadow-[0_4px_16px_rgba(18,33,58,0.08)]">
           <div className="flex items-center gap-3 mb-5">
-            <Clock size={18} style={{ color: "#D97706" }} />
+            <Clock size={18} style={{ color: "var(--warning-solid)" }} />
             <p className="text-xs font-semibold tracking-widest" style={{ color: "var(--text-muted)" }}>
               INVITACIONES PENDIENTES ({pending.length})
             </p>
@@ -359,7 +359,7 @@ export default function EquipoPage() {
                   style={{ background: "var(--bg-primary)", border: "1px solid var(--border-light)" }}
                 >
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: "#FEF3C7", color: "#D97706" }}>
+                    style={{ background: "var(--warning-bg-strong)", color: "var(--warning-solid)" }}>
                     <Mail size={14} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -416,7 +416,7 @@ export default function EquipoPage() {
               >
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                   style={{
-                    background: inv.status === "accepted" ? "#ECFDF5" : "var(--bg-secondary)",
+                    background: inv.status === "accepted" ? "var(--success-bg)" : "var(--bg-secondary)",
                     color: inv.status === "accepted" ? "#16A34A" : "var(--text-muted)",
                   }}>
                   {inv.status === "accepted" ? <CheckCircle2 size={14} /> : <XCircle size={14} />}

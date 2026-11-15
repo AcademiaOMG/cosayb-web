@@ -19,7 +19,7 @@ const PLAN_ICONS: Record<Plan, typeof Zap> = {
 const PLAN_STYLE: Record<Plan, { color: string; bg: string }> = {
   free: { color: "var(--text-muted)", bg: "var(--bg-secondary)" },
   pro: { color: "var(--accent-text)", bg: "var(--accent-light)" },
-  academia: { color: "#FFFFFF", bg: "var(--bg-inverse)" },
+  academia: { color: "var(--on-accent)", bg: "var(--bg-inverse)" },
 }
 
 const PLAN_ORDER: Plan[] = ["free", "pro", "academia"]
@@ -128,7 +128,7 @@ export default function UpgradeModal() {
                 {/* Badge "Tu plan actual" */}
                 {isActual && (
                   <div className="absolute -top-2.5 left-3 px-2 py-0.5 rounded-full text-xs font-bold"
-                    style={{ background: "var(--accent)", color: "#fff" }}>
+                    style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                     Tu plan
                   </div>
                 )}
@@ -163,7 +163,7 @@ export default function UpgradeModal() {
             </p>
             {isCurrentPlan && (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{ background: "#ECFDF5", color: "#16A34A" }}>
+                style={{ background: "var(--success-bg)", color: "#16A34A" }}>
                 Ya tienes este plan
               </span>
             )}

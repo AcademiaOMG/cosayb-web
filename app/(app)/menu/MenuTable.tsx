@@ -153,7 +153,7 @@ const MenuRow = memo(function MenuRow({ menu, onView, onEdit, onDelete }: MenuRo
               onClick={() => onDelete(menu)}
               aria-label={`Eliminar menú ${menu.nombre}`}
               title="Eliminar menú"
-              className="pointer-events-auto relative z-10 p-2 text-[var(--text-secondary)] opacity-60 transition hover:bg-red-50 hover:text-[#B42020] hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
+              className="pointer-events-auto relative z-10 p-2 text-[var(--text-secondary)] opacity-60 transition hover:bg-[var(--error-bg)] hover:text-[var(--error)] hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
               style={{ borderRadius: "var(--radius-sm)" }}
             >
               <Trash2 size={15} />

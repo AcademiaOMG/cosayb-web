@@ -15,7 +15,7 @@ import {
 const PLAN_CONFIG: Record<Plan, { label: string; bg: string; color: string; icon: typeof Zap }> = {
   free: { label: "Free", bg: "var(--bg-secondary)", color: "var(--text-muted)", icon: Zap },
   pro: { label: "Pro", bg: "var(--accent-light)", color: "var(--accent-text)", icon: Crown },
-  academia: { label: "Academia", bg: "var(--bg-inverse)", color: "#FFFFFF", icon: GraduationCap },
+  academia: { label: "Academia", bg: "var(--bg-inverse)", color: "var(--on-accent)", icon: GraduationCap },
 }
 
 export default function MembresiaPage() {
@@ -44,7 +44,7 @@ export default function MembresiaPage() {
         <div className="flex flex-col gap-4">
           <div
             className="flex items-center justify-between p-4 rounded-xl"
-            style={{ background: planConfig.bg, border: `1px solid ${planConfig.color}30` }}
+            style={{ background: planConfig.bg, border: `1px solid color-mix(in srgb, ${planConfig.color} 19%, transparent)` }}
           >
             <div className="flex items-center gap-3">
               <PlanIcon size={20} style={{ color: planConfig.color }} />
@@ -101,7 +101,7 @@ export default function MembresiaPage() {
                 >
                   <div
                     className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: "#ECFDF5" }}
+                    style={{ background: "var(--success-bg)" }}
                   >
                     <CheckCircle2 size={12} style={{ color: "#16A34A" }} />
                   </div>
