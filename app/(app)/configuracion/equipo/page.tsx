@@ -27,7 +27,7 @@ import {
 
 // Colores por slug de rol; el label viene de la API (roles.name)
 const ROLE_COLORS: Record<string, { color: string; bg: string }> = {
-  org_owner: { color: "#92400E", bg: "#FEF3C7" },
+  org_owner: { color: "var(--accent-text)", bg: "var(--accent-light)" },
   org_manager: { color: "#6D28D9", bg: "#EDE9FE" },
   org_chef: { color: "#1E40AF", bg: "#DBEAFE" },
   org_cost_analyst: { color: "#0369A1", bg: "#E0F2FE" },

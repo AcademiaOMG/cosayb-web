@@ -99,7 +99,7 @@ export default function InfoTip({ help, text, example, label, className }: InfoT
         >
           {entry.text}
           {entry.example && (
-            <span className="mt-1 block" style={{ color: "var(--text-secondary, #4A4438)" }}>
+            <span className="mt-1 block" style={{ color: "var(--text-secondary, #4B5563)" }}>
               <strong>Ejemplo:</strong> {entry.example}
             </span>
           )}

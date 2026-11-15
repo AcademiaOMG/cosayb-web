@@ -75,7 +75,7 @@ export default function ActividadPage() {
             <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
               {auditLabel(e.action)}
               {e.impersonated && (
-                <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#FEF3C7", color: "#92400E" }}>
+                <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "var(--accent-light)", color: "var(--accent-text)" }}>
                   SOPORTE
                 </span>
               )}

@@ -232,5 +232,13 @@ export default function Modal({ isOpen, open, onClose, title, children, footer, 
     </div>
   )
   // Sin document (render en servidor) se queda en línea; en el navegador va al <body>
-  return typeof document === "undefined" ? node : createPortal(node, document.body)
+  // app-theme-neutral: el portal cuelga de <body>, fuera del wrapper de la app, y sin esto
+  // los tokens (--text-*, --border-*, --bg-*) caían en los beige/café del marketing.
+  // display: contents no altera el layout del overlay `fixed`.
+  const themed = (
+    <div className="app-theme-neutral" style={{ display: "contents" }}>
+      {node}
+    </div>
+  )
+  return typeof document === "undefined" ? themed : createPortal(themed, document.body)
 }
