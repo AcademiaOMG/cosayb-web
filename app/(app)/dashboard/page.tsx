@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { ModuleIllustration } from "@/components/brand/illustrations"
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react"
 import { Bell } from "lucide-react"
 import "./glass.css"
 import PageHeader from "@/components/ui/PageHeader"
@@ -195,16 +195,33 @@ export default function DashboardPage() {
   )
 }
 
-/** Motivo del banner: tendencia ascendente (recuperar dinero). Usa currentColor (= --on-accent) con transparencia. */
+/**
+ * Motivo del banner: tendencia ascendente (recuperar dinero). Usa currentColor (= --on-accent)
+ * con transparencia. La figura NO tiene principio ni final visibles: entra difuminada desde la
+ * izquierda (máscara con degradado) y sale cortada por el borde derecho del banner.
+ */
 function BannerArt() {
+  const uid = useId().replace(/:/g, "")
+  const fade = `ba-fade-${uid}`
+  const mask = `ba-mask-${uid}`
+  const line = "M-40 168 L40 140 L92 120 L150 130 L214 80 L274 92 L338 38 L420 -4"
   return (
     <svg className="dash-banner-art" viewBox="0 0 360 180" preserveAspectRatio="xMaxYMid slice" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id={fade} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#fff" stopOpacity="0" />
+          <stop offset="0.38" stopColor="#fff" stopOpacity="1" />
+        </linearGradient>
+        <mask id={mask} maskUnits="userSpaceOnUse" x="0" y="-10" width="360" height="200">
+          <rect x="0" y="-10" width="360" height="200" fill={`url(#${fade})`} />
+        </mask>
+      </defs>
       <circle cx="318" cy="24" r="118" fill="currentColor" opacity="0.07" />
       <circle cx="352" cy="168" r="86" fill="currentColor" opacity="0.07" />
-      <path d="M24 152 L92 120 L150 130 L214 80 L274 92 L338 38 L338 180 L24 180 Z" fill="currentColor" opacity="0.1" />
-      <polyline points="24,152 92,120 150,130 214,80 274,92 338,38" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
-      <circle cx="338" cy="38" r="12" fill="currentColor" opacity="0.18" />
-      <circle cx="338" cy="38" r="6" fill="currentColor" opacity="0.8" />
+      <g mask={`url(#${mask})`}>
+        <path d={`${line} L420 200 L-40 200 Z`} fill="currentColor" opacity="0.1" />
+        <path d={line} fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
+      </g>
     </svg>
   )
 }
