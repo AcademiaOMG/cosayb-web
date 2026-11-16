@@ -1,38 +1,29 @@
 "use client"
 
-import { useState, type CSSProperties } from "react"
-import { AlertTriangle, CheckCircle2, Info, XCircle, Bell, Search } from "lucide-react"
-import Button from "@/components/ui/Button"
-import Input from "@/components/ui/Input"
-import Card from "@/components/ui/Card"
-import Badge from "@/components/ui/Badge"
-import Table from "@/components/ui/Table"
-import SearchableSelect from "@/components/ui/SearchableSelect"
-import { themeToCssVars } from "@/lib/branding/theme"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
+import { brandVars } from "@/lib/branding/editorEngine"
 import type { BrandTheme } from "@/lib/branding/types"
+import PreviewStage, { STAGE_H, STAGE_W, type PreviewScreen } from "./PreviewScreens"
 
 /**
- * Vista previa en vivo. Contenedor AISLADO: las variables CSS del borrador se
- * aplican como style en este nodo, así que todo lo que se renderiza DENTRO
- * (componentes reales del design system) las hereda sin tocar el resto de la
- * página.
+ * Vista previa en vivo: un «mini-app» de la plataforma renderizado a un ancho
+ * virtual (STAGE_W) y escalado con transform: scale para llenar el ancho
+ * disponible (ResizeObserver), en escritorio y en móvil.
  *
- * LIMITACIÓN: los portales (desplegable de SearchableSelect, Modal real, toasts,
- * tooltips) se montan en <body>, fuera de este contenedor, y NO heredan el
- * borrador; por eso el modal aquí es una simulación estática. Para ver los
- * portales con el borrador está "Probar en toda la plataforma".
+ * Contenedor AISLADO: las variables CSS del borrador (tema + calculadora, las
+ * mismas que produce el motor) se aplican como style en este nodo; todo lo que
+ * se pinta dentro las hereda sin tocar el resto de la página.
+ *
+ * LIMITACIÓN: los portales (desplegable de SearchableSelect, Modal real,
+ * toasts, tooltips) se montan en <body>, fuera de este contenedor, y NO
+ * heredan el borrador. Por eso los selects y modales aquí son réplicas
+ * estáticas. Para verlos con el borrador existe «Probar en toda la plataforma».
  */
 
-const OPTIONS = [
-  { value: "a", label: "Pollo asado" },
-  { value: "b", label: "Arroz con coco" },
-  { value: "c", label: "Ensalada verde" },
-]
-
-const ROWS = [
-  { name: "Pollo asado", cost: "$ 8.400", state: "Activa" },
-  { name: "Arroz con coco", cost: "$ 2.150", state: "Borrador" },
-  { name: "Ensalada verde", cost: "$ 3.900", state: "Activa" },
+const SCREENS: { id: PreviewScreen; label: string }[] = [
+  { id: "home", label: "Inicio" },
+  { id: "recipes", label: "Recetas" },
+  { id: "calc", label: "Calculadora" },
 ]
 
 interface Props {
@@ -42,131 +33,77 @@ interface Props {
   displayName: string
 }
 
-function Banner({ tone, icon: Icon, children }: { tone: "success" | "warning" | "error" | "info"; icon: typeof Info; children: React.ReactNode }) {
-  const styles: Record<typeof tone, CSSProperties> = {
-    success: { background: "var(--success-bg)", borderColor: "var(--success-bg-strong)", color: "var(--success-text)" },
-    warning: { background: "var(--warning-bg)", borderColor: "var(--warning-border)", color: "var(--warning-text)" },
-    error: { background: "var(--error-bg)", borderColor: "var(--error-border)", color: "var(--error-text)" },
-    info: { background: "var(--accent-light)", borderColor: "var(--accent)", color: "var(--accent-text)" },
-  }
-  return (
-    <div className="flex items-start gap-2 border p-2.5 text-xs font-medium" style={{ ...styles[tone], borderRadius: "var(--radius-md)" }}>
-      <Icon size={14} className="mt-px shrink-0" aria-hidden />
-      <span>{children}</span>
-    </div>
-  )
-}
-
 export default function BrandPreview({ theme, logoUrl, iconUrl, displayName }: Props) {
-  const [sel, setSel] = useState("a")
-  const vars = themeToCssVars(theme) as CSSProperties
+  const [screen, setScreen] = useState<PreviewScreen>("home")
+  const [width, setWidth] = useState(0)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const vars = useMemo(() => brandVars(theme) as CSSProperties, [theme])
   const name = displayName.trim() || "Tu negocio"
 
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const scale = width > 0 ? width / STAGE_W : 0.5
+
   return (
-    <section
-      aria-label="Vista previa de la marca"
-      className="min-w-0 overflow-hidden border"
-      style={{
-        ...vars,
-        background: "var(--bg-primary)",
-        color: "var(--text-primary)",
-        fontFamily: "var(--font-body)",
-        borderColor: "var(--border-medium)",
-        borderRadius: "var(--radius-lg)",
-        boxShadow: "var(--shadow-md)",
-      }}
-    >
-      {/* Topbar */}
-      <div className="flex items-center justify-between gap-2 border-b px-3 py-2" style={{ background: "var(--bg-surface)", borderColor: "var(--border-light)" }}>
-        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-          <Search size={14} aria-hidden style={{ color: "var(--text-muted)" }} />
-          <span className="truncate">Recetas</span>
-        </div>
-        <Bell size={14} aria-hidden style={{ color: "var(--text-muted)" }} />
+    <div className="flex min-w-0 flex-col gap-2">
+      <div role="tablist" aria-label="Pantalla de la vista previa" className="flex gap-1 rounded-[var(--radius-md)] p-1" style={{ background: "var(--bg-secondary)" }}>
+        {SCREENS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            role="tab"
+            id={`brand-screen-${s.id}`}
+            aria-selected={screen === s.id}
+            aria-controls="brand-preview-frame"
+            onClick={() => setScreen(s.id)}
+            className="flex-1 rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+            style={{
+              background: screen === s.id ? "var(--bg-surface)" : "transparent",
+              color: screen === s.id ? "var(--text-primary)" : "var(--text-muted)",
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
-      <div className="flex min-h-0">
-        {/* Mini-sidebar */}
-        <div className="flex w-24 shrink-0 flex-col gap-2 p-2.5 sm:w-28" style={{ background: "var(--sidebar-bg)", color: "var(--sidebar-text)" }}>
-          <div className="flex items-center gap-1.5">
-            {logoUrl || iconUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- logo del negocio
-              <img src={(iconUrl ?? logoUrl) as string} alt="" className="h-6 w-6 shrink-0 rounded object-contain" />
-            ) : (
-              <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs font-bold" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
-                {name.charAt(0).toUpperCase()}
-              </span>
-            )}
-            <span className="truncate text-xs font-bold">{name}</span>
+      <section
+        id="brand-preview-frame"
+        role="tabpanel"
+        aria-labelledby={`brand-screen-${screen}`}
+        aria-label="Vista previa de la marca"
+        className="min-w-0 overflow-hidden border"
+        style={{
+          ...vars,
+          background: "var(--bg-primary)",
+          color: "var(--text-primary)",
+          borderColor: "var(--border-medium)",
+          borderRadius: "var(--radius-lg)",
+          boxShadow: "var(--shadow-md)",
+        }}
+      >
+        <div ref={wrapRef} className="relative w-full overflow-hidden" style={{ height: STAGE_H * scale }}>
+          {/* inert: es una simulación, nada recibe foco ni clics dentro del mini-app */}
+          <div
+            inert
+            aria-hidden
+            style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}
+          >
+            <PreviewStage screen={screen} name={name} logoUrl={logoUrl ?? iconUrl} />
           </div>
-          <p className="mt-1 text-[10px] font-semibold tracking-widest" style={{ color: "var(--sidebar-label)" }}>MENÚ</p>
-          <span className="rounded px-1.5 py-1 text-xs font-semibold" style={{ background: "var(--sidebar-hairline)", color: "var(--sidebar-text)" }}>Recetas</span>
-          <span className="px-1.5 py-1 text-xs" style={{ color: "var(--sidebar-muted)" }}>Inventario</span>
-          <span className="px-1.5 py-1 text-xs" style={{ color: "var(--sidebar-muted)" }}>Menús</span>
         </div>
+      </section>
 
-        {/* Contenido */}
-        <div className="flex min-w-0 flex-1 flex-col gap-3 p-3">
-          <Card className="!p-3">
-            <p className="mb-2 text-sm font-semibold">Nueva receta</p>
-            <div className="flex flex-col gap-2">
-              <Input label="Nombre" defaultValue="Pollo asado" readOnly />
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Categoría</span>
-                <SearchableSelect options={OPTIONS} value={sel} onChange={setSel} ariaLabel="Receta de ejemplo" placeholder="Seleccionar" />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" type="button">Guardar</Button>
-                <Button size="sm" variant="ghost" type="button">Cancelar</Button>
-                <Button size="sm" variant="danger" type="button">Eliminar</Button>
-              </div>
-            </div>
-          </Card>
-
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="accent">Acento</Badge>
-            <Badge variant="success">Activa</Badge>
-            <Badge variant="warning">Pendiente</Badge>
-            <Badge variant="muted">Borrador</Badge>
-          </div>
-
-          <Table
-            columns={[
-              { key: "name", header: "Receta" },
-              { key: "cost", header: "Costo" },
-              {
-                key: "state",
-                header: "Estado",
-                render: (v) => <Badge variant={v === "Activa" ? "success" : "muted"}>{String(v)}</Badge>,
-              },
-            ]}
-            data={ROWS}
-            rowKey="name"
-          />
-
-          <div className="flex flex-col gap-1.5">
-            <Banner tone="success" icon={CheckCircle2}>Receta guardada correctamente.</Banner>
-            <Banner tone="warning" icon={AlertTriangle}>Falta el precio de un ingrediente.</Banner>
-            <Banner tone="error" icon={XCircle}>No se pudo calcular el costo.</Banner>
-            <Banner tone="info" icon={Info}>Tienes una actualización disponible.</Banner>
-          </div>
-
-          {/* Modal simulado (el real se monta en un portal y no hereda este contenedor) */}
-          <div aria-hidden className="relative flex justify-center p-3" style={{ background: "rgba(16,24,40,0.45)", borderRadius: "var(--radius-md)" }}>
-            <div className="w-full max-w-[16rem] p-3" style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-lg)" }}>
-              <p className="text-sm font-semibold">Eliminar receta</p>
-              <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>Esta acción no se puede deshacer.</p>
-              <div className="mt-3 flex justify-end gap-2">
-                <span className="px-2 py-1 text-xs" style={{ border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)" }}>Cancelar</span>
-                <span className="px-2 py-1 text-xs" style={{ background: "var(--error)", color: "#fff", borderRadius: "var(--radius-md)" }}>Eliminar</span>
-              </div>
-            </div>
-          </div>
-          <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-            Los desplegables y ventanas reales se ven con el tema al usar «Probar en toda la plataforma».
-          </p>
-        </div>
-      </div>
-    </section>
+      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+        Réplica a escala de la plataforma con tus colores. Los desplegables y ventanas reales se abren fuera de este recuadro y no heredan la
+        vista previa: úsalos con «Probar en toda la plataforma».
+      </p>
+    </div>
   )
 }
