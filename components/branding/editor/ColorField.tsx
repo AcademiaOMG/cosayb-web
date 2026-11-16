@@ -1,25 +1,33 @@
 "use client"
 
-import { useId, useState } from "react"
+import { useId, useState, type ReactNode } from "react"
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { parseHexInput } from "@/lib/branding/draft"
 import type { ThemeIssue } from "@/lib/branding/theme"
 
 interface ColorFieldProps {
   label: string
-  hint: string
   value: string
   onChange: (hex: string) => void
-  /** Problemas de contraste de este color; undefined = este color no tiene comprobación de contraste. */
+  /** «Cambia: …» (qué elementos modifica este color). */
+  affects?: string[]
+  /** «No cambia: …» (evita confusiones). */
+  doesNotAffect?: string[]
+  /** Problemas de contraste/avisos de este color. */
   issues?: ThemeIssue[]
+  /** Muestra «Contraste correcto» cuando no hay problemas (el color tiene comprobación). */
   checked?: boolean
+  /** Aplica la corrección sugerida de un aviso. */
+  onApplyFix?: (hex: string) => void
+  /** Contenido extra bajo el campo (p. ej. «Volver a automático»). */
+  children?: ReactNode
 }
 
-export default function ColorField({ label, hint, value, onChange, issues, checked }: ColorFieldProps) {
+export default function ColorField({ label, value, onChange, affects, doesNotAffect, issues, checked, onApplyFix, children }: ColorFieldProps) {
   const id = useId()
   const [text, setText] = useState(value)
   const [prevValue, setPrevValue] = useState(value)
-  // Si el valor cambia desde fuera (corrección automática, restablecer), el texto lo sigue.
+  // Si el valor cambia desde fuera (corrección automática, sugerencia, restablecer), el texto lo sigue.
   if (value !== prevValue) {
     setPrevValue(value)
     if (parseHexInput(text) !== value) setText(value)
@@ -29,7 +37,7 @@ export default function ColorField({ label, hint, value, onChange, issues, check
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={`${id}-hex`} className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+      <label htmlFor={`${id}-hex`} className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
         {label}
       </label>
       <div className="flex items-center gap-2">
@@ -50,7 +58,7 @@ export default function ColorField({ label, hint, value, onChange, issues, check
           maxLength={7}
           value={text}
           aria-invalid={invalid}
-          aria-describedby={`${id}-hint`}
+          aria-describedby={`${id}-desc`}
           onChange={(e) => {
             setText(e.target.value)
             const parsed = parseHexInput(e.target.value)
@@ -65,27 +73,49 @@ export default function ColorField({ label, hint, value, onChange, issues, check
           }}
         />
       </div>
-      <p id={`${id}-hint`} className="text-xs" style={{ color: "var(--text-muted)" }}>
-        {invalid ? "Escribe un color de 6 dígitos, por ejemplo #1B4FD8." : hint}
-      </p>
-      {checked && (
-        <p
-          className="flex items-start gap-1 text-xs font-medium"
-          style={{ color: low ? "var(--warning-text)" : "var(--success-text)" }}
-        >
-          {low ? (
-            <>
+
+      <div id={`${id}-desc`} className="flex flex-col gap-0.5 text-xs" style={{ color: "var(--text-secondary)" }}>
+        {invalid && <p style={{ color: "var(--error-text)" }}>Escribe un color de 6 dígitos, por ejemplo #1B4FD8.</p>}
+        {affects && affects.length > 0 && (
+          <p>
+            <strong style={{ color: "var(--text-primary)" }}>Cambia:</strong> {affects.join(" · ")}
+          </p>
+        )}
+        {doesNotAffect && doesNotAffect.length > 0 && (
+          <p>
+            <strong style={{ color: "var(--text-primary)" }}>No cambia:</strong> {doesNotAffect.join(" · ")}
+          </p>
+        )}
+      </div>
+
+      {low && (
+        <ul className="flex flex-col gap-1" aria-label={`Avisos de ${label}`}>
+          {issues!.map((i, n) => (
+            <li key={n} className="flex flex-wrap items-start gap-x-2 gap-y-1 text-xs font-medium" style={{ color: "var(--warning-text)" }}>
               <AlertTriangle size={14} className="mt-px shrink-0" aria-hidden />
-              <span>{issues!.map((i) => i.message).join(" ")}</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 size={14} className="mt-px shrink-0" aria-hidden />
-              <span>Contraste AA correcto</span>
-            </>
-          )}
+              <span className="min-w-0 flex-1">{i.message}</span>
+              {i.fix && onApplyFix && (
+                <button
+                  type="button"
+                  onClick={() => onApplyFix(i.fix!)}
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] border px-2 py-0.5 font-semibold focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+                  style={{ borderColor: "var(--border-medium)", color: "var(--text-primary)", background: "var(--bg-surface)" }}
+                >
+                  <span aria-hidden className="inline-block h-3 w-3 rounded-sm border" style={{ background: i.fix, borderColor: "var(--border-medium)" }} />
+                  Usar {i.fix}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!low && checked && (
+        <p className="flex items-start gap-1 text-xs font-medium" style={{ color: "var(--success-text)" }}>
+          <CheckCircle2 size={14} className="mt-px shrink-0" aria-hidden />
+          <span>Contraste correcto (AA)</span>
         </p>
       )}
+      {children}
     </div>
   )
 }
