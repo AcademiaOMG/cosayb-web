@@ -25,10 +25,10 @@ type ChecklistVariant = "inverse" | "surface"
 
 const INVERSE = {
   track: "var(--sidebar-hairline)",
-  fill: "var(--accent)",
-  stepActive: { background: "var(--sidebar-hairline)", color: "var(--on-accent)" },
+  fill: "var(--sidebar-active-bg)",
+  stepActive: { background: "var(--sidebar-hover-bg)", color: "var(--sidebar-text)" },
   stepIdle: "var(--sidebar-muted)",
-  stepDone: "#4ADE80",
+  stepDone: "var(--sidebar-done)",
   badge: { background: "var(--sidebar-hairline)", color: "var(--sidebar-muted)" },
 } as const
 
@@ -121,7 +121,7 @@ export default function SidebarChecklist({
                   aria-hidden
                 >
                   {step.done ? (
-                    <Check size={15} color="var(--on-accent)" />
+                    <Check size={15} color="var(--on-success)" />
                   ) : (
                     <span className="text-xs font-bold">{step.order}</span>
                   )}
@@ -154,7 +154,7 @@ export default function SidebarChecklist({
       aria-label="Primeros pasos"
     >
       <div className="flex items-center gap-2 mb-2">
-        <Sparkles size={13} style={{ color: "var(--accent)" }} aria-hidden />
+        <Sparkles size={13} style={{ color: "var(--sidebar-active-bg)" }} aria-hidden />
         <p
           className="text-[10px] font-bold tracking-[0.14em] uppercase"
           style={{ color: "var(--sidebar-label)" }}

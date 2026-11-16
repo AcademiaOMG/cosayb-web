@@ -101,7 +101,7 @@ export default function CalcViewShell({
           role="alertdialog"
           aria-label="Salir sin guardar"
           className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center"
-          style={{ background: "#FFFBEB", border: "1px solid #FDE68A", color: "#92400E" }}
+          style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", color: "var(--warning-text)" }}
         >
           <p className="text-sm flex-1">Lo que escribiste no se ha guardado y se perderá si sales.</p>
           <div className="flex gap-2">
@@ -110,7 +110,7 @@ export default function CalcViewShell({
               autoFocus
               onClick={() => setConfirming(false)}
               className="h-9 px-3 rounded-lg text-sm font-semibold"
-              style={{ background: "var(--accent)", color: "#fff" }}
+              style={{ background: "var(--accent)", color: "var(--on-accent)" }}
             >
               Seguir editando
             </button>
@@ -118,7 +118,7 @@ export default function CalcViewShell({
               type="button"
               onClick={leave}
               className="h-9 px-3 rounded-lg text-sm font-semibold"
-              style={{ background: "transparent", color: "#92400E", border: "1px solid #FDE68A" }}
+              style={{ background: "transparent", color: "var(--warning-text)", border: "1px solid var(--warning-border)" }}
             >
               Salir sin guardar
             </button>

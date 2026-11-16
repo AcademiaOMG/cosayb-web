@@ -52,8 +52,9 @@ export default function Topbar({
     <header
       className="hidden lg:flex h-16 px-6 shrink-0 items-center justify-between"
       style={{
-        background: "var(--bg-surface)",
-        borderBottom: "1px solid var(--border-light)",
+        background: "var(--header-bg)",
+        color: "var(--header-text)",
+        borderBottom: "1px solid var(--header-border)",
       }}
     >
       {/* Selector de organización */}
@@ -70,25 +71,17 @@ export default function Topbar({
                 setOpen(true)
               }
             }}
-            className="flex items-center gap-2 rounded-xl px-3 py-1.5 transition-colors"
-            style={{ border: "1px solid transparent", background: "transparent", cursor: "pointer" }}
+            className="org-chip flex items-center gap-2 rounded-xl px-3 py-1.5 transition-colors"
+            style={{ cursor: "pointer" }}
             aria-expanded={open}
             aria-haspopup="menu"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--bg-primary)"
-              e.currentTarget.style.borderColor = "var(--border-light)"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent"
-              e.currentTarget.style.borderColor = "transparent"
-            }}
           >
-            <span className="font-display text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+            <span className="font-display text-xl font-bold">
               {activeMembership?.organizationName ?? orgName}
             </span>
             <PlanBadge plan={(activeMembership?.membership as Plan) ?? userPlan} />
             {(memberships.length > 1 || isPlatform) && (
-              <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />
+              <ChevronDown size={16} style={{ opacity: 0.65 }} />
             )}
           </button>
 
@@ -129,7 +122,7 @@ export default function Topbar({
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     <span className="flex-1 truncate">{m.organizationName}</span>
-                    {active && <Check size={14} style={{ color: "var(--accent)" }} />}
+                    {active && <Check size={14} style={{ color: "var(--accent-text)" }} />}
                   </button>
                 )
               })}
@@ -140,7 +133,7 @@ export default function Topbar({
                     role="menuitem"
                     onClick={() => { window.location.href = "/plataforma" }}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors"
-                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--accent)" }}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--accent-text)" }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-light)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
@@ -164,7 +157,7 @@ export default function Topbar({
           style={{
             border: "1px solid var(--border-light)",
             background: "var(--bg-surface)",
-            color: "var(--text-muted)",
+            color: "var(--on-surface)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "var(--bg-secondary)"

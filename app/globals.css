@@ -60,6 +60,20 @@
      marca; por defecto, blanco. */
   --on-accent: #FFFFFF;
   --on-inverse: #FFFFFF;
+  --on-surface: var(--text-primary);
+  --on-secondary: #FFFFFF;
+  --brand-primary: var(--accent);
+  --secondary-light: var(--accent-light);
+  --focus-ring: var(--accent);
+
+  /* Familia informativa y borde de éxito (valores equivalentes a los usados hoy en banners/badges). */
+  --success-border: #A7F3D0;
+  --on-error: #FFFFFF;        /* texto sobre --error (rojo sólido) */
+  --on-success: #FFFFFF;      /* texto/icono sobre --success (verde medio: siempre blanco) */
+  --info: #1B4FD8;
+  --info-bg: #DEEAFF;
+  --info-text: #1434A4;
+  --info-border: #BFD3FF;
 
   /* Barra lateral (por defecto: navy de marca con texto blanco). */
   --sidebar-bg: var(--bg-inverse);
@@ -67,6 +81,22 @@
   --sidebar-muted: #8FA0BC;   /* ítems inactivos */
   --sidebar-label: #5B6B85;   /* títulos de grupo */
   --sidebar-hairline: rgba(255, 255, 255, 0.08); /* divisores y hover */
+  --sidebar-hover-bg: var(--sidebar-hairline);
+  --sidebar-active-bg: var(--accent);
+  --sidebar-active-text: var(--on-accent);
+  --sidebar-done: #4ADE80;    /* paso completado del checklist; ver regla @supports más abajo */
+
+  /* Encabezado superior y chip del negocio/plan (por defecto: superficie, sin chip visible). */
+  --header-bg: var(--bg-surface);
+  --header-text: var(--text-primary);
+  --header-border: var(--border-light);
+  --chip-bg: transparent;
+  --chip-text: var(--header-text);
+  --chip-border: transparent;
+
+  /* Tinte de las tarjetas «glass» de Inicio: sale del color de acción de la marca,
+     muy tenue y difuso (nace en la esquina superior izquierda). */
+  --glass-brand-tint: color-mix(in srgb, var(--accent) 6%, transparent);
 
   /* Liquid Glass — solo lo propio del efecto. Fondo base, radio y sombra se
      reutilizan de --bg-surface, --radius-lg y --shadow-*. Ver docs/design-system.md */
@@ -146,6 +176,14 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-label: var(--sidebar-label);
   --color-sidebar-hairline: var(--sidebar-hairline);
+  --color-sidebar-hover-bg: var(--sidebar-hover-bg);
+  --color-sidebar-active-bg: var(--sidebar-active-bg);
+  --color-sidebar-active-text: var(--sidebar-active-text);
+  --color-header-bg: var(--header-bg);
+  --color-header-text: var(--header-text);
+  --color-chip-bg: var(--chip-bg);
+  --color-chip-text: var(--chip-text);
+  --color-on-surface: var(--on-surface);
 
   --font-display: var(--font-barlow-condensed);
   --font-body: var(--font-inter);
@@ -183,7 +221,7 @@
   .glass {
     border-radius: var(--radius-lg);
     background:
-      radial-gradient(circle at 12% 8%, var(--glass-tint) 0%, transparent 62%),
+      radial-gradient(135% 125% at 6% 2%, var(--glass-brand-tint) 0%, transparent 72%),
       var(--bg-surface);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
@@ -427,6 +465,23 @@ html { scroll-behavior: smooth; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* El verde de «hecho» del sidebar se adapta a la luminosidad del fondo elegido: claro sobre
+   fondos oscuros (≈ el #4ADE80 de siempre), oscuro sobre fondos claros. */
+@supports (color: oklch(from red l c h)) {
+  :root { --sidebar-done: oklch(from var(--sidebar-bg) clamp(0.45, calc(1.4 - l), 0.84) 0.17 150); }
+}
+
+/* Chip del negocio en el encabezado (tokens --chip-*; hover derivado del texto del encabezado). */
+.org-chip {
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  border: 1px solid var(--chip-border);
+}
+.org-chip:hover {
+  background: color-mix(in srgb, var(--header-text) 6%, var(--chip-bg));
+  border-color: color-mix(in srgb, var(--header-text) 14%, transparent);
 }
 
 /* ─── Sidebar scrollbar ─────────────────────────────────────────── */

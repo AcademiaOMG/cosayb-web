@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { MoreHorizontal, X } from "lucide-react"
 import { useNavItems } from "@/hooks/useNavItems"
+import BrandLogo from "@/components/branding/BrandLogo"
+import { useBrand } from "@/components/branding/BrandProvider"
+import { PlatformLine, hasCustomIdentity } from "./SidebarBrand"
 import {
   ACCOUNT_ITEM,
   CONFIG_ITEM,
@@ -119,7 +122,7 @@ export default function MobileTabBar() {
           transition: color 150ms, background-color 150ms;
         }
         .mtb-item[data-active="true"] {
-          color: var(--accent); font-weight: 700;
+          color: var(--accent-text); font-weight: 700;
           background: rgba(255, 255, 255, 0.72);
           box-shadow: 0 1px 3px rgba(18, 33, 58, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95);
         }
@@ -156,6 +159,8 @@ function TabLink({ item, active }: { item: LinkEntry; active: boolean }) {
 
 function MoreSheet({ items, pathname, onClose }: { items: LinkEntry[]; pathname: string; onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const brand = useBrand()
+  const showBrand = hasCustomIdentity(brand)
 
   useEffect(() => {
     const panel = panelRef.current
@@ -229,6 +234,16 @@ function MoreSheet({ items, pathname, onClose }: { items: LinkEntry[]; pathname:
             <X size={20} aria-hidden="true" />
           </button>
         </div>
+        {showBrand && (
+          <div className="mx-5 mb-2 flex flex-col gap-2 pb-3" style={{ borderBottom: "1px solid var(--border-light)" }} data-sheet-brand="">
+            <div className="flex items-center" style={{ minHeight: 32, color: "var(--text-primary)" }}>
+              <span className="font-display block min-w-0 truncate text-lg font-bold">
+                <BrandLogo variant="primary" height={28} maxWidth={160} />
+              </span>
+            </div>
+            <PlatformLine color="var(--text-muted)" />
+          </div>
+        )}
         <ul className="flex flex-col gap-1 px-3">
           {items.map((item) => {
             const Icon = item.icon

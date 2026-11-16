@@ -317,7 +317,7 @@ export default function YieldFactorCalculator({
                     className="px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
                     style={{
                       background: on ? "var(--accent)" : "var(--bg-surface)",
-                      color: on ? "white" : "var(--text-secondary)",
+                      color: on ? "var(--on-accent)" : "var(--text-secondary)",
                       border: `1px solid ${on ? "var(--accent)" : "var(--border-light)"}`,
                     }}
                   >

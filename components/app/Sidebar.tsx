@@ -7,7 +7,7 @@ import type { Plan } from "@/types/domain"
 import { useNavItems } from "@/hooks/useNavItems"
 import { ACCOUNT_ITEM, CONFIG_ITEM, SUPPORT_ITEM } from "@/lib/navigation"
 import SidebarChecklist from "./SidebarChecklist"
-import BrandLogo from "@/components/branding/BrandLogo"
+import SidebarBrand from "./SidebarBrand"
 
 // ─── Navegación del Restaurant Tenant Workspace ──────────────────────────────
 // Solo existe en desktop (lg+). Los ítems vienen de lib/navigation.ts (fuente
@@ -25,17 +25,10 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
   return (
     <aside
       className="hidden lg:flex fixed top-0 left-0 z-40 h-full w-60 flex-col"
-      style={{ background: "var(--sidebar-bg)" }}
+      style={{ background: "var(--sidebar-bg)", color: "var(--sidebar-text)" }}
     >
-      {/* Logo */}
-      <div
-        className="flex items-center px-5 h-16 shrink-0"
-        style={{ borderBottom: "1px solid var(--sidebar-hairline)" }}
-      >
-        <Link href="/dashboard" className="font-display text-2xl font-bold" style={{ color: "var(--sidebar-text)" }}>
-          <BrandLogo variant="alt" height={36} />
-        </Link>
-      </div>
+      {/* Cabecera de marca: logo del negocio + «by Academia OMG» (ver SidebarBrand) */}
+      <SidebarBrand />
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 sidebar-scroll relative">
@@ -59,12 +52,12 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
                       href={href}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
                       style={{
-                        background: isActive ? "var(--accent)" : "transparent",
-                        color: isActive ? "var(--on-accent)" : "var(--sidebar-muted)",
+                        background: isActive ? "var(--sidebar-active-bg)" : "transparent",
+                        color: isActive ? "var(--sidebar-active-text)" : "var(--sidebar-muted)",
                       }}
                       onMouseEnter={(e) => {
                         if (!isActive)
-                          e.currentTarget.style.background = "var(--sidebar-hairline)"
+                          e.currentTarget.style.background = "var(--sidebar-hover-bg)"
                       }}
                       onMouseLeave={(e) => {
                         if (!isActive) e.currentTarget.style.background = "transparent"
@@ -118,14 +111,14 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
                       style={{
                         background: isActive
-                          ? "var(--accent)"
+                          ? "var(--sidebar-active-bg)"
                           : "transparent",
-                        color: isActive ? "var(--on-accent)" : "var(--sidebar-muted)",
+                        color: isActive ? "var(--sidebar-active-text)" : "var(--sidebar-muted)",
                       }}
                       onMouseEnter={(e) => {
                         if (!isActive)
                           e.currentTarget.style.background =
-                            "var(--sidebar-hairline)"
+                            "var(--sidebar-hover-bg)"
                       }}
                       onMouseLeave={(e) => {
                         if (!isActive)
@@ -153,7 +146,7 @@ export default function Sidebar({ onSignOut }: SidebarProps) {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background =
-                        "var(--sidebar-hairline)"
+                        "var(--sidebar-hover-bg)"
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = "transparent"

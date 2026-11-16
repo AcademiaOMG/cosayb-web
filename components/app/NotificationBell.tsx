@@ -65,8 +65,8 @@ export default function NotificationBell() {
         {unread > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white"
-            style={{ background: "var(--error)" }}
+            className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+            style={{ background: "var(--error)", color: "var(--on-error)" }}
           >
             {unread > 9 ? "9+" : unread}
           </span>
@@ -83,7 +83,7 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border-light)" }}>
             <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Notificaciones</p>
             {unread > 0 && (
-              <button type="button" onClick={markAll} className="text-xs underline" style={{ color: "var(--accent)" }}>
+              <button type="button" onClick={markAll} className="text-xs underline" style={{ color: "var(--accent-text)" }}>
                 Marcar todas como leídas
               </button>
             )}
@@ -118,7 +118,7 @@ export default function NotificationBell() {
             href="/notificaciones"
             onClick={() => setOpen(false)}
             className="block px-4 py-3 text-center text-sm font-medium"
-            style={{ borderTop: "1px solid var(--border-light)", color: "var(--accent)" }}
+            style={{ borderTop: "1px solid var(--border-light)", color: "var(--accent-text)" }}
           >
             Ver todas
           </Link>
