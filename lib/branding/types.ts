@@ -31,8 +31,35 @@ export interface BrandColors {
   info: string
 }
 
+/**
+ * Colores derivados que el usuario PUEDE fijar a mano. Todos opcionales: si falta
+ * uno, el motor lo calcula (contraste WCAG + armonía OKLCH) a partir de las 11
+ * entradas de BrandColors. Ver lib/branding/tokens.ts para el alcance de cada uno.
+ */
+export interface BrandOverrides {
+  sidebarText?: string
+  sidebarActiveBg?: string
+  sidebarActiveText?: string
+  headerBg?: string
+  headerText?: string
+  textSecondary?: string
+  border?: string
+}
+export const BRAND_OVERRIDE_KEYS = [
+  "sidebarText",
+  "sidebarActiveBg",
+  "sidebarActiveText",
+  "headerBg",
+  "headerText",
+  "textSecondary",
+  "border",
+] as const satisfies readonly (keyof BrandOverrides)[]
+
 export interface BrandTheme {
   colors: BrandColors
+  /** Color base de la calculadora (carcasa/teclas). Opcional: por defecto sigue a `primary`. */
+  calculator?: string
+  overrides?: BrandOverrides
   radius: BrandRadius
   shadow: BrandShadow
   font: BrandFont
