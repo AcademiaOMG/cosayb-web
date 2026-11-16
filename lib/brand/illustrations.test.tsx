@@ -153,25 +153,34 @@ describe("ilustraciones de módulo", () => {
 
 describe("paleta --ill-*", () => {
   it("sin tokens de marca usa los fallbacks (aspecto por defecto, azules navy y grises)", () => {
-    const p = palette({ "--text-primary": "#12213A", "--brand-primary": "#1B4FD8" })
+    const p = palette({ "--text-primary": "#12213A", "--accent": "#1B4FD8" })
     const hexOf = (k: string) => toHex(p[k])
     // se comporta igual con y sin los tokens por defecto declarados
     for (const k of Object.keys(DECLS)) expect(toCss(palette()[k])).toBe(toCss(p[k]))
-    // ink: navy oscuro; 1: índigo; 2: azul claro; neutral: gris azulado; paper: casi blanco
+    // 1 = azul vivo de marca puro; 2 = ámbar cálido; ink oscuro; paper/cream casi blancos
     const lum = (c: RGBA) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
-    expect(lum(p["--ill-ink"])).toBeLessThan(60)
-    expect(p["--ill-ink"][2]).toBeGreaterThan(p["--ill-ink"][0])
-    expect(p["--ill-1"][2]).toBeGreaterThan(p["--ill-1"][0] + 40)
-    expect(lum(p["--ill-2"])).toBeGreaterThan(150)
-    expect(p["--ill-2"][2]).toBeGreaterThan(p["--ill-2"][0])
-    expect(lum(p["--ill-paper"])).toBeGreaterThan(225)
-    expect(lum(p["--ill-neutral"])).toBeGreaterThan(100)
-    expect(lum(p["--ill-neutral"])).toBeLessThan(180)
-    expect(hexOf("--ill-ink")).toMatch(/^#[0-9A-F]{6}$/)
+    expect(hexOf("--ill-1")).toBe("#1B4FD8")
+    expect(lum(p["--ill-1-lo"])).toBeLessThan(lum(p["--ill-1"]))
+    expect(lum(p["--ill-1-hi"])).toBeGreaterThan(lum(p["--ill-1"]))
+    expect(hexOf("--ill-2")).toBe("#F5A524")
+    expect(lum(p["--ill-ink"])).toBeLessThan(70)
+    expect(lum(p["--ill-paper"])).toBeGreaterThan(235)
+    expect(lum(p["--ill-cream"])).toBeGreaterThan(235)
+    expect(lum(p["--ill-neutral"])).toBeGreaterThan(200)
+  })
+
+  it("marca real (accent naranja, primary navy, secondary azul): el héroe sigue al accent, no al primary", () => {
+    const p = palette({ "--accent": "#FF4A00", "--brand-primary": "#12213A", "--brand-secondary": "#247FFF", "--text-primary": "#26160E" })
+    expect(toHex(p["--ill-1"])).toBe("#FF4A00")
+    expect(p["--ill-1-hi"][0]).toBeGreaterThan(p["--ill-1-hi"][2])
+    expect(p["--ill-1-lo"][0]).toBeGreaterThan(p["--ill-1-lo"][2])
+    expect(toHex(p["--ill-2"])).toBe("#247FFF")
+    // el papel se tiñe de la marca activa y no queda azul/navy
+    expect(p["--ill-paper"][0]).toBeGreaterThanOrEqual(p["--ill-paper"][2])
   })
 
   it("una marca naranja recolorea la paleta (el tono dominante deja de ser azul)", () => {
-    const p = palette({ "--text-primary": "#2B1A0E", "--brand-primary": "#E8590C", "--brand-secondary": "#F59F00" })
+    const p = palette({ "--text-primary": "#2B1A0E", "--accent": "#E8590C", "--brand-secondary": "#F59F00" })
     expect(p["--ill-1"][0]).toBeGreaterThan(p["--ill-1"][2])
     expect(p["--ill-2"][0]).toBeGreaterThan(p["--ill-2"][2])
   })
@@ -182,9 +191,9 @@ const DUMP = process.env.ILL_DUMP
 describe.runIf(DUMP)("volcado", () => {
   const BRANDS: Record<string, Record<string, string>> = {
     default: {},
-    orange: { "--text-primary": "#2B1A0E", "--brand-primary": "#E8590C", "--brand-secondary": "#F59F00" },
-    green: { "--text-primary": "#0F2A1C", "--brand-primary": "#15803D", "--brand-secondary": "#65A30D" },
-    red: { "--text-primary": "#2A0F14", "--brand-primary": "#C81E3A", "--brand-secondary": "#F43F5E" },
+    orange: { "--text-primary": "#26160E", "--accent": "#FF4A00", "--brand-primary": "#12213A", "--brand-secondary": "#247FFF" },
+    green: { "--text-primary": "#0F2A1C", "--accent": "#15803D", "--brand-secondary": "#65A30D" },
+    red: { "--text-primary": "#2A0F14", "--accent": "#C81E3A", "--brand-secondary": "#F43F5E" },
   }
   it("escribe SVG con variables resueltas", () => {
     mkdirSync(DUMP!, { recursive: true })
