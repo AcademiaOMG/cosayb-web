@@ -184,6 +184,27 @@ export function onColor(bg: string, opts?: { prefer?: "light" | "dark" }): strin
 }
 
 /**
+ * Contraste mínimo del texto sobre RELLENOS DE MARCA (botones, ítem activo del menú,
+ * badges sólidos): texto corto y en negrita/semibold, donde WCAG 2.x pide 3:1 (texto
+ * grande/negrita y componentes de interfaz, 1.4.3/1.4.11). El texto de lectura
+ * (párrafos, tablas, etiquetas pequeñas) sigue exigiendo 4.5:1.
+ */
+export const FILL_MIN = 3
+
+/**
+ * Color del texto/icono sobre un relleno de marca. PREFIERE BLANCO: sobre un naranja o
+ * rojo vivo el usuario espera letras blancas aunque el navy tenga más contraste
+ * matemático. Solo si el blanco no llega a FILL_MIN (amarillos, verdes claros, tonos
+ * pastel) usa la tinta oscura; si ninguno llega, el mejor de blanco/negro/tinta.
+ */
+export function onFill(bg: string): string {
+  const white = "#FFFFFF"
+  if (contrastRatio(white, bg) >= FILL_MIN) return white
+  if (contrastRatio(INK, bg) >= 4.5) return INK
+  return onColor(bg)
+}
+
+/**
  * Ajusta la claridad (L en OKLCH) de `fg`, conservando matiz y croma (con gamut
  * mapping), hasta alcanzar `min` contra `bg`. Respeta la intención: un texto
  * claro sobre fondo oscuro sigue siendo claro. Si no hay solución, negro/blanco.

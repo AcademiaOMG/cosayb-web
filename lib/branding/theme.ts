@@ -15,7 +15,9 @@ import {
   fromOklch,
   isHexColor,
   mix,
+  FILL_MIN,
   onColor,
+  onFill,
   parseHex,
   toOklch,
   withOklch,
@@ -166,11 +168,11 @@ export function themeToCssVars(input: BrandTheme): Record<string, string> {
   const borderMedium = ov.border ? mix(ov.border, c.text, 0.12) : mix(c.bg, c.text, 0.2)
 
   /* Acción */
-  const onAccent = onColor(c.accent)
+  const onAccent = onFill(c.accent)
   const ac = toOklch(c.accent)
   let accentHover = withOklch(c.accent, { l: clamp(ac.l - 0.06, 0, 1) })
-  if (contrastRatio(onAccent, accentHover) < 4.5) accentHover = withOklch(c.accent, { l: clamp(ac.l + 0.06, 0, 1) })
-  if (contrastRatio(onAccent, accentHover) < 4.5) accentHover = c.accent
+  if (contrastRatio(onAccent, accentHover) < FILL_MIN) accentHover = withOklch(c.accent, { l: clamp(ac.l + 0.06, 0, 1) })
+  if (contrastRatio(onAccent, accentHover) < FILL_MIN) accentHover = c.accent
   const darkSurface = isDark(c.surface)
   const tintL = darkSurface ? 0.3 : 0.95
   const accentLight = fromOklch({ l: tintL, c: Math.min(ac.c * (darkSurface ? 0.4 : 0.25), 0.05), h: ac.h })
@@ -190,7 +192,7 @@ export function themeToCssVars(input: BrandTheme): Record<string, string> {
   const sidebarMuted = ensureContrastAll(mix(sidebarText, sbBg, 0.35), sbSurfaces, 4.5)
   const sidebarLabel = ensureContrastAll(mix(sidebarText, sbBg, 0.45), sbSurfaces, 4.5)
   const activeBg = ensureContrast(ov.sidebarActiveBg ?? deriveSidebarActive(c.accent, sbBg), sbBg, 3)
-  const activeText = ensureContrast(ov.sidebarActiveText ?? onColor(activeBg), activeBg, 4.5)
+  const activeText = ensureContrast(ov.sidebarActiveText ?? onFill(activeBg), activeBg, FILL_MIN)
 
   /* Encabezado y chip */
   const headerBg = ov.headerBg ?? c.surface
@@ -218,14 +220,14 @@ export function themeToCssVars(input: BrandTheme): Record<string, string> {
     "--brand-secondary": c.secondary,
     "--secondary-light": secondaryLight,
     "--secondary-text": secondaryText,
-    "--on-secondary": onColor(c.secondary),
+    "--on-secondary": onFill(c.secondary),
 
     "--bg-primary": c.bg,
     "--bg-secondary": bgSecondary,
     "--bg-surface": c.surface,
     "--on-surface": onSurface,
     "--bg-inverse": c.primary,
-    "--on-inverse": onColor(c.primary),
+    "--on-inverse": onFill(c.primary),
 
     "--text-primary": text,
     "--text-secondary": textSecondary,
@@ -328,16 +330,16 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   ...P("--on-surface", "--bg-surface", 4.5),
   ...P("--text-secondary", ["--bg-primary", "--bg-surface", "--bg-secondary"], 4.5),
   ...P("--text-muted", ["--bg-primary", "--bg-surface", "--bg-secondary"], 4.5),
-  ...P("--on-accent", ["--accent", "--accent-hover"], 4.5),
+  ...P("--on-accent", ["--accent", "--accent-hover"], FILL_MIN),
   ...P("--accent-text", ["--accent-light", "--bg-surface", "--bg-primary", "--bg-secondary"], 4.5),
   ...P("--focus-ring", ["--bg-surface", "--bg-primary"], 3),
-  ...P("--on-secondary", "--brand-secondary", 4.5),
+  ...P("--on-secondary", "--brand-secondary", FILL_MIN),
   ...P("--secondary-text", ["--secondary-light", "--bg-surface", "--bg-primary"], 4.5),
-  ...P("--on-inverse", "--bg-inverse", 4.5),
+  ...P("--on-inverse", "--bg-inverse", FILL_MIN),
   ...P("--sidebar-text", ["--sidebar-bg", "--sidebar-hover-bg"], 4.5),
   ...P("--sidebar-muted", ["--sidebar-bg", "--sidebar-hover-bg"], 4.5),
   ...P("--sidebar-label", ["--sidebar-bg", "--sidebar-hover-bg"], 4.5),
-  ...P("--sidebar-active-text", "--sidebar-active-bg", 4.5),
+  ...P("--sidebar-active-text", "--sidebar-active-bg", FILL_MIN),
   ...P("--sidebar-active-bg", "--sidebar-bg", 3),
   ...P("--header-text", "--header-bg", 4.5),
   ...P("--chip-text", "--chip-bg", 4.5),

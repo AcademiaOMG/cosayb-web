@@ -53,11 +53,11 @@ Es un punto de partida; todo sigue editable.
 
 ### Derivacion en `themeToCssVars`
 - Texto: `ensureContrastAll(text, [bg, surface, bg-secondary], 4.5)`; secondary/muted derivan de el.
-- Accent: `--on-accent` por `onColor`; hover = L -/+ 0.06 manteniendo el contraste del texto; light = L 0.95 (0.30 si la
+- Accent: `--on-accent` por `onFill` (blanco si llega a 3:1; ver abajo); hover = L -/+ 0.06 manteniendo el contraste del texto; light = L 0.95 (0.30 si la
   superficie es oscura) con croma bajo; `--accent-text` >=4.5 sobre light, bg y surface; `--focus-ring` >=3.
 - Sidebar: texto por `onColor(sidebarBg)`; muted/label >=4.5 sobre fondo y hover. **Item activo**: usa accent; si no
   contrasta >=3 con el sidebar se ajusta su L (si el salto <=0.22 y conserva croma) o se usa un tono claro/oscuro del
-  matiz del sidebar. Su texto es `onColor` >=4.5.
+  matiz del sidebar. Su texto es `onFill` (>=3, texto semibold de interfaz).
 - Encabezado: texto = `text` si contrasta, si no `onColor(headerBg)`. Chip = accent-light (o neutro si se confunde con el
   encabezado) con texto >=4.5.
 - Estados: bg L 0.97 / strong 0.93 / borde 0.85 con el matiz del estado; texto >=4.5 y strong >=7. `--warning-solid` >=3.
@@ -89,3 +89,12 @@ blanca) no admiten un unico texto: `validateTheme` lo avisa.
 3. Emitir las variables en `themeToCssVars` (theme.ts) calculandolas por contraste contra su fondo.
 4. Si es texto/icono, anadir la pareja a `CONTRAST_PAIRS`.
 5. Consumir solo `var(--...)` en los componentes y anadir pruebas.
+
+## Texto sobre rellenos de marca (`onFill`, `FILL_MIN = 3`)
+
+Botones, ítem activo del sidebar y badges sólidos llevan texto corto y semibold. Para esos rellenos el motor
+**prefiere blanco** mientras alcance 3:1 (el mínimo de WCAG 2.x para texto grande/negrita y componentes de interfaz,
+1.4.3/1.4.11), aunque la tinta oscura tenga más contraste matemático: sobre un naranja o rojo vivo (p. ej. `#FF4A00`,
+blanco 3.4:1) el usuario espera letras blancas. Si el blanco no llega (amarillos, verdes claros, ámbar) usa la tinta
+`#12213A`. El texto de lectura (párrafos, tablas, etiquetas pequeñas, sidebar inactivo, chip) sigue exigiendo 4.5:1.
+Quien necesite AA estricto en un relleno puede fijar `sidebarActiveText` a mano (se corrige solo si baja de 3:1).
