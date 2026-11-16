@@ -137,7 +137,7 @@
 .stepTab[data-current] .stepNum,
 .stepNum[data-done] {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .stepText {
   display: flex;

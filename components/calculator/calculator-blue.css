@@ -21,15 +21,42 @@
   --calc-font: var(--font-calc-barlow), "Barlow", "Helvetica Neue", Arial, sans-serif;
   --calc-cond: var(--font-calc-condensed), "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
 
-  /* Carcasa */
-  --body-hi: #2a3b68; --body-mid: #19254a; --body-lo: #0f1731; --body-edge: #060a19; --body-lip: #0a1230;
-  --print: rgba(208, 218, 242, 0.68); --print-hi: #eaeffc; --well: #050914; --ring: #9db6ff;
-  /* Teclas: marfil, azul acero y cobalto */
-  --k-top: #f7f4ed; --k-bot: #dbd6c9; --k-side: #aaa493; --k-side2: #7c7665; --k-ink: #1c2132;
-  --f-top: #c6d0e3; --f-bot: #9eaac4; --f-side: #69758f; --f-side2: #465069; --f-ink: #18203a;
-  --c-top: #5d88f6; --c-bot: #2a50d6; --c-side: #1c389f; --c-side2: #11236c;
-  /* Pantalla */
-  --lcd-1: #c6d2b1; --lcd-2: #adbb98; --lcd-ink: #1a2314; --lcd-ghost: rgba(26, 35, 20, 0.075);
+  /* Carcasa. Cada valor lee el token --calc-* que emite el motor de marca (theme.calculator);
+     el segundo argumento de var() es el azul original: SIN marca el aparato se ve igual que siempre.
+     Las variantes sombreadas (lo/edge/lip, bot/side) se derivan del tono base con color-mix. */
+  --body-hi: var(--calc-body-2, #2a3b68);
+  --body-mid: var(--calc-body, #19254a);
+  --body-lo: color-mix(in srgb, var(--calc-body, #19254a) 64%, #000);
+  --body-edge: color-mix(in srgb, var(--calc-body, #19254a) 24%, #000);
+  --body-lip: color-mix(in srgb, var(--calc-body, #19254a) 50%, #000);
+  /* Rotulado impreso sobre la carcasa (calculado por contraste, ver @supports más abajo) */
+  --print: rgba(208, 218, 242, 0.68); --print-hi: #eaeffc;
+  /* El hueco de las teclas es siempre casi negro (profundidad física): no cambia con la marca */
+  --well: #050914; --ring: var(--calc-ring, #9db6ff);
+  /* Teclas numéricas: marfil por defecto */
+  --k-top: var(--calc-key, #f7f4ed);
+  --k-bot: color-mix(in srgb, var(--k-top) 87%, #000);
+  --k-side: color-mix(in srgb, var(--k-top) 66%, #000);
+  --k-side2: color-mix(in srgb, var(--k-top) 47%, #000);
+  --k-ink: var(--calc-key-text, #1c2132);
+  /* Teclas de operación / función: azul acero por defecto */
+  --f-top: var(--calc-key-op, #c6d0e3);
+  --f-bot: color-mix(in srgb, var(--f-top) 82%, #000);
+  --f-side: color-mix(in srgb, var(--f-top) 57%, #000);
+  --f-side2: color-mix(in srgb, var(--f-top) 38%, #000);
+  --f-ink: var(--calc-key-op-text, #18203a);
+  /* Igual / acción: cobalto por defecto */
+  --c-mid: var(--calc-key-equals, #3f6ae6);
+  --c-top: color-mix(in srgb, var(--c-mid) 80%, #fff);
+  --c-bot: color-mix(in srgb, var(--c-mid) 88%, #000);
+  --c-side: color-mix(in srgb, var(--c-mid) 55%, #000);
+  --c-side2: color-mix(in srgb, var(--c-mid) 33%, #000);
+  --c-ink: var(--calc-key-equals-text, #fff);
+  /* Pantalla LCD */
+  --lcd-1: var(--calc-display-bg, #c6d2b1);
+  --lcd-2: color-mix(in srgb, var(--lcd-1) 88%, #000);
+  --lcd-ink: var(--calc-display-text, #1a2314);
+  --lcd-ghost: color-mix(in srgb, var(--lcd-ink) 7.5%, transparent);
   --ground: rgba(16, 24, 48, 0.42); --ground-soft: rgba(16, 24, 48, 0.22);
   --noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/></svg>");
 
@@ -46,7 +73,7 @@
   color: var(--print-hi);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0) 13%),
-    radial-gradient(110% 50% at 0% 0%, rgba(130, 160, 240, 0.24), transparent 60%),
+    radial-gradient(110% 50% at 0% 0%, color-mix(in srgb, var(--calc-accent, #82a0f0) 24%, transparent), transparent 60%),
     var(--noise),
     linear-gradient(165deg, var(--body-hi), var(--body-mid) 46%, var(--body-lo));
   box-shadow:
@@ -58,6 +85,14 @@
     0 6px 0 var(--body-edge),
     0 24px 24px -8px var(--ground),
     0 44px 60px -22px var(--ground-soft);
+}
+/* Texto impreso sobre la carcasa: claro u oscuro según la luminosidad del tono elegido (contraste
+   garantizado con cualquier color). Navegadores sin color relativo conservan los valores por defecto. */
+@supports (color: oklch(from red l c h)) {
+  .calc-device.calc-skin-blue {
+    --print-hi: oklch(from var(--calc-body, #19254a) clamp(0.12, calc((0.62 - l) * 100), 0.95) calc(c * 0.3) h);
+    --print: color-mix(in srgb, var(--print-hi) 68%, transparent);
+  }
 }
 /* Reflejo diagonal muy tenue sobre la carcasa */
 .calc-device.calc-skin-blue::after {
@@ -165,7 +200,7 @@
   display: block;
   width: 100%;
   height: auto;
-  filter: drop-shadow(1.3px 1.9px 0 rgba(26, 35, 20, 0.2));
+  filter: drop-shadow(1.3px 1.9px 0 color-mix(in srgb, var(--lcd-ink) 20%, transparent));
 }
 .calc-skin-blue .calc-seg .s { fill: var(--lcd-ghost); }
 .calc-skin-blue .calc-seg .s.on { fill: var(--lcd-ink); }
@@ -193,7 +228,7 @@
   gap: 6px;
   padding: 7px 8px 8px;
   border-radius: 7px;
-  border: 1.5px solid rgba(26, 35, 20, 0.26);
+  border: 1.5px solid color-mix(in srgb, var(--lcd-ink) 26%, transparent);
   color: var(--lcd-ink);
   font-family: var(--calc-font);
   cursor: pointer;
@@ -260,7 +295,7 @@
 .calc-skin-blue .calc-register.is-on {
   border-color: var(--lcd-ink);
   background:
-    linear-gradient(rgba(26, 35, 20, 0.11), rgba(26, 35, 20, 0.11)),
+    linear-gradient(color-mix(in srgb, var(--lcd-ink) 11%, transparent), color-mix(in srgb, var(--lcd-ink) 11%, transparent)),
     linear-gradient(180deg, var(--lcd-1), var(--lcd-2));
   box-shadow:
     inset 0 0 0 1px var(--lcd-ink),
@@ -304,14 +339,14 @@
   text-transform: uppercase;
   padding: 3px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(26, 35, 20, 0.4);
-  background: rgba(26, 35, 20, 0.06);
+  border: 1px solid color-mix(in srgb, var(--lcd-ink) 40%, transparent);
+  background: color-mix(in srgb, var(--lcd-ink) 6%, transparent);
   color: var(--lcd-ink);
   cursor: pointer;
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
 }
-.calc-skin-blue .calc-register-action:hover { background: rgba(26, 35, 20, 0.14); }
+.calc-skin-blue .calc-register-action:hover { background: color-mix(in srgb, var(--lcd-ink) 14%, transparent); }
 .calc-skin-blue .calc-register-action:focus-visible { outline: 2px solid var(--lcd-ink); outline-offset: 1px; }
 
 /* Nota bajo el valor (ej. de qué receta viene) */
@@ -398,7 +433,7 @@
 .calc-skin-blue .calc-key-word { font-size: 14px; }
 
 .calc-skin-blue .calc-key-equals {
-  --top: var(--c-top); --bot: var(--c-bot); --side: var(--c-side); --side2: var(--c-side2); --ink: #fff;
+  --top: var(--c-top); --bot: var(--c-bot); --side: var(--c-side); --side2: var(--c-side2); --ink: var(--c-ink);
   height: 50px;
   gap: 10px;
   font-size: 22px;

@@ -125,7 +125,7 @@
   font-size: clamp(30px, 8vw, 40px);
   font-weight: 800;
   line-height: 1.05;
-  color: var(--on-accent);
+  color: #fff; /* sobre foto con velo oscuro fijo */
   letter-spacing: -0.02em;
   margin: 2px 0 4px;
 }
@@ -141,7 +141,7 @@
 
 .dash-banner-emph {
   font-weight: 600;
-  color: var(--on-accent);
+  color: #fff; /* sobre foto con velo oscuro fijo */
 }
 
 /* ── Información que importa — 1 en mobile, hasta 3 en desktop ─────────── */
