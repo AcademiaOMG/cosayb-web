@@ -173,6 +173,7 @@ export default function DashboardPage() {
 
       <div className="glass-grid-wrap glass-grid-wrap-wide">
         <div className="dash-banner">
+          <BannerArt />
           <span className="dash-banner-context">{insight.context}</span>
           <span className="dash-banner-figure">{insight.figure}</span>
           <p className="dash-banner-explanation">{withEmphasis(insight.explanation, insight.emphasis)}</p>
@@ -191,6 +192,20 @@ export default function DashboardPage() {
       </div>
 
     </div>
+  )
+}
+
+/** Motivo del banner: tendencia ascendente (recuperar dinero). Usa currentColor (= --on-accent) con transparencia. */
+function BannerArt() {
+  return (
+    <svg className="dash-banner-art" viewBox="0 0 360 180" preserveAspectRatio="xMaxYMid slice" aria-hidden="true" focusable="false">
+      <circle cx="318" cy="24" r="118" fill="currentColor" opacity="0.07" />
+      <circle cx="352" cy="168" r="86" fill="currentColor" opacity="0.07" />
+      <path d="M24 152 L92 120 L150 130 L214 80 L274 92 L338 38 L338 180 L24 180 Z" fill="currentColor" opacity="0.1" />
+      <polyline points="24,152 92,120 150,130 214,80 274,92 338,38" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
+      <circle cx="338" cy="38" r="12" fill="currentColor" opacity="0.18" />
+      <circle cx="338" cy="38" r="6" fill="currentColor" opacity="0.8" />
+    </svg>
   )
 }
 
