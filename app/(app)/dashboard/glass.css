@@ -51,13 +51,22 @@
   padding: 20px;
   text-decoration: none;
   overflow: hidden;
+  /* Sin mancha de color interna: superficie plana y sombra gris clásica alrededor
+     (algo marcada para que la tarjeta se separe del fondo). Gana a .glass porque
+     esta hoja no está en @layer. */
+  background: var(--bg-surface);
+  box-shadow:
+    0 1px 3px rgba(16, 24, 40, 0.1),
+    0 10px 24px -6px rgba(16, 24, 40, 0.18);
   /* Aspecto vidrio (fondo, blur, radio, sombra) viene de la clase .glass */
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  box-shadow:
+    0 2px 4px rgba(16, 24, 40, 0.08),
+    0 18px 34px -8px rgba(16, 24, 40, 0.24);
 }
 
 .glass-card-icon {
