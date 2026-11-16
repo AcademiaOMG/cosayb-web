@@ -123,6 +123,13 @@ function stateFamily(base: string) {
   return { bg, bgStrong, border, text, textStrong }
 }
 
+/** Hover del sidebar: se acerca al color del texto (aclara en sidebars oscuros) mientras el texto siga >=4.5; si no, se aleja. */
+function sidebarHoverOf(sbBg: string, text: string): string {
+  const toward = mix(sbBg, text, 0.1)
+  if (contrastRatio(text, toward) >= 4.5) return toward
+  return mix(sbBg, isDark(text) ? "#FFFFFF" : "#000000", 0.1)
+}
+
 const isDark = (hex: string) => contrastRatio(hex, "#000000") < contrastRatio(hex, "#FFFFFF")
 
 /** Fondo del ítem activo del sidebar: accent si contrasta >=3 con el sidebar; si no, se ajusta L o se usa un tono claro/oscuro del sidebar. */
@@ -144,9 +151,13 @@ export function themeToCssVars(input: BrandTheme): Record<string, string> {
   const ov = theme.overrides ?? {}
 
   /* Superficies y texto */
-  const bgSecondary = mix(c.bg, c.text, 0.04)
+  const text0 = ensureContrastAll(c.text, [c.bg, c.surface], 4.5)
+  // bg-secondary se acerca al texto un 4%; si eso rompe el contraste (fondos de luminosidad media) se atenua o se omite.
+  let bgSecondary = mix(c.bg, text0, 0.04)
+  for (let i = 0; i < 3 && contrastRatio(text0, bgSecondary) < 4.5; i++) bgSecondary = mix(c.bg, bgSecondary, 0.5)
+  if (contrastRatio(text0, bgSecondary) < 4.5) bgSecondary = c.bg
   const surfaces = [c.bg, c.surface, bgSecondary]
-  const text = ensureContrastAll(c.text, surfaces, 4.5)
+  const text = ensureContrastAll(text0, surfaces, 4.5)
   const onSurface = ensureContrast(text, c.surface, 4.5)
   const secondaryNeutral = withOklch(c.secondary, { c: Math.min(toOklch(c.secondary).c, 0.03) })
   const textSecondary = ensureContrastAll(ov.textSecondary ?? secondaryNeutral, surfaces, 4.5)
@@ -160,19 +171,21 @@ export function themeToCssVars(input: BrandTheme): Record<string, string> {
   let accentHover = withOklch(c.accent, { l: clamp(ac.l - 0.06, 0, 1) })
   if (contrastRatio(onAccent, accentHover) < 4.5) accentHover = withOklch(c.accent, { l: clamp(ac.l + 0.06, 0, 1) })
   if (contrastRatio(onAccent, accentHover) < 4.5) accentHover = c.accent
-  const accentLight = fromOklch({ l: 0.95, c: Math.min(ac.c * 0.25, 0.04), h: ac.h })
+  const darkSurface = isDark(c.surface)
+  const tintL = darkSurface ? 0.3 : 0.95
+  const accentLight = fromOklch({ l: tintL, c: Math.min(ac.c * (darkSurface ? 0.4 : 0.25), 0.05), h: ac.h })
   const accentText = ensureContrastAll(c.accent, [accentLight, ...surfaces], 4.5)
   const focusRing = ensureContrastAll(c.accent, [c.surface, c.bg], 3)
 
   /* Secundario */
   const sc = toOklch(c.secondary)
-  const secondaryLight = fromOklch({ l: 0.95, c: Math.min(sc.c * 0.25, 0.04), h: sc.h })
+  const secondaryLight = fromOklch({ l: tintL, c: Math.min(sc.c * (darkSurface ? 0.4 : 0.25), 0.05), h: sc.h })
   const secondaryText = ensureContrastAll(c.secondary, [secondaryLight, ...surfaces], 4.5)
 
   /* Sidebar */
   const sbBg = c.sidebarBg
   const sidebarText = ensureContrast(ov.sidebarText ?? onColor(sbBg), sbBg, 4.5)
-  const sidebarHover = mix(sbBg, sidebarText, 0.1)
+  const sidebarHover = sidebarHoverOf(sbBg, sidebarText)
   const sbSurfaces = [sbBg, sidebarHover]
   const sidebarMuted = ensureContrastAll(mix(sidebarText, sbBg, 0.35), sbSurfaces, 4.5)
   const sidebarLabel = ensureContrastAll(mix(sidebarText, sbBg, 0.45), sbSurfaces, 4.5)

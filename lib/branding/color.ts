@@ -212,9 +212,15 @@ export function ensureContrast(fg: string, bg: string, min: number): string {
   return contrastRatio("#000000", bg) >= contrastRatio("#FFFFFF", bg) ? "#000000" : "#FFFFFF"
 }
 
-/** Garantiza contraste contra varias superficies a la vez (iterando hasta converger). */
+/**
+ * Garantiza contraste contra varias superficies a la vez. Itera ensureContrast;
+ * si oscila (fondos de polaridad mixta), busca por bisección en cada extremo de
+ * L la menor desviación que cumple TODAS; si ninguna lo logra, devuelve el
+ * candidato con mejor contraste mínimo.
+ */
 export function ensureContrastAll(fg: string, bgs: string[], min: number): string {
-  let out = fg
+  const worst = (c: string) => Math.min(...bgs.map((b) => contrastRatio(c, b)))
+  let out = normalizeHex(fg) ?? "#000000"
   for (let pass = 0; pass < 4; pass++) {
     let changed = false
     for (const bg of bgs) {
@@ -226,7 +232,29 @@ export function ensureContrastAll(fg: string, bgs: string[], min: number): strin
     }
     if (!changed) break
   }
-  return out
+  if (worst(out) >= min) return out
+  const start = normalizeHex(fg) ?? "#000000"
+  const { l, c, h } = toOklch(start)
+  const ok = (cand: string) => worst(cand) >= min
+  let best: string | null = null
+  let bestDelta = Infinity
+  for (const end of [0, 1]) {
+    // Barrido fino desde el original hacia el extremo: primer punto que cumple todas.
+    const steps = 60
+    for (let i = 0; i <= steps; i++) {
+      const cand = fromOklch({ l: l + (end - l) * (i / steps), c, h })
+      if (ok(cand)) {
+        const d = Math.abs(toOklch(cand).l - l)
+        if (d < bestDelta) {
+          best = cand
+          bestDelta = d
+        }
+        break
+      }
+    }
+  }
+  if (best) return best
+  return [out, "#000000", "#FFFFFF"].reduce((a, b) => (worst(a) >= worst(b) ? a : b))
 }
 
 /* ─── Mezcla y ajustes perceptuales ─────────────────────────────────── */
@@ -254,6 +282,7 @@ export function isFluorescent(hex: string): boolean {
   const { l, c } = toOklch(hex)
   if (c >= 0.255) return true
   if (l >= 0.8 && c >= 0.19) return true
+  if (l >= 0.88 && c >= 0.14) return true
   return false
 }
 
