@@ -23,6 +23,7 @@ import Input from "@/components/ui/Input"
 import Badge from "@/components/ui/Badge"
 import Table from "@/components/ui/Table"
 import "@/app/(app)/dashboard/glass.css"
+import { ModuleIllustration, type ModuleKey } from "@/components/brand/illustrations"
 
 /**
  * Pantallas de la vista previa: réplica a escala de la plataforma real.
@@ -45,7 +46,16 @@ const NAV: { id: string; label: string; icon: typeof Home; screen?: PreviewScree
   { id: "eq", label: "Punto de equilibrio", icon: Scale },
 ]
 
-const MODULES = ["Inventario", "Factor de Rendimiento", "Recetas", "Menú", "Valoración", "Punto de Equilibrio", "Configuración", "Mi cuenta"]
+const MODULES: { label: string; key: ModuleKey }[] = [
+  { label: "Inventario", key: "inventory" },
+  { label: "Factor de Rendimiento", key: "yield" },
+  { label: "Recetas", key: "recipes" },
+  { label: "Menú", key: "menu" },
+  { label: "Valoración", key: "valuation" },
+  { label: "Punto de Equilibrio", key: "breakeven" },
+  { label: "Configuración", key: "settings" },
+  { label: "Mi cuenta", key: "account" },
+]
 
 const ROWS = [
   { name: "Pollo asado", cost: "$ 8.400", state: "Activa" },
@@ -154,15 +164,6 @@ function PreviewHeader({ name, title }: { name: string; title: string }) {
 
 /* ─── Pantalla: Inicio ───────────────────────────────────────────── */
 
-function Illustration() {
-  return (
-    <svg viewBox="0 0 64 64" width="100%" height="100%" fill="none" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="10" y="12" width="44" height="40" rx="9" stroke="var(--brand-primary, var(--bg-inverse))" />
-      <path d="M20 40l9-10 8 7 8-12" stroke="var(--brand-secondary, var(--text-secondary))" />
-      <circle cx="22" cy="24" r="3" stroke="var(--brand-primary, var(--bg-inverse))" />
-    </svg>
-  )
-}
 
 function HomeScreen() {
   return (
@@ -175,11 +176,11 @@ function HomeScreen() {
         <h3 className="dash-section-title">¿Qué quieres revisar?</h3>
         <div className="glass-grid">
           {MODULES.map((m) => (
-            <div key={m} className="glass glass-card">
+            <div key={m.key} className="glass glass-card">
               <div className="glass-card-icon">
-                <Illustration />
+                <ModuleIllustration module={m.key} />
               </div>
-              <span className="glass-card-label">{m}</span>
+              <span className="glass-card-label">{m.label}</span>
             </div>
           ))}
         </div>

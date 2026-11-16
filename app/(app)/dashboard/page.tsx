@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { ModuleIllustration } from "@/components/brand/illustrations"
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
 import { Bell } from "lucide-react"
 import "./glass.css"
@@ -22,7 +23,7 @@ interface ModuleCardDef {
    * PUNTO DE EXTENSIÓN — ilustración del módulo. Si se define, reemplaza al PNG `icon`
    * dentro de .glass-card-icon (46% del ancho, máx. 96px, cuadrado). Usar SVG/React con
    * currentColor o var(--brand-primary) / var(--brand-secondary) para que siga la marca.
-   * Hoy ninguna tarjeta la usa: se llenará cuando lleguen las ilustraciones.
+   * Todas las tarjetas usan ModuleIllustration; `icon` queda como respaldo.
    */
   illustration?: ReactNode
   isVisible: PermCheck
@@ -43,14 +44,14 @@ const getTimeGreeting = (hour: number) => {
 // Las 8 funcionalidades viven en una sola grilla pareja — nada de columna
 // aparte para Config/Cuenta, todas son "algo que revisar".
 const ALL_CARDS: ModuleCardDef[] = [
-  { href: "/inventario", label: "Inventario", icon: "/iconos/inventario2.png", isVisible: module_("ingredients", "list", "module_ingredients") },
-  { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: "/iconos/rendimiento2.png", isVisible: module_("yieldFactors", "list", "module_yieldFactors") },
-  { href: "/recetas", label: "Recetas", icon: "/iconos/receta2.png", isVisible: module_("recipes", "list", "module_recipes") },
-  { href: "/menu", label: "Menú", icon: "/iconos/menu2.png", isVisible: module_("menus", "list", "module_menus") },
-  { href: "/valoracion", label: "Valoración", icon: "/iconos/calculadora.png", isVisible: module_("valuations", "list", "module_valuations") },
-  { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: "/iconos/equilibrio2.png", isVisible: module_("breakEven", "list", "module_breakEven") },
-  { href: "/configuracion", label: "Configuración", icon: "/iconos/configuracion2.png", isVisible: (can) => can("organization", "update") || can("members", "list") },
-  { href: "/cuenta", label: "Mi cuenta", icon: "/iconos/user2.png", isVisible: () => true },
+  { href: "/inventario", label: "Inventario", icon: "/iconos/inventario2.png", illustration: <ModuleIllustration module="inventory" />, isVisible: module_("ingredients", "list", "module_ingredients") },
+  { href: "/factor-rendimiento", label: "Factor de Rendimiento", icon: "/iconos/rendimiento2.png", illustration: <ModuleIllustration module="yield" />, isVisible: module_("yieldFactors", "list", "module_yieldFactors") },
+  { href: "/recetas", label: "Recetas", icon: "/iconos/receta2.png", illustration: <ModuleIllustration module="recipes" />, isVisible: module_("recipes", "list", "module_recipes") },
+  { href: "/menu", label: "Menú", icon: "/iconos/menu2.png", illustration: <ModuleIllustration module="menu" />, isVisible: module_("menus", "list", "module_menus") },
+  { href: "/valoracion", label: "Valoración", icon: "/iconos/calculadora.png", illustration: <ModuleIllustration module="valuation" />, isVisible: module_("valuations", "list", "module_valuations") },
+  { href: "/punto-equilibrio", label: "Punto de Equilibrio", icon: "/iconos/equilibrio2.png", illustration: <ModuleIllustration module="breakeven" />, isVisible: module_("breakEven", "list", "module_breakEven") },
+  { href: "/configuracion", label: "Configuración", icon: "/iconos/configuracion2.png", illustration: <ModuleIllustration module="settings" />, isVisible: (can) => can("organization", "update") || can("members", "list") },
+  { href: "/cuenta", label: "Mi cuenta", icon: "/iconos/user2.png", illustration: <ModuleIllustration module="account" />, isVisible: () => true },
 ]
 
 const fmtCOP = (n: number) =>
