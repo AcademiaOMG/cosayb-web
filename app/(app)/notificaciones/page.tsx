@@ -76,7 +76,7 @@ export default function NotificacionesPage() {
               <>
                 <span
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                  style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+                  style={{ background: "var(--accent-light)", color: "var(--accent-text)" }}
                 >
                   <Icon size={16} aria-hidden="true" />
                 </span>

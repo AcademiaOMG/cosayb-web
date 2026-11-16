@@ -58,7 +58,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             : ({
                 "--btn-bg": "var(--error)",
                 "--btn-hover": "var(--error-hover)",
-                "--btn-text": "#fff",
+                "--btn-text": "var(--on-error)",
                 "--btn-ring": "var(--error)",
                 background: "var(--btn-bg)",
                 color: "var(--btn-text)",

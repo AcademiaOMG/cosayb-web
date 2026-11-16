@@ -284,7 +284,7 @@ export default function EquipoPage() {
               >
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0"
-                  style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+                  style={{ background: "var(--accent-light)", color: "var(--accent-text)" }}
                 >
                   {m.name.charAt(0).toUpperCase()}
                 </div>
@@ -377,7 +377,7 @@ export default function EquipoPage() {
                   <button
                     onClick={() => void handleResend(inv)}
                     className="p-1.5 rounded-lg shrink-0"
-                    style={{ color: "var(--accent)", border: "none", background: "transparent", cursor: "pointer" }}
+                    style={{ color: "var(--accent-text)", border: "none", background: "transparent", cursor: "pointer" }}
                     title="Reenviar invitación"
                     aria-label={`Reenviar invitación a ${inv.email}`}
                   >

@@ -19,7 +19,7 @@
   flex-direction: column;
   gap: 6px;
   background:
-    radial-gradient(90% 60% at 100% 0%, rgba(27, 79, 216, 0.06) 0%, transparent 70%),
+    radial-gradient(90% 60% at 100% 0%, color-mix(in srgb, var(--calc-accent, #1b4fd8) 6%, transparent) 0%, transparent 70%),
     #fff;
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-md);

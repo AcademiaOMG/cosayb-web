@@ -19,7 +19,7 @@ const PLAN_ICONS: Record<Plan, typeof Zap> = {
 const PLAN_STYLE: Record<Plan, { color: string; bg: string }> = {
   free: { color: "var(--text-muted)", bg: "var(--bg-secondary)" },
   pro: { color: "var(--accent-text)", bg: "var(--accent-light)" },
-  academia: { color: "var(--on-accent)", bg: "var(--bg-inverse)" },
+  academia: { color: "var(--sidebar-text)", bg: "var(--sidebar-bg)" },
 }
 
 const PLAN_ORDER: Plan[] = ["free", "pro", "academia"]

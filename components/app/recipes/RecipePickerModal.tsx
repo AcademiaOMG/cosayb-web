@@ -102,7 +102,7 @@ export default function RecipePickerModal({
                   style={{
                     border: `1px solid ${active ? "var(--accent)" : "var(--border-light)"}`,
                     background: active ? "var(--accent)" : "transparent",
-                    color: active ? "#fff" : "var(--text-secondary)",
+                    color: active ? "var(--on-accent)" : "var(--text-secondary)",
                     fontWeight: 500,
                   }}
                 >

@@ -18,6 +18,13 @@ interface ModuleCardDef {
   href: string
   label: string
   icon: string
+  /**
+   * PUNTO DE EXTENSIÓN — ilustración del módulo. Si se define, reemplaza al PNG `icon`
+   * dentro de .glass-card-icon (46% del ancho, máx. 96px, cuadrado). Usar SVG/React con
+   * currentColor o var(--brand-primary) / var(--brand-secondary) para que siga la marca.
+   * Hoy ninguna tarjeta la usa: se llenará cuando lleguen las ilustraciones.
+   */
+  illustration?: ReactNode
   isVisible: PermCheck
 }
 
@@ -186,11 +193,11 @@ export default function DashboardPage() {
   )
 }
 
-function ModuleCard({ href, label, icon, style }: ModuleCardDef & { style?: CSSProperties }) {
+function ModuleCard({ href, label, icon, illustration, style }: ModuleCardDef & { style?: CSSProperties }) {
   return (
     <Link href={href} className="glass glass-card" style={style}>
       <div className="relative glass-card-icon">
-        <Image src={icon} alt="" fill className="object-contain" sizes="96px" />
+        {illustration ?? <Image src={icon} alt="" fill className="object-contain" sizes="96px" />}
       </div>
       <span className="glass-card-label">{label}</span>
     </Link>

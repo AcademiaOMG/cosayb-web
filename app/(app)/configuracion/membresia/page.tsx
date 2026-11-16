@@ -15,7 +15,7 @@ import {
 const PLAN_CONFIG: Record<Plan, { label: string; bg: string; color: string; icon: typeof Zap }> = {
   free: { label: "Free", bg: "var(--bg-secondary)", color: "var(--text-muted)", icon: Zap },
   pro: { label: "Pro", bg: "var(--accent-light)", color: "var(--accent-text)", icon: Crown },
-  academia: { label: "Academia", bg: "var(--bg-inverse)", color: "var(--on-accent)", icon: GraduationCap },
+  academia: { label: "Academia", bg: "var(--sidebar-bg)", color: "var(--sidebar-text)", icon: GraduationCap },
 }
 
 export default function MembresiaPage() {

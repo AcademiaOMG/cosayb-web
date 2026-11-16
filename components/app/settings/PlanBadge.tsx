@@ -3,7 +3,7 @@ import type { Plan } from "@/types/domain"
 const config: Record<Plan, { label: string; bg: string; color: string }> = {
   free: { label: "Free", bg: "var(--bg-secondary)", color: "var(--text-muted)" },
   pro: { label: "Pro", bg: "var(--accent-light)", color: "var(--accent-text)" },
-  academia: { label: "Academia", bg: "var(--bg-inverse)", color: "var(--on-accent)" },
+  academia: { label: "Academia", bg: "var(--sidebar-bg)", color: "var(--sidebar-text)" },
 }
 
 export default function PlanBadge({ plan }: { plan: Plan }) {
