@@ -1,81 +1,42 @@
+/**
+ * Motor de tema de marca: convierte un BrandTheme (11 colores + calculadora +
+ * derivados opcionales) en TODAS las variables CSS del contrato
+ * (REQUIRED_CSS_VARS de tokens.ts). Cada token de texto/icono se calcula contra
+ * el fondo sobre el que se pinta (WCAG 2.x: >=4.5 texto, >=3 iconos/UI), con
+ * ajustes en OKLCH que conservan el matiz. Los `overrides` del usuario se usan
+ * como punto de partida pero, al pintar, se corrigen si no llegan al mínimo
+ * (red de seguridad); `validateTheme` los reporta antes de guardar.
+ */
+import {
+  clamp,
+  contrastRatio,
+  ensureContrast,
+  ensureContrastAll,
+  fromOklch,
+  isHexColor,
+  mix,
+  onColor,
+  parseHex,
+  toOklch,
+  withOklch,
+} from "./color"
+import { calcPaletteVars } from "./calcPalette"
 import {
   BRAND_FONTS,
+  BRAND_OVERRIDE_KEYS,
   DEFAULT_BRAND_THEME,
   type BrandColors,
   type BrandFont,
+  type BrandOverrides,
   type BrandRadius,
   type BrandShadow,
   type BrandTheme,
 } from "./types"
 
-/* ─── Utilidades de color ─────────────────────────────────────────── */
-
-const HEX_RE = /^#[0-9a-fA-F]{6}$/
+export { contrastRatio, onColor }
 
 export function isHex(value: unknown): value is string {
-  return typeof value === "string" && HEX_RE.test(value)
-}
-
-type RGB = [number, number, number]
-
-function parseHex(hex: string): RGB {
-  const h = hex.replace("#", "")
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
-}
-
-function toHex([r, g, b]: RGB): string {
-  const c = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0")
-  return `#${c(r)}${c(g)}${c(b)}`.toUpperCase()
-}
-
-function luminance(hex: string): number {
-  const lin = parseHex(hex).map((v) => {
-    const s = v / 255
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
-  })
-  return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
-}
-
-/** Relación de contraste WCAG entre dos colores #RRGGBB (1 a 21). */
-export function contrastRatio(a: string, b: string): number {
-  const la = luminance(a)
-  const lb = luminance(b)
-  const [hi, lo] = la >= lb ? [la, lb] : [lb, la]
-  return (hi + 0.05) / (lo + 0.05)
-}
-
-/** Mezcla `a` con `b`; t=0 devuelve a, t=1 devuelve b. */
-function mix(a: string, b: string, t: number): string {
-  const pa = parseHex(a)
-  const pb = parseHex(b)
-  return toHex([0, 1, 2].map((i) => pa[i] + (pb[i] - pa[i]) * t) as RGB)
-}
-
-const darken = (c: string, t: number) => mix(c, "#000000", t)
-
-/** Oscurece o aclara `fg` (según el fondo) hasta alcanzar `min` contra `bg`. */
-function ensureContrast(fg: string, bg: string, min: number): string {
-  if (contrastRatio(fg, bg) >= min) return fg
-  const toward = luminance(bg) > 0.4 ? "#000000" : "#FFFFFF"
-  for (let t = 0.04; t <= 1.0001; t += 0.04) {
-    const c = mix(fg, toward, t)
-    if (contrastRatio(c, bg) >= min) return c
-  }
-  return toward
-}
-
-/** Garantiza contraste contra varias superficies a la vez. */
-function ensureContrastAll(fg: string, bgs: string[], min: number): string {
-  let out = fg
-  for (let pass = 0; pass < 2; pass++) {
-    for (const bg of bgs) out = ensureContrast(out, bg, min)
-  }
-  return out
-}
-
-/** Texto legible sobre un color sólido: blanco o casi negro. */
-export function onColor(bg: string): string {
-  return contrastRatio("#FFFFFF", bg) >= contrastRatio("#12213A", bg) ? "#FFFFFF" : "#12213A"
+  return isHexColor(value)
 }
 
 function rgba(hex: string, alpha: number): string {
@@ -135,54 +96,125 @@ export function normalizeTheme(input: Partial<BrandTheme> | null | undefined): B
     const v = input?.colors?.[k]
     if (isHex(v)) colors[k] = v.toUpperCase()
   }
-  return {
+  const out: BrandTheme = {
     colors,
     radius: input?.radius && input.radius in RADIUS ? input.radius : d.radius,
     shadow: input?.shadow && input.shadow in SHADOW ? input.shadow : d.shadow,
     font: input?.font && (BRAND_FONTS as readonly string[]).includes(input.font) ? input.font : d.font,
   }
+  if (isHex(input?.calculator)) out.calculator = input.calculator.toUpperCase()
+  const ov: BrandOverrides = {}
+  for (const k of BRAND_OVERRIDE_KEYS) {
+    const v = input?.overrides?.[k]
+    if (isHex(v)) ov[k] = v.toUpperCase()
+  }
+  if (Object.keys(ov).length) out.overrides = ov
+  return out
 }
 
-/** Deriva TODOS los tokens CSS (--accent, --bg-*, --sidebar-*, estados, radios, sombras, fuentes). */
+/** Familia de un estado (éxito/aviso/error/info): fondos tenues, borde y textos por contraste. */
+function stateFamily(base: string) {
+  const { c, h } = toOklch(base)
+  const bg = fromOklch({ l: 0.97, c: Math.min(c * 0.25, 0.03), h })
+  const bgStrong = fromOklch({ l: 0.93, c: Math.min(c * 0.45, 0.06), h })
+  const border = fromOklch({ l: 0.85, c: Math.min(c * 0.7, 0.1), h })
+  const text = ensureContrastAll(fromOklch({ l: 0.42, c: Math.min(c, 0.14), h }), [bg, bgStrong], 4.5)
+  const textStrong = ensureContrastAll(fromOklch({ l: 0.33, c: Math.min(c, 0.12), h }), [bg, bgStrong], 7)
+  return { bg, bgStrong, border, text, textStrong }
+}
+
+const isDark = (hex: string) => contrastRatio(hex, "#000000") < contrastRatio(hex, "#FFFFFF")
+
+/** Fondo del ítem activo del sidebar: accent si contrasta >=3 con el sidebar; si no, se ajusta L o se usa un tono claro/oscuro del sidebar. */
+function deriveSidebarActive(accent: string, sidebarBg: string): string {
+  if (contrastRatio(accent, sidebarBg) >= 3) return accent
+  const adj = ensureContrast(accent, sidebarBg, 3)
+  const a = toOklch(accent)
+  const b = toOklch(adj)
+  if (Math.abs(a.l - b.l) <= 0.22 && (a.c < 0.05 || b.c >= a.c * 0.5)) return adj
+  const sb = toOklch(sidebarBg)
+  const tint = fromOklch({ l: isDark(sidebarBg) ? 0.93 : 0.25, c: clamp(sb.c, 0.02, 0.05), h: sb.h })
+  return ensureContrast(tint, sidebarBg, 3)
+}
+
+/** Deriva TODOS los tokens CSS del contrato (colores, estados, calculadora, radios, sombras, fuentes). */
 export function themeToCssVars(input: BrandTheme): Record<string, string> {
   const theme = normalizeTheme(input)
   const c = theme.colors
-  const bgs = [c.bg, c.surface]
+  const ov = theme.overrides ?? {}
+
+  /* Superficies y texto */
   const bgSecondary = mix(c.bg, c.text, 0.04)
+  const surfaces = [c.bg, c.surface, bgSecondary]
+  const text = ensureContrastAll(c.text, surfaces, 4.5)
+  const onSurface = ensureContrast(text, c.surface, 4.5)
+  const secondaryNeutral = withOklch(c.secondary, { c: Math.min(toOklch(c.secondary).c, 0.03) })
+  const textSecondary = ensureContrastAll(ov.textSecondary ?? secondaryNeutral, surfaces, 4.5)
+  const textMuted = ensureContrastAll(mix(text, c.bg, 0.4), surfaces, 4.5)
+  const borderLight = ov.border ?? mix(c.bg, c.text, 0.1)
+  const borderMedium = ov.border ? mix(ov.border, c.text, 0.12) : mix(c.bg, c.text, 0.2)
 
-  const accentHover = darken(c.accent, 0.14)
-  const accentLight = mix(c.accent, "#FFFFFF", 0.88)
-  const accentText = ensureContrastAll(c.accent, [accentLight, ...bgs], 4.5)
+  /* Acción */
+  const onAccent = onColor(c.accent)
+  const ac = toOklch(c.accent)
+  let accentHover = withOklch(c.accent, { l: clamp(ac.l - 0.06, 0, 1) })
+  if (contrastRatio(onAccent, accentHover) < 4.5) accentHover = withOklch(c.accent, { l: clamp(ac.l + 0.06, 0, 1) })
+  if (contrastRatio(onAccent, accentHover) < 4.5) accentHover = c.accent
+  const accentLight = fromOklch({ l: 0.95, c: Math.min(ac.c * 0.25, 0.04), h: ac.h })
+  const accentText = ensureContrastAll(c.accent, [accentLight, ...surfaces], 4.5)
+  const focusRing = ensureContrastAll(c.accent, [c.surface, c.bg], 3)
 
-  const textSecondary = ensureContrastAll(c.secondary, [...bgs, bgSecondary], 4.5)
-  const textMuted = ensureContrastAll(mix(c.text, c.bg, 0.4), [...bgs, bgSecondary], 4.5)
+  /* Secundario */
+  const sc = toOklch(c.secondary)
+  const secondaryLight = fromOklch({ l: 0.95, c: Math.min(sc.c * 0.25, 0.04), h: sc.h })
+  const secondaryText = ensureContrastAll(c.secondary, [secondaryLight, ...surfaces], 4.5)
 
-  const sidebarText = onColor(c.sidebarBg)
-  const sidebarMuted = ensureContrast(mix(sidebarText, c.sidebarBg, 0.35), c.sidebarBg, 4.5)
-  const sidebarLabel = ensureContrast(mix(sidebarText, c.sidebarBg, 0.5), c.sidebarBg, 3)
+  /* Sidebar */
+  const sbBg = c.sidebarBg
+  const sidebarText = ensureContrast(ov.sidebarText ?? onColor(sbBg), sbBg, 4.5)
+  const sidebarHover = mix(sbBg, sidebarText, 0.1)
+  const sbSurfaces = [sbBg, sidebarHover]
+  const sidebarMuted = ensureContrastAll(mix(sidebarText, sbBg, 0.35), sbSurfaces, 4.5)
+  const sidebarLabel = ensureContrastAll(mix(sidebarText, sbBg, 0.45), sbSurfaces, 4.5)
+  const activeBg = ensureContrast(ov.sidebarActiveBg ?? deriveSidebarActive(c.accent, sbBg), sbBg, 3)
+  const activeText = ensureContrast(ov.sidebarActiveText ?? onColor(activeBg), activeBg, 4.5)
 
-  const family = (base: string, bgT: number, bgStrongT: number, borderT: number) => {
-    const bg = mix(base, "#FFFFFF", bgT)
-    const bgStrong = mix(base, "#FFFFFF", bgStrongT)
-    const border = mix(base, "#FFFFFF", borderT)
-    const text = ensureContrastAll(darken(base, 0.35), [bg, bgStrong], 4.5)
-    const textStrong = ensureContrastAll(darken(base, 0.55), [bg, bgStrong], 7)
-    return { bg, bgStrong, border, text, textStrong }
-  }
-  const err = family(c.error, 0.94, 0.86, 0.78)
-  const warn = family(c.warning, 0.94, 0.85, 0.7)
-  const ok = family(c.success, 0.93, 0.84, 0.7)
+  /* Encabezado y chip */
+  const headerBg = ov.headerBg ?? c.surface
+  const headerText = ensureContrast(
+    ov.headerText ?? (contrastRatio(text, headerBg) >= 4.5 ? text : onColor(headerBg)),
+    headerBg,
+    4.5,
+  )
+  const headerBorder = mix(headerBg, headerText, 0.12)
+  const chipBg = contrastRatio(accentLight, headerBg) >= 1.15 ? accentLight : mix(headerBg, headerText, 0.12)
+  const chipText = ensureContrast(accentText, chipBg, 4.5)
+  const chipBorder = mix(chipBg, chipText, 0.2)
+
+  /* Estados */
+  const err = stateFamily(c.error)
+  const warn = stateFamily(c.warning)
+  const ok = stateFamily(c.success)
+  const inf = stateFamily(c.info)
   const [rSm, rMd, rLg] = RADIUS[theme.radius]
   const [sSm, sMd, sLg] = SHADOW[theme.shadow]
   const font = fontStack(theme.font)
 
   return {
+    "--brand-primary": c.primary,
+    "--brand-secondary": c.secondary,
+    "--secondary-light": secondaryLight,
+    "--secondary-text": secondaryText,
+    "--on-secondary": onColor(c.secondary),
+
     "--bg-primary": c.bg,
     "--bg-secondary": bgSecondary,
     "--bg-surface": c.surface,
+    "--on-surface": onSurface,
     "--bg-inverse": c.primary,
+    "--on-inverse": onColor(c.primary),
 
-    "--text-primary": c.text,
+    "--text-primary": text,
     "--text-secondary": textSecondary,
     "--text-muted": textMuted,
 
@@ -190,22 +222,32 @@ export function themeToCssVars(input: BrandTheme): Record<string, string> {
     "--accent-hover": accentHover,
     "--accent-light": accentLight,
     "--accent-text": accentText,
-    "--on-accent": onColor(c.accent),
-    "--on-inverse": onColor(c.primary),
+    "--on-accent": onAccent,
+    "--focus-ring": focusRing,
 
-    "--border-light": mix(c.bg, c.text, 0.1),
-    "--border-medium": mix(c.bg, c.text, 0.2),
+    "--border-light": borderLight,
+    "--border-medium": borderMedium,
 
-    "--sidebar-bg": c.sidebarBg,
+    "--sidebar-bg": sbBg,
     "--sidebar-text": sidebarText,
     "--sidebar-muted": sidebarMuted,
     "--sidebar-label": sidebarLabel,
-    "--sidebar-hairline": rgba(sidebarText, 0.08),
+    "--sidebar-hairline": rgba(sidebarText, 0.1),
+    "--sidebar-hover-bg": sidebarHover,
+    "--sidebar-active-bg": activeBg,
+    "--sidebar-active-text": activeText,
+
+    "--header-bg": headerBg,
+    "--header-text": headerText,
+    "--header-border": headerBorder,
+    "--chip-bg": chipBg,
+    "--chip-text": chipText,
+    "--chip-border": chipBorder,
 
     "--success": c.success,
     "--warning": c.warning,
     "--error": c.error,
-    "--error-hover": darken(c.error, 0.2),
+    "--error-hover": withOklch(c.error, { l: clamp(toOklch(c.error).l * 0.88, 0, 1) }),
     "--info": c.info,
 
     "--error-bg": err.bg,
@@ -216,13 +258,19 @@ export function themeToCssVars(input: BrandTheme): Record<string, string> {
     "--warning-border": warn.border,
     "--warning-text": warn.text,
     "--warning-text-strong": warn.textStrong,
-    "--warning-solid": darken(c.warning, 0.15),
+    "--warning-solid": ensureContrast(c.warning, c.surface, 3),
     "--success-bg": ok.bg,
     "--success-bg-strong": ok.bgStrong,
+    "--success-border": ok.border,
     "--success-text": ok.text,
     "--success-text-strong": ok.textStrong,
+    "--info-bg": inf.bg,
+    "--info-border": inf.border,
+    "--info-text": inf.text,
 
     "--glass-tint": rgba(c.accent, 0.16),
+
+    ...calcPaletteVars(theme.calculator ?? c.primary),
 
     "--radius-sm": rSm,
     "--radius-md": rMd,
@@ -251,6 +299,66 @@ export function cssVarsToStyleString(vars: Record<string, string>): string {
   return `:root,.app-theme-neutral{${body}}`
 }
 
+/* ─── Auditoría de contraste de las variables emitidas ───────────────── */
+
+export interface ContrastPair {
+  fg: string
+  bg: string
+  min: number
+}
+const P = (fg: string, bg: string | string[], min: number): ContrastPair[] =>
+  (Array.isArray(bg) ? bg : [bg]).map((b) => ({ fg, bg: b, min }))
+
+/** Todas las parejas (texto/icono sobre fondo) que el motor garantiza, por nombre de variable. */
+export const CONTRAST_PAIRS: ContrastPair[] = [
+  ...P("--text-primary", ["--bg-primary", "--bg-surface", "--bg-secondary"], 4.5),
+  ...P("--on-surface", "--bg-surface", 4.5),
+  ...P("--text-secondary", ["--bg-primary", "--bg-surface", "--bg-secondary"], 4.5),
+  ...P("--text-muted", ["--bg-primary", "--bg-surface", "--bg-secondary"], 4.5),
+  ...P("--on-accent", ["--accent", "--accent-hover"], 4.5),
+  ...P("--accent-text", ["--accent-light", "--bg-surface", "--bg-primary", "--bg-secondary"], 4.5),
+  ...P("--focus-ring", ["--bg-surface", "--bg-primary"], 3),
+  ...P("--on-secondary", "--brand-secondary", 4.5),
+  ...P("--secondary-text", ["--secondary-light", "--bg-surface", "--bg-primary"], 4.5),
+  ...P("--on-inverse", "--bg-inverse", 4.5),
+  ...P("--sidebar-text", ["--sidebar-bg", "--sidebar-hover-bg"], 4.5),
+  ...P("--sidebar-muted", ["--sidebar-bg", "--sidebar-hover-bg"], 4.5),
+  ...P("--sidebar-label", ["--sidebar-bg", "--sidebar-hover-bg"], 4.5),
+  ...P("--sidebar-active-text", "--sidebar-active-bg", 4.5),
+  ...P("--sidebar-active-bg", "--sidebar-bg", 3),
+  ...P("--header-text", "--header-bg", 4.5),
+  ...P("--chip-text", "--chip-bg", 4.5),
+  ...P("--success-text", ["--success-bg", "--success-bg-strong"], 4.5),
+  ...P("--success-text-strong", ["--success-bg", "--success-bg-strong"], 7),
+  ...P("--warning-text", ["--warning-bg", "--warning-bg-strong"], 4.5),
+  ...P("--warning-text-strong", ["--warning-bg", "--warning-bg-strong"], 7),
+  ...P("--warning-solid", "--bg-surface", 3),
+  ...P("--error-text", "--error-bg", 4.5),
+  ...P("--info-text", "--info-bg", 4.5),
+  ...P("--calc-key-text", "--calc-key", 4.5),
+  ...P("--calc-key-op-text", "--calc-key-op", 4.5),
+  ...P("--calc-key-equals-text", "--calc-key-equals", 4.5),
+  ...P("--calc-display-text", "--calc-display-bg", 4.5),
+  ...P("--calc-accent", "--calc-body", 3),
+  ...P("--calc-ring", "--calc-body", 3),
+  ...P("--calc-key", "--calc-body", 3),
+  ...P("--calc-key-op", "--calc-body", 3),
+  ...P("--calc-key-equals", "--calc-body", 3),
+]
+
+/** Devuelve las parejas del contrato que NO cumplen su mínimo (vacío = todo bien). */
+export function auditCssVars(vars: Record<string, string>): (ContrastPair & { ratio: number })[] {
+  const bad: (ContrastPair & { ratio: number })[] = []
+  for (const p of CONTRAST_PAIRS) {
+    const f = vars[p.fg]
+    const b = vars[p.bg]
+    if (!isHex(f) || !isHex(b)) continue
+    const ratio = contrastRatio(f, b)
+    if (ratio < p.min) bad.push({ ...p, ratio })
+  }
+  return bad
+}
+
 /* ─── Validación y auto-corrección ────────────────────────────────── */
 
 export interface ThemeIssue {
@@ -264,6 +372,13 @@ export function validateTheme(theme: BrandTheme): { ok: boolean; issues: ThemeIs
   const c = theme.colors
   for (const k of Object.keys(DEFAULT_BRAND_THEME.colors) as (keyof BrandColors)[]) {
     if (!isHex(c?.[k])) issues.push({ field: `colors.${k}`, message: "Debe ser un color #RRGGBB válido." })
+  }
+  if (theme.calculator !== undefined && !isHex(theme.calculator)) {
+    issues.push({ field: "calculator", message: "Debe ser un color #RRGGBB válido." })
+  }
+  for (const k of BRAND_OVERRIDE_KEYS) {
+    const v = theme.overrides?.[k]
+    if (v !== undefined && !isHex(v)) issues.push({ field: `overrides.${k}`, message: "Debe ser un color #RRGGBB válido." })
   }
   if (issues.length) return { ok: false, issues }
 
@@ -279,25 +394,54 @@ export function validateTheme(theme: BrandTheme): { ok: boolean; issues: ThemeIs
   }
   check("colors.text", c.text, c.bg, 4.5, "Texto sobre fondo")
   check("colors.text", c.text, c.surface, 4.5, "Texto sobre superficie")
-  check("colors.secondary", c.secondary, c.bg, 4.5, "Texto secundario sobre fondo")
-  check("colors.secondary", c.secondary, c.surface, 4.5, "Texto secundario sobre superficie")
-  check("colors.accent", c.accent, c.surface, 3, "Color de acento sobre superficie")
-  check("colors.primary", c.primary, c.surface, 3, "Color primario sobre superficie")
-  // El texto sobre el acento se elige blanco/oscuro automáticamente (siempre
-  // >= 4.5:1); se comprueba por si cambia la regla de on-accent.
-  if (contrastRatio(onColor(c.accent), c.accent) < 4.5) {
-    issues.push({ field: "colors.accent", message: "El texto sobre el acento no alcanza 4.5:1." })
+  check("colors.secondary", c.secondary, c.bg, 3, "Color secundario sobre fondo")
+  check("colors.secondary", c.secondary, c.surface, 3, "Color secundario sobre superficie")
+  check("colors.accent", c.accent, c.surface, 3, "Color de acción sobre superficie")
+  check("colors.primary", c.primary, c.surface, 3, "Color principal sobre superficie")
+
+  // Derivados fijados a mano: cada pareja contra el fondo en que se pinta.
+  const ov = theme.overrides
+  if (ov) {
+    const base = { ...theme, overrides: undefined }
+    const activeBg = ov.sidebarActiveBg ?? themeToCssVars(base)["--sidebar-active-bg"]
+    const headerBg = ov.headerBg ?? c.surface
+    if (ov.sidebarText) check("overrides.sidebarText", ov.sidebarText, c.sidebarBg, 4.5, "Texto del sidebar sobre su fondo")
+    if (ov.sidebarActiveBg) check("overrides.sidebarActiveBg", ov.sidebarActiveBg, c.sidebarBg, 3, "Ítem activo sobre el sidebar")
+    if (ov.sidebarActiveText) check("overrides.sidebarActiveText", ov.sidebarActiveText, activeBg, 4.5, "Texto del ítem activo")
+    if (ov.headerText) check("overrides.headerText", ov.headerText, headerBg, 4.5, "Texto del encabezado")
+    if (ov.textSecondary) {
+      check("overrides.textSecondary", ov.textSecondary, c.bg, 4.5, "Texto secundario sobre fondo")
+      check("overrides.textSecondary", ov.textSecondary, c.surface, 4.5, "Texto secundario sobre superficie")
+    }
+  }
+  // Red final: lo que el motor emite debe cumplir el contrato completo.
+  for (const p of auditCssVars(themeToCssVars(theme))) {
+    issues.push({ field: "theme", message: `${p.fg} sobre ${p.bg}: ${p.ratio.toFixed(2)}:1 (mínimo ${p.min}:1).` })
   }
   return { ok: issues.length === 0, issues }
 }
 
-/** Devuelve un tema con los colores ajustados para cumplir los mínimos AA. */
+/** Devuelve un tema con los colores ajustados (conservando matiz) para cumplir los mínimos. */
 export function autoFixTheme(input: BrandTheme): BrandTheme {
   const theme = normalizeTheme(input)
   const c = { ...theme.colors }
   c.text = ensureContrastAll(c.text, [c.bg, c.surface], 4.5)
-  c.secondary = ensureContrastAll(c.secondary, [c.bg, c.surface], 4.5)
+  c.secondary = ensureContrastAll(c.secondary, [c.bg, c.surface], 3)
   c.accent = ensureContrast(c.accent, c.surface, 3)
   c.primary = ensureContrast(c.primary, c.surface, 3)
-  return { ...theme, colors: c }
+  const out: BrandTheme = { ...theme, colors: c }
+  const ov = theme.overrides
+  if (ov) {
+    const o: BrandOverrides = { ...ov }
+    if (o.sidebarText) o.sidebarText = ensureContrast(o.sidebarText, c.sidebarBg, 4.5)
+    if (o.sidebarActiveBg) o.sidebarActiveBg = ensureContrast(o.sidebarActiveBg, c.sidebarBg, 3)
+    if (o.sidebarActiveText) {
+      const abg = o.sidebarActiveBg ?? themeToCssVars({ ...out, overrides: undefined })["--sidebar-active-bg"]
+      o.sidebarActiveText = ensureContrast(o.sidebarActiveText, abg, 4.5)
+    }
+    if (o.headerText) o.headerText = ensureContrast(o.headerText, o.headerBg ?? c.surface, 4.5)
+    if (o.textSecondary) o.textSecondary = ensureContrastAll(o.textSecondary, [c.bg, c.surface], 4.5)
+    out.overrides = o
+  }
+  return out
 }
