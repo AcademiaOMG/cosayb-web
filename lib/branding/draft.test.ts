@@ -11,10 +11,14 @@ import {
   validateAssetFile,
   ASSET_MAX_BYTES,
   FONT_OPTIONS,
-  COLOR_GROUPS,
+  derivedInfo,
+  isFluorescent,
+  softenColor,
 } from "./draft"
 import { previewCss } from "./platformPreview"
 import { BRAND_FONTS, DEFAULT_BRAND_THEME } from "./types"
+import { INPUT_KEYS, DERIVED_KEYS } from "./tokens"
+import { brandVars, suggestPalette } from "./editorEngine"
 
 const fresh = () => createDraftState(null, null)
 
@@ -136,10 +140,98 @@ describe("catálogos del editor", () => {
   it("las opciones de fuente cubren exactamente BRAND_FONTS", () => {
     expect(FONT_OPTIONS.map((f) => f.value).sort()).toEqual([...BRAND_FONTS].sort())
   })
-  it("los grupos de color cubren los 11 colores sin repetir", () => {
-    const keys = COLOR_GROUPS.flatMap((g) => g.fields.map((f) => f.key))
-    expect(new Set(keys).size).toBe(11)
-    expect(keys.sort()).toEqual(Object.keys(DEFAULT_BRAND_THEME.colors).sort())
+  it("el catálogo de tokens cubre las 11 entradas de color + calculadora", () => {
+    expect([...INPUT_KEYS].sort()).toEqual([...Object.keys(DEFAULT_BRAND_THEME.colors), "calculator"].sort())
+    expect(DERIVED_KEYS.length).toBe(7)
+  })
+})
+
+describe("calculadora y overrides", () => {
+  it("setCalculator fija y quita (sigue al principal); cuenta como cambio", () => {
+    let s = brandDraftReducer(fresh(), { type: "setCalculator", value: "#aa5500" })
+    expect(s.theme.calculator).toBe("#AA5500")
+    expect(isDirty(s)).toBe(true)
+    s = brandDraftReducer(s, { type: "setCalculator", value: undefined })
+    expect("calculator" in s.theme).toBe(false)
+    expect(isDirty(s)).toBe(false)
+  })
+
+  it("setOverride guarda en overrides, ignora hex inválido y volver a automático lo quita", () => {
+    let s = brandDraftReducer(fresh(), { type: "setOverride", key: "sidebarText", value: "#ffffff" })
+    expect(s.theme.overrides).toEqual({ sidebarText: "#FFFFFF" })
+    expect(isDirty(s)).toBe(true)
+    expect(brandDraftReducer(s, { type: "setOverride", key: "border", value: "rojo" })).toBe(s)
+    s = brandDraftReducer(s, { type: "clearOverride", key: "sidebarText" })
+    expect("overrides" in s.theme).toBe(false)
+    expect(isDirty(s)).toBe(false)
+  })
+
+  it("el payload nunca lleva overrides ni calculator vacíos", () => {
+    let s = brandDraftReducer(fresh(), { type: "setOverride", key: "border", value: "#cccccc" })
+    s = brandDraftReducer(s, { type: "clearOverride", key: "border" })
+    const t = buildSavePayload(s).theme as unknown as Record<string, unknown>
+    expect("overrides" in t).toBe(false)
+    expect("calculator" in t).toBe(false)
+    const withOv = brandDraftReducer(fresh(), { type: "setOverride", key: "border", value: "#cccccc" })
+    expect(buildSavePayload(withOv).theme.overrides).toEqual({ border: "#CCCCCC" })
+  })
+
+  it("load conserva calculator y overrides del servidor", () => {
+    const saved = { ...DEFAULT_BRAND_THEME, calculator: "#336699", overrides: { headerBg: "#EEEEEE" } }
+    const s = createDraftState(saved, null)
+    expect(s.theme.calculator).toBe("#336699")
+    expect(s.theme.overrides).toEqual({ headerBg: "#EEEEEE" })
+    expect(isDirty(s)).toBe(false)
+  })
+})
+
+describe("paleta sugerida", () => {
+  it("applySuggestion reemplaza colores, conserva radio/sombra/fuente y se puede deshacer", () => {
+    let s = brandDraftReducer(fresh(), { type: "setRadius", value: "pill" })
+    s = brandDraftReducer(s, { type: "setOverride", key: "border", value: "#cccccc" })
+    const before = s.theme
+    s = brandDraftReducer(s, { type: "applySuggestion", theme: suggestPalette("#C2410C", { harmony: "complementary", sidebar: "dark" }) })
+    expect(s.theme.colors.primary).toBe("#C2410C")
+    expect(s.theme.radius).toBe("pill")
+    expect(s.theme.overrides).toBeUndefined()
+    expect(isDirty(s)).toBe(true)
+    expect(s.undoTheme).toBe(before)
+    s = brandDraftReducer(s, { type: "undoSuggestion" })
+    expect(s.theme).toBe(before)
+    expect(s.undoTheme).toBeNull()
+  })
+  it("Descartar limpia el deshacer y vuelve a la base", () => {
+    let s = brandDraftReducer(fresh(), { type: "applySuggestion", theme: suggestPalette("#0F766E") })
+    s = brandDraftReducer(s, { type: "discard" })
+    expect(isDirty(s)).toBe(false)
+    expect(s.undoTheme).toBeNull()
+  })
+})
+
+describe("derivados en vivo y avisos", () => {
+  it("derivedInfo da valor automático y ratio; un override malo falla el mínimo", () => {
+    const vars = brandVars(DEFAULT_BRAND_THEME)
+    const auto = derivedInfo(DEFAULT_BRAND_THEME, "sidebarText", vars)
+    expect(auto.isOverride).toBe(false)
+    expect(auto.ok).toBe(true)
+    expect(auto.ratio).toBeGreaterThan(4.5)
+    const bad = { ...DEFAULT_BRAND_THEME, overrides: { sidebarText: "#14243C" } }
+    const info = derivedInfo(bad, "sidebarText", brandVars(bad))
+    expect(info.isOverride).toBe(true)
+    expect(info.ok).toBe(false)
+  })
+  it("detecta fluorescentes, ofrece color suave y fixTheme lo suaviza", () => {
+    expect(isFluorescent("#00FF00")).toBe(true)
+    expect(isFluorescent("#1B4FD8")).toBe(false)
+    expect(isFluorescent(softenColor("#00FF00"))).toBe(false)
+    const neon = { ...DEFAULT_BRAND_THEME, colors: { ...DEFAULT_BRAND_THEME.colors, accent: "#00FF00" }, calculator: "#FF00FF" }
+    const r = analyzeTheme(neon)
+    expect(r.ok).toBe(false)
+    expect(r.byColor.accent?.some((i) => i.fix)).toBe(true)
+    expect(r.byColor.calculator?.length).toBeGreaterThan(0)
+    const fixed = fixTheme(neon)
+    expect(isFluorescent(fixed.colors.accent)).toBe(false)
+    expect(isFluorescent(fixed.calculator!)).toBe(false)
   })
 })
 

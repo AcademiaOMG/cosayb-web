@@ -5,7 +5,7 @@
  * ThemeProvider pueden fijar los mismos tokens en línea más abajo en el árbol.
  */
 import type { BrandTheme } from "./types"
-import { themeToCssVars } from "./theme"
+import { brandVars } from "./editorEngine"
 
 export const PREVIEW_STYLE_ID = "brand-preview"
 
@@ -40,7 +40,7 @@ export function getPreviewState(): PlatformPreviewState {
 
 /** CSS del borrador; solo nombres --token y valores generados por themeToCssVars. */
 export function previewCss(theme: BrandTheme): string {
-  const body = Object.entries(themeToCssVars(theme))
+  const body = Object.entries(brandVars(theme))
     .filter(([k, v]) => /^--[a-z0-9-]+$/.test(k) && !/[;{}<>!]/.test(v))
     .map(([k, v]) => `${k}:${v} !important`)
     .join(";")

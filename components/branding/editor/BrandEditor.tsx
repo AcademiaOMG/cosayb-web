@@ -27,6 +27,7 @@ import {
   subscribePreview,
   updatePlatformPreview,
 } from "@/lib/branding/platformPreview"
+import { suggestPalette } from "@/lib/branding/editorEngine"
 import LogosSection from "./LogosSection"
 import PaletteSection from "./PaletteSection"
 import IdentitySection from "./IdentitySection"
@@ -188,7 +189,7 @@ export default function BrandEditor() {
         ))}
       </div>
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
         <div
           role="tabpanel"
           id="brand-panel-edit"
@@ -202,6 +203,12 @@ export default function BrandEditor() {
           <PaletteSection
             theme={state.theme}
             onColor={(key, value) => dispatch({ type: "setColor", key, value })}
+            onCalculator={(value) => dispatch({ type: "setCalculator", value })}
+            onOverride={(key, value) => dispatch({ type: "setOverride", key, value })}
+            onClearOverride={(key) => dispatch({ type: "clearOverride", key })}
+            onSuggest={(opts) => dispatch({ type: "applySuggestion", theme: suggestPalette(state.theme.colors.primary, opts) })}
+            onUndo={() => dispatch({ type: "undoSuggestion" })}
+            canUndo={state.undoTheme !== null}
             onAutoFix={() => dispatch({ type: "replaceTheme", theme: fixTheme(state.theme) })}
           />
           <IdentitySection
