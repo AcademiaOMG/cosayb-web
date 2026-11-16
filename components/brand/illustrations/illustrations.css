@@ -1,38 +1,40 @@
 /* ─── Ilustraciones de módulo — paleta derivada de la marca ───────────────────
    ÚNICO lugar donde se definen las variables --ill-*. Se calculan a partir de
-   los tokens de marca (--brand-primary, --brand-secondary, --text-primary,
-   --bg-surface) con color-mix, así cada negocio recolorea las ilustraciones
-   con solo definir su paleta. Los fallbacks reproducen el aspecto por defecto
-   (azules navy/vivos y grises de los PNG originales). */
+   los tokens de marca (--accent / --brand-primary, --brand-secondary,
+   --text-primary) con color-mix, así cada negocio recolorea las ilustraciones
+   con solo definir su paleta. Los fallbacks reproducen el aspecto por defecto:
+   azul vivo de marca + ámbar cálido de contraste + blancos/cremas. */
 
 .ill {
-  /* Tintas y tonos base (con la marca por defecto: navy, índigo, azul claro, grises). */
-  --ill-ink: color-mix(in oklab, var(--text-primary, #12213a) 88%, var(--brand-primary, #1b4fd8));
-  --ill-ink-hi: color-mix(in oklab, var(--ill-ink) 72%, #fff);
+  /* Color héroe: el acento de la marca, puro (luz/sombra hacia blanco/negro, sin pasar por la tinta). */
+  --ill-1: var(--accent, var(--brand-primary, #1b4fd8));
+  --ill-1-hi: color-mix(in oklab, var(--ill-1) 62%, #fff);
+  --ill-1-lo: color-mix(in oklab, var(--ill-1) 70%, #000);
+
+  /* Secundario cálido/contrastante (detalles). */
+  --ill-2: var(--brand-secondary, #f5a524);
+  --ill-2-hi: color-mix(in oklab, var(--ill-2) 60%, #fff);
+  --ill-2-lo: color-mix(in oklab, var(--ill-2) 75%, #000);
+
+  /* Tinta: solo trazos finos y sombras. */
+  --ill-ink: color-mix(in oklab, var(--text-primary, #12213a) 85%, var(--ill-1));
+  --ill-ink-hi: color-mix(in oklab, var(--ill-ink) 70%, #fff);
   --ill-ink-lo: color-mix(in oklab, var(--ill-ink) 65%, #000);
 
-  /* Color principal del objeto (índigo de marca). */
-  --ill-1: color-mix(in oklab, color-mix(in oklab, var(--brand-primary, #1b4fd8) 45%, var(--ill-ink)) 88%, #fff);
-  --ill-1-hi: color-mix(in oklab, var(--ill-1) 70%, #fff);
-  --ill-1-lo: color-mix(in oklab, var(--ill-1) 68%, #000);
+  /* Neutro claro y cálido (metal suave, platos de cocina). */
+  --ill-neutral: color-mix(in oklab, #fff 78%, var(--ill-2));
+  --ill-neutral-hi: color-mix(in oklab, var(--ill-neutral) 40%, #fff);
+  --ill-neutral-lo: color-mix(in oklab, var(--ill-neutral) 72%, var(--ill-ink));
 
-  /* Secundario (azul claro del medidor). */
-  --ill-2: color-mix(in oklab, var(--brand-secondary, #6c97cc) 62%, #fff);
-  --ill-2-hi: color-mix(in oklab, var(--ill-2) 60%, #fff);
-  --ill-2-lo: color-mix(in oklab, var(--ill-2) 70%, var(--ill-ink));
-
-  /* Neutro (gris azulado de metales y conos). */
-  --ill-neutral: color-mix(in oklab, var(--text-primary, #12213a) 45%, #fff);
-  --ill-neutral-hi: color-mix(in oklab, var(--ill-neutral) 60%, #fff);
-  --ill-neutral-lo: color-mix(in oklab, var(--ill-neutral) 65%, #000);
-
-  /* Papel (blanco ligeramente teñido por la marca: cajas, libros, teclas). */
-  --ill-paper: color-mix(in oklab, #fff 90%, var(--ill-ink));
-  --ill-paper-hi: color-mix(in oklab, var(--ill-paper) 50%, #fff);
-  --ill-paper-lo: color-mix(in oklab, var(--ill-paper) 78%, var(--ill-ink));
+  /* Papel / crema: blanco levemente teñido por la marca. */
+  --ill-paper: color-mix(in oklab, #fff 94%, var(--ill-1));
+  --ill-paper-hi: #fff;
+  --ill-paper-lo: color-mix(in oklab, var(--ill-paper) 82%, var(--ill-1));
+  --ill-cream: color-mix(in oklab, #fff 86%, var(--ill-2));
+  --ill-cream-lo: color-mix(in oklab, var(--ill-cream) 80%, var(--ill-2));
 
   /* Sombra de contacto sutil. */
-  --ill-shadow: color-mix(in oklab, var(--ill-ink) 28%, transparent);
+  --ill-shadow: color-mix(in oklab, var(--ill-1-lo) 30%, transparent);
 
   display: block;
   width: 100%;

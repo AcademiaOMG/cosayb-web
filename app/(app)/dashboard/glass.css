@@ -63,8 +63,8 @@
 .glass-card-icon {
   position: relative;
   z-index: 3;
-  width: 46%;
-  max-width: 96px;
+  width: 58%;
+  max-width: 116px;
   aspect-ratio: 1 / 1;
   flex-shrink: 0;
 }
