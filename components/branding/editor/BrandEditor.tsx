@@ -2,7 +2,6 @@
 
 import { useEffect, useReducer, useState, useSyncExternalStore } from "react"
 import { useRouter } from "next/navigation"
-import useSWR from "swr"
 import { Lock, RotateCcw, Save, Undo2, Eye, MonitorPlay } from "lucide-react"
 import Button from "@/components/ui/Button"
 import Card from "@/components/ui/Card"
@@ -19,7 +18,8 @@ import {
   isDefaultTheme,
   isDirty,
 } from "@/lib/branding/draft"
-import { BRANDING_SWR_KEY, assetUrl, getBranding, saveBranding } from "@/lib/branding/editorApi"
+import { assetUrl, saveBranding } from "@/lib/branding/editorApi"
+import { useBrandingData } from "@/lib/branding/useBrandingData"
 import {
   getPreviewState,
   startPlatformPreview,
@@ -39,7 +39,7 @@ export default function BrandEditor() {
   const router = useRouter()
   const confirm = useConfirm()
   const { open: openUpgrade } = useUpgradeModal()
-  const { data, error, mutate, isLoading } = useSWR(BRANDING_SWR_KEY, getBranding, { revalidateOnFocus: false })
+  const { data, error, mutate, isLoading } = useBrandingData()
 
   const [state, dispatch] = useReducer(brandDraftReducer, undefined, () => createDraftState(null, null))
   const [syncedVersion, setSyncedVersion] = useState<number | null>(null)
@@ -90,7 +90,7 @@ export default function BrandEditor() {
     setSaving(true)
     try {
       const saved = await saveBranding(buildSavePayload(state))
-      await mutate(saved, { revalidate: false })
+      await mutate(saved)
       dispatch({ type: "load", theme: saved.theme, displayName: saved.displayName })
       setSyncedVersion(saved.version)
       stopPlatformPreview("saved")

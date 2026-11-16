@@ -3,12 +3,11 @@
 import { useState, useSyncExternalStore } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useSWRConfig } from "swr"
 import { Eye } from "lucide-react"
 import Button from "@/components/ui/Button"
 import { toast } from "@/lib/toast"
 import { friendlyError } from "@/lib/errorMessage"
-import { BRANDING_SWR_KEY, saveBranding } from "@/lib/branding/editorApi"
+import { saveBranding } from "@/lib/branding/editorApi"
 import { getPreviewState, stopPlatformPreview, subscribePreview } from "@/lib/branding/platformPreview"
 
 const EDITOR_PATH = "/configuracion/marca"
@@ -24,7 +23,6 @@ export default function PlatformPreviewBar() {
   const preview = useSyncExternalStore(subscribePreview, getPreviewState, () => SERVER)
   const pathname = usePathname()
   const router = useRouter()
-  const { mutate } = useSWRConfig()
   const [saving, setSaving] = useState(false)
 
   if (!preview.active || !preview.theme) return null
@@ -34,8 +32,7 @@ export default function PlatformPreviewBar() {
     setSaving(true)
     try {
       const name = preview.displayName.trim()
-      const saved = await saveBranding(name ? { theme: preview.theme, displayName: name } : { theme: preview.theme })
-      await mutate(BRANDING_SWR_KEY, saved, { revalidate: false })
+      await saveBranding(name ? { theme: preview.theme, displayName: name } : { theme: preview.theme })
       stopPlatformPreview("saved")
       toast.success("Marca guardada", { description: "Los cambios ya se aplican a tu negocio." })
       router.refresh()
