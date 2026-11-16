@@ -193,7 +193,7 @@ export function ensureContrast(fg: string, bg: string, min: number): string {
   if (contrastRatio(start, bg) >= min) return start
   const { l, c, h } = toOklch(start)
   const lighterFirst = relativeLuminance(start) >= relativeLuminance(bg)
-  const attempt = (end: 0 | 1): string | null => {
+  const attempt = (end: number): string | null => {
     if (contrastRatio(fromOklch({ l: end, c, h }), bg) < min) return null
     let from = l
     let to = end
