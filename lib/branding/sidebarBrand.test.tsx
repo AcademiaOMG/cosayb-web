@@ -35,12 +35,21 @@ describe("SidebarBrand", () => {
         <SidebarBrand />
       </BrandProvider>,
     )
-  it("sin marca: «ACADEMIA OMG» como logo, sin la línea «by»", () => {
+  it("sin marca: logo de la plataforma (isotipo + «ACADEMIA OMG»), sin la línea «by»", () => {
     const html = renderToString(<SidebarBrand />)
     expect(html).toContain("ACADEMIA OMG")
+    expect(html).toContain("data-platform-mark")
     expect(html).not.toContain("data-sidebar-brand")
   })
-  it("con logo: imagen con alt del negocio, divisor y «by Academia OMG»", () => {
+  it("con marca: cabecera centrada, sin divisor interno y con el isotipo en la firma", () => {
+    const html = withBrand({ displayName: "Mi Marca", assets: { ...none, logoAlt: A.logoAlt } })
+    expect(html).toContain("data-sidebar-brand")
+    expect(html).toContain("items-center")
+    expect(html).toContain("data-platform-mark")
+    // el divisor interno entre logo y firma ya no existe (solo queda el borde inferior de la cabecera)
+    expect(html).not.toContain("h-px")
+  })
+  it("con logo: imagen con alt del negocio y «by Academia OMG»", () => {
     const html = withBrand({ displayName: "Mi Marca", assets: { ...none, logoAlt: A.logoAlt } })
     expect(html).toContain('src="https://x/a.png"')
     expect(html).toContain('alt="Mi Marca"')
