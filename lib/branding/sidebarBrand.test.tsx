@@ -61,15 +61,21 @@ describe("SidebarBrand", () => {
     const html = withBrand({ displayName: "Mi Marca", assets: { ...none, logoPrimary: A.logoPrimary } })
     expect(html).toContain("data-logo-plate")
   })
-  it("marca con nombre y sin logo: nombre en texto, sin imagen", () => {
+  it("marca con nombre y SIN logo: no se muestra el nombre; sale el logo de la plataforma", () => {
     const html = withBrand({ displayName: "Mi Marca" })
-    expect(html).toContain("Mi Marca")
+    expect(html).not.toContain("Mi Marca")
+    expect(html).toContain("ACADEMIA OMG")
+    expect(html).toContain("data-platform-mark")
+    expect(html).not.toContain("data-sidebar-brand")
     expect(html).not.toContain("<img")
+    expect(html).not.toContain(">by<")
   })
-  it("hasCustomIdentity", () => {
-    expect(hasCustomIdentity({ enabled: false, displayName: "X", ...none })).toBe(false)
+  it("hasCustomIdentity: solo cuenta tener un logo (el nombre no basta)", () => {
+    expect(hasCustomIdentity({ enabled: false, displayName: "X", ...A })).toBe(false)
+    expect(hasCustomIdentity({ enabled: true, displayName: "X", ...none })).toBe(false)
     expect(hasCustomIdentity({ enabled: true, displayName: null, ...none })).toBe(false)
     expect(hasCustomIdentity({ enabled: true, displayName: null, ...A })).toBe(true)
+    expect(hasCustomIdentity({ enabled: true, displayName: null, ...none, icon: A.icon })).toBe(true)
   })
   it("BrandLogo icon sin icono: inicial del nombre", () => {
     expect(renderToString(<BrandLogo variant="icon" />)).toContain(">A<")

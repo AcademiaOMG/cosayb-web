@@ -37,9 +37,13 @@ export function PlatformMark({ size = 20, className }: { size?: number; classNam
   )
 }
 
-/** ¿El negocio tiene identidad propia (marca activa con logo o nombre)? Si no, se ve el logo de la plataforma. */
+/**
+ * ¿El negocio tiene identidad visual propia en el sidebar? SOLO si subió un logo (principal,
+ * alterno o icono). El nombre del negocio NO cuenta: sin logo propio el sidebar muestra el
+ * logo de la plataforma (isotipo + «ACADEMIA OMG»), nunca el nombre en texto.
+ */
 export function hasCustomIdentity(b: { enabled: boolean; displayName: string | null; logoPrimary: string | null; logoAlt: string | null; icon: string | null }): boolean {
-  return b.enabled && (!!b.displayName || pickLogo("alt", b).src !== null)
+  return b.enabled && pickLogo("alt", b).src !== null
 }
 
 /**
@@ -61,8 +65,8 @@ export function PlatformLine({ className, color = "var(--sidebar-muted)" }: { cl
 
 /**
  * Cabecera del sidebar (w-60), centrada.
- * - Sin marca: el logo de la plataforma (isotipo + «ACADEMIA OMG»), como en la landing.
- * - Con marca: logo (o nombre) del negocio y, debajo, la firma «by [isotipo] ACADEMIA OMG».
+ * - Sin logo propio: el logo de la plataforma (isotipo + «ACADEMIA OMG»), como en la landing.
+ * - Con logo propio: el logo del negocio y, debajo, la firma «by [isotipo] ACADEMIA OMG».
  *   Sin divisor entre ambos: el aire y el cambio de escala bastan.
  */
 export default function SidebarBrand() {
@@ -88,7 +92,6 @@ export default function SidebarBrand() {
     )
   }
 
-  const hasLogo = pickLogo("alt", brand).src !== null
   return (
     <div
       className="flex shrink-0 flex-col items-center gap-2.5 px-5 pb-4 pt-5 text-center"
@@ -102,7 +105,7 @@ export default function SidebarBrand() {
         style={{ color: "var(--sidebar-text)" }}
       >
         <span className="font-display block min-w-0 max-w-full truncate text-xl font-bold leading-tight">
-          <BrandLogo variant="alt" height={hasLogo ? 40 : 28} maxWidth={200} autoPlate />
+          <BrandLogo variant="alt" height={40} maxWidth={200} autoPlate />
         </span>
       </Link>
       <PlatformLine className="justify-center" />
