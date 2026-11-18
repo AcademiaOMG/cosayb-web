@@ -8,10 +8,10 @@ import { Badge, Donut, ProgressBar, rise, type Tone } from "./ui"
 import { LEVEL_LABEL, durationLabel, isNew, pct, toneForPct } from "@/lib/lms/format"
 import type { CatalogCourse, CourseLevel, CourseStatus } from "@/lib/lms/types"
 
-export function CourseThumb({ coverKey, size = 48, rounded = 14 }: { coverKey: string; size?: number; rounded?: number }) {
+export function CourseThumb({ coverKey, slug, coverVersion, size = 48, rounded = 14 }: { coverKey: string; slug?: string; coverVersion?: number; size?: number; rounded?: number }) {
   return (
     <span className="inline-block shrink-0 overflow-hidden" style={{ width: size, height: size, borderRadius: rounded }}>
-      <Cover coverKey={coverKey} className="block h-full w-full" />
+      <Cover coverKey={coverKey} slug={slug} coverVersion={coverVersion} className="block h-full w-full" />
     </span>
   )
 }
@@ -31,6 +31,7 @@ export interface CardCourse {
   href?: string
   title: string
   coverKey: string
+  coverVersion?: number
   level: CourseLevel
   tags: string[]
   durationMinutes: number
@@ -54,7 +55,7 @@ export function CourseCard({ c, index = 0 }: { c: CardCourse; index?: number }) 
     <SpotlightCard className="l-card l-card-hover l-rise flex h-full flex-col p-2" style={rise(index)}>
       <Link href={c.href ?? `/cursos/${c.slug}`} className="flex h-full flex-col rounded-[18px] focus-visible:outline-offset-4" aria-label={c.title}>
         <span className="relative block overflow-hidden rounded-[18px]" style={{ aspectRatio: "400 / 190" }}>
-          <Cover coverKey={c.coverKey} className="block h-full w-full" />
+          <Cover coverKey={c.coverKey} slug={c.slug} coverVersion={c.coverVersion} className="block h-full w-full" />
           <span className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
             {c.status === "draft" && <Badge tone="amber">Borrador</Badge>}
             {c.createdAt && isNew(c.createdAt) && c.status !== "draft" && <Badge tone="rose">Nuevo</Badge>}
@@ -100,7 +101,7 @@ export function CourseRow({ c, index = 0 }: { c: CardCourse; index?: number }) {
   const p = c.progress ? pct(c.progress.done, c.progress.total) : null
   return (
     <Link href={c.href ?? `/cursos/${c.slug}`} className="l-card l-card-hover l-rise flex items-center gap-4 p-3" style={rise(index)}>
-      <CourseThumb coverKey={c.coverKey} size={72} rounded={16} />
+      <CourseThumb coverKey={c.coverKey} slug={c.slug} coverVersion={c.coverVersion} size={72} rounded={16} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-base font-extrabold">{c.title}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold" style={{ color: "var(--l-muted)" }}>

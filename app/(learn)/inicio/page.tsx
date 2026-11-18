@@ -58,7 +58,7 @@ export default function InicioPage() {
         ) : s.resume ? (
           <Card className="l-rise flex flex-col gap-4 p-4 sm:flex-row sm:items-center" style={rise(1)}>
             <div className="hidden w-48 shrink-0 overflow-hidden rounded-2xl sm:block" style={{ aspectRatio: "400 / 190" }}>
-              <Cover coverKey={s.resume.coverKey} className="block h-full w-full" />
+              <Cover coverKey={s.resume.coverKey} slug={s.resume.slug} coverVersion={s.resume.coverVersion} className="block h-full w-full" />
             </div>
             <div className="min-w-0 flex-1">
               <Badge tone="brand">Continúa donde lo dejaste</Badge>
@@ -104,7 +104,7 @@ export default function InicioPage() {
               return (
                 <li key={c.id}>
                   <Link href={`/cursos/${c.slug}`} className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 rounded-2xl px-1 py-3 transition-colors hover:bg-[var(--l-bg)] sm:grid-cols-[auto_1.4fr_1fr_auto]">
-                    <CourseThumb coverKey={c.coverKey} size={44} />
+                    <CourseThumb coverKey={c.coverKey} slug={c.slug} coverVersion={c.coverVersion} size={44} />
                     <span className="min-w-0"><span className="block truncate font-extrabold">{c.title}</span><span className="text-xs font-semibold" style={{ color: "var(--l-muted)" }}>{c.completedCount}/{c.lessonCount} lecciones</span></span>
                     <span className="col-span-2 sm:col-span-1"><ProgressBar value={p} tone={toneForPct(p)} label={`Avance de ${c.title}`} index={i} /></span>
                     <span className="hidden w-12 text-right text-sm font-extrabold sm:block">{p}%</span>

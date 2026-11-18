@@ -99,7 +99,7 @@ export default function CoursesAdmin() {
                 <tr key={c.id}>
                   <td>
                     <Link href={`/administracion/cursos/${c.id}`} className="flex items-center gap-3 font-extrabold hover:underline">
-                      <CourseThumb coverKey={c.coverKey} size={40} rounded={12} />
+                      <CourseThumb coverKey={c.coverKey} slug={c.slug} coverVersion={c.coverVersion} size={40} rounded={12} />
                       <span className="min-w-0"><span className="block break-words">{c.title}</span><span className="text-xs font-semibold" style={{ color: "var(--l-muted)" }}>{c.lessons} lecciones · {LEVEL_LABEL[c.level]}</span></span>
                     </Link>
                   </td>

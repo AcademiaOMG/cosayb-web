@@ -146,6 +146,10 @@ export const lms = {
         ? uploadWithProgress<{ id: string }>(path, file, onProgress)
         : data<{ id: string }>(fetchAPI(path, { method: "POST", body: file, headers: { "Content-Type": file.type } }))
     },
+    /** Portada propia (JPG/PNG/WebP, máx. 3 MB): binario crudo; el servidor revalida tipo, firma y dimensiones. */
+    setCover: (courseId: string, file: Blob, onProgress?: (percent: number) => void) =>
+      uploadWithProgress<{ coverVersion: number }>(`${A}/courses/${enc(courseId)}/cover`, file, onProgress, "PUT"),
+    removeCover: (courseId: string) => fetchAPI<void>(`${A}/courses/${enc(courseId)}/cover`, { method: "DELETE" }).catch(ignoreEmpty),
     deleteAsset: (lessonId: string, assetId: string) =>
       fetchAPI<void>(`${A}/lessons/${enc(lessonId)}/assets/${enc(assetId)}`, { method: "DELETE" }).catch(ignoreEmpty),
 

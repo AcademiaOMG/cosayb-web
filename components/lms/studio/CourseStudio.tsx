@@ -17,6 +17,7 @@ import { toast } from "@/lib/toast"
 import type { AdminCourse, CourseMeta } from "@/lib/lms/types"
 import { Dialog, SwitchRow, TextField, AreaField, errMsg } from "./kit"
 import { CourseMetaForm } from "./forms"
+import CoverUploader from "./CoverUploader"
 import ContentTab from "./ContentTab"
 import QuizzesTab from "./QuizzesTab"
 import StudentsTab from "./StudentsTab"
@@ -191,6 +192,7 @@ function SettingsTab({ course, onChanged }: { course: AdminCourse; onChanged: ()
         <div><Button onClick={save} loading={busy} disabled={Boolean(slugError) || !f.title.trim()}>Guardar ajustes</Button></div>
       </div>
       <aside className="flex flex-col gap-4">
+        <CoverUploader course={course} onChanged={onChanged} />
         <div className="l-card p-5">
           <h2 className="font-extrabold">Zona delicada</h2>
           <p className="l-hint mb-3 mt-1">Solo se pueden eliminar cursos en borrador. Los demás se archivan.</p>

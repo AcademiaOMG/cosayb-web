@@ -63,7 +63,7 @@ export default function AcademiaPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {catalog.slice(0, 6).map((c) => (
                 <Link key={c.id} href={`/cursos/${c.slug}`} className="overflow-hidden rounded-[var(--radius-lg)] transition-shadow hover:shadow-[var(--shadow-md)]" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}>
-                  <span className="block aspect-[400/220] w-full"><Cover coverKey={c.coverKey} className="h-full w-full" /></span>
+                  <span className="block aspect-[400/220] w-full"><Cover coverKey={c.coverKey} slug={c.slug} coverVersion={c.coverVersion} className="h-full w-full" /></span>
                   <span className="flex flex-col gap-1 p-4">
                     <span className="font-display text-base font-bold" style={{ color: "var(--text-primary)" }}>{c.title}</span>
                     <span className="text-xs" style={{ color: "var(--text-muted)" }}>{LEVEL_LABEL[c.level]} · {c.lessonCount} lecciones · {durationLabel(c.durationMinutes)}{c.includedInAcademia ? " · Incluido en el plan Academia" : ""}</span>

@@ -1,3 +1,6 @@
+"use client"
+
+import { useState } from "react"
 import type { ReactNode } from "react"
 
 // Portadas ilustradas ORIGINALES (SVG inline, estilo isométrico plano, temática gastronómica).
@@ -217,7 +220,29 @@ function Scene({ k }: { k: string }) {
 export const COVER_KEYS = Object.keys(THEMES)
 
 /** Portada decorativa 400x220. `className` controla tamaño (usa w-full y aspect/altura del contenedor). */
-export default function Cover({ coverKey, className = "" }: { coverKey: string; className?: string }) {
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000"
+
+/** URL de la portada propia (la API la sirve; el parámetro v invalida la caché al cambiarla). */
+export function coverImageUrl(slug: string, version: number): string {
+  return `${API_BASE}/api/v1/lms/courses/${encodeURIComponent(slug)}/cover?v=${version}`
+}
+
+/**
+ * Portada del curso: la imagen que subió el instructor si existe (slug + coverVersion > 0); si no carga o no hay,
+ * la ilustración original de coverKey. Decorativa: el título del curso va en texto aparte.
+ */
+export default function Cover({ coverKey, slug, coverVersion, className = "" }: { coverKey: string; slug?: string; coverVersion?: number; className?: string }) {
+  const [failed, setFailed] = useState<number | null>(null)
+  if (slug && coverVersion && coverVersion > 0 && failed !== coverVersion) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- imagen servida por la API; next/image no aplica a un origen dinámico
+      <img src={coverImageUrl(slug, coverVersion)} alt="" aria-hidden="true" loading="lazy" decoding="async" className={className} style={{ objectFit: "cover" }} onError={() => setFailed(coverVersion)} />
+    )
+  }
+  return <Illustration coverKey={coverKey} className={className} />
+}
+
+function Illustration({ coverKey, className = "" }: { coverKey: string; className?: string }) {
   const key = THEMES[coverKey] ? coverKey : "cocina"
   const t = THEMES[key]
   const id = `cv-${key}`

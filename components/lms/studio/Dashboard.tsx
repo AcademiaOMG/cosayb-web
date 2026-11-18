@@ -51,7 +51,7 @@ function CourseTile({ c, index }: { c: OverviewCourse; index: number }) {
   return (
     <Card hover className="l-rise flex flex-col gap-4 p-5" style={rise(index % 9)}>
       <div className="flex items-start gap-3">
-        <CourseThumb coverKey={c.coverKey} size={56} />
+        <CourseThumb coverKey={c.coverKey} slug={c.slug} coverVersion={c.coverVersion} size={56} />
         <div className="min-w-0 flex-1">
           <Link href={paths.course(c.id)} className="block break-words text-lg font-extrabold leading-snug hover:underline">{c.title}</Link>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -274,7 +274,7 @@ export default function Dashboard({ page = "panorama" }: { page?: "panorama" | "
               <tbody>
                 {shown.map((c) => (
                   <tr key={c.id}>
-                    <td><Link href={paths.course(c.id)} className="flex items-center gap-3 font-extrabold hover:underline"><CourseThumb coverKey={c.coverKey} size={40} rounded={12} />{c.title}</Link></td>
+                    <td><Link href={paths.course(c.id)} className="flex items-center gap-3 font-extrabold hover:underline"><CourseThumb coverKey={c.coverKey} slug={c.slug} coverVersion={c.coverVersion} size={40} rounded={12} />{c.title}</Link></td>
                     <td><StatusBadge status={c.status} /></td>
                     <td className="font-bold">{c.enrolled}</td>
                     <td className="min-w-[130px]"><div className="flex items-center gap-2"><ProgressBar value={c.avgProgress} tone={toneForPct(c.avgProgress)} label={`Avance de ${c.title}`} height={6} /><span className="text-xs font-extrabold">{c.avgProgress}%</span></div></td>
