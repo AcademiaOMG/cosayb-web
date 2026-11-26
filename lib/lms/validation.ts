@@ -179,3 +179,19 @@ export function safeDecode(raw: string): string {
     return raw
   }
 }
+
+export const COVER_MAX_BYTES = 3 * 1024 * 1024
+export const COVER_MIN = { width: 640, height: 360 }
+const COVER_MAX_SIDE = 6000
+
+/** Comprobación rápida de una portada antes de subirla (el servidor la valida de nuevo). null = correcta. */
+export function validateCoverFile(f: { type: string; size: number; width?: number; height?: number }): string | null {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) return "Solo se aceptan imágenes JPG, PNG o WebP."
+  if (f.size === 0) return "El archivo está vacío."
+  if (f.size > COVER_MAX_BYTES) return "La portada supera los 3 MB."
+  if (f.width !== undefined && f.height !== undefined) {
+    if (f.width < COVER_MIN.width || f.height < COVER_MIN.height) return `La portada debe medir al menos ${COVER_MIN.width}×${COVER_MIN.height} px.`
+    if (f.width > COVER_MAX_SIDE || f.height > COVER_MAX_SIDE) return `Ningún lado puede superar ${COVER_MAX_SIDE} px.`
+  }
+  return null
+}

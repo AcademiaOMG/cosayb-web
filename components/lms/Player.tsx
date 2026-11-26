@@ -165,7 +165,7 @@ function PlayerInner() {
                   <ExternalVideo embed={lesson.embed} title={lesson.title} />
                 ) : lesson.kind === "link" && lesson.linkUrl && /^https?:[/][/]/i.test(lesson.linkUrl) ? (
                   <div className="relative flex flex-col items-start justify-end gap-3 overflow-hidden rounded-3xl p-6 sm:p-8" style={{ aspectRatio: "16 / 6", minHeight: 180 }}>
-                    <Cover coverKey={course.coverKey} className="absolute inset-0 h-full w-full" />
+                    <Cover coverKey={course.coverKey} slug={course.slug} coverVersion={course.coverVersion} className="absolute inset-0 h-full w-full" />
                     <span className="relative rounded-2xl bg-white/95 p-4 shadow-lg">
                       <span className="block text-sm font-bold" style={{ color: "var(--l-muted)" }}>Esta lección es un recurso externo</span>
                       <a href={lesson.linkUrl} target="_blank" rel="noopener noreferrer" className="l-btn l-btn-primary mt-2"><ExternalLink size={16} aria-hidden="true" /> Abrir el enlace</a>
@@ -174,7 +174,7 @@ function PlayerInner() {
                   </div>
                 ) : (
                   <div className="relative overflow-hidden rounded-3xl" style={{ aspectRatio: "16 / 6" }}>
-                    <Cover coverKey={course.coverKey} className="absolute inset-0 h-full w-full" />
+                    <Cover coverKey={course.coverKey} slug={course.slug} coverVersion={course.coverVersion} className="absolute inset-0 h-full w-full" />
                   </div>
                 )}
                 <header className="flex flex-wrap items-start justify-between gap-3">

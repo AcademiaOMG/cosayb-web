@@ -81,7 +81,7 @@ export default function CursoDetallePage() {
             </ul>
             <div className="flex flex-wrap gap-1.5">{course.tags.map((t) => <span key={t} className="l-badge" style={{ background: "#fff", color: "var(--l-ink-2)", border: "1px solid var(--l-line)" }}>{t}</span>)}</div>
           </div>
-          <div className="l-float overflow-hidden rounded-3xl shadow-[0_24px_50px_rgba(60,50,140,.2)]"><Cover coverKey={course.coverKey} className="block h-auto w-full" /></div>
+          <div className="l-float overflow-hidden rounded-3xl shadow-[0_24px_50px_rgba(60,50,140,.2)]"><Cover coverKey={course.coverKey} slug={course.slug} coverVersion={course.coverVersion} className="block h-auto w-full" /></div>
         </div>
       </section>
 

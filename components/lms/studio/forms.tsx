@@ -39,7 +39,7 @@ export function CourseMetaForm({ value, onChange }: { value: CourseMeta; onChang
         onChange={(e) => onChange({ ...value, tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 8) })}
       />
       <fieldset>
-        <legend className="l-label mb-2">Portada ilustrada</legend>
+        <legend className="l-label mb-2">Portada ilustrada <span className="font-semibold" style={{ color: "var(--l-muted)" }}>(se usa si no subes una imagen propia)</span></legend>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {COVER_KEYS.map((k) => (
             <label key={k} className="relative cursor-pointer overflow-hidden rounded-2xl border-2 focus-within:outline focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-[var(--l-brand)]" style={{ borderColor: value.coverKey === k ? "var(--l-brand)" : "transparent" }}>

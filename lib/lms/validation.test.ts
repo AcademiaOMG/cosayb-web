@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   UPLOAD_RULES, formatBytes, isValidCertificateCode, normalizeCertificateCode, progressPercent, slugify,
-  safeDecode, unansweredCount, validateQuestionDraft, validateSlug, validateUpload,
+  safeDecode, unansweredCount, validateCoverFile, validateQuestionDraft, validateSlug, validateUpload,
 } from "./validation"
 
 describe("validateUpload", () => {
@@ -82,5 +82,19 @@ describe("safeDecode", () => {
     expect(safeDecode("ABCD%2DEFGH")).toBe("ABCD-EFGH")
     expect(safeDecode("%E0%A4%A")).toBe("%E0%A4%A")
     expect(safeDecode("%")).toBe("%")
+  })
+})
+
+describe("validateCoverFile", () => {
+  it("acepta JPG/PNG/WebP del tamaño correcto", () => {
+    expect(validateCoverFile({ type: "image/png", size: 500_000, width: 1280, height: 720 })).toBeNull()
+    expect(validateCoverFile({ type: "image/webp", size: 500_000 })).toBeNull()
+  })
+  it("rechaza SVG, vacíos, pesados y dimensiones fuera de rango", () => {
+    expect(validateCoverFile({ type: "image/svg+xml", size: 100 })).toMatch(/JPG, PNG o WebP/)
+    expect(validateCoverFile({ type: "image/png", size: 0 })).toMatch(/vacío/)
+    expect(validateCoverFile({ type: "image/png", size: 4 * 1024 * 1024 })).toMatch(/3 MB/)
+    expect(validateCoverFile({ type: "image/png", size: 10, width: 300, height: 200 })).toMatch(/al menos/)
+    expect(validateCoverFile({ type: "image/png", size: 10, width: 7000, height: 800 })).toMatch(/superar/)
   })
 })

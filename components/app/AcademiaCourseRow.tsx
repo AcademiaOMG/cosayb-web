@@ -12,7 +12,7 @@ export default function AcademiaCourseRow({ c }: { c: MyCourse }) {
       className="flex items-center gap-3 rounded-[var(--radius-lg)] p-3 transition-shadow hover:shadow-[var(--shadow-md)]"
       style={{ background: "var(--bg-surface)", border: "1px solid var(--border-light)" }}
     >
-      <span className="block h-14 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)]"><Cover coverKey={c.coverKey} className="h-full w-full" /></span>
+      <span className="block h-14 w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)]"><Cover coverKey={c.coverKey} slug={c.slug} coverVersion={c.coverVersion} className="h-full w-full" /></span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{c.title}</span>
         <span className="mt-1.5 flex items-center gap-2">

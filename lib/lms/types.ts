@@ -16,6 +16,8 @@ export interface CourseMeta {
 }
 
 export interface CatalogCourse extends CourseMeta {
+  /** Versión de la portada propia (0 o ausente = se usa la ilustración coverKey). */
+  coverVersion?: number
   id: string
   slug: string
   title: string
@@ -36,6 +38,7 @@ export interface OutlineLesson {
 }
 
 export interface CourseDetail extends CourseMeta {
+  coverVersion?: number
   id: string
   slug: string
   title: string
@@ -49,6 +52,8 @@ export interface CourseDetail extends CourseMeta {
 }
 
 export interface MyCourse {
+  /** Versión de la portada propia (0 o ausente = se usa la ilustración coverKey). */
+  coverVersion?: number
   id: string
   slug: string
   title: string
@@ -209,6 +214,8 @@ export interface VerifiedCertificate {
 export type CourseStatus = "draft" | "published" | "archived"
 
 export interface AdminCourseRow {
+  /** Versión de la portada propia (0 o ausente = se usa la ilustración coverKey). */
+  coverVersion?: number
   category: string
   level: CourseLevel
   durationMinutes: number
@@ -245,6 +252,8 @@ export interface AdminLesson {
 }
 
 export interface AdminCourse extends CourseMeta {
+  /** Versión de la portada propia (0 o ausente = se usa la ilustración coverKey). */
+  coverVersion?: number
   id: string
   slug: string
   title: string
@@ -373,7 +382,7 @@ export interface StudentSummary {
   certificates: { count: number; total: number }
   streak: number
   activity: { date: string; count: number }[]
-  resume: { courseId: string; slug: string; title: string; coverKey: string; lessonId: string | null; lessonTitle: string | null; completed: number; total: number } | null
+  resume: { courseId: string; slug: string; title: string; coverKey: string; coverVersion?: number; lessonId: string | null; lessonTitle: string | null; completed: number; total: number } | null
   upcoming: { kind: "lesson" | "quiz"; courseId: string; courseSlug: string; courseTitle: string; id: string; title: string }[]
 }
 
@@ -411,6 +420,8 @@ export interface CourseAnalytics {
 // ─── Panorama del instructor ────────────────────────────────────────────────
 
 export interface OverviewCourse {
+  /** Versión de la portada propia (0 o ausente = se usa la ilustración coverKey). */
+  coverVersion?: number
   id: string
   slug: string
   title: string
@@ -482,6 +493,8 @@ export interface Paged<T> {
 }
 
 export interface ManageCourse {
+  /** Versión de la portada propia (0 o ausente = se usa la ilustración coverKey). */
+  coverVersion?: number
   id: string
   slug: string
   title: string
